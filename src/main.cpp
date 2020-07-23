@@ -36,7 +36,7 @@ const QString CL_HELP_MESSAGE = "CLIFp Usage:\n"
                               "-" + CL_OPTION_APP_SHORT_NAME + " | --" + CL_OPTION_APP_LONG_NAME + ": " + CL_OPTION_APP_DESCRIPTION + "\n"
                               "-" + CL_OPTION_PARAM_SHORT_NAME + " | --" + CL_OPTION_PARAM_LONG_NAME + ": " + CL_OPTION_PARAM_DESCRIPTION + "\n"
                               "\n"
-                              "The Application and Parameter options are required. If the help or version options are specified, all other options are ignored.";
+                              "The Application and Parameter options are required (unless using help, version, or msg). If the help or version options are specified, all other options are ignored.";
 
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR;
 
