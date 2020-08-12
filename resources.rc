@@ -1,4 +1,4 @@
-IDI_ICON1               ICON    DISCARDABLE     "res\CLIFp.ico"
+IDI_ICON1               ICON    DISCARDABLE     "res\icon\CLIFp.ico"
 
 #include "src\version.h"
 
