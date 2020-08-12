@@ -6,9 +6,7 @@
 #include <QProcess>
 #include <QCommandLineParser>
 #include <QDebug>
-#include "Windows.h"
-#include <tlhelp32.h>
-#include <cstdio>
+#include "qx-windows.h"
 
 //-Enums-----------------------------------------------------------------------
 enum ErrorCode
@@ -268,21 +266,10 @@ ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppP
 ErrorCode waitOnBatchProcess()
 {
     // Find process ID by name
-    DWORD processID = 0;
-    PROCESSENTRY32 entry;
-    entry.dwSize = sizeof(PROCESSENTRY32);
-
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
-    if (Process32First(snapshot, &entry) == TRUE)
-        while (Process32Next(snapshot, &entry) == TRUE)
-            if (QString::fromWCharArray(entry.szExeFile) == BATCH_WAIT_EXE)
-                processID = entry.th32ProcessID;
-
-    CloseHandle(snapshot);
+    DWORD processID = Qx::getProcessIDByName(BATCH_WAIT_EXE);
 
     // Check that process was found
-    if(!processID)
+    if(processID)
     {
         QMessageBox::warning(nullptr, QCoreApplication::applicationName(), BATCH_WAIT_PROCESS_NOT_FOUND_ERROR);
         return BATCH_PROCESS_NOT_FOUND;
