@@ -10,9 +10,9 @@
 #define VER_COMPANYNAME_STR         "oblivioncth"
 #define VER_FILEDESCRIPTION_STR     "CLI for BlueMaxima's Flashpoint"
 #define VER_INTERNALNAME_STR        "CLIFp"
-#define VER_LEGALCOPYRIGHT_STR      "Copyright © 2019 oblivioncth"
+#define VER_LEGALCOPYRIGHT_STR      "Open Source © 2020 oblivioncth"
 #define VER_LEGALTRADEMARKS1_STR    "All Rights Reserved"
-#define VER_LEGALTRADEMARKS2_STR    VER_LEGALTRADEMARKS1_STR
+#define VER_LEGALTRADEMARKS2_STR    "GNU AGPL V3";
 #define VER_ORIGINALFILENAME_STR    "CLIFp.exe"
 #define VER_PRODUCTNAME_STR         "CLI Flashpoint"
 
