@@ -125,18 +125,20 @@ int main(int argc, char *argv[])
     clParser.process(app);
 
     // Handle informative CLI options
+    bool minimumRunArgsPresent = clParser.isSet(clOptionApp) && clParser.isSet(clOptionParam);
+    bool partialRunArgsPresent = (clParser.isSet(clOptionApp) && !clParser.isSet(clOptionParam)) || (!clParser.isSet(clOptionApp) && clParser.isSet(clOptionParam));
 
     if(clParser.isSet(clOptionVersion))
         QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
 
-    if(clParser.isSet(clOptionHelp) || !clParser.isSet(clOptionApp) || !clParser.isSet(clOptionParam))
+    if(clParser.isSet(clOptionHelp) || (!minimumRunArgsPresent && !clParser.isSet(clOptionMsg)) || partialRunArgsPresent)
         QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
 
-    if(clParser.isSet(clOptionHelp) || !clParser.isSet(clOptionApp) || !clParser.isSet(clOptionParam) || clParser.isSet(clOptionVersion))
-        return NO_ERR;
-
-    if(clParser.isSet(clOptionMsg))
+    if(clParser.isSet(clOptionMsg) && !clParser.isSet(clOptionHelp) && !clParser.isSet(clOptionVersion) && !partialRunArgsPresent)
         QMessageBox::information(nullptr, QCoreApplication::applicationName(), clParser.value(clOptionMsg));
+
+    if(!minimumRunArgsPresent)
+        return NO_ERR;
 
     // Handle primary CLI options
     QFile primaryApp(clParser.value(clOptionApp));
@@ -145,6 +147,7 @@ int main(int argc, char *argv[])
     //-Check for existance of required core applications-----------------------------------
     for(QString coreApp : CORE_APP_PATHS)
     {
+         qDebug() << QCoreApplication::applicationDirPath();
          QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + coreApp);
          if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
          {

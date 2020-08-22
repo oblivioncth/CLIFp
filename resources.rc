@@ -1,5 +1,6 @@
 IDI_ICON1               ICON    DISCARDABLE     "res\icon\CLIFp.ico"
 
+#include "Windows.h"
 #include "src\version.h"
 
 VS_VERSION_INFO VERSIONINFO
