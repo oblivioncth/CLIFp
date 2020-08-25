@@ -21,6 +21,8 @@ enum ErrorCode
     BATCH_PROCESS_NOT_HANDLED = 0x80,
     BATCH_PROCESS_NOT_HOOKED = 0x100
 };
+Q_DECLARE_FLAGS(ErrorCodes, ErrorCode)
+Q_DECLARE_OPERATORS_FOR_FLAGS(ErrorCodes);
 
 //-Constants-------------------------------------------------------------------
 
@@ -90,7 +92,7 @@ const QString BATCH_WAIT_PROCESS_NOT_HANDLED_ERROR  = "Could not get a handle to
 const QString BATCH_WAIT_PROCESS_NOT_HOOKED_ERROR  = "Could not hook the wait-on process " + BATCH_ERR_SUFFIX;
 
 // Working variables
-unsigned int currentStatus = ErrorCode::NO_ERR;
+ErrorCodes currentStatus = ErrorCode::NO_ERR;
 
 // Prototypes
 ErrorCode startupProcedure();
