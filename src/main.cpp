@@ -103,11 +103,10 @@ ErrorCode waitOnBatchProcess();
 int main(int argc, char *argv[])
 {
     //-Basic Application Setup-------------------------------------------------------------
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     // QApplication Object
     QApplication app(argc, argv);
-
-    QStringList test(EXEC_ACTION_ARGS_SHUTDOWN);
 
     // Set application name
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
