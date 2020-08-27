@@ -1,5 +1,5 @@
 # CLIFp (Command-line Interface for Flashpoint)
-CLIFp (pronounced "CLIFF-P") is a pseudo-command-line interface for [BlueMaxima's Flashpoint](https://bluemaxima.org/flashpoint/) project that allows you to start games/animations from within the collection via your system's command parser and contextual arguments. The utility is a "pseudo" CLI because it does not directly interface directly with any Flashpoint AP; instead, it emulates the environment 
+CLIFp (pronounced "Cliff-P") is a pseudo-command-line interface for [BlueMaxima's Flashpoint](https://bluemaxima.org/flashpoint/) project that allows you to start games/animations from within the collection via your system's command parser and contextual arguments. The utility is a "pseudo" CLI because it does not directly interface directly with any Flashpoint AP; instead, it emulates the environment 
 present while the Flashpoint launcher is running each time it is used to provide close to the same functionality that a native CLI would. Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completely in the background so that the only windows seen during use are the same ones present while running standard Flashpoint. It automatically terminates once the target application has exited, requiring no manual tasks or clean-up by the user. 
 
 ## Compatability
