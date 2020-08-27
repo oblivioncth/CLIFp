@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
     //-Check for existance of required core applications-----------------------------------
     for(QString coreApp : CORE_APP_PATHS)
     {
-         qDebug() << QCoreApplication::applicationDirPath();
          QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + coreApp);
          if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
          {
