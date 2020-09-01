@@ -11,7 +11,7 @@ Each release of this application targets a specific version or versions of BlueM
 | CLIFp Version | Target Flashpoint Version |
 |--|--|
 | 0.1 | 8.1 ("Spirit of Adventure") |
-
+| TBD | 8.2 ("Approaching Planet Nine") |
 
 Using a version of CLIFp that does not target the version of Flashpoint you wish to use it with is highly discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely or even damage the Flashpoint install it is used with.
 
