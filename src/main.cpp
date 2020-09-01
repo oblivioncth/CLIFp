@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     //-Check for existance of required core applications-----------------------------------
     for(QString coreApp : CORE_APP_PATHS)
     {
-         QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + coreApp);
+         QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + coreApp);
          if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
          {
              QMessageBox::critical(nullptr, QCoreApplication::applicationName(), EXE_NOT_FOUND_ERROR.arg(fullAppPath));
@@ -180,13 +180,13 @@ int main(int argc, char *argv[])
 ErrorCode startupProcedure()
 {
     // Go to Server directory
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "\\" + QFileInfo(PHP_EXE_PATH).dir().path());
+    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/" + QFileInfo(PHP_EXE_PATH).dir().path());
 
     // Initialize php data
     if(QProcess::execute(QFileInfo(PHP_EXE_PATH).fileName(), PHP_ARGS_STARTUP) < 0)
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + PHP_EXE_PATH)));
+                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + PHP_EXE_PATH)));
         return CORE_APP_NOT_STARTED;
     }
 
@@ -196,7 +196,7 @@ ErrorCode startupProcedure()
     if(!httpdProcess->waitForStarted())
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + HTTPD_EXE_PATH)));
+                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + HTTPD_EXE_PATH)));
         return CORE_APP_NOT_STARTED;
     }
 
@@ -222,7 +222,7 @@ ErrorCodes shutdownProcedure(bool silent)
 ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& silent)
 {
     // Go to app directory
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "\\" + QFileInfo(exePath).absolutePath());
+    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/" + QFileInfo(exePath).path());
 
     // Shutdown app
     if(QProcess::execute(QFileInfo(exePath).fileName(), shutdownArgs) < 0)
@@ -230,7 +230,7 @@ ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& s
         if(!silent)
         {
             QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                                  EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + exePath)));
+                                  EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + exePath)));
             silent = true;
         }
         return CORE_APP_NOT_STARTED_FOR_SHUTDOWN;
@@ -242,7 +242,7 @@ ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& s
 ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppParameters)
 {
     // Ensure primary app exists
-    QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + primaryApp.fileName());
+    QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + primaryApp.fileName());
 
     if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
     {
