@@ -65,20 +65,20 @@ const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_
 // FP Server Applications
 const QString PHP_EXE_PATH = "Server\\php.exe";
 const QString HTTPD_EXE_PATH = "Server\\httpd.exe";
-//const QString TAIL_EXE_PATH = "Server\\tail.exe"; TODO: Can probably be removed
 const QString BATCH_WAIT_EXE = "FlashpointSecurePlayer.exe";
 
 // FP Server App Arguments
 const QStringList PHP_ARGS_STARTUP = {"-f", "update_httpdconf_main_dir.php"};
 const QStringList PHP_ARGS_SHUTDOWN = {"-f", "reset_httpdconf_main_dir.php"};
 const QStringList HTTPD_ARGS_STARTUP = {"-f", "..//Server/conf/httpd.conf", "-X"};
-//const QStringList TAILS_ARGS_STARTUP = {"-n0", "-s1", "-f", "logs/access.log"}; TODO: Can probably be removed
 
 // FPSoftware Applications
-//const QString EXEC_ACTION_EXE_PATH = "FPSoftware\\Fiddler2Portable\\App\\Fiddler\\ExecAction.exe"; TODO: Can probably be removed
+const QString FIDDLER_EXE_PATH = "FPSoftware\\Fiddler2Portable\\App\\Fiddler\\ExecAction.exe";
+const QString REDIRECTOR_EXE_PATH = "FPSoftware\\Redirector\\Redirect.exe";
 
 // FPSoftware App Arguments
-const QStringList EXEC_ACTION_ARGS_SHUTDOWN = {"quit"};
+const QStringList FIDDLER_ARGS_SHUTDOWN = {"quit"};
+const QStringList REDIRECTOR_ARGS_SHUTDOWN = {"/close"};
 
 // Core Application Paths
 const QStringList CORE_APP_PATHS = {PHP_EXE_PATH, HTTPD_EXE_PATH};
@@ -96,7 +96,8 @@ ErrorCodes currentStatus = ErrorCode::NO_ERR;
 
 // Prototypes
 ErrorCode startupProcedure();
-ErrorCode shutdownProcedure(bool silent);
+ErrorCodes shutdownProcedure(bool silent);
+ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& silent);
 ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppParameters);
 ErrorCode waitOnBatchProcess();
 
@@ -199,43 +200,41 @@ ErrorCode startupProcedure()
         return CORE_APP_NOT_STARTED;
     }
 
-// TODO: Can probably be removed
-//    QProcess* tailProcess = new QProcess(); // Don't delete since this kills the child process and auto deallocation on exit is fine here
-//    tailProcess->start(QFileInfo(TAIL_EXE_PATH).fileName(), TAILS_ARGS_STARTUP);
-//    if(!tailProcess->waitForStarted())
-//    {
-//        QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-//                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + TAIL_EXE_PATH)));
-//        return CORE_APP_NOT_STARTED;
-//    }
-
     return NO_ERR;
 }
 
-ErrorCode shutdownProcedure(bool silent)
+ErrorCodes shutdownProcedure(bool silent)
 {
-    // Go to Server directory
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "\\" + QFileInfo(PHP_EXE_PATH).dir().path());
+    ErrorCodes shutdownErrors = NO_ERR;
 
     // Reset php data
-    if(QProcess::execute(QFileInfo(PHP_EXE_PATH).fileName(), PHP_ARGS_SHUTDOWN) < 0)
+    shutdownErrors |= shutdownApplication(PHP_EXE_PATH, PHP_ARGS_SHUTDOWN, silent);
+
+    // Quit Redirector
+    shutdownErrors |= shutdownApplication(REDIRECTOR_EXE_PATH, REDIRECTOR_ARGS_SHUTDOWN, silent);
+
+    // Quit Fiddler
+    shutdownErrors |= shutdownApplication(FIDDLER_EXE_PATH, FIDDLER_ARGS_SHUTDOWN, silent);
+
+    return shutdownErrors;
+}
+
+ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& silent)
+{
+    // Go to app directory
+    QDir::setCurrent(QCoreApplication::applicationDirPath() + "\\" + QFileInfo(exePath).absolutePath());
+
+    // Shutdown app
+    if(QProcess::execute(QFileInfo(exePath).fileName(), shutdownArgs) < 0)
     {
         if(!silent)
+        {
             QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                                  EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + PHP_EXE_PATH)));
+                                  EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + exePath)));
+            silent = true;
+        }
         return CORE_APP_NOT_STARTED_FOR_SHUTDOWN;
     }
-
-    // TODO: Can probably be removed
-//    // Go to Fiddler ExecAction directory
-//    QDir::setCurrent(QCoreApplication::applicationDirPath() + "\\" + QFileInfo(EXEC_ACTION_EXE_PATH).dir().path());
-//    if(QProcess::execute(QFileInfo(EXEC_ACTION_EXE_PATH).fileName(), EXEC_ACTION_ARGS_SHUTDOWN) < 0)
-//    {
-//        if(!silent)
-//            QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-//                                  EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "\\" + EXEC_ACTION_EXE_PATH)));
-//        return CORE_APP_NOT_STARTED_FOR_SHUTDOWN;
-//    }
 
     return NO_ERR;
 }
