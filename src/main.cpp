@@ -6,59 +6,76 @@
 #include <QProcess>
 #include <QCommandLineParser>
 #include <QDebug>
+#include <queue>
 #include "qx-windows.h"
 
 //-Enums-----------------------------------------------------------------------
 enum ErrorCode
 {
     NO_ERR = 0x00,
-    CORE_APP_NOT_FOUND = 0x02,
-    CORE_APP_NOT_STARTED = 0x04,
-    PRIMARY_APP_NOT_FOUND = 0x08,
-    PRIMARY_APP_NOT_STARTED = 0x10,
-    CORE_APP_NOT_STARTED_FOR_SHUTDOWN = 0x20,
-    BATCH_PROCESS_NOT_FOUND = 0x40,
-    BATCH_PROCESS_NOT_HANDLED = 0x80,
-    BATCH_PROCESS_NOT_HOOKED = 0x100
+    INVALID_ARGS = 0x02,
+    CORE_APP_NOT_FOUND = 0x04,
+    CORE_APP_NOT_STARTED = 0x08,
+    PRIMARY_APP_NOT_FOUND = 0x10,
+    PRIMARY_APP_NOT_STARTED = 0x20,
+    CORE_APP_NOT_STARTED_FOR_SHUTDOWN = 0x40,
+    BATCH_PROCESS_NOT_FOUND = 0x80,
+    BATCH_PROCESS_NOT_HANDLED = 0x100,
+    BATCH_PROCESS_NOT_HOOKED = 0x200
 };
 Q_DECLARE_FLAGS(ErrorCodes, ErrorCode)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ErrorCodes);
 
+enum class OperationMode { Invalid, Normal, Auto, Message, Information};
+
+//-Structs---------------------------------------------------------------------
+struct AppTask
+{
+    QString path;
+    QStringList param;
+    bool waitForExit;
+};
+
 //-Constants-------------------------------------------------------------------
 
 // Command line strings
-const QString CL_OPTION_HELP_SHORT_NAME = "h";
-const QString CL_OPTION_HELP_LONG_NAME = "help";
-const QString CL_OPTION_HELP_EXTRA_NAME = "?";
-const QString CL_OPTION_HELP_DESCRIPTION = "Prints this help message";
+const QString CL_OPT_HELP_S_NAME = "h";
+const QString CL_OPT_HELP_L_NAME = "help";
+const QString CL_OPT_HELP_E_NAME = "?";
+const QString CL_OPT_HELP_DESC = "Prints this help message.";
 
-const QString CL_OPTION_VERSION_SHORT_NAME = "v";
-const QString CL_OPTION_VERSION_LONG_NAME = "version";
-const QString CL_OPTION_VERSION_DESCRIPTION = "Prints the current version of this tool";
+const QString CL_OPT_VERSION_S_NAME = "v";
+const QString CL_OPT_VERSION_L_NAME = "version";
+const QString CL_OPT_VERSION_DESC = "Prints the current version of this tool.";
 
-const QString CL_OPTION_APP_SHORT_NAME = "a";
-const QString CL_OPTION_APP_LONG_NAME = "app";
-const QString CL_OPTION_APP_DESCRIPTION = "Path of primary application to launch";
+const QString CL_OPT_APP_S_NAME = "e";
+const QString CL_OPT_APP_L_NAME = "exe";
+const QString CL_OPT_APP_DESC = "Path of primary application to launch.";
 
-const QString CL_OPTION_PARAM_SHORT_NAME = "p";
-const QString CL_OPTION_PARAM_LONG_NAME = "param";
-const QString CL_OPTION_PARAM_DESCRIPTION = "Command-line parameters to use when starting the primary application";
+const QString CL_OPT_PARAM_S_NAME = "p";
+const QString CL_OPT_PARAM_L_NAME = "param";
+const QString CL_OPT_PARAM_DESC = "Command-line parameters to use when starting the primary application.";
 
-const QString CL_OPTION_MSG_SHORT_NAME = "m";
-const QString CL_OPTION_MSG_LONG_NAME = "msg";
-const QString CL_OPTION_MSG_DESCRIPTION = "Displays an pop-up dialog with the supplied message. Used primarily for some additional apps";
+const QString CL_OPT_MSG_S_NAME = "m";
+const QString CL_OPT_MSG_L_NAME = "msg";
+const QString CL_OPT_MSG_DESC = "Displays an pop-up dialog with the supplied message. Used primarily for some additional apps.";
 
+const QString CL_OPT_AUTO_S_NAME = "a";
+const QString CL_OPT_AUTO_L_NAME = "auto";
+const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by ID and runs it if found, including run-before/run-after additional apps in the case of a game.";
 
 // Command line messages
 const QString CL_HELP_MESSAGE = "CLIFp Usage:\n"
                                 "\n"
-                                "-" + CL_OPTION_HELP_SHORT_NAME + " | --" + CL_OPTION_HELP_LONG_NAME + " | -" + CL_OPTION_HELP_EXTRA_NAME + ": " + CL_OPTION_HELP_DESCRIPTION + "\n"
-                                "-" + CL_OPTION_VERSION_SHORT_NAME + " | --" + CL_OPTION_VERSION_LONG_NAME + ": " + CL_OPTION_VERSION_DESCRIPTION + "\n"
-                                "-" + CL_OPTION_APP_SHORT_NAME + " | --" + CL_OPTION_APP_LONG_NAME + ": " + CL_OPTION_APP_DESCRIPTION + "\n"
-                                "-" + CL_OPTION_PARAM_SHORT_NAME + " | --" + CL_OPTION_PARAM_LONG_NAME + ": " + CL_OPTION_PARAM_DESCRIPTION + "\n"
-                                "-" + CL_OPTION_MSG_SHORT_NAME + " | --" + CL_OPTION_MSG_LONG_NAME + ": " + CL_OPTION_MSG_DESCRIPTION + "\n"
+                                "-" + CL_OPT_HELP_S_NAME + " | --" + CL_OPT_HELP_L_NAME + " | -" + CL_OPT_HELP_E_NAME + ": " + CL_OPT_HELP_DESC + "\n"
+                                "-" + CL_OPT_VERSION_S_NAME + " | --" + CL_OPT_VERSION_L_NAME + ": " + CL_OPT_VERSION_DESC + "\n"
+                                "-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ": " + CL_OPT_APP_DESC + "\n"
+                                "-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ": " + CL_OPT_PARAM_DESC + "\n"
+                                "-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ": " + CL_OPT_MSG_DESC + "\n"
                                 "\n"
-                                "The Application and Parameter options are required (unless using help, version, or msg). If the help or version options are specified, all other options are ignored.";
+                                "Use '" + CL_OPT_APP_L_NAME + "' and '" + CL_OPT_PARAM_L_NAME + "', for normal operation, use '" + CL_OPT_AUTO_L_NAME + "'by itself "
+                                "for automatic operation, use '" + CL_OPT_MSG_L_NAME  + "' to display a popup message, or '" + CL_OPT_HELP_L_NAME + "' and/or '"
+                                + CL_OPT_VERSION_L_NAME + "' for information.";
 
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR;
 
@@ -91,6 +108,25 @@ const QString BATCH_WAIT_PROCESS_NOT_FOUND_ERROR  = "Could not find the wait-on 
 const QString BATCH_WAIT_PROCESS_NOT_HANDLED_ERROR  = "Could not get a handle to the wait-on process " + BATCH_ERR_SUFFIX;
 const QString BATCH_WAIT_PROCESS_NOT_HOOKED_ERROR  = "Could not hook the wait-on process " + BATCH_ERR_SUFFIX;
 
+// CLI Options
+const QCommandLineOption CL_OPTION_APP({CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"); // Takes value
+const QCommandLineOption CL_OPTION_PARAM({CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, "parameters"); // Takes value
+const QCommandLineOption CL_OPTION_AUTO({CL_OPT_AUTO_S_NAME, CL_OPT_AUTO_L_NAME}, CL_OPT_AUTO_DESC, "id"); // Takes value
+const QCommandLineOption CL_OPTION_MSG({CL_OPT_MSG_S_NAME, CL_OPT_MSG_L_NAME}, CL_OPT_MSG_DESC, "message"); // Takes value
+const QCommandLineOption CL_OPTION_HELP({CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC); // Boolean option
+const QCommandLineOption CL_OPTION_VERSION({CL_OPT_VERSION_S_NAME, CL_OPT_VERSION_L_NAME}, CL_OPT_VERSION_DESC); // Boolean option
+const QList<QCommandLineOption> ALL_CL_OPTIONS{CL_OPTION_APP, CL_OPTION_PARAM, CL_OPTION_AUTO, CL_OPTION_MSG, CL_OPTION_HELP, CL_OPTION_VERSION};
+
+// CLI Option Operation Mode Map TODO: Submit a patch for Qt6 to make QCommandLineOption directly hashable (implement == and qHash)
+const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
+    {{CL_OPT_APP_S_NAME, CL_OPT_PARAM_S_NAME}, OperationMode::Normal},
+    {{CL_OPT_AUTO_S_NAME}, OperationMode::Auto},
+    {{CL_OPT_MSG_S_NAME}, OperationMode::Message},
+    {{CL_OPT_HELP_S_NAME}, OperationMode::Information},
+    {{CL_OPT_VERSION_S_NAME}, OperationMode::Information},
+    {{CL_OPT_HELP_S_NAME, CL_OPT_VERSION_S_NAME}, OperationMode::Information}
+};
+
 // Working variables
 ErrorCodes currentStatus = ErrorCode::NO_ERR;
 
@@ -113,38 +149,60 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
     QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
 
-    // CLI Options
-    QCommandLineOption clOptionApp({CL_OPTION_APP_SHORT_NAME, CL_OPTION_APP_LONG_NAME}, CL_OPTION_APP_DESCRIPTION, "application"); // Takes value
-    QCommandLineOption clOptionParam({CL_OPTION_PARAM_SHORT_NAME, CL_OPTION_PARAM_LONG_NAME}, CL_OPTION_PARAM_DESCRIPTION, "parameters"); // Takes value
-    QCommandLineOption clOptionMsg({CL_OPTION_MSG_SHORT_NAME, CL_OPTION_MSG_LONG_NAME}, CL_OPTION_MSG_DESCRIPTION, "message"); // Takes value
-    QCommandLineOption clOptionHelp({CL_OPTION_HELP_SHORT_NAME, CL_OPTION_HELP_LONG_NAME, CL_OPTION_HELP_EXTRA_NAME}, CL_OPTION_HELP_DESCRIPTION); // Boolean option
-    QCommandLineOption clOptionVersion({CL_OPTION_VERSION_SHORT_NAME, CL_OPTION_VERSION_LONG_NAME}, CL_OPTION_VERSION_DESCRIPTION); // Boolean option
-
     // CLI Parser
     QCommandLineParser clParser;
     clParser.setApplicationDescription(VER_FILEDESCRIPTION_STR);
-    clParser.addOptions({clOptionApp, clOptionParam, clOptionMsg, clOptionHelp, clOptionVersion});
+    clParser.addOptions({CL_OPTION_APP, CL_OPTION_PARAM, CL_OPTION_AUTO, CL_OPTION_MSG, CL_OPTION_HELP, CL_OPTION_VERSION});
     clParser.process(app);
 
-    // Handle informative CLI options
-    bool minimumRunArgsPresent = clParser.isSet(clOptionApp) && clParser.isSet(clOptionParam);
-    bool partialRunArgsPresent = (clParser.isSet(clOptionApp) && !clParser.isSet(clOptionParam)) || (!clParser.isSet(clOptionApp) && clParser.isSet(clOptionParam));
+    //-Determine Operation Mode------------------------------------------------------------
+    OperationMode operationMode;
+    QSet<QString> providedArgs;
+    for(const QCommandLineOption& clOption : ALL_CL_OPTIONS)
+        if(clParser.isSet(clOption))
+            providedArgs.insert(clOption.names().value(0)); // Add options shortname to set
 
-    if(clParser.isSet(clOptionVersion))
-        QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
+    if(CL_OPTIONS_OP_MODE_MAP.contains(providedArgs))
+        operationMode = CL_OPTIONS_OP_MODE_MAP.value(providedArgs);
+    else
+        operationMode = OperationMode::Invalid;
 
-    if(clParser.isSet(clOptionHelp) || (!minimumRunArgsPresent && !clParser.isSet(clOptionMsg)) || partialRunArgsPresent)
-        QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
+    //-App Task Queue To Load--------------------------------------------------------------
+    std::deque<AppTask> primaryAppTaskQueue;
 
-    if(clParser.isSet(clOptionMsg) && !clParser.isSet(clOptionHelp) && !clParser.isSet(clOptionVersion) && !partialRunArgsPresent)
-        QMessageBox::information(nullptr, QCoreApplication::applicationName(), clParser.value(clOptionMsg));
+    //-Handle Mode Specific Operations-----------------------------------------------------
+    switch(operationMode)
+    {
+        case OperationMode::Invalid:
+            QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
+            return INVALID_ARGS;
 
-    if(!minimumRunArgsPresent)
-        return NO_ERR;
+        case OperationMode::Normal:
+            primaryAppTaskQueue.push_back({clParser.value(CL_OPTION_APP), clParser.value(CL_OPTION_PARAM).split(" "), false});
+            break;
+
+        case OperationMode::Auto:
+        // Get fancy
+            break;
+
+        case OperationMode::Message:
+            QMessageBox::information(nullptr, QCoreApplication::applicationName(), clParser.value(CL_OPTION_MSG));
+            return NO_ERR;
+
+        case OperationMode::Information:
+            if(clParser.isSet(CL_OPTION_VERSION))
+                QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
+            if(clParser.isSet(CL_OPTION_HELP))
+                QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
+            return NO_ERR;
+    }
+
+
+    // NEW CODE...
 
     // Handle primary CLI options
-    QFile primaryApp(clParser.value(clOptionApp));
-    QString primaryAppParam(clParser.value(clOptionParam));
+    QFile primaryApp(clParser.value(CL_OPTION_APP));
+    QString primaryAppParam(clParser.value(CL_OPTION_PARAM));
 
     //-Check for existance of required core applications-----------------------------------
     for(QString coreApp : CORE_APP_PATHS)
