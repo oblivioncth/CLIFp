@@ -8,29 +8,35 @@
 #include <QDebug>
 #include <queue>
 #include "qx-windows.h"
+#include "flashpointinstall.h"
 
 //-Enums-----------------------------------------------------------------------
-enum ErrorCode
+enum ErrorCode //TODO: RE-DISTRIBUTE VALUES
 {
     NO_ERR = 0x00,
     INVALID_ARGS = 0x02,
-    CORE_APP_NOT_FOUND = 0x04,
-    CORE_APP_NOT_STARTED = 0x08,
-    PRIMARY_APP_NOT_FOUND = 0x10,
-    PRIMARY_APP_NOT_STARTED = 0x20,
-    CORE_APP_NOT_STARTED_FOR_SHUTDOWN = 0x40,
-    BATCH_PROCESS_NOT_FOUND = 0x80,
-    BATCH_PROCESS_NOT_HANDLED = 0x100,
-    BATCH_PROCESS_NOT_HOOKED = 0x200
+    INSTALL_INVALID = 0x04,
+    CANT_PARSE_CONFIG = 0x000000,
+    CANT_PARSE_SERVICES = 0x0000000,
+    CORE_APP_NOT_FOUND = 0x08,
+    CORE_APP_NOT_STARTED = 0x10,
+    PRIMARY_APP_NOT_FOUND = 0x20,
+    PRIMARY_APP_NOT_STARTED = 0x40,
+    CORE_APP_NOT_STARTED_FOR_SHUTDOWN = 0x80,
+    BATCH_PROCESS_NOT_FOUND = 0x100,
+    BATCH_PROCESS_NOT_HANDLED = 0x200,
+    BATCH_PROCESS_NOT_HOOKED = 0x400
 };
 Q_DECLARE_FLAGS(ErrorCodes, ErrorCode)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ErrorCodes);
 
-enum class OperationMode { Invalid, Normal, Auto, Message, Information};
+enum class OperationMode { Invalid, Normal, Auto, Message, Information };
+enum class TaskType { Startup, Primary, Auxiliary, Wait, Shutdown };
 
 //-Structs---------------------------------------------------------------------
 struct AppTask
 {
+    TaskType type;
     QString path;
     QStringList param;
     bool waitForExit;
@@ -100,13 +106,19 @@ const QStringList REDIRECTOR_ARGS_SHUTDOWN = {"/close"};
 // Core Application Paths
 const QStringList CORE_APP_PATHS = {PHP_EXE_PATH, HTTPD_EXE_PATH};
 
+// Error Messages - Prep
+const QString ERR_INSTALL_INVALID = "CLIFp does not appear to be deployed in a valid Flashpoint install. Check its location and compatability with "
+                                    "your Flashpoint version.";
+
+const QString ERR_CANT_PARSE_FILE = "Failed to parse %1 ! It may be corrupted or not compatible with this version of CLIFp.";
+
 // Error Messages
-const QString EXE_NOT_FOUND_ERROR = "Could not find %1!\n\nExecution will now be aborted.";
-const QString EXE_NOT_STARTED_ERROR = "Could not start %1!\n\nExecution will now be aborted.";
-const QString BATCH_ERR_SUFFIX = "after a primary application utilizing a batch file was started. The game may not work correctly.";
-const QString BATCH_WAIT_PROCESS_NOT_FOUND_ERROR  = "Could not find the wait-on process to hook to " + BATCH_ERR_SUFFIX;
-const QString BATCH_WAIT_PROCESS_NOT_HANDLED_ERROR  = "Could not get a handle to the wait-on process " + BATCH_ERR_SUFFIX;
-const QString BATCH_WAIT_PROCESS_NOT_HOOKED_ERROR  = "Could not hook the wait-on process " + BATCH_ERR_SUFFIX;
+const QString ERR_EXE_NOT_FOUND = "Could not find %1!\n\nExecution will now be aborted.";
+const QString ERR_EXE_NOT_STARTED = "Could not start %1!\n\nExecution will now be aborted.";
+const QString BATCH_WRN_SUFFIX = "after a primary application utilizing a batch file was started. The game may not work correctly.";
+const QString WRN_BATCH_WAIT_PROCESS_NOT_FOUND  = "Could not find the wait-on process to hook to " + BATCH_WRN_SUFFIX;
+const QString WRN_BATCH_WAIT_PROCESS_NOT_HANDLED  = "Could not get a handle to the wait-on process " + BATCH_WRN_SUFFIX;
+const QString WRN_BATCH_WAIT_PROCESS_NOT_HOOKED  = "Could not hook the wait-on process " + BATCH_WRN_SUFFIX;
 
 // CLI Options
 const QCommandLineOption CL_OPTION_APP({CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"); // Takes value
@@ -131,6 +143,9 @@ const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
 ErrorCodes currentStatus = ErrorCode::NO_ERR;
 
 // Prototypes
+int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
+ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, const FP::Install& flashpointInstall);
+
 ErrorCode startupProcedure();
 ErrorCodes shutdownProcedure(bool silent);
 ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& silent);
@@ -155,6 +170,15 @@ int main(int argc, char *argv[])
     clParser.addOptions({CL_OPTION_APP, CL_OPTION_PARAM, CL_OPTION_AUTO, CL_OPTION_MSG, CL_OPTION_HELP, CL_OPTION_VERSION});
     clParser.process(app);
 
+    //-Link to Flashpoint Install----------------------------------------------------------
+    if(!FP::Install::pathIsValidInstall(QCoreApplication::applicationDirPath()))
+    {
+        QMessageBox::critical(nullptr, QApplication::applicationName(), ERR_INSTALL_INVALID);
+        return INSTALL_INVALID;
+    }
+
+    FP::Install flashpointInstall(QCoreApplication::applicationDirPath());
+
     //-Determine Operation Mode------------------------------------------------------------
     OperationMode operationMode;
     QSet<QString> providedArgs;
@@ -168,7 +192,7 @@ int main(int argc, char *argv[])
         operationMode = OperationMode::Invalid;
 
     //-App Task Queue To Load--------------------------------------------------------------
-    std::deque<AppTask> primaryAppTaskQueue;
+    std::queue<AppTask> appTaskQueue;
 
     //-Handle Mode Specific Operations-----------------------------------------------------
     switch(operationMode)
@@ -178,7 +202,7 @@ int main(int argc, char *argv[])
             return INVALID_ARGS;
 
         case OperationMode::Normal:
-            primaryAppTaskQueue.push_back({clParser.value(CL_OPTION_APP), clParser.value(CL_OPTION_PARAM).split(" "), false});
+            appTaskQueue.push({TaskType::Primary, clParser.value(CL_OPTION_APP), clParser.value(CL_OPTION_PARAM).split(" "), false});
             break;
 
         case OperationMode::Auto:
@@ -210,7 +234,7 @@ int main(int argc, char *argv[])
          QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + coreApp);
          if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
          {
-             QMessageBox::critical(nullptr, QCoreApplication::applicationName(), EXE_NOT_FOUND_ERROR.arg(fullAppPath));
+             QMessageBox::critical(nullptr, QCoreApplication::applicationName(), ERR_EXE_NOT_FOUND.arg(fullAppPath));
              return CORE_APP_NOT_FOUND;
          }
     }
@@ -235,6 +259,32 @@ int main(int argc, char *argv[])
     return currentStatus;
 }
 
+int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices)
+{
+    // Prepare dialog
+    QMessageBox genericErrorMessage;
+    if(!error.getCaption().isEmpty())
+        genericErrorMessage.setWindowTitle(error.getCaption());
+    if(!error.getPrimaryInfo().isEmpty())
+        genericErrorMessage.setText(error.getPrimaryInfo());
+    if(!error.getSecondaryInfo().isEmpty())
+        genericErrorMessage.setInformativeText(error.getSecondaryInfo());
+    if(!error.getDetailedInfo().isEmpty())
+        genericErrorMessage.setDetailedText(error.getDetailedInfo());
+    genericErrorMessage.setStandardButtons(choices);
+    genericErrorMessage.setIcon(QMessageBox::Critical);
+
+    return genericErrorMessage.exec();
+}
+
+ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, const FP::Install& flashpointInstall)
+{
+
+}
+
+
+
+
 ErrorCode startupProcedure()
 {
     // Go to Server directory
@@ -244,7 +294,7 @@ ErrorCode startupProcedure()
     if(QProcess::execute(QFileInfo(PHP_EXE_PATH).fileName(), PHP_ARGS_STARTUP) < 0)
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + PHP_EXE_PATH)));
+                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + PHP_EXE_PATH)));
         return CORE_APP_NOT_STARTED;
     }
 
@@ -254,7 +304,7 @@ ErrorCode startupProcedure()
     if(!httpdProcess->waitForStarted())
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + HTTPD_EXE_PATH)));
+                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + HTTPD_EXE_PATH)));
         return CORE_APP_NOT_STARTED;
     }
 
@@ -288,7 +338,7 @@ ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& s
         if(!silent)
         {
             QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                                  EXE_NOT_STARTED_ERROR.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + exePath)));
+                                  ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + exePath)));
             silent = true;
         }
         return CORE_APP_NOT_STARTED_FOR_SHUTDOWN;
@@ -305,7 +355,7 @@ ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppP
     if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              EXE_NOT_FOUND_ERROR.arg(fullAppPath));
+                              ERR_EXE_NOT_FOUND.arg(fullAppPath));
         return PRIMARY_APP_NOT_FOUND;
     }
 
@@ -316,7 +366,7 @@ ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppP
     if(QProcess::execute(QFileInfo(primaryApp).fileName(), primaryAppParameters) < 0)
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              EXE_NOT_STARTED_ERROR.arg(fullAppPath));
+                              ERR_EXE_NOT_STARTED.arg(fullAppPath));
         return PRIMARY_APP_NOT_STARTED;
     }
 
@@ -331,7 +381,7 @@ ErrorCode waitOnBatchProcess()
     // Check that process was found
     if(processID)
     {
-        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), BATCH_WAIT_PROCESS_NOT_FOUND_ERROR);
+        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_BATCH_WAIT_PROCESS_NOT_FOUND);
         return BATCH_PROCESS_NOT_FOUND;
     }
 
@@ -339,7 +389,7 @@ ErrorCode waitOnBatchProcess()
     HANDLE batchProcessHandle;
     if((batchProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, processID)) == NULL)
     {
-        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), BATCH_WAIT_PROCESS_NOT_HANDLED_ERROR);
+        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_BATCH_WAIT_PROCESS_NOT_HANDLED);
         return BATCH_PROCESS_NOT_HANDLED;
     }
 
@@ -353,7 +403,7 @@ ErrorCode waitOnBatchProcess()
         return NO_ERR;
     else
     {
-        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), BATCH_WAIT_PROCESS_NOT_HOOKED_ERROR);
+        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_BATCH_WAIT_PROCESS_NOT_HOOKED);
         return BATCH_PROCESS_NOT_HOOKED;
     }
 }
