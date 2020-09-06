@@ -40,6 +40,7 @@ struct AppTask
     QString path;
     QStringList param;
     bool waitForExit;
+    bool detached;
 };
 
 //-Constants-------------------------------------------------------------------
@@ -191,7 +192,8 @@ int main(int argc, char *argv[])
     else
         operationMode = OperationMode::Invalid;
 
-    //-App Task Queue To Load--------------------------------------------------------------
+    //-Proccess Tracking-------------------------------------------------------------------
+
     std::queue<AppTask> appTaskQueue;
 
     //-Handle Mode Specific Operations-----------------------------------------------------
@@ -202,7 +204,7 @@ int main(int argc, char *argv[])
             return INVALID_ARGS;
 
         case OperationMode::Normal:
-            appTaskQueue.push({TaskType::Primary, clParser.value(CL_OPTION_APP), clParser.value(CL_OPTION_PARAM).split(" "), false});
+            appTaskQueue.push({TaskType::Primary, clParser.value(CL_OPTION_APP), clParser.value(CL_OPTION_PARAM).split(" "), false, false});
             break;
 
         case OperationMode::Auto:

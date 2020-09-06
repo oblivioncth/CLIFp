@@ -12,6 +12,54 @@ namespace FP
 
 class Install
 {
+//-Class Structs-------------------------------------------------------------------------------------------------
+public:
+    struct DBTableSpecs
+    {
+        QString name;
+        QStringList columns;
+    };
+
+    struct DBQueryBuffer
+    {
+        QString source;
+        QSqlQuery result;
+        int size;
+    };
+
+    struct Config
+    {
+        bool startServer;
+        QString server;
+    };
+
+    struct Server
+    {
+        QString name;
+        QString path;
+        QString filename;
+        QStringList arguments;
+        bool kill;
+    };
+
+    struct StartStop
+    {
+        QString path;
+        QString fileName;
+        QStringList arguments;
+
+        friend bool operator== (const StartStop& lhs, const StartStop& rhs) noexcept;
+        friend uint qHash(const StartStop& key, uint seed) noexcept;
+    };
+
+    struct Services
+    {
+        //QSet<Watch> watches;
+        QHash<QString, Server> servers;
+        QSet<StartStop> starts;
+        QSet<StartStop> stops;
+    };
+
 //-Inner Classes-------------------------------------------------------------------------------------------------
 public:
     class DBTable_Game
@@ -103,6 +151,83 @@ public:
         static inline const QString KEY_SERVER = "server";
     };
 
+    class JSONObject_Server
+    {
+    public:
+        static inline const QString KEY_NAME = "name";
+        static inline const QString KEY_PATH = "path";
+        static inline const QString KEY_FILENAME = "filename";
+        static inline const QString KEY_ARGUMENTS = "arguments";
+        static inline const QString KEY_KILL = "true";
+    };
+
+    class JSONObject_StartStop
+    {
+    public:
+        static inline const QString KEY_PATH = "path";
+        static inline const QString KEY_FILENAME = "filename";
+        static inline const QString KEY_ARGUMENTS = "arguments";
+    };
+
+    class JSONObject_Services
+    {
+    public:
+        static inline const QString KEY_WATCH = "watch";
+        static inline const QString KEY_SERVER = "server";
+        static inline const QString KEY_START = "start";
+        static inline const QString KEY_STOP = "stop";
+    };
+
+    class JSONServicesReader
+    {
+    //-Class variables-----------------------------------------------------------------------------------------------------
+    public:
+        static inline const QString ERR_PARSING_JSON_DOC = "Error parsing JSON Document: %1";
+        static inline const QString ERR_JSON_UNEXP_FORMAT = "Unexpected document format";
+
+    //-Instance Variables--------------------------------------------------------------------------------------------------
+    private:
+        Services* mTargetServices;
+        std::shared_ptr<QFile> mTargetJSONFile;
+
+    //-Constructor--------------------------------------------------------------------------------------------------------
+    public:
+        JSONServicesReader(Services* targetServices, std::shared_ptr<QFile> targetJSONFile);
+
+    //-Instance Functions-------------------------------------------------------------------------------------------------
+    public:
+        Qx::GenericError readInto();
+
+    private:
+        Qx::GenericError parseServicesDocument(const QJsonDocument& servicesDoc);
+        Qx::GenericError parseServer(Server& serverBuffer, const QJsonValue& jvServer);
+        Qx::GenericError parseStartStop(StartStop& startStopBuffer, const QJsonValue& jvStartStop);
+    };
+
+    class JSONConfigReader
+    {
+    //-Class variables-----------------------------------------------------------------------------------------------------
+    public:
+        static inline const QString ERR_PARSING_JSON_DOC = "Error parsing JSON Document: %1";
+        static inline const QString ERR_JSON_UNEXP_FORMAT = "Unexpected document format";
+
+    //-Instance Variables--------------------------------------------------------------------------------------------------
+    private:
+        Config* mTargetConfig;
+        std::shared_ptr<QFile> mTargetJSONFile;
+
+    //-Constructor--------------------------------------------------------------------------------------------------------
+    public:
+        JSONConfigReader(Config* targetServices, std::shared_ptr<QFile> targetJSONFile);
+
+    //-Instance Functions-------------------------------------------------------------------------------------------------
+    public:
+        Qx::GenericError readInto();
+
+    private:
+        Qx::GenericError parseConfigDocument(const QJsonDocument& configDoc);
+    };
+
     class CLIFp
     {
     // Class members
@@ -115,26 +240,6 @@ public:
     // Class functions
     public:
         static QString parametersFromStandard(QString originalAppPath, QString originalAppParams);
-    };
-
-//-Class Structs-------------------------------------------------------------------------------------------------
-    struct DBTableSpecs
-    {
-        QString name;
-        QStringList columns;
-    };
-
-    struct DBQueryBuffer
-    {
-        QString source;
-        QSqlQuery result;
-        int size;
-    };
-
-    struct Config
-    {
-        bool startServer;
-        QString server;
     };
 
 //-Class Variables-----------------------------------------------------------------------------------------------
@@ -160,11 +265,6 @@ public:
                                                                         {DBTable_Playlist_Game::NAME, DBTable_Playlist_Game::COLUMN_LIST}};
     static inline const QString GENERAL_QUERY_SIZE_COMMAND = "COUNT(1)";
 
-    // JSON Parse Errors
-    static inline const QString ERR_PARSING_JSON_DOC = "Error parsing JSON Document: %1";
-    static inline const QString ERR_JSON_UNEXP_FOMRAT = "Unexpected document format";
-
-
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
     // Files and directories
@@ -174,8 +274,8 @@ private:
     std::unique_ptr<QFile> mMainEXEFile;
     std::unique_ptr<QFile> mCLIFpEXEFile;
     std::unique_ptr<QFile> mDatabaseFile;
-    std::unique_ptr<QFile> mServicesJSONFile;
-    std::unique_ptr<QFile> mConfigJSONFile;
+    std::shared_ptr<QFile> mServicesJSONFile;
+    std::shared_ptr<QFile> mConfigJSONFile;
     std::unique_ptr<QFile> mVersionTXTFile;
 
     // Database information
@@ -210,7 +310,8 @@ public:
     bool databaseConnectionOpenInThisThread();
 
     // Support Application Checks
-    Qx::GenericError parseConfig(Config& config);
+    Qx::GenericError getConfig(Config& configBuffer);
+    Qx::GenericError getServices(Services& servicesBuffer);
 
     // Requirement Checking
     QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
