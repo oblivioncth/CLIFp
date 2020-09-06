@@ -45,7 +45,7 @@ public:
     struct StartStop
     {
         QString path;
-        QString fileName;
+        QString filename;
         QStringList arguments;
 
         friend bool operator== (const StartStop& lhs, const StartStop& rhs) noexcept;
@@ -297,6 +297,7 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     QSqlDatabase getThreadedDatabaseConnection() const;
+    QSqlError makeNonBindQuery(DBQueryBuffer& resultBuffer, const QSqlDatabase& database, QString queryCommand, QString sizeQueryCommand) const;
 
 public:
     // General Information
@@ -321,11 +322,15 @@ public:
     QSqlError populateAvailableItems();
     bool deployCLIFp(QString &errorMessage);
 
-    // Queries
+    // Queries - OFLIb
     QSqlError initialGameQuery(QList<DBQueryBuffer>& resultBuffer, QSet<QString> selectedPlatforms) const;
     QSqlError initialAddAppQuery(DBQueryBuffer& resultBuffer) const;
     QSqlError initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QString> selectedPlaylists) const;
     QSqlError initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const;
+
+    // Queries - CLIFp
+    QSqlError queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) const;
 
     // Data access
     QString getPath() const;

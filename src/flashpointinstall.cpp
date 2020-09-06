@@ -12,7 +12,7 @@ namespace FP
 //Public:
 bool operator== (const Install::StartStop& lhs, const Install::StartStop& rhs) noexcept
 {
-    return lhs.path == rhs.path && lhs.fileName == rhs.fileName && lhs.arguments == rhs.arguments;
+    return lhs.path == rhs.path && lhs.filename == rhs.filename && lhs.arguments == rhs.arguments;
 }
 
 //-Hashing------------------------------------------------------------------------------------------------------
@@ -20,7 +20,7 @@ uint qHash(const Install::StartStop& key, uint seed) noexcept
 {
     QtPrivate::QHashCombine hash;
     seed = hash(seed, key.path);
-    seed = hash(seed, key.fileName);
+    seed = hash(seed, key.filename);
     seed = hash(seed, key.arguments);
 
     return seed;
@@ -160,7 +160,7 @@ Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startSto
     if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.path, joStartStop , JSONObject_StartStop::KEY_PATH)).isValid())
         return valueError;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.fileName, joStartStop, JSONObject_StartStop::KEY_FILENAME)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.filename, joStartStop, JSONObject_StartStop::KEY_FILENAME)).isValid())
         return valueError;
 
     // Get arguments
@@ -333,6 +333,38 @@ QSqlDatabase Install::getThreadedDatabaseConnection() const
         fpDB.setDatabaseName(mDatabaseFile->fileName());
         return fpDB;
     }
+}
+
+QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, const QSqlDatabase& database, QString queryCommand, QString sizeQueryCommand) const
+{
+    // Create main query
+    QSqlQuery mainQuery(database);
+    mainQuery.setForwardOnly(true);
+    mainQuery.prepare(queryCommand);
+
+    // Execute query and return if error occurs
+    if(!mainQuery.exec())
+        return mainQuery.lastError();
+
+    // Create size query
+    QSqlQuery sizeQuery(database);
+    sizeQuery.setForwardOnly(true);
+    sizeQuery.prepare(sizeQueryCommand);
+
+    // Execute query and return if error occurs
+    if(!sizeQuery.exec())
+        return sizeQuery.lastError();
+
+    // Get query size
+    sizeQuery.next();
+    int querySize = sizeQuery.value(0).toInt();
+
+    // Set buffer instance to result
+    resultBuffer.result = mainQuery;
+    resultBuffer.size = querySize;
+
+    // Return invalid SqlError
+    return QSqlError();
 }
 
 //Public:
@@ -600,9 +632,7 @@ QSqlError Install::initialGameQuery(QList<DBQueryBuffer>& resultBuffer, QSet<QSt
 QSqlError Install::initialAddAppQuery(DBQueryBuffer& resultBuffer) const
 {
     // Ensure return buffer is effectively null
-    resultBuffer.source = QString();
-    resultBuffer.result = QSqlQuery();
-    resultBuffer.size = -1;
+    resultBuffer = DBQueryBuffer();
 
     // Get database
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
@@ -613,35 +643,8 @@ QSqlError Install::initialAddAppQuery(DBQueryBuffer& resultBuffer) const
     QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Add_App::COLUMN_LIST.join("`,`") + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
-    // Create main query
-    QSqlQuery mainQuery(fpDB);
-    mainQuery.setForwardOnly(true);
-    mainQuery.prepare(mainQueryCommand);
-
-    // Execute query and return if error occurs
-    if(!mainQuery.exec())
-        return mainQuery.lastError();
-
-    // Create size query
-    QSqlQuery sizeQuery(fpDB);
-    sizeQuery.setForwardOnly(true);
-    sizeQuery.prepare(sizeQueryCommand);
-
-    // Execute query and return if error occurs
-    if(!sizeQuery.exec())
-        return sizeQuery.lastError();
-
-    // Get query size
-    sizeQuery.next();
-    int querySize = sizeQuery.value(0).toInt();
-
-    // Set buffer instance to result
     resultBuffer.source = DBTable_Add_App::NAME;
-    resultBuffer.result = mainQuery;
-    resultBuffer.size = querySize;
-
-    // Return invalid SqlError
-    return QSqlError();
+    return makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
 QSqlError Install::initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QString> selectedPlaylists) const
@@ -658,9 +661,7 @@ QSqlError Install::initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QStrin
     else
     {
         // Ensure return buffer is effectively null
-        resultBuffer.source = QString();
-        resultBuffer.result = QSqlQuery();
-        resultBuffer.size = -1;
+        resultBuffer = DBQueryBuffer();
 
         // Get database
         QSqlDatabase fpDB = getThreadedDatabaseConnection();
@@ -720,34 +721,73 @@ QSqlError Install::initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& 
         QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Playlist_Game::COLUMN_LIST.join("`,`") + "`");
         QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
-        // Create main query
-        QSqlQuery mainQuery(fpDB);
-        mainQuery.setForwardOnly(true);
-        mainQuery.prepare(mainQueryCommand);
+        // Make query
+        QSqlError queryError;
+        DBQueryBuffer queryResult;
+        queryResult.source = playlistID.toString();
 
-        // Execute query and return if error occurs
-        if(!mainQuery.exec())
-            return mainQuery.lastError();
-
-        // Create size query
-        QSqlQuery sizeQuery(fpDB);
-        sizeQuery.setForwardOnly(true);
-        sizeQuery.prepare(sizeQueryCommand);
-
-        // Execute query and return if error occurs
-        if(!sizeQuery.exec())
-            return sizeQuery.lastError();
-
-        // Get query size
-        sizeQuery.next();
-        int querySize = sizeQuery.value(0).toInt();
+        if((queryError = makeNonBindQuery(queryResult, fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
+            return queryError;
 
         // Add result to buffer
-        resultBuffer.append(qMakePair(DBQueryBuffer{playlistID.toString(), mainQuery, querySize}, playlistID));
+        resultBuffer.append(qMakePair(queryResult, playlistID));
     }
 
     // Return invalid SqlError
     return QSqlError();
+}
+
+QSqlError Install::queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Check for entry as a game first
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game::NAME + " WHERE " +
+            DBTable_Game::COL_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game::COLUMN_LIST.join("`,`") + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query
+    QSqlError queryError;
+    resultBuffer.source = DBTable_Game::NAME;
+
+    if((queryError = makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
+        return queryError;
+
+    // Return result if one or more result were found (reciever handles situation in latter case)
+    if(resultBuffer.size >= 1)
+        return QSqlError();
+
+    // Check for entry as an additional app second
+    baseQueryCommand = "SELECT %1 FROM " + DBTable_Add_App::NAME + " WHERE " +
+        DBTable_Add_App::COL_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+    mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Add_App::COLUMN_LIST.join("`,`") + "`");
+    sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query and return result regardless of outcome
+    return makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) const
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Make query
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Add_App::NAME + " WHERE " +
+            DBTable_Add_App::COL_PARENT_ID + " != '" + appID.toString(QUuid::WithoutBraces) + "'";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Add_App::COLUMN_LIST.join("`,`") + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    resultBuffer.source = DBTable_Add_App::NAME;
+    return makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
 QString Install::getPath() const { return mRootDirectory.absolutePath(); }

@@ -10,6 +10,8 @@
 #include "qx-windows.h"
 #include "flashpointinstall.h"
 
+#define CLIFP_PATH QCoreApplication::applicationDirPath()
+
 //-Enums-----------------------------------------------------------------------
 enum ErrorCode //TODO: RE-DISTRIBUTE VALUES
 {
@@ -18,6 +20,8 @@ enum ErrorCode //TODO: RE-DISTRIBUTE VALUES
     INSTALL_INVALID = 0x04,
     CANT_PARSE_CONFIG = 0x000000,
     CANT_PARSE_SERVICES = 0x0000000,
+    CONFIG_SERVER_MISSING = 0x0000000,
+    AUTO_ID_NOT_VALID = 0x00000000,
     CORE_APP_NOT_FOUND = 0x08,
     CORE_APP_NOT_STARTED = 0x10,
     PRIMARY_APP_NOT_FOUND = 0x20,
@@ -38,9 +42,10 @@ struct AppTask
 {
     TaskType type;
     QString path;
+    QString filename;
     QStringList param;
     bool waitForExit;
-    bool detached;
+    bool killOnExit;
 };
 
 //-Constants-------------------------------------------------------------------
@@ -87,8 +92,8 @@ const QString CL_HELP_MESSAGE = "CLIFp Usage:\n"
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR;
 
 // FP Server Applications
-const QString PHP_EXE_PATH = "Server\\php.exe";
-const QString HTTPD_EXE_PATH = "Server\\httpd.exe";
+const QString PHP_EXE_PATH = "Server/php.exe";
+const QString HTTPD_EXE_PATH = "Server/httpd.exe";
 const QString BATCH_WAIT_EXE = "FlashpointSecurePlayer.exe";
 
 // FP Server App Arguments
@@ -97,8 +102,8 @@ const QStringList PHP_ARGS_SHUTDOWN = {"-f", "reset_httpdconf_main_dir.php"};
 const QStringList HTTPD_ARGS_STARTUP = {"-f", "..//Server/conf/httpd.conf", "-X"};
 
 // FPSoftware Applications
-const QString FIDDLER_EXE_PATH = "FPSoftware\\Fiddler2Portable\\App\\Fiddler\\ExecAction.exe";
-const QString REDIRECTOR_EXE_PATH = "FPSoftware\\Redirector\\Redirect.exe";
+const QString FIDDLER_EXE_PATH = "FPSoftware/Fiddler2Portable/App/Fiddler/ExecAction.exe";
+const QString REDIRECTOR_EXE_PATH = "FPSoftware/Redirector/Redirect.exe";
 
 // FPSoftware App Arguments
 const QStringList FIDDLER_ARGS_SHUTDOWN = {"quit"};
@@ -112,6 +117,8 @@ const QString ERR_INSTALL_INVALID = "CLIFp does not appear to be deployed in a v
                                     "your Flashpoint version.";
 
 const QString ERR_CANT_PARSE_FILE = "Failed to parse %1 ! It may be corrupted or not compatible with this version of CLIFp.";
+const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
+
 
 // Error Messages
 const QString ERR_EXE_NOT_FOUND = "Could not find %1!\n\nExecution will now be aborted.";
@@ -140,12 +147,10 @@ const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
     {{CL_OPT_HELP_S_NAME, CL_OPT_VERSION_S_NAME}, OperationMode::Information}
 };
 
-// Working variables
-ErrorCodes currentStatus = ErrorCode::NO_ERR;
-
 // Prototypes
 int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
-ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, const FP::Install& flashpointInstall);
+ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices);
+ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, const FP::Install& fpInstall);
 
 ErrorCode startupProcedure();
 ErrorCodes shutdownProcedure(bool silent);
@@ -172,13 +177,13 @@ int main(int argc, char *argv[])
     clParser.process(app);
 
     //-Link to Flashpoint Install----------------------------------------------------------
-    if(!FP::Install::pathIsValidInstall(QCoreApplication::applicationDirPath()))
+    if(!FP::Install::pathIsValidInstall(CLIFP_PATH))
     {
         QMessageBox::critical(nullptr, QApplication::applicationName(), ERR_INSTALL_INVALID);
         return INSTALL_INVALID;
     }
 
-    FP::Install flashpointInstall(QCoreApplication::applicationDirPath());
+    FP::Install flashpointInstall(CLIFP_PATH);
 
     //-Determine Operation Mode------------------------------------------------------------
     OperationMode operationMode;
@@ -192,23 +197,55 @@ int main(int argc, char *argv[])
     else
         operationMode = OperationMode::Invalid;
 
-    //-Proccess Tracking-------------------------------------------------------------------
+    //-Get Install Settings----------------------------------------------------------------
+    Qx::GenericError settingsReadError;
+    FP::Install::Config flashpointConfig;
+    FP::Install::Services flashpointServices;
 
+    if((settingsReadError = flashpointInstall.getConfig(flashpointConfig)).isValid())
+    {
+        postGenericError(settingsReadError, QMessageBox::Ok);
+        return CANT_PARSE_CONFIG;
+    }
+
+    if((settingsReadError = flashpointInstall.getServices(flashpointServices)).isValid())
+    {
+        postGenericError(settingsReadError, QMessageBox::Ok);
+        return CANT_PARSE_CONFIG;
+    }
+
+    //-Proccess Tracking-------------------------------------------------------------------
+    QList<QProcess*> activeChildProcesses;
     std::queue<AppTask> appTaskQueue;
 
     //-Handle Mode Specific Operations-----------------------------------------------------
+    ErrorCode enqueueError;
+    QFileInfo appInfo;
+    QUuid autoID;
+
     switch(operationMode)
     {
         case OperationMode::Invalid:
             QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
             return INVALID_ARGS;
 
-        case OperationMode::Normal:
-            appTaskQueue.push({TaskType::Primary, clParser.value(CL_OPTION_APP), clParser.value(CL_OPTION_PARAM).split(" "), false, false});
+        case OperationMode::Normal: 
+            if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)) != NO_ERR)
+                return enqueueError;
+
+            appInfo = clParser.value(CL_OPTION_APP);
+            appTaskQueue.push({TaskType::Primary, appInfo.absolutePath(), appInfo.fileName(), clParser.value(CL_OPTION_PARAM).split(" "), true, false});
             break;
 
         case OperationMode::Auto:
-        // Get fancy
+            if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
+                return AUTO_ID_NOT_VALID;
+
+            if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)) != NO_ERR)
+                return enqueueError;
+
+            if((enqueueError = enqueueAutomaticTasks(appTaskQueue, flashpointInstall)) != NO_ERR)
+                return enqueueError;
             break;
 
         case OperationMode::Message:
@@ -233,13 +270,16 @@ int main(int argc, char *argv[])
     //-Check for existance of required core applications-----------------------------------
     for(QString coreApp : CORE_APP_PATHS)
     {
-         QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + coreApp);
+         QString fullAppPath = QDir::toNativeSeparators(CLIFP_PATH + "/" + coreApp);
          if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
          {
              QMessageBox::critical(nullptr, QCoreApplication::applicationName(), ERR_EXE_NOT_FOUND.arg(fullAppPath));
              return CORE_APP_NOT_FOUND;
          }
     }
+
+    // Working variables
+    ErrorCodes currentStatus = ErrorCode::NO_ERR;
 
     //-Startup Procedure-------------------------------------------------------------------
     currentStatus = startupProcedure();
@@ -279,24 +319,46 @@ int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choice
     return genericErrorMessage.exec();
 }
 
-ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, const FP::Install& flashpointInstall)
+ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices)
+{
+    // Add Start entries from services
+    for(const FP::Install::StartStop& startEntry : fpServices.starts)
+        taskQueue.push({TaskType::Startup, CLIFP_PATH + '/' + startEntry.path, startEntry.filename, startEntry.arguments, true, false});
+
+    // Add Server entry from services if applicable
+    if(fpConfig.startServer)
+    {
+        if(!fpServices.servers.contains(fpConfig.server))
+        {
+            QMessageBox::critical(nullptr, QCoreApplication::applicationName(), ERR_CONFIG_SERVER_MISSING);
+            return CONFIG_SERVER_MISSING;
+        }
+
+        FP::Install::Server configuredServer = fpServices.servers.value(fpConfig.server);
+
+        taskQueue.push({TaskType::Startup, CLIFP_PATH + '/' + configuredServer.path, configuredServer.filename,
+                        configuredServer.arguments, false, configuredServer.kill});
+    }
+
+    // Return success
+    return NO_ERR;
+}
+
+ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, const FP::Install& fpInstall)
 {
 
 }
 
-
-
-
 ErrorCode startupProcedure()
 {
     // Go to Server directory
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/" + QFileInfo(PHP_EXE_PATH).dir().path());
+    QDir::setCurrent(CLIFP_PATH + "/" + QFileInfo(PHP_EXE_PATH).dir().path());
 
     // Initialize php data
     if(QProcess::execute(QFileInfo(PHP_EXE_PATH).fileName(), PHP_ARGS_STARTUP) < 0)
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + PHP_EXE_PATH)));
+                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(CLIFP_PATH + "/" + PHP_EXE_PATH)));
         return CORE_APP_NOT_STARTED;
     }
 
@@ -306,7 +368,7 @@ ErrorCode startupProcedure()
     if(!httpdProcess->waitForStarted())
     {
         QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + HTTPD_EXE_PATH)));
+                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(CLIFP_PATH + "/" + HTTPD_EXE_PATH)));
         return CORE_APP_NOT_STARTED;
     }
 
@@ -332,7 +394,7 @@ ErrorCodes shutdownProcedure(bool silent)
 ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& silent)
 {
     // Go to app directory
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/" + QFileInfo(exePath).path());
+    QDir::setCurrent(CLIFP_PATH + "/" + QFileInfo(exePath).path());
 
     // Shutdown app
     if(QProcess::execute(QFileInfo(exePath).fileName(), shutdownArgs) < 0)
@@ -340,7 +402,7 @@ ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& s
         if(!silent)
         {
             QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                                  ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + exePath)));
+                                  ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(CLIFP_PATH + "/" + exePath)));
             silent = true;
         }
         return CORE_APP_NOT_STARTED_FOR_SHUTDOWN;
@@ -352,7 +414,7 @@ ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& s
 ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppParameters)
 {
     // Ensure primary app exists
-    QString fullAppPath = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/" + primaryApp.fileName());
+    QString fullAppPath = QDir::toNativeSeparators(CLIFP_PATH + "/" + primaryApp.fileName());
 
     if(!QFileInfo::exists(fullAppPath) || !QFileInfo(fullAppPath).isFile())
     {
