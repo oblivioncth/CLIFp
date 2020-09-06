@@ -23,13 +23,11 @@ enum ErrorCode //TODO: RE-DISTRIBUTE VALUES, Consider having single return value
     CONFIG_SERVER_MISSING = 0x0000000,
     AUTO_ID_NOT_VALID = 0x00000000,
     SQL_ERROR = 0x0000000000,
+    DB_MISSING_TABLES = 0x000000000000,
+    DB_MISSING_COLUMNS = 0x000000000,
     AUTO_NOT_FOUND = 0x0000000000,
     MORE_THAN_ONE_AUTO = 0x00000000000,
-    CORE_APP_NOT_FOUND = 0x08,
-    CORE_APP_NOT_STARTED = 0x10,
-    PRIMARY_APP_NOT_FOUND = 0x20,
-    PRIMARY_APP_NOT_STARTED = 0x40,
-    CORE_APP_NOT_STARTED_FOR_SHUTDOWN = 0x80,
+
     BATCH_PROCESS_NOT_FOUND = 0x100,
     BATCH_PROCESS_NOT_HANDLED = 0x200,
     BATCH_PROCESS_NOT_HOOKED = 0x400
@@ -39,6 +37,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(ErrorCodes);
 
 enum class OperationMode { Invalid, Normal, Auto, Message, Information };
 enum class TaskType { Startup, Primary, Auxiliary, Wait, Shutdown };
+enum class ProcessType { Blocking, Deferred, Detached };
 
 //-Structs---------------------------------------------------------------------
 struct AppTask
@@ -47,8 +46,7 @@ struct AppTask
     QString path;
     QString filename;
     QStringList param;
-    bool waitForExit;
-    bool killOnExit;
+    ProcessType processType;
 };
 
 //-Constants-------------------------------------------------------------------
@@ -123,10 +121,15 @@ const QString ERR_INSTALL_INVALID = "CLIFp does not appear to be deployed in a v
 const QString ERR_CANT_PARSE_FILE = "Failed to parse %1 ! It may be corrupted or not compatible with this version of CLIFp.";
 const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
 const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flashpoint database:";
+const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
+const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
 const QString ERR_AUTO_NOT_FOUND = "An entry matching the specified auto ID could not be found in the Flashpoint database.";
 const QString ERR_MORE_THAN_ONE_AUTO = "Multiple entries with the specified auto ID were found.\n"
                                        "\n"
                                        "This should not be possible and may indicate an error within the Flashpoint database";
+
+// Error Messages - Execution
+
 
 // Error Messages
 const QString ERR_EXE_NOT_FOUND = "Could not find %1!\n\nExecution will now be aborted.";
@@ -157,17 +160,20 @@ const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
 
 // Prototypes
 int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
+ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
 ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices);
-ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall);
+ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall);
 void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices);
-ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue);
+ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
+bool cleanStartProcess(QProcess* process, QString programPath);
+void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
 
 ErrorCode startupProcedure();
 ErrorCodes shutdownProcedure(bool silent);
 ErrorCode shutdownApplication(QString exePath, QStringList shutdownArgs, bool& silent);
 ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppParameters);
-ErrorCode waitOnBatchProcess();
+ErrorCode waitOnProcess(QString processName);
 
 int main(int argc, char *argv[])
 {
@@ -235,7 +241,7 @@ int main(int argc, char *argv[])
     QUuid autoID;
 
     switch(operationMode)
-    {
+    {    
         case OperationMode::Invalid:
             QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
             return INVALID_ARGS;
@@ -245,11 +251,12 @@ int main(int argc, char *argv[])
                 return enqueueError;
 
             appInfo = clParser.value(CL_OPTION_APP);
-            appTaskQueue.push({TaskType::Primary, appInfo.absolutePath(), appInfo.fileName(), clParser.value(CL_OPTION_PARAM).split(" "), true, false});
+            appTaskQueue.push({TaskType::Primary, appInfo.absolutePath(), appInfo.fileName(),
+                               clParser.value(CL_OPTION_PARAM).split(" "), ProcessType::Blocking});
 
             // Add wait task if specified app uses a batch file
             if(appInfo.suffix() == ".bat")
-                appTaskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), true, false});
+                appTaskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
             break;
 
         case OperationMode::Auto:
@@ -276,14 +283,19 @@ int main(int argc, char *argv[])
     }
 
     // Enqueue Shudown Tasks if main task isn't message/extra
-    if(appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_MESSAGE &&
-       appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
+    if(appTaskQueue.size() != 1 ||
+       (appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_MESSAGE &&
+       appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_EXTRAS))
         enqueueShutdownTasks(appTaskQueue, flashpointServices);
 
     // Process app task queue
-    return processTaskQueue(appTaskQueue);
+    ErrorCode executionError = processTaskQueue(appTaskQueue, activeChildProcesses);
 
+    // Cleanup
+    cleanup(flashpointInstall, activeChildProcesses);
 
+    // Return error status
+    return executionError;
 
 //    // Handle primary CLI options
 //    QFile primaryApp(clParser.value(CL_OPTION_APP));
@@ -341,11 +353,57 @@ int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choice
     return genericErrorMessage.exec();
 }
 
+ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall)
+{
+    // Open database connection
+    QSqlError databaseError = fpInstall.openThreadDatabaseConnection();
+    if(databaseError.isValid())
+    {
+        postGenericError(Qx::GenericError(QString(), ERR_UNEXPECTED_SQL, databaseError.text()), QMessageBox::Ok);
+        return SQL_ERROR;
+    }
+
+    // Ensure required database tables are present
+    QSet<QString> missingTables;
+    if((databaseError = fpInstall.checkDatabaseForRequiredTables(missingTables)).isValid())
+    {
+        postGenericError(Qx::GenericError(QString(), ERR_UNEXPECTED_SQL, databaseError.text()), QMessageBox::Ok);
+        return SQL_ERROR;
+    }
+
+    // Check if tables are missing
+    if(!missingTables.isEmpty())
+    {
+        postGenericError(Qx::GenericError(QString(), ERR_DB_MISSING_TABLE, QString(),
+                         QStringList(missingTables.begin(), missingTables.end()).join("\n")), QMessageBox::Ok);
+        return DB_MISSING_TABLES;
+    }
+
+    // Ensure the database contains the required columns
+    QSet<QString> missingColumns;
+    if((databaseError = fpInstall.checkDatabaseForRequiredColumns(missingColumns)).isValid())
+    {
+        postGenericError(Qx::GenericError(QString(), ERR_UNEXPECTED_SQL, databaseError.text()), QMessageBox::Ok);
+        return SQL_ERROR;
+    }
+
+    // Check if columns are missing
+    if(!missingColumns.isEmpty())
+    {
+        postGenericError(Qx::GenericError(QString(), ERR_DB_TABLE_MISSING_COLUMN, QString(),
+                         QStringList(missingColumns.begin(), missingColumns.end()).join("\n")), QMessageBox::Ok);
+        return DB_MISSING_COLUMNS;
+    }
+
+    // Return success
+    return NO_ERR;
+}
+
 ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices)
 {
     // Add Start entries from services
     for(const FP::Install::StartStop& startEntry : fpServices.starts)
-        taskQueue.push({TaskType::Startup, CLIFP_PATH + '/' + startEntry.path, startEntry.filename, startEntry.arguments, true, false});
+        taskQueue.push({TaskType::Startup, CLIFP_PATH + '/' + startEntry.path, startEntry.filename, startEntry.arguments, ProcessType::Blocking});
 
     // Add Server entry from services if applicable
     if(fpConfig.startServer)
@@ -359,14 +417,14 @@ ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Confi
         FP::Install::Server configuredServer = fpServices.servers.value(fpConfig.server);
 
         taskQueue.push({TaskType::Startup, CLIFP_PATH + '/' + configuredServer.path, configuredServer.filename,
-                        configuredServer.arguments, false, configuredServer.kill});
+                        configuredServer.arguments, configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached});
     }
 
     // Return success
     return NO_ERR;
 }
 
-ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall)
+ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall)
 {
     // Search FP database for entry via ID
     QSqlError searchError;
@@ -432,11 +490,11 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         QString gamePath = searchResult.result.value(FP::Install::DBTable_Game::COL_APP_PATH).toString();
         QString gameArgs = searchResult.result.value(FP::Install::DBTable_Game::COL_LAUNCH_COMMAND).toString();
         QFileInfo gameInfo(gamePath);
-        taskQueue.push({TaskType::Primary, CLIFP_PATH + '/' + gameInfo.path(), gameInfo.fileName(), gameArgs.split(" "), true, false});
+        taskQueue.push({TaskType::Primary, CLIFP_PATH + '/' + gameInfo.path(), gameInfo.fileName(), gameArgs.split(" "), ProcessType::Blocking});
 
         // Add wait task if specified app uses a batch file
         if(gameInfo.suffix() == ".bat")
-            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), true, false});
+            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
     }
     else
         throw std::runtime_error("Auto ID search result source must be 'game' or 'additional_app'");
@@ -455,7 +513,7 @@ void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBu
     bool waitForExit = addAppResult.result.value(FP::Install::DBTable_Add_App::COL_WAIT_EXIT).toInt() != 0;
 
     if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE)
-        taskQueue.push({TaskType::Primary, appPath, QString(), {appArgs}, waitForExit, !waitForExit});
+        taskQueue.push({TaskType::Primary, appPath, QString(), {appArgs}, waitForExit ? ProcessType::Blocking : ProcessType::Deferred});
     else if(appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
     {
         // TODO: Handle extras
@@ -463,11 +521,12 @@ void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBu
     else
     {
         QFileInfo addAppInfo(appPath);
-        taskQueue.push({taskType, CLIFP_PATH + '/' + addAppInfo.path(), addAppInfo.fileName(), appArgs.split(" "), waitForExit, !waitForExit});
+        taskQueue.push({taskType, CLIFP_PATH + '/' + addAppInfo.path(), addAppInfo.fileName(),
+                        appArgs.split(" "), waitForExit ? ProcessType::Blocking : ProcessType::Deferred});
 
         // Add wait task if specified app uses a batch file
         if(addAppInfo.suffix() == ".bat")
-            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), true, false});
+            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
     }
 }
 
@@ -475,20 +534,104 @@ void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services 
 {
     // Add Stop entries from services
     for(const FP::Install::StartStop& stopEntry : fpServices.stops)
-        taskQueue.push({TaskType::Shutdown, CLIFP_PATH + '/' + stopEntry.path, stopEntry.filename, stopEntry.arguments, true, false});
+        taskQueue.push({TaskType::Shutdown, CLIFP_PATH + '/' + stopEntry.path, stopEntry.filename,
+                        stopEntry.arguments, ProcessType::Blocking});
 }
 
-ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue)
+ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses)
 {
+    // Exhaust queue
+    for(unsigned long long i = 0; i < taskQueue.size(); i++)
+    {
+        // Handle task at front of queue
+        AppTask currentTask = taskQueue.front();
 
+        // Handle general and special case(s)
+        if(currentTask.path == FP::Install::DBTable_Add_App::ENTRY_MESSAGE) // Message (currently ignores process type)
+            QMessageBox::information(nullptr, QCoreApplication::applicationName(), currentTask.param.first());
+        else if(currentTask.path == FP::Install::DBTable_Add_App::ENTRY_EXTRAS) // Extra
+        {
+            // TODO handle extra
+        }
+        else if(currentTask.type == TaskType::Wait) // Wait task
+        {
+            ErrorCode waitError = waitOnProcess(currentTask.filename);
+            if(waitError != NO_ERR)
+                return waitError;
+        }
+        else // General case
+        {
+            // Move to executable directory
+            QDir::setCurrent(CLIFP_PATH + "/" + currentTask.path);
+
+            // Create process handle
+            QProcess* taskProcess = new QProcess();
+            taskProcess->setProgram(currentTask.filename);
+            taskProcess->setArguments(currentTask.param);
+            taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inhert console window
+            taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inhert console window
+
+            // Cover each process type
+            switch(currentTask.processType)
+            {
+                case ProcessType::Blocking:
+                    if(!cleanStartProcess(taskProcess, currentTask.path))
+                        return START_ERROR;
+
+                    taskProcess->waitForFinished(-1); // Wait for process to end, don't time out
+                    delete taskProcess; // Clear finished process handle from heap
+                    break;
+
+                case ProcessType::Deferred:
+                    if(!cleanStartProcess(taskProcess, currentTask.path))
+                        return START_ERROR;
+
+                    childProcesses.append(taskProcess); // Add process to list for deferred termination
+                    break;
+
+                case ProcessType::Detached:
+                    if(!taskProcess->startDetached())
+                        return START_ERROR;
+                    break;
+            }
+        }
+
+        // Remove handled task
+        taskQueue.pop();
+    }
+
+    // Return success
+    return NO_ERR;
 }
 
+bool cleanStartProcess(QProcess* process, QString programPath)
+{
+    // Start process and confirm
+    process->start();
+    if(!process->waitForStarted())
+    {
+        QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
+                              ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(CLIFP_PATH + "/" +
+                                                                               programPath+ "/" +
+                                                                               process->program())));
+        delete process; // Clear finished process handle from heap
+        return false;
+    }
 
+    // Return success
+    return true;
+}
 
+void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses)
+{
+    // Close database connection if open
+    if(fpInstall.databaseConnectionOpenInThisThread())
+        fpInstall.closeThreadedDatabaseConnection();
 
-
-
-
+    // Kill each remaining child process by destroying handle
+    for(QProcess* childProcess : childProcesses)
+        delete  childProcess;
+}
 
 ErrorCode startupProcedure()
 {
@@ -578,10 +721,10 @@ ErrorCode primaryApplicationExecution(QFile& primaryApp, QStringList primaryAppP
     return NO_ERR;
 }
 
-ErrorCode waitOnBatchProcess()
+ErrorCode waitOnProcess(QString processName)
 {
     // Find process ID by name
-    DWORD processID = Qx::getProcessIDByName(BATCH_WAIT_EXE);
+    DWORD processID = Qx::getProcessIDByName(processName);
 
     // Check that process was found
     if(processID)
