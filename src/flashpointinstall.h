@@ -105,12 +105,12 @@ public:
         static inline const QString COL_ID = "id";
         static inline const QString COL_APP_PATH = "applicationPath";
         static inline const QString COL_AUTORUN = "autoRunBefore";
-        static inline const QString COL_LAUNCH_COMMNAND = "launchCommand";
+        static inline const QString COL_LAUNCH_COMMAND = "launchCommand";
         static inline const QString COL_NAME = "name";
         static inline const QString COL_WAIT_EXIT = "waitForExit";
         static inline const QString COL_PARENT_ID = "parentGameId";
 
-        static inline const QStringList COLUMN_LIST = {COL_ID, COL_APP_PATH, COL_AUTORUN, COL_LAUNCH_COMMNAND, COL_NAME, COL_WAIT_EXIT, COL_PARENT_ID};
+        static inline const QStringList COLUMN_LIST = {COL_ID, COL_APP_PATH, COL_AUTORUN, COL_LAUNCH_COMMAND, COL_NAME, COL_WAIT_EXIT, COL_PARENT_ID};
 
         static inline const QString ENTRY_EXTRAS = ":extras:";
         static inline const QString ENTRY_MESSAGE = ":message:";
