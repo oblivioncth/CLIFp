@@ -302,7 +302,7 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     QSqlDatabase getThreadedDatabaseConnection() const;
-    QSqlError makeNonBindQuery(DBQueryBuffer& resultBuffer, const QSqlDatabase& database, QString queryCommand, QString sizeQueryCommand) const;
+    QSqlError makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const;
 
 public:
     // General Information

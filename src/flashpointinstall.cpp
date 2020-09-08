@@ -366,10 +366,10 @@ QSqlDatabase Install::getThreadedDatabaseConnection() const
     }
 }
 
-QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, const QSqlDatabase& database, QString queryCommand, QString sizeQueryCommand) const
+QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const
 {
     // Create main query
-    QSqlQuery mainQuery(database);
+    QSqlQuery mainQuery(*database);
     mainQuery.setForwardOnly(true);
     mainQuery.prepare(queryCommand);
 
@@ -378,7 +378,7 @@ QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, const QSqlDatab
         return mainQuery.lastError();
 
     // Create size query
-    QSqlQuery sizeQuery(database);
+    QSqlQuery sizeQuery(*database);
     sizeQuery.setForwardOnly(true);
     sizeQuery.prepare(sizeQueryCommand);
 
@@ -674,7 +674,7 @@ QSqlError Install::initialAddAppQuery(DBQueryBuffer& resultBuffer) const
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
     resultBuffer.source = DBTable_Add_App::NAME;
-    return makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand);
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
 QSqlError Install::initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QString> selectedPlaylists) const
@@ -756,7 +756,7 @@ QSqlError Install::initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& 
         DBQueryBuffer queryResult;
         queryResult.source = playlistID.toString();
 
-        if((queryError = makeNonBindQuery(queryResult, fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
+        if((queryError = makeNonBindQuery(queryResult, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
             return queryError;
 
         // Add result to buffer
@@ -785,7 +785,7 @@ QSqlError Install::queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const
     QSqlError queryError;
     resultBuffer.source = DBTable_Game::NAME;
 
-    if((queryError = makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
+    if((queryError = makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
         return queryError;
 
     // Return result if one or more result were found (reciever handles situation in latter case)
@@ -799,7 +799,8 @@ QSqlError Install::queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const
     sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
     // Make query and return result regardless of outcome
-    return makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand);
+    resultBuffer.source = DBTable_Add_App::NAME;
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
 QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) const
@@ -812,12 +813,12 @@ QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) c
 
     // Make query
     QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Add_App::NAME + " WHERE " +
-            DBTable_Add_App::COL_PARENT_ID + " != '" + appID.toString(QUuid::WithoutBraces) + "'";
+            DBTable_Add_App::COL_PARENT_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
     QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Add_App::COLUMN_LIST.join("`,`") + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
     resultBuffer.source = DBTable_Add_App::NAME;
-    return makeNonBindQuery(resultBuffer, fpDB, mainQueryCommand, sizeQueryCommand);
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
 QString Install::getPath() const { return mRootDirectory.absolutePath(); }

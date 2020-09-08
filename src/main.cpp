@@ -80,19 +80,19 @@ const QString CL_OPT_EXTRA_DESC = "Opens an explorer window to the specified ext
 
 const QString CL_OPT_AUTO_S_NAME = "a";
 const QString CL_OPT_AUTO_L_NAME = "auto";
-const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by ID and runs it if found, including run-before/run-after additional apps in the case of a game.";
+const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by ID and runs it if found, including run-before additional apps in the case of a game.";
 
 // Command line messages
-const QString CL_HELP_MESSAGE = "CLIFp Usage:\n"
-                                "\n"
-                                "-" + CL_OPT_HELP_S_NAME + " | --" + CL_OPT_HELP_L_NAME + " | -" + CL_OPT_HELP_E_NAME + ": " + CL_OPT_HELP_DESC + "\n"
-                                "-" + CL_OPT_VERSION_S_NAME + " | --" + CL_OPT_VERSION_L_NAME + ": " + CL_OPT_VERSION_DESC + "\n"
-                                "-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ": " + CL_OPT_APP_DESC + "\n"
-                                "-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ": " + CL_OPT_PARAM_DESC + "\n"
-                                "-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ": " + CL_OPT_AUTO_DESC + "\n"
-                                "-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ": " + CL_OPT_MSG_DESC + "\n"
-                                "-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ": " + CL_OPT_EXTRA_DESC + "\n"
-                                "\n"
+const QString CL_HELP_MESSAGE = "CLIFp Usage:<br>"
+                                "<br>"
+                                "<b>-" + CL_OPT_HELP_S_NAME + " | --" + CL_OPT_HELP_L_NAME + " | -" + CL_OPT_HELP_E_NAME + ":</b> &nbsp;" + CL_OPT_HELP_DESC + "<br>"
+                                "<b>-" + CL_OPT_VERSION_S_NAME + " | --" + CL_OPT_VERSION_L_NAME + ":</b> &nbsp;" + CL_OPT_VERSION_DESC + "<br>"
+                                "<b>-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ":</b> &nbsp;" + CL_OPT_APP_DESC + "<br>"
+                                "<b>-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ":</b> &nbsp;" + CL_OPT_PARAM_DESC + "<br>"
+                                "<b>-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ":</b> &nbsp;" + CL_OPT_AUTO_DESC + "<br>"
+                                "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
+                                "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
+                                "<br>"
                                 "Use '" + CL_OPT_APP_L_NAME + "' and '" + CL_OPT_PARAM_L_NAME + "', for normal operation, use '" + CL_OPT_AUTO_L_NAME + "'by itself "
                                 "for automatic operation, use '" + CL_OPT_MSG_L_NAME  + "' to display a popup message, use '" + CL_OPT_EXTRA_L_NAME +
                                 "' to view an extra, or use '" + CL_OPT_HELP_L_NAME + "' and/or '" + CL_OPT_VERSION_L_NAME + "' for information.";
@@ -246,14 +246,17 @@ int main(int argc, char *argv[])
             appTaskQueue.push({TaskType::Primary, inputInfo.absolutePath(), inputInfo.fileName(),
                                clParser.value(CL_OPTION_PARAM).split(" "), ProcessType::Blocking});
 
-            // Add wait task if specified app uses a batch file
-            if(inputInfo.suffix() == BAT_SUFX)
-                appTaskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
+            // Add wait task if specified app uses a batch file (NOT NEEDED AS BATS CURRENTLY BLOCK WHILE THE SECURE PLAYER IS RUNNING)
+//            if(inputInfo.suffix() == BAT_SUFX)
+//                appTaskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
             break;
 
         case OperationMode::Auto:
             if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
                 return AUTO_ID_NOT_VALID;
+
+            if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)) != NO_ERR)
+                return enqueueError;
 
             if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)) != NO_ERR)
                 return enqueueError;
@@ -461,9 +464,9 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         QFileInfo gameInfo(gamePath);
         taskQueue.push({TaskType::Primary, CLIFP_PATH + '/' + gameInfo.path(), gameInfo.fileName(), gameArgs.split(" "), ProcessType::Blocking});
 
-        // Add wait task if specified app uses a batch file
-        if(gameInfo.suffix() == ".bat")
-            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
+        // Add wait task if specified app uses a batch file (NOT NEEDED AS BATS CURRENTLY BLOCK WHILE THE SECURE PLAYER IS RUNNING)
+//        if(gameInfo.suffix() == BAT_SUFX)
+//            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
     }
     else
         throw std::runtime_error("Auto ID search result source must be 'game' or 'additional_app'");
@@ -491,9 +494,9 @@ void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBu
         taskQueue.push({taskType, CLIFP_PATH + '/' + addAppInfo.path(), addAppInfo.fileName(),
                         appArgs.split(" "), waitForExit ? ProcessType::Blocking : ProcessType::Deferred});
 
-        // Add wait task if specified app uses a batch file
-        if(addAppInfo.suffix() == ".bat")
-            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
+        // Add wait task if specified app uses a batch file (NOT NEEDED AS BATS CURRENTLY BLOCK WHILE THE SECURE PLAYER IS RUNNING)
+//        if(addAppInfo.suffix() == BAT_SUFX)
+//            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
     }
 }
 
