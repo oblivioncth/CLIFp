@@ -32,11 +32,19 @@ uint qHash(const Install::StartStop& key, uint seed) noexcept
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::JSONServicesReader::JSONServicesReader(Services* targetServices, std::shared_ptr<QFile> targetJSONFile)
-    : mTargetServices(targetServices), mTargetJSONFile(targetJSONFile) {}
+Install::JSONServicesReader::JSONServicesReader(const Install* hostInstall, Services* targetServices, std::shared_ptr<QFile> targetJSONFile)
+    : mHostInstall(hostInstall), mTargetServices(targetServices), mTargetJSONFile(targetJSONFile) {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
+QString Install::JSONServicesReader::resolveFlashpointMacros(QString macroString)
+{
+    // Resolve all known macros
+    macroString.replace(MACRO_FP_PATH, mHostInstall->getPath());
+
+    return macroString;
+}
+
 Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonDocument& servicesDoc)
 {
     // Ensure top level container is object
@@ -137,6 +145,15 @@ Qx::GenericError Install::JSONServicesReader::parseServer(Server& serverBuffer, 
         serverBuffer.arguments.append(jvArg.toString());
     }
 
+    // Ensure filename has extension (assuming exe)
+    if(QFileInfo(serverBuffer.filename).suffix().isEmpty())
+        serverBuffer.filename += ".exe";
+
+    // Resolve macros for relavent variables
+    serverBuffer.path = resolveFlashpointMacros(serverBuffer.path);
+    for(QString& arg : serverBuffer.arguments)
+        arg = resolveFlashpointMacros(arg);
+
     // Return invalid error on success
     return Qx::GenericError();
 }
@@ -176,6 +193,15 @@ Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startSto
 
         startStopBuffer.arguments.append(jvArg.toString());
     }
+
+    // Ensure filename has extension (assuming exe)
+    if(QFileInfo(startStopBuffer.filename).suffix().isEmpty())
+        startStopBuffer.filename += ".exe";
+
+    // Resolve macros for relavent variables
+    startStopBuffer.path = resolveFlashpointMacros(startStopBuffer.path);
+    for(QString& arg : startStopBuffer.arguments)
+        arg = resolveFlashpointMacros(arg);
 
     // Return invalid error on success
     return Qx::GenericError();
@@ -444,7 +470,7 @@ Qx::GenericError Install::getServices(Services &servicesBuffer)
     servicesBuffer = Services();
 
     // Create reader instance
-    JSONServicesReader jsReader(&servicesBuffer, mServicesJSONFile);
+    JSONServicesReader jsReader(this, &servicesBuffer, mServicesJSONFile);
 
     // Read services file
     return jsReader.readInto();

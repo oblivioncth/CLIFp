@@ -184,24 +184,27 @@ public:
     public:
         static inline const QString ERR_PARSING_JSON_DOC = "Error parsing JSON Document: %1";
         static inline const QString ERR_JSON_UNEXP_FORMAT = "Unexpected document format";
+        static inline const QString MACRO_FP_PATH = "<fpPath>";
 
     //-Instance Variables--------------------------------------------------------------------------------------------------
     private:
+        const Install* mHostInstall;
         Services* mTargetServices;
         std::shared_ptr<QFile> mTargetJSONFile;
 
     //-Constructor--------------------------------------------------------------------------------------------------------
     public:
-        JSONServicesReader(Services* targetServices, std::shared_ptr<QFile> targetJSONFile);
+        JSONServicesReader(const Install* hostInstall, Services* targetServices, std::shared_ptr<QFile> targetJSONFile);
 
     //-Instance Functions-------------------------------------------------------------------------------------------------
-    public:
-        Qx::GenericError readInto();
-
     private:
+        QString resolveFlashpointMacros(QString macroString);
         Qx::GenericError parseServicesDocument(const QJsonDocument& servicesDoc);
         Qx::GenericError parseServer(Server& serverBuffer, const QJsonValue& jvServer);
         Qx::GenericError parseStartStop(StartStop& startStopBuffer, const QJsonValue& jvStartStop);
+
+    public:
+        Qx::GenericError readInto();
     };
 
     class JSONConfigReader
@@ -221,11 +224,10 @@ public:
         JSONConfigReader(Config* targetServices, std::shared_ptr<QFile> targetJSONFile);
 
     //-Instance Functions-------------------------------------------------------------------------------------------------
-    public:
-        Qx::GenericError readInto();
-
     private:
         Qx::GenericError parseConfigDocument(const QJsonDocument& configDoc);
+    public:
+        Qx::GenericError readInto();
     };
 
     class CLIFp

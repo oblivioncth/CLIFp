@@ -150,6 +150,10 @@ const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
     {{CL_OPT_HELP_S_NAME, CL_OPT_VERSION_S_NAME}, OperationMode::Information}
 };
 
+// Suffixes
+const QString EXE_SUFX = "exe";
+const QString BAT_SUFX = "bat";
+
 // Prototypes
 int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
@@ -178,7 +182,7 @@ int main(int argc, char *argv[])
     // CLI Parser
     QCommandLineParser clParser;
     clParser.setApplicationDescription(VER_FILEDESCRIPTION_STR);
-    clParser.addOptions({CL_OPTION_APP, CL_OPTION_PARAM, CL_OPTION_AUTO, CL_OPTION_MSG, CL_OPTION_HELP, CL_OPTION_VERSION});
+    clParser.addOptions({CL_OPTION_APP, CL_OPTION_PARAM, CL_OPTION_AUTO, CL_OPTION_MSG, CL_OPTION_EXTRA, CL_OPTION_HELP, CL_OPTION_VERSION});
     clParser.process(app);
 
     //-Link to Flashpoint Install----------------------------------------------------------
@@ -243,7 +247,7 @@ int main(int argc, char *argv[])
                                clParser.value(CL_OPTION_PARAM).split(" "), ProcessType::Blocking});
 
             // Add wait task if specified app uses a batch file
-            if(inputInfo.suffix() == ".bat")
+            if(inputInfo.suffix() == BAT_SUFX)
                 appTaskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
             break;
 
@@ -507,7 +511,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
     ErrorCode executionError = NO_ERR;
 
     // Exhaust queue
-    for(unsigned long long i = 0; i < taskQueue.size(); i++)
+    while(!taskQueue.empty())
     {
         // Handle task at front of queue
         AppTask currentTask = taskQueue.front();
@@ -646,9 +650,12 @@ void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses)
     if(fpInstall.databaseConnectionOpenInThisThread())
         fpInstall.closeThreadedDatabaseConnection();
 
-    // Kill each remaining child process by destroying handle
+    // Close each remaining child process
     for(QProcess* childProcess : childProcesses)
-        delete  childProcess;
+    {
+        childProcess->close();
+        delete childProcess;
+    }
 }
 
 ErrorCode waitOnProcess(QString processName)
