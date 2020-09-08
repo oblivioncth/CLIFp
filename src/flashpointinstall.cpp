@@ -262,6 +262,8 @@ QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString 
 {
     if(originalAppPath == DBTable_Add_App::ENTRY_MESSAGE)
         return MSG_ARG.arg(originalAppParams);
+    else if(originalAppPath == DBTable_Add_App::ENTRY_EXTRAS)
+        return EXTRA_ARG.arg(originalAppParams);
     else
         return APP_ARG.arg(originalAppPath) + " " + PARAM_ARG.arg(originalAppParams);
 }
@@ -282,6 +284,7 @@ Install::Install(QString installPath)
     mRootDirectory = QDir(installPath);
     mLogosDirectory = QDir(installPath + "/" + LOGOS_PATH);
     mScreenshotsDirectory = QDir(installPath + "/" + SCREENSHOTS_PATH);
+    mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
     mMainEXEFile = std::make_unique<QFile>(installPath + "/" + MAIN_EXE_PATH);
     mCLIFpEXEFile = std::make_unique<QFile>(installPath + "/" + CLIFp::EXE_NAME);
     mDatabaseFile = std::make_unique<QFile>(installPath + "/" + DATABASE_PATH);
@@ -303,6 +306,7 @@ bool Install::pathIsValidInstall(QString installPath)
 {
     QFileInfo logosFolder(installPath + "/" + LOGOS_PATH);
     QFileInfo screenshotsFolder(installPath + "/" + SCREENSHOTS_PATH);
+    QFileInfo extrasFolder(installPath + "/" + EXTRAS_PATH);
     QFileInfo mainEXE(installPath + "/" + MAIN_EXE_PATH);
     QFileInfo database(installPath + "/" + DATABASE_PATH);
     QFileInfo services(installPath + "/" + SERVICES_JSON_PATH);
@@ -311,6 +315,7 @@ bool Install::pathIsValidInstall(QString installPath)
 
     return logosFolder.exists() && logosFolder.isDir() &&
            screenshotsFolder.exists() && screenshotsFolder.isDir() &&
+           extrasFolder.exists() && extrasFolder.isDir() &&
            mainEXE.exists() && mainEXE.isExecutable() &&
            database.exists() && database.isFile() &&
            services.exists() && services.isFile() &&
@@ -638,8 +643,7 @@ QSqlError Install::initialAddAppQuery(DBQueryBuffer& resultBuffer) const
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 
     // Make query
-    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Add_App::NAME + " WHERE " +
-            DBTable_Add_App::COL_APP_PATH + " != '" + DBTable_Add_App::ENTRY_EXTRAS + "'";
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Add_App::NAME;
     QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Add_App::COLUMN_LIST.join("`,`") + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
@@ -795,6 +799,7 @@ QStringList Install::getPlatformList() const { return mPlatformList; }
 QStringList Install::getPlaylistList() const { return mPlaylistList; }
 QDir Install::getLogosDirectory() const { return mLogosDirectory; }
 QDir Install::getScrenshootsDirectory() const { return mScreenshotsDirectory; }
+QDir Install::getExtrasDirectory() const { return mExtrasDirectory; }
 QString Install::getCLIFpPath() const { return mCLIFpEXEFile->fileName(); }
 
 }

@@ -147,7 +147,7 @@ public:
     class JSONObject_Config
     {
     public:
-        static inline const QString KEY_START_SERVER = "startSever";
+        static inline const QString KEY_START_SERVER = "startServer";
         static inline const QString KEY_SERVER = "server";
     };
 
@@ -158,7 +158,7 @@ public:
         static inline const QString KEY_PATH = "path";
         static inline const QString KEY_FILENAME = "filename";
         static inline const QString KEY_ARGUMENTS = "arguments";
-        static inline const QString KEY_KILL = "true";
+        static inline const QString KEY_KILL = "kill";
     };
 
     class JSONObject_StartStop
@@ -235,6 +235,7 @@ public:
         static inline const QString EXE_NAME = "CLIFp.exe";
         static inline const QString APP_ARG = R"(--exe="%1")";
         static inline const QString PARAM_ARG = R"(--param="%1")";
+        static inline const QString EXTRA_ARG = R"(--extra-"%1"")";
         static inline const QString MSG_ARG = R"(--msg="%1")";
 
     // Class functions
@@ -247,6 +248,7 @@ public:
     // Paths
     static inline const QString LOGOS_PATH = "Data/Images/Logos";
     static inline const QString SCREENSHOTS_PATH = "Data/Images/Screenshots";
+    static inline const QString EXTRAS_PATH = "Extras";
     static inline const QString MAIN_EXE_PATH = "Launcher/Flashpoint.exe";
     static inline const QString DATABASE_PATH = "Data/flashpoint.sqlite";
     static inline const QString SERVICES_JSON_PATH = "Data/services.json";
@@ -271,6 +273,7 @@ private:
     QDir mRootDirectory;
     QDir mLogosDirectory;
     QDir mScreenshotsDirectory;
+    QDir mExtrasDirectory;
     std::unique_ptr<QFile> mMainEXEFile;
     std::unique_ptr<QFile> mCLIFpEXEFile;
     std::unique_ptr<QFile> mDatabaseFile;
@@ -338,6 +341,7 @@ public:
     QStringList getPlaylistList() const;
     QDir getLogosDirectory() const;
     QDir getScrenshootsDirectory() const;
+    QDir getExtrasDirectory() const;
     QString getCLIFpPath() const;
 };
 
