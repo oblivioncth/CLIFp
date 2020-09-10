@@ -15,8 +15,9 @@
 //-Enums-----------------------------------------------------------------------
 enum ErrorCode
 {
-    NO_ERR = 0x01,
-    INVALID_ARGS = 0x02,
+    NO_ERR = 0x00,
+    INVALID_ARGS = 0x01,
+    LAUNCHER_OPEN = 0x02,
     INSTALL_INVALID = 0x03,
     CANT_PARSE_CONFIG = 0x04,
     CANT_PARSE_SERVICES = 0x05,
@@ -80,7 +81,7 @@ const QString CL_OPT_EXTRA_DESC = "Opens an explorer window to the specified ext
 
 const QString CL_OPT_AUTO_S_NAME = "a";
 const QString CL_OPT_AUTO_L_NAME = "auto";
-const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by ID and runs it if found, including run-before additional apps in the case of a game.";
+const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game.";
 
 // Command line messages
 const QString CL_HELP_MESSAGE = "CLIFp Usage:<br>"
@@ -93,7 +94,7 @@ const QString CL_HELP_MESSAGE = "CLIFp Usage:<br>"
                                 "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
                                 "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
                                 "<br>"
-                                "Use '" + CL_OPT_APP_L_NAME + "' and '" + CL_OPT_PARAM_L_NAME + "', for normal operation, use '" + CL_OPT_AUTO_L_NAME + "'by itself "
+                                "Use '" + CL_OPT_APP_L_NAME + "' and '" + CL_OPT_PARAM_L_NAME + "' for normal operation, use '" + CL_OPT_AUTO_L_NAME + "' by itself "
                                 "for automatic operation, use '" + CL_OPT_MSG_L_NAME  + "' to display a popup message, use '" + CL_OPT_EXTRA_L_NAME +
                                 "' to view an extra, or use '" + CL_OPT_HELP_L_NAME + "' and/or '" + CL_OPT_VERSION_L_NAME + "' for information.";
 
@@ -103,6 +104,9 @@ const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_
 const QString BATCH_WAIT_EXE = "FlashpointSecurePlayer.exe";
 
 // Error Messages - Prep
+const QString ERR_LAUNCHER_RUNNING = "The CLI cannot be used while the Flashpoint Launcher is running.\n"
+                                     "\n"
+                                     "Please close the Launcher first.";
 const QString ERR_INSTALL_INVALID = "CLIFp does not appear to be deployed in a valid Flashpoint install.\n"
                                     "\n"
                                     "Check its location and compatability with your Flashpoint version.";
@@ -180,6 +184,13 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
     QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
 
+    // Ensure Flashpoint Launcher isn't running
+    if(Qx::processIsRunning(QFileInfo(FP::Install::MAIN_EXE_PATH).fileName()))
+    {
+        QMessageBox::critical(nullptr, QApplication::applicationName(), ERR_LAUNCHER_RUNNING);
+        return LAUNCHER_OPEN;
+    }
+
     // CLI Parser
     QCommandLineParser clParser;
     clParser.setApplicationDescription(VER_FILEDESCRIPTION_STR);
@@ -187,7 +198,7 @@ int main(int argc, char *argv[])
     clParser.process(app);
 
     //-Link to Flashpoint Install----------------------------------------------------------
-    if(!FP::Install::pathIsValidInstall(CLIFP_PATH))
+    if(!FP::Install::pathIsValidInstall(CLIFP_PATH, FP::Install::CompatLevel::Execution))
     {
         QMessageBox::critical(nullptr, QApplication::applicationName(), ERR_INSTALL_INVALID);
         return INSTALL_INVALID;

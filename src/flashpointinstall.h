@@ -12,6 +12,10 @@ namespace FP
 
 class Install
 {
+//-Class Enums---------------------------------------------------------------------------------------------------
+public:
+    enum class CompatLevel{ Execution, Full };
+
 //-Class Structs-------------------------------------------------------------------------------------------------
 public:
     struct DBTableSpecs
@@ -297,7 +301,7 @@ public:
 
 //-Class Functions------------------------------------------------------------------------------------------------------
 public:
-    static bool pathIsValidInstall(QString installPath);
+    static bool pathIsValidInstall(QString installPath, CompatLevel compatLevel);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

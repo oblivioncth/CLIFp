@@ -302,8 +302,8 @@ QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString 
 //Public:
 Install::Install(QString installPath)
 {
-    // Ensure instance will be valid
-    if(!pathIsValidInstall(installPath))
+    // Ensure instance will be at least minimally compatible
+    if(!pathIsValidInstall(installPath, CompatLevel::Execution))
         assert("Cannot create a Install instance with an invalid installPath. Check first with Install::pathIsValidInstall(QString).");
 
     // Initialize files and directories;
@@ -328,7 +328,7 @@ Install::~Install()
 
 //-Class Functions------------------------------------------------------------------------------------------------
 //Public:
-bool Install::pathIsValidInstall(QString installPath)
+bool Install::pathIsValidInstall(QString installPath, CompatLevel compatLevel)
 {
     QFileInfo logosFolder(installPath + "/" + LOGOS_PATH);
     QFileInfo screenshotsFolder(installPath + "/" + SCREENSHOTS_PATH);
@@ -339,14 +339,28 @@ bool Install::pathIsValidInstall(QString installPath)
     QFileInfo config(installPath + "/" + CONFIG_JSON_PATH);
     QFileInfo version(installPath + "/" + VER_TXT_PATH);
 
-    return logosFolder.exists() && logosFolder.isDir() &&
-           screenshotsFolder.exists() && screenshotsFolder.isDir() &&
-           extrasFolder.exists() && extrasFolder.isDir() &&
-           mainEXE.exists() && mainEXE.isExecutable() &&
-           database.exists() && database.isFile() &&
-           services.exists() && services.isFile() &&
-           config.exists() && config.isFile() &&
-           version.exists() && version.isFile();
+    bool compatible = false; // Used to avoid incorrect "not all control paths return a value" warning
+
+    switch (compatLevel)
+    {
+        case CompatLevel::Execution:
+            compatible = extrasFolder.exists() && extrasFolder.isDir() &&
+                         database.exists() && database.isFile() &&
+                         services.exists() && services.isFile() &&
+                         config.exists() && config.isFile();
+
+        case CompatLevel::Full:
+            compatible = logosFolder.exists() && logosFolder.isDir() &&
+                         screenshotsFolder.exists() && screenshotsFolder.isDir() &&
+                         extrasFolder.exists() && extrasFolder.isDir() &&
+                         mainEXE.exists() && mainEXE.isExecutable() &&
+                         database.exists() && database.isFile() &&
+                         services.exists() && services.isFile() &&
+                         config.exists() && config.isFile() &&
+                         version.exists() && version.isFile();
+    }
+
+    return compatible;
 }
 
 //-Instance Functions------------------------------------------------------------------------------------------------
