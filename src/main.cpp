@@ -113,6 +113,7 @@ const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flas
 const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
 const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
 const QString ERR_AUTO_NOT_FOUND = "An entry matching the specified auto ID could not be found in the Flashpoint database.";
+const QString ERR_AUTO_INVALID = "The provided string for auto operation was not a valid GUID/UUID.";
 const QString ERR_MORE_THAN_ONE_AUTO = "Multiple entries with the specified auto ID were found.\n"
                                        "\n"
                                        "This should not be possible and may indicate an error within the Flashpoint database";
@@ -253,7 +254,10 @@ int main(int argc, char *argv[])
 
         case OperationMode::Auto:
             if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
+            {
+                QMessageBox::critical(nullptr, QCoreApplication::applicationName(), ERR_AUTO_INVALID);
                 return AUTO_ID_NOT_VALID;
+            }
 
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)) != NO_ERR)
                 return enqueueError;
