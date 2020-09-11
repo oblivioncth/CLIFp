@@ -61,8 +61,11 @@ The applications and arguments that are used for each game/animation can be foun
 
 Use 'exe' and 'param' for normal operation, use 'auto' by itself for automatic operation, use 'msg' to display a popup message, use 'extra' to view an extra, or use 'help' and/or 'version' for information.
 
-## Exit Codes (currently can't be seen)
-Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues:
+## Exit Codes
+Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner:
+
+    start /wait CLIFp.exe [parameters]
+    echo %errorlevel%
 
 | Value | Code | Description |
 |--|--|--|
