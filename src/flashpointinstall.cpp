@@ -344,10 +344,10 @@ bool Install::pathIsValidInstall(QString installPath, CompatLevel compatLevel)
     switch (compatLevel)
     {
         case CompatLevel::Execution:
-            compatible = extrasFolder.exists() && extrasFolder.isDir() &&
-                         database.exists() && database.isFile() &&
+            compatible = database.exists() && database.isFile() &&
                          services.exists() && services.isFile() &&
                          config.exists() && config.isFile();
+            break;
 
         case CompatLevel::Full:
             compatible = logosFolder.exists() && logosFolder.isDir() &&
@@ -358,6 +358,7 @@ bool Install::pathIsValidInstall(QString installPath, CompatLevel compatLevel)
                          services.exists() && services.isFile() &&
                          config.exists() && config.isFile() &&
                          version.exists() && version.isFile();
+            break;
     }
 
     return compatible;

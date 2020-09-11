@@ -8,33 +8,35 @@
 #include <QDesktopServices>
 #include <queue>
 #include "qx-windows.h"
+#include "qx-io.h"
 #include "flashpointinstall.h"
 
 #define CLIFP_PATH QCoreApplication::applicationDirPath()
 
 //-Enums-----------------------------------------------------------------------
-enum ErrorCode
+enum ErrorCode //TODO: Update documentation with current vals
 {
     NO_ERR = 0x00,
-    INVALID_ARGS = 0x01,
-    LAUNCHER_OPEN = 0x02,
-    INSTALL_INVALID = 0x03,
-    CANT_PARSE_CONFIG = 0x04,
-    CANT_PARSE_SERVICES = 0x05,
-    CONFIG_SERVER_MISSING = 0x06,
-    AUTO_ID_NOT_VALID = 0x07,
-    SQL_ERROR = 0x08,
-    DB_MISSING_TABLES = 0x09,
-    DB_MISSING_COLUMNS = 0x0A,
-    AUTO_NOT_FOUND = 0x0B,
-    MORE_THAN_ONE_AUTO = 0x0C,
-    EXTRA_NOT_FOUND = 0x0D,
-    EXECUTABLE_NOT_FOUND = 0x0E,
-    EXECUTABLE_NOT_VALID = 0x0F,
-    PROCESS_START_FAIL = 0x10,
-    BATCH_PROCESS_NOT_FOUND = 0x11,
-    BATCH_PROCESS_NOT_HANDLED = 0x12,
-    BATCH_PROCESS_NOT_HOOKED = 0x13
+    ALREADY_OPEN = 0x01,
+    INVALID_ARGS = 0x02,
+    LAUNCHER_OPEN = 0x03,
+    INSTALL_INVALID = 0x04,
+    CANT_PARSE_CONFIG = 0x05,
+    CANT_PARSE_SERVICES = 0x06,
+    CONFIG_SERVER_MISSING = 0x07,
+    AUTO_ID_NOT_VALID = 0x08,
+    SQL_ERROR = 0x09,
+    DB_MISSING_TABLES = 0x0A,
+    DB_MISSING_COLUMNS = 0x0B,
+    AUTO_NOT_FOUND = 0x0C,
+    MORE_THAN_ONE_AUTO = 0x0D,
+    EXTRA_NOT_FOUND = 0x0E,
+    EXECUTABLE_NOT_FOUND = 0x0F,
+    EXECUTABLE_NOT_VALID = 0x10,
+    PROCESS_START_FAIL = 0x11,
+    SECURE_PLAYER_NOT_HANDLED = 0x12,
+    SECURE_PLAYER_NOT_HOOKED = 0x13,
+    CANT_READ_BAT_FILE = 0x14
 };
 
 enum class OperationMode { Invalid, Normal, Auto, Message, Extra, Information };
@@ -101,9 +103,10 @@ const QString CL_HELP_MESSAGE = "CLIFp Usage:<br>"
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR;
 
 // FP Server Applications
-const QString BATCH_WAIT_EXE = "FlashpointSecurePlayer.exe";
+const QFileInfo SECURE_PLAYER_INFO = QFileInfo("FlashpointSecurePlayer.exe");
 
 // Error Messages - Prep
+const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
 const QString ERR_LAUNCHER_RUNNING = "The CLI cannot be used while the Flashpoint Launcher is running.\n"
                                      "\n"
                                      "Please close the Launcher first.";
@@ -127,12 +130,12 @@ const QString ERR_EXTRA_NOT_FOUND = "The extra %1 does not exist!";
 const QString ERR_EXE_NOT_FOUND = "Could not find %1!";
 const QString ERR_EXE_NOT_STARTED = "Could not start %1!";
 const QString ERR_EXE_NOT_VALID = "%1 is not an executable file!";
-const QString BATCH_WRN_SUFFIX = "after a primary application utilizing a batch file was started.\n"
-                                 "\n"
-                                 "The game may not work correctly.";
-const QString WRN_BATCH_WAIT_PROCESS_NOT_FOUND  = "Could not find the wait-on process to hook to " + BATCH_WRN_SUFFIX;
-const QString WRN_BATCH_WAIT_PROCESS_NOT_HANDLED  = "Could not get a handle to the wait-on process " + BATCH_WRN_SUFFIX;
-const QString WRN_BATCH_WAIT_PROCESS_NOT_HOOKED  = "Could not hook the wait-on process " + BATCH_WRN_SUFFIX;
+const QString WRN_SECURE_PLAYER_NOT_HANDLED  = "Could not get a handle to FlashpointSecurePlayer.exe.\n"
+                                                    "\n"
+                                                    "The title may not work correctly";
+const QString WRN_SECURE_PLAYER_NOT_HOOKED  = "Could not hook FlashpointSecurePlayer.exe.\n"
+                                                   "\n"
+                                                   "The title may not work correctly";
 
 // CLI Options
 const QCommandLineOption CL_OPTION_APP({CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"); // Takes value
@@ -159,17 +162,21 @@ const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
 const QString EXE_SUFX = "exe";
 const QString BAT_SUFX = "bat";
 
+// Wait timing
+const int SECURE_PLAYER_GRACE = 3; // Seconds to allow the secure player to restart in cases it does
+
 // Prototypes
 int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
 ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices);
 ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall);
-void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
+ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices);
+Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
-ErrorCode waitOnProcess(QString processName);
+ErrorCode waitOnSecurePlayer(int graceSecs);
 void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
 
 int main(int argc, char *argv[])
@@ -183,6 +190,13 @@ int main(int argc, char *argv[])
     // Set application name
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
     QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
+
+    //-Restrict app to only one instance---------------------------------------------------
+    if(!Qx::enforceSingleInstance())
+    {
+        QMessageBox::critical(nullptr, QApplication::applicationName(), ERR_ALREADY_OPEN);
+        return ALREADY_OPEN;
+    }
 
     // Ensure Flashpoint Launcher isn't running
     if(Qx::processIsRunning(QFileInfo(FP::Install::MAIN_EXE_PATH).fileName()))
@@ -243,6 +257,8 @@ int main(int argc, char *argv[])
     ErrorCode enqueueError;
     QFileInfo inputInfo;
     QUuid autoID;
+    bool involvesSecurePlayer;
+    Qx::GenericError securePlayerCheckError;
 
     switch(operationMode)
     {    
@@ -258,9 +274,16 @@ int main(int argc, char *argv[])
             appTaskQueue.push({TaskType::Primary, inputInfo.absolutePath(), inputInfo.fileName(),
                                clParser.value(CL_OPTION_PARAM).split(" "), ProcessType::Blocking});
 
-            // Add wait task if specified app uses a batch file (NOT NEEDED AS BATS CURRENTLY BLOCK WHILE THE SECURE PLAYER IS RUNNING)
-//            if(inputInfo.suffix() == BAT_SUFX)
-//                appTaskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
+            // Add wait task if specified app uses secure player
+            securePlayerCheckError = appInvolvesSecurePlayer(involvesSecurePlayer, inputInfo);
+            if(securePlayerCheckError.isValid())
+            {
+                postGenericError(securePlayerCheckError, QMessageBox::Ok);
+                return CANT_READ_BAT_FILE;
+            }
+
+            if(involvesSecurePlayer)
+                appTaskQueue.push({TaskType::Wait, QString(), SECURE_PLAYER_INFO.fileName(), QStringList(), ProcessType::Blocking});
             break;
 
         case OperationMode::Auto:
@@ -447,7 +470,9 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE || appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
             taskQueue = std::queue<AppTask>();
 
-        enqueueAdditionalApp(taskQueue, searchResult, TaskType::Primary, fpInstall);
+        ErrorCode enqueueError = enqueueAdditionalApp(taskQueue, searchResult, TaskType::Primary, fpInstall);
+        if(enqueueError)
+            return enqueueError;
     }
     else if(searchResult.source == FP::Install::DBTable_Game::NAME) // Get autorun additional apps if result is game
     {
@@ -470,18 +495,30 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
 
             // Enqueue if autorun before
             if(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_AUTORUN).toInt() != 0)
-                enqueueAdditionalApp(taskQueue, addAppSearchResult, TaskType::Auxiliary, fpInstall);
+            {
+                ErrorCode enqueueError = enqueueAdditionalApp(taskQueue, addAppSearchResult, TaskType::Auxiliary, fpInstall);
+                if(enqueueError)
+                    return enqueueError;
+            }
         }
 
         // Enqueue game
         QString gamePath = searchResult.result.value(FP::Install::DBTable_Game::COL_APP_PATH).toString();
         QString gameArgs = searchResult.result.value(FP::Install::DBTable_Game::COL_LAUNCH_COMMAND).toString();
-        QFileInfo gameInfo(gamePath);
-        taskQueue.push({TaskType::Primary, CLIFP_PATH + '/' + gameInfo.path(), gameInfo.fileName(), gameArgs.split(" "), ProcessType::Blocking});
+        QFileInfo gameInfo(CLIFP_PATH + '/' + gamePath);
+        taskQueue.push({TaskType::Primary, gameInfo.absolutePath(), gameInfo.fileName(), gameArgs.split(" "), ProcessType::Blocking});
 
-        // Add wait task if specified app uses a batch file (NOT NEEDED AS BATS CURRENTLY BLOCK WHILE THE SECURE PLAYER IS RUNNING)
-//        if(gameInfo.suffix() == BAT_SUFX)
-//            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
+        // Add wait task if specified app uses secure player
+        bool involvesSecurePlayer;
+        Qx::GenericError securePlayerCheckError = appInvolvesSecurePlayer(involvesSecurePlayer, gameInfo);
+        if(securePlayerCheckError.isValid())
+        {
+            postGenericError(securePlayerCheckError, QMessageBox::Ok);
+            return CANT_READ_BAT_FILE;
+        }
+
+        if(involvesSecurePlayer)
+            taskQueue.push({TaskType::Wait, QString(), SECURE_PLAYER_INFO.fileName(), QStringList(), ProcessType::Blocking});
     }
     else
         throw std::runtime_error("Auto ID search result source must be 'game' or 'additional_app'");
@@ -490,7 +527,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     return NO_ERR;
 }
 
-void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall)
+ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall)
 {
     // Ensure query result is additional app
     assert(addAppResult.source == FP::Install::DBTable_Add_App::NAME);
@@ -505,14 +542,25 @@ void enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBu
         taskQueue.push({TaskType::Primary, appPath, QString(), {fpInstall.getExtrasDirectory().absolutePath() + "/" + appArgs}, ProcessType::Detached});
     else
     {
-        QFileInfo addAppInfo(appPath);
-        taskQueue.push({taskType, CLIFP_PATH + '/' + addAppInfo.path(), addAppInfo.fileName(),
+        QFileInfo addAppInfo(CLIFP_PATH + '/' + appPath);
+        taskQueue.push({taskType, addAppInfo.absolutePath(), addAppInfo.fileName(),
                         appArgs.split(" "), waitForExit ? ProcessType::Blocking : ProcessType::Deferred});
 
-        // Add wait task if specified app uses a batch file (NOT NEEDED AS BATS CURRENTLY BLOCK WHILE THE SECURE PLAYER IS RUNNING)
-//        if(addAppInfo.suffix() == BAT_SUFX)
-//            taskQueue.push({TaskType::Wait, QString(), BATCH_WAIT_EXE, QStringList(), ProcessType::Blocking});
+        // Add wait task if specified app uses secure player
+        bool involvesSecurePlayer;
+        Qx::GenericError securePlayerCheckError = appInvolvesSecurePlayer(involvesSecurePlayer, addAppInfo);
+        if(securePlayerCheckError.isValid())
+        {
+            postGenericError(securePlayerCheckError, QMessageBox::Ok);
+            return CANT_READ_BAT_FILE;
+        }
+
+        if(involvesSecurePlayer)
+            taskQueue.push({TaskType::Wait, QString(), SECURE_PLAYER_INFO.fileName(), QStringList(), ProcessType::Blocking});
     }
+
+    // Return success
+    return NO_ERR;
 }
 
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices)
@@ -557,7 +605,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
             }
             else if(currentTask.type == TaskType::Wait) // Wait task
             {
-                ErrorCode waitError = waitOnProcess(currentTask.filename);
+                ErrorCode waitError = waitOnSecurePlayer(SECURE_PLAYER_GRACE);
                 if(waitError!= NO_ERR)
                 {
                     handleExecutionError(taskQueue, executionError, waitError);
@@ -638,6 +686,36 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
     return executionError;
 }
 
+Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
+{
+    // Reset buffer
+    involvesBuffer = false;
+
+    if(appInfo.fileName().contains(SECURE_PLAYER_INFO.baseName()))
+    {
+        involvesBuffer = true;
+        return Qx::GenericError();
+    }
+
+    else if(appInfo.suffix() == BAT_SUFX)
+    {
+        // Read bat file
+        QFile batFile(appInfo.absoluteFilePath());
+        QString batScript;
+        Qx::IOOpReport readReport = Qx::readAllTextFromFile(batScript, batFile);
+
+        // Check for read errors
+        if(!readReport.wasSuccessful())
+            return Qx::GenericError(QString(), readReport.getOutcome(), readReport.getOutcomeInfo());
+
+        // Check if bat uses secure player
+        involvesBuffer = batScript.contains(SECURE_PLAYER_INFO.baseName());
+        return Qx::GenericError();
+    }
+    else
+        return Qx::GenericError();
+}
+
 void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError)
 {
     if(currentError == NO_ERR) // Only record first error
@@ -676,38 +754,47 @@ void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses)
     }
 }
 
-ErrorCode waitOnProcess(QString processName)
+ErrorCode waitOnSecurePlayer(int graceSecs)
 {
-    // Find process ID by name
-    DWORD processID = Qx::getProcessIDByName(processName);
 
-    // Check that process was found
-    if(processID)
+    // Wait until secure player has stopped running for grace period
+    DWORD spProcessID;
+    do
     {
-        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_BATCH_WAIT_PROCESS_NOT_FOUND);
-        return BATCH_PROCESS_NOT_FOUND;
+        // Yield for grace period
+        if(graceSecs > 0)
+            QThread::sleep(graceSecs);
+
+        // Find process ID by name
+        spProcessID = Qx::getProcessIDByName(SECURE_PLAYER_INFO.fileName());
+
+        // Check that process was found (is running)
+        if(spProcessID)
+        {
+            // Get process handle and see if it is valid
+            HANDLE batchProcessHandle;
+            if((batchProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, spProcessID)) == NULL)
+            {
+                QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_SECURE_PLAYER_NOT_HANDLED);
+                return SECURE_PLAYER_NOT_HANDLED;
+            }
+
+            // Attempt to wait on process to terminate
+            DWORD waitError = WaitForSingleObject(batchProcessHandle, INFINITE);
+
+            // Close handle to process
+            CloseHandle(batchProcessHandle);
+
+            if(waitError != WAIT_OBJECT_0)
+            {
+                QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_SECURE_PLAYER_NOT_HOOKED);
+                return SECURE_PLAYER_NOT_HOOKED;
+            }
+        }
     }
+    while(spProcessID);
 
-    // Get process handle and see if it is valid
-    HANDLE batchProcessHandle;
-    if((batchProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, processID)) == NULL)
-    {
-        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_BATCH_WAIT_PROCESS_NOT_HANDLED);
-        return BATCH_PROCESS_NOT_HANDLED;
-    }
-
-    // Attempt to wait on process to terminate
-    DWORD waitError = WaitForSingleObject(batchProcessHandle, INFINITE);
-
-    // Close handle to process
-    CloseHandle(batchProcessHandle);
-
-    if(waitError == WAIT_OBJECT_0)
-        return NO_ERR;
-    else
-    {
-        QMessageBox::warning(nullptr, QCoreApplication::applicationName(), WRN_BATCH_WAIT_PROCESS_NOT_HOOKED);
-        return BATCH_PROCESS_NOT_HOOKED;
-    }
+    // Return success
+    return NO_ERR;
 }
 

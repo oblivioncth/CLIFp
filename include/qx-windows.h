@@ -203,6 +203,8 @@ DWORD getProcessIDByName(QString processName);
 QString getProcessNameByID(DWORD processID);
 bool processIsRunning(QString processName);
 bool processIsRunning(DWORD processID);
+
+bool enforceSingleInstance();
 }
 
 //-Qt Flag Operators-----------------------------------------------------------------------------------------------------
