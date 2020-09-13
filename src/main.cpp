@@ -163,23 +163,31 @@ const QHash<QSet<QString>, OperationMode> CL_OPTIONS_OP_MODE_MAP{
 const QString EXE_SUFX = "exe";
 const QString BAT_SUFX = "bat";
 
+// Processing constants
+const QString CMD_EXE = "cmd.exe";
+const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
+
 // Wait timing
 const int SECURE_PLAYER_GRACE = 2; // Seconds to allow the secure player to restart in cases it does
 
-// Prototypes
-int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
+// Prototypes - Process
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
 ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices);
 ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall);
 ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
-Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
 ErrorCode waitOnProcess(QString processName, int graceSecs);
 void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
+
+// Prototypes - Helper
+
+Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
+int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices);
+QString escapeNativeArgsForCMD(QString nativeArgs);
 
 int main(int argc, char *argv[])
 {
@@ -339,24 +347,7 @@ int main(int argc, char *argv[])
     return executionError;
 }
 
-int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices)
-{
-    // Prepare dialog
-    QMessageBox genericErrorMessage;
-    if(!error.getCaption().isEmpty())
-        genericErrorMessage.setWindowTitle(error.getCaption());
-    if(!error.getPrimaryInfo().isEmpty())
-        genericErrorMessage.setText(error.getPrimaryInfo());
-    if(!error.getSecondaryInfo().isEmpty())
-        genericErrorMessage.setInformativeText(error.getSecondaryInfo());
-    if(!error.getDetailedInfo().isEmpty())
-        genericErrorMessage.setDetailedText(error.getDetailedInfo());
-    genericErrorMessage.setStandardButtons(choices);
-    genericErrorMessage.setIcon(QMessageBox::Critical);
-
-    return genericErrorMessage.exec();
-}
-
+//-Processing Functions-------------------------------------------------------------
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall)
 {
     // Open database connection
@@ -529,13 +520,13 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
 
     if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE)
     {
-        taskQueue.push({TaskType::Primary, appPath, QString(),
+        taskQueue.push({taskType, appPath, QString(),
                         QStringList(), appArgs,
-                        waitForExit ? ProcessType::Blocking : ProcessType::Deferred});
+                        (waitForExit || taskType == TaskType::Primary) ? ProcessType::Blocking : ProcessType::Deferred});
     }
     else if(appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
     {
-        taskQueue.push({TaskType::Primary, appPath, QString(),
+        taskQueue.push({taskType, appPath, QString(),
                         QStringList(), fpInstall.getExtrasDirectory().absolutePath() + "/" + appArgs,
                         ProcessType::Detached});
     }
@@ -544,7 +535,7 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
         QFileInfo addAppInfo(CLIFP_PATH + '/' + appPath);
         taskQueue.push({taskType, addAppInfo.absolutePath(), addAppInfo.fileName(),
                         QStringList(), appArgs,
-                        waitForExit ? ProcessType::Blocking : ProcessType::Deferred});
+                        (waitForExit || taskType == TaskType::Primary) ? ProcessType::Blocking : ProcessType::Deferred});
 
         // Add wait task if required
         ErrorCode enqueueError = enqueueConditionalWaitTask(taskQueue, addAppInfo);
@@ -654,11 +645,15 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 // Move to executable directory
                 QDir::setCurrent(currentTask.path);
 
+                // Check if task is a batch file
+                bool batchTask = QFileInfo(currentTask.filename).suffix() == BAT_SUFX;
+
                 // Create process handle
                 QProcess* taskProcess = new QProcess();
-                taskProcess->setProgram(currentTask.filename);
+                taskProcess->setProgram(batchTask ? CMD_EXE : currentTask.filename);
                 taskProcess->setArguments(currentTask.param);
-                taskProcess->setNativeArguments(currentTask.nativeParam);
+                taskProcess->setNativeArguments(batchTask ? CMD_ARG_TEMPLATE.arg(currentTask.filename, escapeNativeArgsForCMD(currentTask.nativeParam))
+                                                          : currentTask.nativeParam);
                 taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inhert console window
                 taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inhert console window
 
@@ -705,35 +700,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
     return executionError;
 }
 
-Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
-{
-    // Reset buffer
-    involvesBuffer = false;
 
-    if(appInfo.fileName().contains(SECURE_PLAYER_INFO.baseName()))
-    {
-        involvesBuffer = true;
-        return Qx::GenericError();
-    }
-
-    else if(appInfo.suffix() == BAT_SUFX)
-    {
-        // Read bat file
-        QFile batFile(appInfo.absoluteFilePath());
-        QString batScript;
-        Qx::IOOpReport readReport = Qx::readAllTextFromFile(batScript, batFile);
-
-        // Check for read errors
-        if(!readReport.wasSuccessful())
-            return Qx::GenericError(QString(), readReport.getOutcome(), readReport.getOutcomeInfo());
-
-        // Check if bat uses secure player
-        involvesBuffer = batScript.contains(SECURE_PLAYER_INFO.baseName());
-        return Qx::GenericError();
-    }
-    else
-        return Qx::GenericError();
-}
 
 void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError)
 {
@@ -757,20 +724,6 @@ bool cleanStartProcess(QProcess* process, QFileInfo exeInfo)
 
     // Return success
     return true;
-}
-
-void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses)
-{
-    // Close database connection if open
-    if(fpInstall.databaseConnectionOpenInThisThread())
-        fpInstall.closeThreadedDatabaseConnection();
-
-    // Close each remaining child process
-    for(QProcess* childProcess : childProcesses)
-    {
-        childProcess->close();
-        delete childProcess;
-    }
 }
 
 ErrorCode waitOnProcess(QString processName, int graceSecs)
@@ -815,5 +768,87 @@ ErrorCode waitOnProcess(QString processName, int graceSecs)
 
     // Return success
     return NO_ERR;
+}
+
+
+void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses)
+{
+    // Close database connection if open
+    if(fpInstall.databaseConnectionOpenInThisThread())
+        fpInstall.closeThreadedDatabaseConnection();
+
+    // Close each remaining child process
+    for(QProcess* childProcess : childProcesses)
+    {
+        childProcess->close();
+        delete childProcess;
+    }
+}
+
+//-Helper Functions-----------------------------------------------------------------
+Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
+{
+    // Reset buffer
+    involvesBuffer = false;
+
+    if(appInfo.fileName().contains(SECURE_PLAYER_INFO.baseName()))
+    {
+        involvesBuffer = true;
+        return Qx::GenericError();
+    }
+
+    else if(appInfo.suffix() == BAT_SUFX)
+    {
+        // Read bat file
+        QFile batFile(appInfo.absoluteFilePath());
+        QString batScript;
+        Qx::IOOpReport readReport = Qx::readAllTextFromFile(batScript, batFile);
+
+        // Check for read errors
+        if(!readReport.wasSuccessful())
+            return Qx::GenericError(QString(), readReport.getOutcome(), readReport.getOutcomeInfo());
+
+        // Check if bat uses secure player
+        involvesBuffer = batScript.contains(SECURE_PLAYER_INFO.baseName());
+        return Qx::GenericError();
+    }
+    else
+        return Qx::GenericError();
+}
+
+int postGenericError(Qx::GenericError error, QMessageBox::StandardButtons choices)
+{
+    // Prepare dialog
+    QMessageBox genericErrorMessage;
+    if(!error.getCaption().isEmpty())
+        genericErrorMessage.setWindowTitle(error.getCaption());
+    if(!error.getPrimaryInfo().isEmpty())
+        genericErrorMessage.setText(error.getPrimaryInfo());
+    if(!error.getSecondaryInfo().isEmpty())
+        genericErrorMessage.setInformativeText(error.getSecondaryInfo());
+    if(!error.getDetailedInfo().isEmpty())
+        genericErrorMessage.setDetailedText(error.getDetailedInfo());
+    genericErrorMessage.setStandardButtons(choices);
+    genericErrorMessage.setIcon(QMessageBox::Critical);
+
+    return genericErrorMessage.exec();
+}
+
+QString escapeNativeArgsForCMD(QString nativeArgs)
+{
+    static const QSet<QChar> escapeChars{'^','&','<','>','|'};
+    QString escapedNativeArgs;
+    bool inQuotes = false;
+
+    for(int i = 0; i < nativeArgs.size(); i++)
+    {
+        const QChar& chr = nativeArgs.at(i);
+        if(chr== '"' && (inQuotes || i != nativeArgs.lastIndexOf('"')))
+            inQuotes = !inQuotes;
+
+        escapedNativeArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
+    }
+
+    return escapedNativeArgs;
 }
 

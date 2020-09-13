@@ -61,6 +61,19 @@ The applications and arguments that are used for each game/animation can be foun
 
 Use 'exe' and 'param' for normal operation, use 'auto' by itself for automatic operation, use 'msg' to display a popup message, use 'extra' to view an extra, or use 'help' and/or 'version' for information.
 
+**NOTE:** When using the **--exe** and **--param** switches all quotes that are part of the input itself must be escaped for the command to be passed correctly. For example, the launch command
+
+    "http://website.com" -switch "value"
+  must be specified as
+  
+
+    --param="\"http://website.com\" -switch \"value\""
+   Additionally, any characters with special meaning to the Windows shell that are not within at least one level of quote pairs must also be escaped (this can be avoided as long as you wrap the entire value of the switch in quotes as shown above):
+
+    http://website.com/foo&bar => --param=http://website.com/foo^&bar
+
+See http://www.robvanderwoude.com/escapechars.php for more information.
+
 ## Exit Codes
 Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner:
 
@@ -70,25 +83,25 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | Value | Code | Description |
 |--|--|--|
 | 0 | NO_ERR | The application completed successfully |
-| 1 | INVALID_ARGS  | The arguments provided were not recognized or were formatted incorrectly |
-| 2 | LAUNCHER_OPEN | The application could not start because the Flashpoint Launcher is currently open |
-| 3 | INSTALL_INVALID | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |
-| 4 | CANT_PARSE_CONFIG | Failed to parse config.json |
-| 5 | CANT_PARSE_SERVICES | Failed to parse services.json |
-| 6 | CONFIG_SERVER_MISSING | The server entry specified in config.json was not found in services.json |
-| 7 | AUTO_ID_NOT_VALID | The specified UUID for auto operation is not a valid 128-bit UUID |
-| 8 | SQL_ERROR | An unexpected SQL error occured while reading flashpoint.sqlite |
-| 9 | DB_MISSING_TABLES | flashpoint.sqlite is missing expected tables |
-| 10 | DB_MISSING_COLUMNS | One or more tables in flashpoint.sqlite are missing expected columns |
-| 11 | AUTO_NOT_FOUND | The specified UUID for auto operation is not associated with any title in the Flashpoint database |
-| 12 | MORE_THAN_ONE_AUTO | The specified UUID for auto operation is associated with more than one title (possible collision) |
-| 13 | EXTRA_NOT_FOUND | The specified or auto-determined extra was not found in the Extras folder  |
-| 14 | EXECUTABLE_NOT_FOUND | An enqueued executable was not found at the specified path |
-| 15 | EXECUTABLE_NOT_VALID | An file with the name of an enqueued executable was found but is not actually an executable|
-| 16 | PROCESS_START_FAIL | An enqueued executable failed to start |
-| 17 | BATCH_PROCESS_NOT_FOUND | The "wait-on" process for .bat based titles was not found (currently unused) |
-| 18 | BATCH_PROCESS_NOT_HANDLED | A handle to the "wait-on" process for .bat based titles could not be obtained (currently unused) |
-| 19 | BATCH_PROCESS_NOT_HOOKED | The "wait-on" process for .bat based titles returned before it finished executing (currently unused) |
+| 1 | ALREADY_OPEN | Another instance of CLIFp is already running
+| 2 | INVALID_ARGS  | The arguments provided were not recognized or were formatted incorrectly |
+| 3 | LAUNCHER_OPEN | The application could not start because the Flashpoint Launcher is currently open |
+| 4 | INSTALL_INVALID | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |
+| 5 | CANT_PARSE_CONFIG | Failed to parse config.json |
+| 6 | CANT_PARSE_SERVICES | Failed to parse services.json |
+| 7 | CONFIG_SERVER_MISSING | The server entry specified in config.json was not found in services.json |
+| 8 | AUTO_ID_NOT_VALID | The specified UUID for auto operation is not a valid 128-bit UUID |
+| 9 | SQL_ERROR | An unexpected SQL error occured while reading flashpoint.sqlite |
+| 10 | DB_MISSING_TABLES | flashpoint.sqlite is missing expected tables |
+| 11 | DB_MISSING_COLUMNS | One or more tables in flashpoint.sqlite are missing expected columns |
+| 12 | AUTO_NOT_FOUND | The specified UUID for auto operation is not associated with any title in the Flashpoint database |
+| 13 | MORE_THAN_ONE_AUTO | The specified UUID for auto operation is associated with more than one title (possible collision) |
+| 14 | EXTRA_NOT_FOUND | The specified or auto-determined extra was not found in the Extras folder  |
+| 15 | EXECUTABLE_NOT_FOUND | An enqueued executable was not found at the specified path |
+| 16 | EXECUTABLE_NOT_VALID | An file with the name of an enqueued executable was found but is not actually an executable|
+| 17 | PROCESS_START_FAIL | An enqueued executable failed to start |
+| 18 | WAIT_PROCESS_NOT_HANDLED| A handle to a "wait-on" process (usually for .bat based titles) could not be obtained |
+| 19 | WAIT_PROCESS_NOT_HOOKED| A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing |
 
 
 ## Limitations
