@@ -14,7 +14,7 @@
 #define CLIFP_PATH QCoreApplication::applicationDirPath()
 
 //-Enums-----------------------------------------------------------------------
-enum ErrorCode //TODO: Update documentation with current vals
+enum ErrorCode
 {
     NO_ERR = 0x00,
     ALREADY_OPEN = 0x01,
@@ -628,7 +628,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 if(!executableInfo.exists() || !executableInfo.isFile())
                 {
                     QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                                          ERR_EXE_NOT_FOUND.arg(executableInfo.absoluteFilePath()));
+                                          ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath())));
                     handleExecutionError(taskQueue, executionError, EXECUTABLE_NOT_FOUND);
                     continue; // Continue to next task
                 }
@@ -637,7 +637,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 if(!executableInfo.isExecutable())
                 {
                     QMessageBox::critical(nullptr, QCoreApplication::applicationName(),
-                                          ERR_EXE_NOT_VALID.arg(executableInfo.absoluteFilePath()));
+                                          ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath())));
                     handleExecutionError(taskQueue, executionError, EXECUTABLE_NOT_VALID);
                     continue; // Continue to next task
                 }
