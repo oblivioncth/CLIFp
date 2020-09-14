@@ -49,7 +49,7 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
 {
     // Ensure top level container is object
     if(!servicesDoc.isObject())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Value error checking buffer
     Qx::GenericError valueError;
@@ -110,7 +110,7 @@ Qx::GenericError Install::JSONServicesReader::parseServer(Server& serverBuffer, 
 {
     // Ensure array element is Object
     if(!jvServer.isObject())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get server Object
     QJsonObject joServer = jvServer.toObject();
@@ -140,7 +140,7 @@ Qx::GenericError Install::JSONServicesReader::parseServer(Server& serverBuffer, 
     {
         // Ensure array element is String
         if(!jvArg.isString())
-            return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+            return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
         serverBuffer.arguments.append(jvArg.toString());
     }
@@ -165,7 +165,7 @@ Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startSto
 
     // Ensure array element is Object
     if(!jvStartStop.isObject())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get server Object
     QJsonObject joStartStop = jvStartStop.toObject();
@@ -189,7 +189,7 @@ Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startSto
     {
         // Ensure array element is String
         if(!jvArg.isString())
-            return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+            return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
         startStopBuffer.arguments.append(jvArg.toString());
     }
@@ -215,14 +215,14 @@ Qx::GenericError Install::JSONServicesReader::readInto()
     Qx::IOOpReport servicesLoadReport = Qx::readAllBytesFromFile(servicesData, *mTargetJSONFile);
 
     if(!servicesLoadReport.wasSuccessful())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), servicesLoadReport.getOutcomeInfo());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), servicesLoadReport.getOutcomeInfo());
 
     // Parse original JSON data
     QJsonParseError parseError;
     QJsonDocument servicesDocument = QJsonDocument::fromJson(servicesData, &parseError);
 
     if(servicesDocument.isNull())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
     else
         return parseServicesDocument(servicesDocument);
 }
@@ -242,7 +242,7 @@ Qx::GenericError Install::JSONConfigReader::parseConfigDocument(const QJsonDocum
 {
     // Ensure top level container is object
     if(!configDoc.isObject())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get values
     Qx::GenericError valueError;
@@ -266,14 +266,14 @@ Qx::GenericError Install::JSONConfigReader::readInto()
     Qx::IOOpReport configLoadReport = Qx::readAllBytesFromFile(configData, *mTargetJSONFile);
 
     if(!configLoadReport.wasSuccessful())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), configLoadReport.getOutcomeInfo());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), configLoadReport.getOutcomeInfo());
 
     // Parse original JSON data
     QJsonParseError parseError;
     QJsonDocument configDocument = QJsonDocument::fromJson(configData, &parseError);
 
     if(configDocument.isNull())
-        return Qx::GenericError(QString(), ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
     else
         return parseConfigDocument(configDocument);
 }

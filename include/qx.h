@@ -11,6 +11,7 @@
 #include <QWidget>
 #include <QSet>
 #include <QDateTime>
+#include <QMessageBox>
 #include "assert.h"
 
 namespace Qx
@@ -428,8 +429,13 @@ public:
 
 class GenericError
 {
-//-Instance Members----------------------------------------------------------------------------------------------
+//-Class Enums-----------------------------------------------------------------------------------------------
+public:
+    enum ErrorLevel { Undefined, Warning, Error, Critical };
+
+//-Instance Members------------------------------------------------------------------------------------------
 private:
+    ErrorLevel mErrorLevel;
     QString mCaption;
     QString mPrimaryInfo;
     QString mSecondaryInfo;
@@ -437,16 +443,22 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------
 public:
-    GenericError(QString caption = QString(), QString primaryInfo = QString(),
-                 QString secondaryInfo = QString(), QString detailedInfo = QString());
+    GenericError();
+    GenericError(ErrorLevel errorLevel, QString primaryInfo,
+                 QString secondaryInfo = QString(), QString detailedInfo = QString(), QString caption = QString());
 
 //-Instance Functions----------------------------------------------------------------------------------------------
 public:
     bool isValid();
-    QString getCaption();
-    QString getPrimaryInfo();
-    QString getSecondaryInfo();
-    QString getDetailedInfo();
+    ErrorLevel errorLevel();
+    QString caption();
+    QString primaryInfo();
+    QString secondaryInfo();
+    QString detailedInfo();
+
+    void setErrorLevel(ErrorLevel errorLevel);
+
+    int exec(QMessageBox::StandardButtons choices);
 };
 
 class Integrity

@@ -23,7 +23,7 @@ Each release of this application targets a specific version or versions of BlueM
 |--|--|
 | 0.1 | 8.1 ("Spirit of Adventure") |
 | 0.1.1 | 8.2 ("Approaching Planet Nine") |
-| 0.2 | 8.1, 8.2+ |
+| 0.2, 0.3 | 8.1, 8.2+ |
 
 Using a version of CLIFp that does not target the version of Flashpoint you wish to use it with is highly discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however since 0.2 compatibility with newer versions is quite likely even if they aren't explicit listed yet** (usually because I haven't had time to check if an update is needed).
 
@@ -57,9 +57,11 @@ The applications and arguments that are used for each game/animation can be foun
  -  **-p | --param:** Command-line parameters to use when starting the primary application
  -  **-a | --auto:** Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
- -  **-e | --extra"** Opens an explorer window to the specified extra. Used primarily for some additional apps
+ -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
+ - **-q | --quiet:** Silences all non-critical error messages
+ - **-s | --silent:** Silences all error messages (takes precedence over quiet mode)
 
-Use 'exe' and 'param' for normal operation, use 'auto' by itself for automatic operation, use 'msg' to display a popup message, use 'extra' to view an extra, or use 'help' and/or 'version' for information.
+Use **'exe'** and **'param'** for normal operation, use **'auto'** by itself for automatic operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, or use **'help'** and/or **'version'** for information.
 
 **NOTE:** When using the **--exe** and **--param** switches all quotes that are part of the input itself must be escaped for the command to be passed correctly. For example, the launch command
 
@@ -75,7 +77,7 @@ Use 'exe' and 'param' for normal operation, use 'auto' by itself for automatic o
 See http://www.robvanderwoude.com/escapechars.php for more information.
 
 ## Exit Codes
-Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner:
+Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
 
     start /wait CLIFp.exe [parameters]
     echo %errorlevel%
@@ -101,8 +103,8 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 16 | EXECUTABLE_NOT_VALID | An file with the name of an enqueued executable was found but is not actually an executable|
 | 17 | PROCESS_START_FAIL | An enqueued executable failed to start |
 | 18 | WAIT_PROCESS_NOT_HANDLED| A handle to a "wait-on" process (usually for .bat based titles) could not be obtained |
-| 19 | WAIT_PROCESS_NOT_HOOKED| A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing |
-
+| 19 | WAIT_PROCESS_NOT_HOOKED | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing |
+| 20 | CANT_READ_BAT_FILE | Failed to read a batch script for checking if it contains a use of a "wait-on" process |
 
 ## Limitations
 
@@ -112,3 +114,5 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 This tool was written in C++ 17 along with Qt 5 and currently only targets Windows Vista and above; however, this tool can easily be ported to Linux with minimal changes, though to what end I am not sure since this is for a Windows application. The source includes an easy-to-use .pro file if you wish to build the application in Qt Creator and the available latest release was compiled in Qt Creator using MSVC 2019 and a static compilation of Qt 5.15.0. Other than a C++ 17 capable compiler and Qt 5.15.x+ all files required to compile this software are included, with the exception of a standard make file.
 
 All functions/variables under the "Qx" (QExtended) namespace belong to a small, personal library I maintain to always have access to frequently used functionality in my projects. A pre-compiled static version of this library is provided with the source for this tool. If anyone truly needs it, I can provide the source for this library as well.
+
+Additionally the source makes use of [Neargye's Magic Enum](https://github.com/Neargye/magic_enum) header for gaining static reflection of enumerated types, primarily to easily convert enum names to strings.
