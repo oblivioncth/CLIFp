@@ -99,21 +99,22 @@ const QString CL_OPT_SILENT_L_NAME = "silent";
 const QString CL_OPT_SILENT_DESC = "Silences all error messages (takes precedence over quiet mode).";
 
 // Command line messages
-const QString CL_HELP_MESSAGE = "CLIFp Usage:<br>"
-                                "<br>"
-                                "<b>-" + CL_OPT_HELP_S_NAME + " | --" + CL_OPT_HELP_L_NAME + " | -" + CL_OPT_HELP_E_NAME + ":</b> &nbsp;" + CL_OPT_HELP_DESC + "<br>"
-                                "<b>-" + CL_OPT_VERSION_S_NAME + " | --" + CL_OPT_VERSION_L_NAME + ":</b> &nbsp;" + CL_OPT_VERSION_DESC + "<br>"
-                                "<b>-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ":</b> &nbsp;" + CL_OPT_APP_DESC + "<br>"
-                                "<b>-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ":</b> &nbsp;" + CL_OPT_PARAM_DESC + "<br>"
-                                "<b>-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ":</b> &nbsp;" + CL_OPT_AUTO_DESC + "<br>"
-                                "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
-                                "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
-                                "<b>-" + CL_OPT_QUIET_S_NAME + " | --" + CL_OPT_QUIET_L_NAME + ":</b> &nbsp;" + CL_OPT_QUIET_DESC + "<br>"
-                                "<b>-" + CL_OPT_SILENT_S_NAME + " | --" + CL_OPT_SILENT_L_NAME + ":</b> &nbsp;" + CL_OPT_SILENT_DESC + "<br>"
-                                "<br>"
-                                "Use '" + CL_OPT_APP_L_NAME + "' and '" + CL_OPT_PARAM_L_NAME + "' for normal operation, use '" + CL_OPT_AUTO_L_NAME + "' by itself "
-                                "for automatic operation, use '" + CL_OPT_MSG_L_NAME  + "' to display a popup message, use '" + CL_OPT_EXTRA_L_NAME +
-                                "' to view an extra, or use '" + CL_OPT_HELP_L_NAME + "' and/or '" + CL_OPT_VERSION_L_NAME + "' for information.";
+const QString CL_HELP_MESSAGE =
+        "CLIFp Usage:<br>"
+        "<br>"
+        "<b>-" + CL_OPT_HELP_S_NAME + " | --" + CL_OPT_HELP_L_NAME + " | -" + CL_OPT_HELP_E_NAME + ":</b> &nbsp;" + CL_OPT_HELP_DESC + "<br>"
+        "<b>-" + CL_OPT_VERSION_S_NAME + " | --" + CL_OPT_VERSION_L_NAME + ":</b> &nbsp;" + CL_OPT_VERSION_DESC + "<br>"
+        "<b>-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ":</b> &nbsp;" + CL_OPT_APP_DESC + "<br>"
+        "<b>-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ":</b> &nbsp;" + CL_OPT_PARAM_DESC + "<br>"
+        "<b>-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ":</b> &nbsp;" + CL_OPT_AUTO_DESC + "<br>"
+        "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
+        "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
+        "<b>-" + CL_OPT_QUIET_S_NAME + " | --" + CL_OPT_QUIET_L_NAME + ":</b> &nbsp;" + CL_OPT_QUIET_DESC + "<br>"
+        "<b>-" + CL_OPT_SILENT_S_NAME + " | --" + CL_OPT_SILENT_L_NAME + ":</b> &nbsp;" + CL_OPT_SILENT_DESC + "<br>"
+        "<br>"
+        "Use <b>'" + CL_OPT_APP_L_NAME + "'</b> and <b>'" + CL_OPT_PARAM_L_NAME + "'</b> for normal operation, use <b>'" + CL_OPT_AUTO_L_NAME +
+        "'</b> by itself for automatic operation, use <b>'" + CL_OPT_MSG_L_NAME  + "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME +
+        "'</b> to view an extra, or use <b>'" + CL_OPT_HELP_L_NAME + "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
 
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
 
@@ -187,7 +188,7 @@ const int SECURE_PLAYER_GRACE = 2; // Seconds to allow the secure player to rest
 const QString LOG_FILE_NAME = VER_INTERNALNAME_STR ".log";
 const QString LOG_HEADER = "CLIFp Execution Log";
 const QString LOG_NO_PARAMS = "*None*";
-const int LOG_MAX_ENTRIES = 3;
+const int LOG_MAX_ENTRIES = 50;
 
 // Logging - Messages
 const QString LOG_ERR_INVALID_PARAM = "Invalid combination of parameters used";
@@ -299,6 +300,35 @@ int main(int argc, char *argv[])
     // Logger instance
     gLogger = std::make_unique<Logger>(CLIFP_PATH + '/' + LOG_FILE_NAME, rawCL, interpCL, LOG_HEADER, LOG_MAX_ENTRIES);
 
+    //-Determine Operation Mode------------------------------------------------------------
+    OperationMode operationMode;
+    QSet<QString> providedArgs;
+    for(const QCommandLineOption* clOption : CL_OPTIONS_ALL)
+        if(CL_OPTIONS_MAIN.contains(clOption) && clParser.isSet(*clOption))
+            providedArgs.insert((*clOption).names().value(0)); // Add options shortname to set
+
+    if(CL_MAIN_OPTIONS_OP_MODE_MAP.contains(providedArgs))
+        operationMode = CL_MAIN_OPTIONS_OP_MODE_MAP.value(providedArgs);
+    else
+        operationMode = OperationMode::Invalid;
+    logEvent(LOG_EVENT_OP_MODE.arg(ENUM_NAME(operationMode)));
+
+    // If mode is Information, handle it immediately
+    if(operationMode == OperationMode::Information)
+    {
+        if(clParser.isSet(CL_OPTION_VERSION))
+        {
+            QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
+            logEvent(LOG_EVENT_HELP_SHOWN);
+        }
+        if(clParser.isSet(CL_OPTION_HELP))
+        {
+            QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
+            logEvent(LOG_EVENT_HELP_SHOWN);
+        }
+        return printLogAndExit(NO_ERR);
+    }
+
     //-Restrict app to only one instance---------------------------------------------------
     if(!Qx::enforceSingleInstance())
     {
@@ -322,19 +352,6 @@ int main(int argc, char *argv[])
 
     FP::Install flashpointInstall(CLIFP_PATH);
     logEvent(LOG_EVENT_FLASHPOINT_LINK.arg(CLIFP_PATH));
-
-    //-Determine Operation Mode------------------------------------------------------------
-    OperationMode operationMode;
-    QSet<QString> providedArgs;
-    for(const QCommandLineOption* clOption : CL_OPTIONS_ALL)
-        if(CL_OPTIONS_MAIN.contains(clOption) && clParser.isSet(*clOption))
-            providedArgs.insert((*clOption).names().value(0)); // Add options shortname to set
-
-    if(CL_MAIN_OPTIONS_OP_MODE_MAP.contains(providedArgs))
-        operationMode = CL_MAIN_OPTIONS_OP_MODE_MAP.value(providedArgs);
-    else
-        operationMode = OperationMode::Invalid;
-    logEvent(LOG_EVENT_OP_MODE.arg(ENUM_NAME(operationMode)));
 
     //-Get Install Settings----------------------------------------------------------------
     Qx::GenericError settingsReadError;
@@ -423,17 +440,8 @@ int main(int argc, char *argv[])
             return printLogAndExit(NO_ERR);
 
         case OperationMode::Information:
-            if(clParser.isSet(CL_OPTION_VERSION))
-            {
-                QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
-                logEvent(LOG_EVENT_HELP_SHOWN);
-            }
-            if(clParser.isSet(CL_OPTION_VERSION))
-            {
-                QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
-                logEvent(LOG_EVENT_HELP_SHOWN);
-            }
-            return printLogAndExit(NO_ERR);
+            // Already handled
+            break;
     }
 
     // Enqueue Shudown Tasks if main task isn't message/extra

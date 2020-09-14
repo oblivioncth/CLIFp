@@ -42,32 +42,32 @@ Qx::IOOpReport Logger::finish(int returnCode)
     entry += EXIT_CODE_LABEL + " " + QString::number(returnCode) + "\n";
 
     // Entries
-    entry += EVENTS_LABEL + "\n";
+    entry += EVENTS_LABEL;
     for(const QString& event : mEvents)
-        entry += " - " + event;
-
-    // Room for next entry
-    entry += "\n";
+        entry += "\n - " + event;
 
     //-Prepare Log File--------------------------------------------------
     QFile logFile(mFilePath);
     QFileInfo logFileInfo(logFile);
     Qx::IOOpReport logFileOpReport;
 
-    //-Limit Log Entry Count---------------------------------------------
+    //-Handle Formating For Existing Log---------------------------------
     if(logFileInfo.exists() && logFileInfo.isFile() && !Qx::fileIsEmpty(logFile))
     {
+        // Add spacer to start of new entry
+        entry.prepend('\n');
+
         // Get entry count and locations
         QList<Qx::TextPos> entryStartLocations;
         logFileOpReport = Qx::findStringInFile(entryStartLocations, logFile, mEntryHeader);
         if(!logFileOpReport.wasSuccessful())
             return logFileOpReport;
 
-        // Make room for new entry if current count is at limit
+        // Purge oldest entries if current count is at or above limit
         if(entryStartLocations.count() >= mMaxEntries)
         {
-            // Remove everything before second entry
-            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(1).getLineNum() - 1, -1);
+            int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
+            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).getLineNum() - 1, -1);
             logFileOpReport = Qx::deleteTextRangeFromFile(logFile, Qx::TextPos::START, deleteEnd);
             if(!logFileOpReport.wasSuccessful())
                 return logFileOpReport;
@@ -80,5 +80,5 @@ Qx::IOOpReport Logger::finish(int returnCode)
         return logFileOpReport;
 
     // Return Success
-    return Qx::IOOpReport();
+    return Qx::IOOpReport(Qx::IO_OP_WRITE, Qx::IO_SUCCESS, logFile);
 }
