@@ -40,6 +40,7 @@ public:
 
 //-Instance Members-------------------------------------------------------------------------------------------------
 private:
+    bool mNull;
     IOOpType mOperation;
     IOOpResultType mResult;
     IOOpTargetType mTargetType;
@@ -53,6 +54,9 @@ public:
     IOOpReport(IOOpType op, IOOpResultType res, const QDir& tar);
 
 //-Instance Functions----------------------------------------------------------------------------------------------
+private:
+    void parseOutcome();
+
 public:
     IOOpType getOperation() const;
     IOOpResultType getResult() const;
@@ -61,8 +65,7 @@ public:
     QString getOutcome() const;
     QString getOutcomeInfo() const;
     bool wasSuccessful() const;
-private:
-    void parseOutcome();
+    bool isNull() const;
 };
 
 class TextPos
