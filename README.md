@@ -58,8 +58,8 @@ The applications and arguments that are used for each game/animation can be foun
  -  **-a | --auto:** Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
  -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
- - **-q | --quiet:** Silences all non-critical error messages
- - **-s | --silent:** Silences all error messages (takes precedence over quiet mode)
+ -  **-q | --quiet:** Silences all non-critical error messages
+ -  **-s | --silent:** Silences all error messages (takes precedence over quiet mode)
 
 Use **'exe'** and **'param'** for normal operation, use **'auto'** by itself for automatic operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, or use **'help'** and/or **'version'** for information.
 

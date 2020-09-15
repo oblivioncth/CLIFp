@@ -1,8 +1,5 @@
 #include "version.h"
 #include <QApplication>
-#include <QMessageBox>
-#include <QFileInfo>
-#include <QDir>
 #include <QProcess>
 #include <QCommandLineParser>
 #include <QDesktopServices>
@@ -323,7 +320,7 @@ int main(int argc, char *argv[])
         operationMode = OperationMode::Invalid;
     logEvent(LOG_EVENT_OP_MODE.arg(ENUM_NAME(operationMode)));
 
-    // If mode is Information, handle it immediately
+    // If mode is Information or Invalid, handle it immediately
     if(operationMode == OperationMode::Information)
     {
         if(clParser.isSet(CL_OPTION_VERSION))
@@ -337,6 +334,12 @@ int main(int argc, char *argv[])
             logEvent(LOG_EVENT_HELP_SHOWN);
         }
         return printLogAndExit(NO_ERR);
+    }
+    else if(operationMode == OperationMode::Invalid)
+    {
+        QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
+        logError(Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM));
+        return printLogAndExit(INVALID_ARGS);
     }
 
     logEvent(LOG_EVENT_INIT);
@@ -396,9 +399,8 @@ int main(int argc, char *argv[])
     switch(operationMode)
     {    
         case OperationMode::Invalid:
-            QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
-            logError(Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM));
-            return printLogAndExit(INVALID_ARGS);
+            // Already handled
+            break;
 
         case OperationMode::Normal: 
             if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)))
