@@ -192,17 +192,26 @@ const int LOG_MAX_ENTRIES = 50;
 
 // Logging - Messages
 const QString LOG_ERR_INVALID_PARAM = "Invalid combination of parameters used";
+const QString LOG_ERR_CRITICAL = "Aborting execution due to previous critical errors";
 const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
 const QString LOG_EVENT_OP_MODE = "Operation Mode: %1";
-const QString LOG_EVENT_APP_TASK = R"(Enqueued App Task: {.type = %1, .path = "%2", .filename = "%3",
-                                   .param = {"%4"}, .nativeParam = "%5", .processType = %6})";
+const QString LOG_EVENT_APP_TASK = "Enqueued App Task: {.type = %1, .path = \"%2\", .filename = \"%3\", "
+                                   ".param = {\"%4\"}, .nativeParam = \"%5\", .processType = %6}";
 const QString LOG_EVENT_SHOW_MESSAGE = "Displayed message";
 const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
 const QString LOG_EVENT_HELP_SHOWN = "Displayed help information";
 const QString LOG_EVENT_VER_SHOWN = "Displayed version information";
+const QString LOG_EVENT_INIT = "Initializing CLIFp...";
+const QString LOG_EVENT_GET_SET = "Reading Flashpoint configuration...";
+const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
+const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
+const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
+const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
+const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
+const QString LOG_EVENT_TASK_FINISH = "End of task %1 (%2)";
 const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
 const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
-const QString LOG_EVENT_ALL_FINISH = "Execution finished";
+const QString LOG_EVENT_ALL_FINISH = "Execution finished successfully";
 const QString LOG_EVENT_ID_MATCH_TITLE = "Auto ID matches main title: %1";
 const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1";
 const QString LOG_EVENT_QUEUE_CLEARED = "Previous queue entries cleared due to auto task being a Message/Extra";
@@ -221,6 +230,7 @@ const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running afte
 // Globals
 ErrorVerbosity gErrorVerbosity = ErrorVerbosity::Full;
 std::unique_ptr<Logger> gLogger;
+bool gCritErrOccured = false;
 
 // Prototypes - Process
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
@@ -329,6 +339,8 @@ int main(int argc, char *argv[])
         return printLogAndExit(NO_ERR);
     }
 
+    logEvent(LOG_EVENT_INIT);
+
     //-Restrict app to only one instance---------------------------------------------------
     if(!Qx::enforceSingleInstance())
     {
@@ -354,6 +366,7 @@ int main(int argc, char *argv[])
     logEvent(LOG_EVENT_FLASHPOINT_LINK.arg(CLIFP_PATH));
 
     //-Get Install Settings----------------------------------------------------------------
+    logEvent(LOG_EVENT_GET_SET);
     Qx::GenericError settingsReadError;
     FP::Install::Config flashpointConfig;
     FP::Install::Services flashpointServices;
@@ -512,6 +525,7 @@ ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall)
 
 ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices)
 {
+    logEvent(LOG_EVENT_ENQ_START);
     // Add Start entries from services
     for(const FP::Install::StartStop& startEntry : fpServices.starts)
     {
@@ -545,6 +559,7 @@ ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Confi
 
 ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall)
 {
+    logEvent(LOG_EVENT_ENQ_AUTO);
     // Search FP database for entry via ID
     QSqlError searchError;
     FP::Install::DBQueryBuffer searchResult;
@@ -685,6 +700,7 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
 
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices)
 {
+    logEvent(LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
     for(const FP::Install::StartStop& stopEntry : fpServices.stops)
     {
@@ -724,14 +740,17 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
 
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses)
 {
+    logEvent(LOG_EVENT_QUEUE_START);
     // Error tracker
     ErrorCode executionError = NO_ERR;
 
     // Exhaust queue
+    int tasksHandled = 0;
     while(!taskQueue.empty())
     {
         // Handle task at front of queue
         AppTask currentTask = taskQueue.front();
+        logEvent(LOG_EVENT_TASK_START.arg(tasksHandled).arg(ENUM_NAME(currentTask.type)));
 
         // Only execute task after an error if it is a Shutdown task
         if(!executionError || currentTask.type == TaskType::Shutdown)
@@ -842,17 +861,20 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
             }
         }
         else
+        {
             logEvent(LOG_EVENT_TASK_SKIP);
+            ++tasksHandled;
+        }
 
         // Remove handled task
         taskQueue.pop();
+        logEvent(LOG_EVENT_TASK_FINISH.arg(tasksHandled++).arg(ENUM_NAME(currentTask.type)));
+
     }
 
     // Return error status
     return executionError;
 }
-
-
 
 void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError)
 {
@@ -1015,7 +1037,9 @@ QString escapeNativeArgsForCMD(QString nativeArgs)
         escapedNativeArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
     }
 
-    logEvent(LOG_EVENT_ARGS_ESCAPED.arg(nativeArgs, escapedNativeArgs));
+    if(nativeArgs != escapedNativeArgs)
+        logEvent(LOG_EVENT_ARGS_ESCAPED.arg(nativeArgs, escapedNativeArgs));
+
     return escapedNativeArgs;
 }
 
@@ -1062,10 +1086,19 @@ void logProcessEnd(const QProcess* process, ProcessType type)
     logEvent(LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), process->program()));
 }
 
-void logError(Qx::GenericError error) { gLogger->appendErrorEvent(error); }
+void logError(Qx::GenericError error)
+{
+    gLogger->appendErrorEvent(error);
+
+    if(error.errorLevel() == Qx::GenericError::Critical)
+        gCritErrOccured = true;
+}
 
 int printLogAndExit(int exitCode)
 {
+    if(gCritErrOccured)
+        logEvent(LOG_ERR_CRITICAL);
+
     Qx::IOOpReport logPrintReport = gLogger->finish(exitCode);
     if(!logPrintReport.wasSuccessful())
         postError(Qx::GenericError(Qx::GenericError::Warning, logPrintReport.getOutcome(), logPrintReport.getOutcomeInfo()), false);
