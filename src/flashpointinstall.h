@@ -241,7 +241,7 @@ public:
         static inline const QString EXE_NAME = "CLIFp.exe";
         static inline const QString APP_ARG = R"(--exe="%1")";
         static inline const QString PARAM_ARG = R"(--param="%1")";
-        static inline const QString EXTRA_ARG = R"(--extra-"%1"")";
+        static inline const QString EXTRA_ARG = R"(--extra-"%1")";
         static inline const QString MSG_ARG = R"(--msg="%1")";
 
     // Class functions
@@ -335,7 +335,7 @@ public:
     QSqlError initialGameQuery(QList<DBQueryBuffer>& resultBuffer, QSet<QString> selectedPlatforms) const;
     QSqlError initialAddAppQuery(DBQueryBuffer& resultBuffer) const;
     QSqlError initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QString> selectedPlaylists) const;
-    QSqlError initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const;
+    QSqlError initialPlaylistGameQuery(QList<DBQueryBuffer>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const;
 
     // Queries - CLIFp
     QSqlError queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const;

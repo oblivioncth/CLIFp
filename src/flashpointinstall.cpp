@@ -287,11 +287,11 @@ Qx::GenericError Install::JSONConfigReader::readInto()
 QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString originalAppParams)
 {
     if(originalAppPath == DBTable_Add_App::ENTRY_MESSAGE)
-        return MSG_ARG.arg(originalAppParams);
+        return MSG_ARG.arg(originalAppParams) + " -q";
     else if(originalAppPath == DBTable_Add_App::ENTRY_EXTRAS)
-        return EXTRA_ARG.arg(originalAppParams);
+        return EXTRA_ARG.arg(originalAppParams) + " -q";
     else
-        return APP_ARG.arg(originalAppPath) + " " + PARAM_ARG.arg(originalAppParams);
+        return APP_ARG.arg(originalAppPath) + " " + PARAM_ARG.arg(originalAppParams) + " -q";
 }
 
 //===============================================================================================================
@@ -731,10 +731,16 @@ QSqlError Install::initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QStrin
         if(!mainQuery.exec())
             return mainQuery.lastError();
 
-        // Create size query
+        // Create size query and bind selected playlists
         QSqlQuery sizeQuery(fpDB);
         sizeQuery.setForwardOnly(true);
         sizeQuery.prepare(sizeQueryCommand);
+        for(const QString& playlist : selectedPlaylists)
+            sizeQuery.addBindValue(playlist);
+
+        // Execute query and return if error occurs
+        if(!sizeQuery.exec())
+            return sizeQuery.lastError();
 
         // Get query size
         sizeQuery.next();
@@ -750,7 +756,7 @@ QSqlError Install::initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QStrin
     }
 }
 
-QSqlError Install::initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const
+QSqlError Install::initialPlaylistGameQuery(QList<DBQueryBuffer>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const
 {
     // Ensure return buffer is empty
     resultBuffer.clear();
@@ -761,7 +767,7 @@ QSqlError Install::initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& 
     for(QUuid playlistID : knownPlaylistsToQuery) // Naturally returns empty list if no playlists are selected
     {
         // Query all games for the current playlist
-        QString baseQueryCommand = "SELECT `" + DBTable_Playlist_Game::COLUMN_LIST.join("`,`") + "` FROM " + DBTable_Playlist_Game::NAME + " WHERE " +
+        QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Playlist_Game::NAME + " WHERE " +
                 DBTable_Playlist_Game::COL_PLAYLIST_ID + " = '" + playlistID.toString(QUuid::WithoutBraces) + "'";
         QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Playlist_Game::COLUMN_LIST.join("`,`") + "`");
         QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
@@ -775,7 +781,7 @@ QSqlError Install::initialPlaylistGameQuery(QList<QPair<DBQueryBuffer, QUuid>>& 
             return queryError;
 
         // Add result to buffer
-        resultBuffer.append(qMakePair(queryResult, playlistID));
+        resultBuffer.append(queryResult);
     }
 
     // Return invalid SqlError
