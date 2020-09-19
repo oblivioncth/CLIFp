@@ -39,7 +39,7 @@ enum ErrorCode
     CANT_READ_BAT_FILE = 0x14
 };
 
-enum class OperationMode { Invalid, Normal, Auto, Message, Extra, Information };
+enum class OperationMode { Invalid, Normal, Auto, Random, Message, Extra, Information };
 enum class TaskType { Startup, Primary, Auxiliary, Wait, Shutdown };
 enum class ProcessType { Blocking, Deferred, Detached };
 enum class ErrorVerbosity { Full, Quiet, Silent };
@@ -87,6 +87,10 @@ const QString CL_OPT_AUTO_S_NAME = "a";
 const QString CL_OPT_AUTO_L_NAME = "auto";
 const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game.";
 
+const QString CL_OPT_RAND_S_NAME = "r";
+const QString CL_OPT_RAND_L_NAME = "random";
+const QString CL_OPT_RAND_DESC = "Selects a random game UUID from the database and starts it in the same manner as using the --" + CL_OPT_AUTO_L_NAME + " switch.";
+
 const QString CL_OPT_QUIET_S_NAME = "q";
 const QString CL_OPT_QUIET_L_NAME = "quiet";
 const QString CL_OPT_QUIET_DESC = "Silences all non-critical error messages.";
@@ -104,14 +108,15 @@ const QString CL_HELP_MESSAGE =
         "<b>-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ":</b> &nbsp;" + CL_OPT_APP_DESC + "<br>"
         "<b>-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ":</b> &nbsp;" + CL_OPT_PARAM_DESC + "<br>"
         "<b>-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ":</b> &nbsp;" + CL_OPT_AUTO_DESC + "<br>"
+        "<b>-" + CL_OPT_RAND_S_NAME + " | --" + CL_OPT_RAND_L_NAME + ":</b> &nbsp;" + CL_OPT_RAND_DESC + "<br>"
         "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
         "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
         "<b>-" + CL_OPT_QUIET_S_NAME + " | --" + CL_OPT_QUIET_L_NAME + ":</b> &nbsp;" + CL_OPT_QUIET_DESC + "<br>"
         "<b>-" + CL_OPT_SILENT_S_NAME + " | --" + CL_OPT_SILENT_L_NAME + ":</b> &nbsp;" + CL_OPT_SILENT_DESC + "<br>"
-        "<br>"
         "Use <b>'" + CL_OPT_APP_L_NAME + "'</b> and <b>'" + CL_OPT_PARAM_L_NAME + "'</b> for normal operation, use <b>'" + CL_OPT_AUTO_L_NAME +
-        "'</b> by itself for automatic operation, use <b>'" + CL_OPT_MSG_L_NAME  + "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME +
-        "'</b> to view an extra, or use <b>'" + CL_OPT_HELP_L_NAME + "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
+        "'</b> by itself for automatic operation, use <b>'" + CL_OPT_MSG_L_NAME  + "'</b> by itself for random operation,  use <b>'" + CL_OPT_MSG_L_NAME  +
+        "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME + "'</b> to view an extra, or use <b>'" + CL_OPT_HELP_L_NAME +
+        "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
 
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
 
@@ -149,20 +154,22 @@ const QString WRN_WAIT_PROCESS_NOT_HOOKED_S = "The title may not work correctly"
 const QCommandLineOption CL_OPTION_APP({CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"); // Takes value
 const QCommandLineOption CL_OPTION_PARAM({CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, "parameters"); // Takes value
 const QCommandLineOption CL_OPTION_AUTO({CL_OPT_AUTO_S_NAME, CL_OPT_AUTO_L_NAME}, CL_OPT_AUTO_DESC, "id"); // Takes value
+const QCommandLineOption CL_OPTION_RAND({CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC); // Boolean option
 const QCommandLineOption CL_OPTION_MSG({CL_OPT_MSG_S_NAME, CL_OPT_MSG_L_NAME}, CL_OPT_MSG_DESC, "message"); // Takes value
 const QCommandLineOption CL_OPTION_EXTRA({CL_OPT_EXTRA_S_NAME, CL_OPT_EXTRA_L_NAME}, CL_OPT_EXTRA_DESC, "extra"); // Takes value
 const QCommandLineOption CL_OPTION_HELP({CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC); // Boolean option
 const QCommandLineOption CL_OPTION_VERSION({CL_OPT_VERSION_S_NAME, CL_OPT_VERSION_L_NAME}, CL_OPT_VERSION_DESC); // Boolean option
 const QCommandLineOption CL_OPTION_QUIET({CL_OPT_QUIET_S_NAME, CL_OPT_QUIET_L_NAME}, CL_OPT_QUIET_DESC); // Boolean option
 const QCommandLineOption CL_OPTION_SILENT({CL_OPT_SILENT_S_NAME, CL_OPT_SILENT_L_NAME}, CL_OPT_SILENT_DESC); // Boolean option
-const QList<const QCommandLineOption*> CL_OPTIONS_MAIN{&CL_OPTION_APP, &CL_OPTION_PARAM, &CL_OPTION_AUTO,
-                                                 &CL_OPTION_MSG, &CL_OPTION_EXTRA, &CL_OPTION_HELP, &CL_OPTION_VERSION};
+const QList<const QCommandLineOption*> CL_OPTIONS_MAIN{&CL_OPTION_APP, &CL_OPTION_PARAM, &CL_OPTION_AUTO, &CL_OPTION_MSG,
+                                                       &CL_OPTION_EXTRA, &CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_RAND};
 const QList<const QCommandLineOption*> CL_OPTIONS_ALL = CL_OPTIONS_MAIN + QList<const QCommandLineOption*>{&CL_OPTION_QUIET, &CL_OPTION_SILENT};
 
 // CLI Option Operation Mode Map TODO: Submit a patch for Qt6 to make QCommandLineOption directly hashable (implement == and qHash)
 const QHash<QSet<QString>, OperationMode> CL_MAIN_OPTIONS_OP_MODE_MAP{
     {{CL_OPT_APP_S_NAME, CL_OPT_PARAM_S_NAME}, OperationMode::Normal},
     {{CL_OPT_AUTO_S_NAME}, OperationMode::Auto},
+    {{CL_OPT_RAND_S_NAME}, OperationMode::Random},
     {{CL_OPT_MSG_S_NAME}, OperationMode::Message},
     {{CL_OPT_EXTRA_S_NAME}, OperationMode::Extra},
     {{CL_OPT_HELP_S_NAME}, OperationMode::Information},
@@ -190,6 +197,7 @@ const int LOG_MAX_ENTRIES = 50;
 // Logging - Messages
 const QString LOG_ERR_INVALID_PARAM = "Invalid combination of parameters used";
 const QString LOG_ERR_CRITICAL = "Aborting execution due to previous critical errors";
+const QString LOG_WRN_INVALID_RAND_ID = "A UUID found in the database during Random operation is invalid (%1)";
 const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
 const QString LOG_EVENT_OP_MODE = "Operation Mode: %1";
 const QString LOG_EVENT_APP_TASK = "Enqueued App Task: {.type = %1, .path = \"%2\", .filename = \"%3\", "
@@ -200,6 +208,9 @@ const QString LOG_EVENT_HELP_SHOWN = "Displayed help information";
 const QString LOG_EVENT_VER_SHOWN = "Displayed version information";
 const QString LOG_EVENT_INIT = "Initializing CLIFp...";
 const QString LOG_EVENT_GET_SET = "Reading Flashpoint configuration...";
+const QString LOG_EVENT_SEL_RAND = "Selecting a playable game at random...";
+const QString LOG_EVENT_RAND_ID = "Randomly chose game \"%1\"";
+const QString LOG_EVENT_PLAYABLE_COUNT = "Found %1 playable games";
 const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
 const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
 const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
@@ -244,6 +255,7 @@ void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
 
 // Prototypes - Helper
 QString getRawCommandLineParams();
+ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall);
 Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 QString escapeNativeArgsForCMD(QString nativeArgs);
 void postError(Qx::GenericError error, bool log = true);
@@ -417,6 +429,20 @@ int main(int argc, char *argv[])
             if((enqueueError = enqueueConditionalWaitTask(appTaskQueue, inputInfo)))
                 return printLogAndExit(enqueueError);
             break;
+        case OperationMode::Random:
+            if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
+                return printLogAndExit(enqueueError);
+
+            if((enqueueError = randomlySelectID(autoID, flashpointInstall)))
+                return printLogAndExit(enqueueError);
+
+            if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)))
+                return printLogAndExit(enqueueError);
+
+            if((enqueueError = enqueueAutomaticTasks(appTaskQueue, autoID, flashpointInstall)))
+                return printLogAndExit(enqueueError);
+            break;
+
 
         case OperationMode::Auto:
             if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
@@ -567,7 +593,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     FP::Install::DBQueryBuffer searchResult;
     ErrorCode enqueueError;
 
-    searchError = fpInstall.queryEntryID(searchResult, targetID);
+    searchError = fpInstall.queryEntryByID(searchResult, targetID);
     if(searchError.isValid())
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
@@ -992,6 +1018,75 @@ QString getRawCommandLineParams()
 
     // Return cropped string
     return QString::fromStdWString(std::wstring(rawCL));
+}
+
+ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall)
+{
+    logEvent(LOG_EVENT_SEL_RAND);
+
+    // Reset buffer
+    idBuffer = QUuid();
+
+    // SQL Error tracker
+    QSqlError searchError;
+
+    // Query all main games
+    FP::Install::DBQueryBuffer mainGameIDQuery;
+    searchError = fpInstall.queryAllGameIDs(mainGameIDQuery);
+    if(searchError.isValid())
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return SQL_ERROR;
+    }
+
+    // Query all main additional apps
+    FP::Install::DBQueryBuffer mainAddAppIDQuery;
+    searchError = fpInstall.queryAllGameIDs(mainAddAppIDQuery);
+    if(searchError.isValid())
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return SQL_ERROR;
+    }
+
+    QList<QUuid> playableIDs;
+
+    // Enumerate main game IDs
+    for(int i = 0; i < mainGameIDQuery.size; i++)
+    {
+        // Go to next record
+        mainGameIDQuery.result.next();
+
+        // Add ID to list
+        QString gameIDString = mainGameIDQuery.result.value(FP::Install::DBTable_Game::COL_ID).toString();
+        QUuid gameID = QUuid(gameIDString);
+        if(!gameID.isNull())
+            playableIDs.append(gameID);
+        else
+            logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
+    }
+
+    // Enumerate main additional app IDs
+    for(int i = 0; i < mainAddAppIDQuery.size; i++)
+    {
+        // Go to next record
+        mainAddAppIDQuery.result.next();
+
+        // Create ID and add if valid (should always be)
+        QString gameIDString = mainAddAppIDQuery.result.value(FP::Install::DBTable_Game::COL_ID).toString();
+        QUuid gameID = QUuid(gameIDString);
+        if(!gameID.isNull())
+            playableIDs.append(gameID);
+        else
+            logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
+    }
+    logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
+
+    // Set buffer to random ID
+    idBuffer = playableIDs.value(QRandomGenerator::global()->bounded(playableIDs.size() - 1));
+    logEvent(LOG_EVENT_RAND_ID.arg(idBuffer.toString(QUuid::WithoutBraces)));
+
+    // Return success
+    return NO_ERR;
 }
 
 Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)

@@ -99,6 +99,7 @@ public:
                                                COL_VERSION, COL_ORIGINAL_DESC, COL_LANGUAGE, COL_LIBRARY, COL_ORDER_TITLE};
 
         static inline const QString GAME_LIBRARY = "arcade";
+        static inline const QString ENTRY_NOT_WORK = "Not Working";
     };
 
     class DBTable_Add_App
@@ -338,8 +339,10 @@ public:
     QSqlError initialPlaylistGameQuery(QList<DBQueryBuffer>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const;
 
     // Queries - CLIFp
-    QSqlError queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
     QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryAllGameIDs(DBQueryBuffer& resultBuffer);
+    QSqlError queryAllMainAddAppIDs(DBQueryBuffer& resultBuffer);
 
     // Data access
     QString getPath() const;

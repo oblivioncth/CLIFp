@@ -788,7 +788,7 @@ QSqlError Install::initialPlaylistGameQuery(QList<DBQueryBuffer>& resultBuffer, 
     return QSqlError();
 }
 
-QSqlError Install::queryEntryID(DBQueryBuffer& resultBuffer, QUuid appID) const
+QSqlError Install::queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = DBQueryBuffer();
@@ -839,6 +839,44 @@ QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) c
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
     resultBuffer.source = DBTable_Add_App::NAME;
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer)
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Make query
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game::NAME + " WHERE " +
+                               DBTable_Game::COL_STATUS + " != '" + DBTable_Game::ENTRY_NOT_WORK + "'";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game::COL_ID + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    resultBuffer.source = DBTable_Game::NAME;
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::queryAllMainAddAppIDs(DBQueryBuffer& resultBuffer)
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Make query
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Add_App::NAME + " WHERE " +
+            DBTable_Add_App::COL_APP_PATH + " NOT IN ('" + DBTable_Add_App::ENTRY_EXTRAS +
+            "','" + DBTable_Add_App::ENTRY_MESSAGE + "') AND " + DBTable_Add_App::COL_AUTORUN +
+            " != 1";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Add_App::COL_ID + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    resultBuffer.source = DBTable_Game::NAME;
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 

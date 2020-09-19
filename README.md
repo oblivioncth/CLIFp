@@ -23,7 +23,7 @@ Each release of this application targets a specific version or versions of BlueM
 |--|--|
 | 0.1 | 8.1 ("Spirit of Adventure") |
 | 0.1.1 | 8.2 ("Approaching Planet Nine") |
-| 0.2, 0.3 | 8.1, 8.2+ |
+| 0.2+ | 8.1+ |
 
 Using a version of CLIFp that does not target the version of Flashpoint you wish to use it with is highly discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however since 0.2 compatibility with newer versions is quite likely even if they aren't explicit listed yet** (usually because I haven't had time to check if an update is needed).
 
@@ -34,7 +34,7 @@ CLIFp  was primarily created for use with its sister project [OFILb (Obby's Flas
 That being said, it is perfectly possible to use CLIFp with Flashpoint alone in any manner you see fit.
 
 ### General
-While CLIFp has multiple functions, typical usage involves one of two main methods:
+While CLIFp has multiple functions, typical usage involves one of three main methods:
 
 **Auto:**
 This is the most straightforward and hassle free approach. Simply use the **--auto** or **-a** switch followed by the GUID/UUID of the game/animation you wish to start, as seen in the following example:
@@ -43,6 +43,9 @@ This is the most straightforward and hassle free approach. Simply use the **--au
 You can find a title's ID by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". This switch also supports starting additional apps, though getting their UUID is more tricky as I currently know of no other way than opening [FP Install Dir]\Data\flashpoint.sqlite in a database browser and searching for the ID manually. I will look into if an easier way to obtain their IDs can be implemented.
 
 If the ID belongs to a main game/animation entry, any additional apps that are marked as auto-run before will also be started ahead of time just as they would be when using the Flashpoint Launcher.
+
+**Random:**
+This mode works exactly the same as Auto mode except that the title ID is selected at random (uniformly) for you from the pool of all playable games/animations. A title qualifies as playable if it is a main title who's status is not "Not Working" or if it is an additional-app that is not a message, extra, or otherwise Autostart-before entry. 
 
 **App/Param:**
 This method can only start one application at a time. Use the **-x/--exe** switch to specify the relative (from Flashpoint's directory) path to the application to launch and the **-p/--param** switch to provide the launch arguments that will be passed to the target application.
@@ -56,12 +59,13 @@ The applications and arguments that are used for each game/animation can be foun
  -  **-x | --exe:** Relative (to Flashpoint Directory) of primary application to launch
  -  **-p | --param:** Command-line parameters to use when starting the primary application
  -  **-a | --auto:** Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game
+ - **-r | --random:** Selects  a  random  game  UUID  from  the  database  and  starts  it  in  the  same  manner  as  using  the  --auto switch.
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
  -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
  -  **-q | --quiet:** Silences all non-critical error messages
  -  **-s | --silent:** Silences all error messages (takes precedence over quiet mode)
-
-Use **'exe'** and **'param'** for normal operation, use **'auto'** by itself for automatic operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, or use **'help'** and/or **'version'** for information.
+ 
+Use **'exe'** and **'param'** for normal operation, use **'auto'** by itself for automatic operation, use **'random'** by itself for random operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, or use **'help'** and/or **'version'** for information.
 
 **NOTE:** When using the **--exe** and **--param** switches all quotes that are part of the input itself must be escaped for the command to be passed correctly. For example, the launch command
 
