@@ -1102,18 +1102,15 @@ Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo
 
     else if(appInfo.suffix() == BAT_SUFX)
     {
-        // Read bat file
+        // Check if bat uses secure player
         QFile batFile(appInfo.absoluteFilePath());
-        QString batScript;
-        Qx::IOOpReport readReport = Qx::readAllTextFromFile(batScript, batFile);
+        Qx::IOOpReport readReport = Qx::fileContainsString(involvesBuffer, batFile, SECURE_PLAYER_INFO.baseName());
 
         // Check for read errors
         if(!readReport.wasSuccessful())
             return Qx::GenericError(Qx::GenericError::Critical, readReport.getOutcome(), readReport.getOutcomeInfo());
-
-        // Check if bat uses secure player
-        involvesBuffer = batScript.contains(SECURE_PLAYER_INFO.baseName());
-        return Qx::GenericError();
+        else
+            return Qx::GenericError();
     }
     else
         return Qx::GenericError();
