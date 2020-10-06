@@ -34,6 +34,7 @@ CLIFp  was primarily created for use with its sister project [OFILb (Obby's Flas
 That being said, it is perfectly possible to use CLIFp with Flashpoint alone in any manner you see fit.
 
 ### General
+**NOTE: Do not run CLIFp as an administrator as some titles may not work correctly or run at all**
 While CLIFp has multiple functions, typical usage involves one of three main methods:
 
 **Auto:**
