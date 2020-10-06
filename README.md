@@ -31,10 +31,13 @@ Using a version of CLIFp that does not target the version of Flashpoint you wish
 ### Target Usage
 CLIFp  was primarily created for use with its sister project [OFILb (Obby's Flashpoint Importer for LaunchBox)](https://github.com/oblivioncth/OFILb) to facilitate the inclusion of Flashpoint in to LaunchBox user's collections. The operation of CLIFp is completely automated when used in this manner.
 
-That being said, it is perfectly possible to use CLIFp with Flashpoint alone in any manner you see fit.
+It was later refined to also be used directly with the Flashpoint project to allow users to create shortcuts and leverage other benefits of a CLI. 
+
+That being said, it is perfectly possible to use CLIFp in any manner you see fit.
 
 ### General
 **NOTE: Do not run CLIFp as an administrator as some titles may not work correctly or run at all**
+
 While CLIFp has multiple functions, typical usage involves one of three main methods:
 
 **Auto:**
