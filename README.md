@@ -7,7 +7,7 @@ Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completel
 ### General
 Since the 0.2 rewrite, the primary paradigm through which CLIFp functions has been significantly improved and should provide a perfect or near-perfect experience when compared to using the standard GUI method of launching games/animations. Additionally, the redesign is expected to be very resilient towards Flashpoint updates and will most likely only require compatibility patches when updates that make major changes are released.
 
-All Flashpoint features are supported, other than editing your local database through the command-line. More specifically:
+All Flashpoint features are supported, other than editing your local database (this includes playlists) and querying title meta-data through the command-line. More specifically, you can launch:
 
  - Games (with or without autorun-before additional apps)
  - Animations
