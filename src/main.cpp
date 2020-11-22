@@ -188,6 +188,10 @@ const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
 // Wait timing
 const int SECURE_PLAYER_GRACE = 2; // Seconds to allow the secure player to restart in cases it does
 
+// Daemon to start (currently there is only one so it is specified here. It it is assumed that if more are added that only one will be used
+// at a time, hence why this is currently be handled this way for now)
+const QString DAEMON_NAME = "Legacy Webserver";
+
 // Logging - General
 const QString LOG_FILE_NAME = VER_INTERNALNAME_STR ".log";
 const QString LOG_HEADER = "CLIFp Execution Log";
@@ -573,12 +577,23 @@ ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Confi
             return CONFIG_SERVER_MISSING;
         }
 
-        FP::Install::Server configuredServer = fpServices.servers.value(fpConfig.server);
+        FP::Install::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
         AppTask serverTask = {TaskType::Startup, CLIFP_PATH + '/' + configuredServer.path, configuredServer.filename,
                               configuredServer.arguments, QString(),
                               configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached};
         taskQueue.push(serverTask);
         logAppTask(serverTask);
+    }
+
+    // Add Daemon entry from services
+    QHash<QString, FP::Install::ServerDaemon>::const_iterator daemonIt;
+    for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
+    {
+        AppTask currentTask = {TaskType::Startup, CLIFP_PATH + '/' + daemonIt.value().path, daemonIt.value().filename,
+                               daemonIt.value().arguments, QString(),
+                               daemonIt.value().kill ? ProcessType::Deferred : ProcessType::Detached};
+        taskQueue.push(currentTask);
+        logAppTask(currentTask);
     }
 
     // Return success

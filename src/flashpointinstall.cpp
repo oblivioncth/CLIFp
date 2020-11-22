@@ -65,11 +65,26 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
     // Parse servers
     for(const QJsonValue& jvServer : jaServers)
     {
-        Server serverBuffer;
-        if((valueError = parseServer(serverBuffer, jvServer)).isValid())
+        ServerDaemon serverBuffer;
+        if((valueError = parseServerDaemon(serverBuffer, jvServer)).isValid())
             return valueError;
 
         mTargetServices->servers.insert(serverBuffer.name, serverBuffer);
+    }
+
+    // Get daemons
+    QJsonArray jaDaemons;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaDaemons, servicesDoc.object(), JSONObject_Services::KEY_DAEMON)).isValid())
+        return valueError;
+
+    // Parse daemons
+    for(const QJsonValue& jvDaemon : jaDaemons)
+    {
+        ServerDaemon daemonBuffer;
+        if((valueError = parseServerDaemon(daemonBuffer, jvDaemon)).isValid())
+            return valueError;
+
+        mTargetServices->daemons.insert(daemonBuffer.name, daemonBuffer);
     }
 
     // Get starts
@@ -106,7 +121,7 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
     return Qx::GenericError();
 }
 
-Qx::GenericError Install::JSONServicesReader::parseServer(Server& serverBuffer, const QJsonValue& jvServer)
+Qx::GenericError Install::JSONServicesReader::parseServerDaemon(ServerDaemon& serverBuffer, const QJsonValue& jvServer)
 {
     // Ensure array element is Object
     if(!jvServer.isObject())
@@ -228,7 +243,7 @@ Qx::GenericError Install::JSONServicesReader::readInto()
 }
 
 //===============================================================================================================
-// INSTALL::JSONServicesReader
+// INSTALL::JSONConfigReader
 //===============================================================================================================
 
 //-Constructor------------------------------------------------------------------------------------------------

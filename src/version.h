@@ -1,11 +1,11 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define VER_FILEVERSION             0,3,1,1
-#define VER_FILEVERSION_STR         "0.3.1.1"
+#define VER_FILEVERSION             0,3,2,0
+#define VER_FILEVERSION_STR         "0.3.2.0"
 
-#define VER_PRODUCTVERSION          8,2
-#define VER_PRODUCTVERSION_STR      "8.2"
+#define VER_PRODUCTVERSION          9,0
+#define VER_PRODUCTVERSION_STR      "9.0"
 
 #define VER_COMPANYNAME_STR         "oblivioncth"
 #define VER_FILEDESCRIPTION_STR     "CLI for BlueMaxima's Flashpoint"

@@ -37,7 +37,7 @@ public:
         QString server;
     };
 
-    struct Server
+    struct ServerDaemon
     {
         QString name;
         QString path;
@@ -45,7 +45,6 @@ public:
         QStringList arguments;
         bool kill;
     };
-
     struct StartStop
     {
         QString path;
@@ -59,7 +58,8 @@ public:
     struct Services
     {
         //QSet<Watch> watches;
-        QHash<QString, Server> servers;
+        QHash<QString, ServerDaemon> servers;
+        QHash<QString, ServerDaemon> daemons;
         QSet<StartStop> starts;
         QSet<StartStop> stops;
     };
@@ -174,11 +174,22 @@ public:
         static inline const QString KEY_ARGUMENTS = "arguments";
     };
 
+    class JSONObject_Daemon
+    {
+    public:
+        static inline const QString KEY_NAME = "name";
+        static inline const QString KEY_PATH = "path";
+        static inline const QString KEY_FILENAME = "filename";
+        static inline const QString KEY_ARGUMENTS = "arguments";
+        static inline const QString KEY_KILL = "kill";
+    };
+
     class JSONObject_Services
     {
     public:
         static inline const QString KEY_WATCH = "watch";
         static inline const QString KEY_SERVER = "server";
+        static inline const QString KEY_DAEMON = "daemon";
         static inline const QString KEY_START = "start";
         static inline const QString KEY_STOP = "stop";
     };
@@ -205,7 +216,7 @@ public:
     private:
         QString resolveFlashpointMacros(QString macroString);
         Qx::GenericError parseServicesDocument(const QJsonDocument& servicesDoc);
-        Qx::GenericError parseServer(Server& serverBuffer, const QJsonValue& jvServer);
+        Qx::GenericError parseServerDaemon(ServerDaemon& serverBuffer, const QJsonValue& jvServer);
         Qx::GenericError parseStartStop(StartStop& startStopBuffer, const QJsonValue& jvStartStop);
 
     public:
