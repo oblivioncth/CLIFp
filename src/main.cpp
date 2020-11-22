@@ -188,10 +188,6 @@ const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
 // Wait timing
 const int SECURE_PLAYER_GRACE = 2; // Seconds to allow the secure player to restart in cases it does
 
-// Daemon to start (currently there is only one so it is specified here. It it is assumed that if more are added that only one will be used
-// at a time, hence why this is currently be handled this way for now)
-const QString DAEMON_NAME = "Legacy Webserver";
-
 // Logging - General
 const QString LOG_FILE_NAME = VER_INTERNALNAME_STR ".log";
 const QString LOG_HEADER = "CLIFp Execution Log";
