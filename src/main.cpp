@@ -216,7 +216,8 @@ const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
 const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
 const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
 const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
-const QString LOG_EVENT_TASK_FINISH = "End of task %1 (%2)";
+const QString LOG_EVENT_TASK_FINISH = "End of task %1";
+const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
 const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
 const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
 const QString LOG_EVENT_ALL_FINISH = "Execution finished successfully";
@@ -248,7 +249,7 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
-void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError);
+void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
 ErrorCode waitOnProcess(QString processName, int graceSecs);
 void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
@@ -784,12 +785,13 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
     ErrorCode executionError = NO_ERR;
 
     // Exhaust queue
-    int tasksHandled = 0;
+    int taskNum = -1;
     while(!taskQueue.empty())
     {
         // Handle task at front of queue
+        ++taskNum;
         AppTask currentTask = taskQueue.front();
-        logEvent(LOG_EVENT_TASK_START.arg(tasksHandled).arg(ENUM_NAME(currentTask.type)));
+        logEvent(LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask.type)));
 
         // Only execute task after an error if it is a Shutdown task
         if(!executionError || currentTask.type == TaskType::Shutdown)
@@ -807,7 +809,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 if(!extraInfo.exists() || !extraInfo.isDir())
                 {
                     postError(Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraInfo.fileName())));
-                    handleExecutionError(taskQueue, executionError, EXTRA_NOT_FOUND);
+                    handleExecutionError(taskQueue, taskNum, executionError, EXTRA_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
@@ -820,7 +822,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 ErrorCode waitError = waitOnProcess(currentTask.filename, SECURE_PLAYER_GRACE);
                 if(waitError)
                 {
-                    handleExecutionError(taskQueue, executionError, waitError);
+                    handleExecutionError(taskQueue, taskNum, executionError, waitError);
                     continue; // Continue to next task
                 }
             }
@@ -832,7 +834,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 {
                     postError(Qx::GenericError(currentTask.type == TaskType::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(taskQueue, executionError, EXECUTABLE_NOT_FOUND);
+                    handleExecutionError(taskQueue, taskNum, executionError, EXECUTABLE_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
@@ -841,7 +843,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 {
                     postError(Qx::GenericError(currentTask.type == TaskType::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(taskQueue, executionError, EXECUTABLE_NOT_VALID);
+                    handleExecutionError(taskQueue, taskNum, executionError, EXECUTABLE_NOT_VALID);
                     continue; // Continue to next task
                 }
 
@@ -867,7 +869,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                     case ProcessType::Blocking:
                         if(!cleanStartProcess(taskProcess, executableInfo))
                         {
-                            handleExecutionError(taskQueue, executionError, PROCESS_START_FAIL);
+                            handleExecutionError(taskQueue, taskNum, executionError, PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(taskProcess, ProcessType::Blocking);
@@ -880,7 +882,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                     case ProcessType::Deferred:
                         if(!cleanStartProcess(taskProcess, executableInfo))
                         {
-                            handleExecutionError(taskQueue, executionError, PROCESS_START_FAIL);
+                            handleExecutionError(taskQueue, taskNum, executionError, PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(taskProcess, ProcessType::Deferred);
@@ -891,7 +893,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                     case ProcessType::Detached:
                         if(!taskProcess->startDetached())
                         {
-                            handleExecutionError(taskQueue, executionError, PROCESS_START_FAIL);
+                            handleExecutionError(taskQueue, taskNum, executionError, PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(taskProcess, ProcessType::Detached);
@@ -900,26 +902,23 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
             }
         }
         else
-        {
             logEvent(LOG_EVENT_TASK_SKIP);
-            ++tasksHandled;
-        }
 
         // Remove handled task
         taskQueue.pop();
-        logEvent(LOG_EVENT_TASK_FINISH.arg(tasksHandled++).arg(ENUM_NAME(currentTask.type)));
-
+        logEvent(LOG_EVENT_TASK_FINISH.arg(taskNum));
     }
 
     // Return error status
     return executionError;
 }
 
-void handleExecutionError(std::queue<AppTask>& taskQueue, ErrorCode& currentError, ErrorCode newError)
+void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError)
 {
     if(!currentError) // Only record first error
         currentError = newError;
 
+    logEvent(LOG_EVENT_TASK_FINISH_ERR.arg(taskNum)); // Record early end of task
     taskQueue.pop(); // Remove erroring task
 }
 
