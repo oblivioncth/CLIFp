@@ -262,6 +262,9 @@ Qx::GenericError Install::JSONConfigReader::parseConfigDocument(const QJsonDocum
     // Get values
     Qx::GenericError valueError;
 
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->imageFolderPath, configDoc.object(), JSONObject_Config::KEY_IMAGE_FOLDER_PATH)).isValid())
+        return valueError;
+
     if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->startServer, configDoc.object(), JSONObject_Config::KEY_START_SERVER)).isValid())
         return valueError;
 
@@ -318,20 +321,27 @@ QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString 
 Install::Install(QString installPath)
 {
     // Ensure instance will be at least minimally compatible
-    if(!pathIsValidInstall(installPath, CompatLevel::Execution))
-        assert("Cannot create a Install instance with an invalid installPath. Check first with Install::pathIsValidInstall(QString).");
+    if(!checkInstallValidity(installPath, CompatLevel::Execution).installValid)
+        assert("Cannot create a Install instance with an invalid installPath. Check first with Install::checkInstallValidity(QString, CompatLevel).");
 
-    // Initialize files and directories;
+    // Initialize static files and directories
     mRootDirectory = QDir(installPath);
-    mLogosDirectory = QDir(installPath + "/" + LOGOS_PATH);
-    mScreenshotsDirectory = QDir(installPath + "/" + SCREENSHOTS_PATH);
-    mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
     mMainEXEFile = std::make_unique<QFile>(installPath + "/" + MAIN_EXE_PATH);
     mCLIFpEXEFile = std::make_unique<QFile>(installPath + "/" + CLIFp::EXE_NAME);
     mDatabaseFile = std::make_unique<QFile>(installPath + "/" + DATABASE_PATH);
     mServicesJSONFile = std::make_shared<QFile>(installPath + "/" + SERVICES_JSON_PATH);
     mConfigJSONFile = std::make_shared<QFile>(installPath + "/" + CONFIG_JSON_PATH);
     mVersionTXTFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
+    mExtrasDirectory = QDir(installPath + "/" + EXTRAS_FOLDER_NAME);
+
+    // Get config
+    Config installConfig;
+    getConfig(installConfig); // Assume that config can be read since this is checked in checkInstallValidity()
+
+    // Initialize config based files and directories
+    mLogosDirectory = QDir(installPath + "/" + installConfig.imageFolderPath + '/' + LOGOS_FOLDER_NAME);
+    mScreenshotsDirectory = QDir(installPath + "/" + installConfig.imageFolderPath + '/' + SCREENSHOTS_FOLDER_NAME);
+
 }
 
 //-Destructor------------------------------------------------------------------------------------------------
@@ -343,40 +353,52 @@ Install::~Install()
 
 //-Class Functions------------------------------------------------------------------------------------------------
 //Public:
-bool Install::pathIsValidInstall(QString installPath, CompatLevel compatLevel)
+Install::ValidityReport Install::checkInstallValidity(QString installPath, CompatLevel compatLevel)
 {
-    QFileInfo logosFolder(installPath + "/" + LOGOS_PATH);
-    QFileInfo screenshotsFolder(installPath + "/" + SCREENSHOTS_PATH);
-    QFileInfo extrasFolder(installPath + "/" + EXTRAS_PATH);
     QFileInfo mainEXE(installPath + "/" + MAIN_EXE_PATH);
     QFileInfo database(installPath + "/" + DATABASE_PATH);
     QFileInfo services(installPath + "/" + SERVICES_JSON_PATH);
     QFileInfo config(installPath + "/" + CONFIG_JSON_PATH);
     QFileInfo version(installPath + "/" + VER_TXT_PATH);
 
-    bool compatible = false; // Used to avoid incorrect "not all control paths return a value" warning
-
     switch (compatLevel)
     {
         case CompatLevel::Execution:
-            compatible = database.exists() && database.isFile() &&
-                         services.exists() && services.isFile() &&
-                         config.exists() && config.isFile();
+            // Check for required existance
+            if(!database.exists() || !database.isFile())
+                return ValidityReport{false, FILE_DNE.arg(database.filePath())};
+            else if(!services.exists() || !services.isFile())
+                return ValidityReport{false, FILE_DNE.arg(services.filePath())};
+            else if(!config.exists() || !config.isFile())
+                return ValidityReport{false, FILE_DNE.arg(config.filePath())};
             break;
 
         case CompatLevel::Full:
-            compatible = logosFolder.exists() && logosFolder.isDir() &&
-                         screenshotsFolder.exists() && screenshotsFolder.isDir() &&
-                         extrasFolder.exists() && extrasFolder.isDir() &&
-                         mainEXE.exists() && mainEXE.isExecutable() &&
-                         database.exists() && database.isFile() &&
-                         services.exists() && services.isFile() &&
-                         config.exists() && config.isFile() &&
-                         version.exists() && version.isFile();
+            // Check for required existance
+            if(!database.exists() || !database.isFile())
+                return ValidityReport{false, FILE_DNE.arg(database.filePath())};
+            else if(!services.exists() || !services.isFile())
+                return ValidityReport{false, FILE_DNE.arg(services.filePath())};
+            else if(!config.exists() || !config.isFile())
+                return ValidityReport{false, FILE_DNE.arg(config.filePath())};
+            else if(!mainEXE.exists() || !mainEXE.isFile())
+                return ValidityReport{false, FILE_DNE.arg(config.filePath())};
+            else if(!version.exists() || !version.isFile())
+                return ValidityReport{false, FILE_DNE.arg(version.filePath())};
+            break;
+
+            // Check that config can be read
+            Config testConfig;
+            std::shared_ptr<QFile> configFile = std::make_shared<QFile>(config.filePath());
+            JSONConfigReader jsReader(&testConfig, configFile);
+            Qx::GenericError configReadReport = jsReader.readInto();
+
+            if(configReadReport.isValid())
+                return ValidityReport{false, configReadReport.primaryInfo() + " [" + configReadReport.secondaryInfo() + "]"};
             break;
     }
 
-    return compatible;
+    return ValidityReport{true, QString()};
 }
 
 //-Instance Functions------------------------------------------------------------------------------------------------
@@ -447,7 +469,7 @@ bool Install::matchesTargetVersion() const
     if(!Qx::readTextFromFile(readVersion, *mVersionTXTFile, Qx::TextPos::START).wasSuccessful())
         return false;
 
-    if(readVersion != TARGET_VER_STRING)
+    if(readVersion != TARGET_ULT_VER_STRING && readVersion != TARGET_INF_VER_STRING)
         return false;
 
     // Return true if all passes

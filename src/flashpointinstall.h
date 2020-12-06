@@ -33,6 +33,7 @@ public:
 
     struct Config
     {
+        QString imageFolderPath;
         bool startServer;
         QString server;
     };
@@ -62,6 +63,12 @@ public:
         QHash<QString, ServerDaemon> daemons;
         QSet<StartStop> starts;
         QSet<StartStop> stops;
+    };
+
+    struct ValidityReport
+    {
+        bool installValid;
+        QString details;
     };
 
 //-Inner Classes-------------------------------------------------------------------------------------------------
@@ -152,6 +159,7 @@ public:
     class JSONObject_Config
     {
     public:
+        static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
         static inline const QString KEY_START_SERVER = "startServer";
         static inline const QString KEY_SERVER = "server";
     };
@@ -262,20 +270,27 @@ public:
     };
 
 //-Class Variables-----------------------------------------------------------------------------------------------
+private:
+    // Validity check fail reasons
+    static inline const QString FILE_DNE = "A required file does not exist: %1";
+
 public:
     // Paths
-    static inline const QString LOGOS_PATH = "Data/Images/Logos";
-    static inline const QString SCREENSHOTS_PATH = "Data/Images/Screenshots";
-    static inline const QString EXTRAS_PATH = "Extras";
     static inline const QString MAIN_EXE_PATH = "Launcher/Flashpoint.exe";
     static inline const QString DATABASE_PATH = "Data/flashpoint.sqlite";
     static inline const QString SERVICES_JSON_PATH = "Data/services.json";
     static inline const QString CONFIG_JSON_PATH = "Launcher/config.json";
     static inline const QString VER_TXT_PATH = "version.txt";
 
+    // Folders
+    static inline const QString LOGOS_FOLDER_NAME = "Logos";
+    static inline const QString SCREENSHOTS_FOLDER_NAME = "Screenshots";
+    static inline const QString EXTRAS_FOLDER_NAME = "Extras";
+
     // Version check
-    static inline const QByteArray TARGET_EXE_SHA256 = Qx::ByteArray::RAWFromStringHex("825dcf27b93214ec32aa8084ab8d6c3a6f35a7d8132643cb7561ea5674c3b325");
-    static inline const QString TARGET_VER_STRING = R"(Flashpoint 8.2 Ultimate - "Approaching Planet Nine")";
+    static inline const QByteArray TARGET_EXE_SHA256 = Qx::ByteArray::RAWFromStringHex("6a598f6de11473c2a8a005646dcaff6cccc8d376b2f3f3953ba96dd6a362daa3");
+    static inline const QString TARGET_ULT_VER_STRING = R"(Flashpoint 9.0 Ultimate - "Glorious Sunset")";
+    static inline const QString TARGET_INF_VER_STRING = R"(Flashpoint 9.0 Infinity - "Glorious Sunset")";
 
     // Database
     static inline const QString DATABASE_CONNECTION_NAME = "Flashpoint Database";
@@ -313,7 +328,7 @@ public:
 
 //-Class Functions------------------------------------------------------------------------------------------------------
 public:
-    static bool pathIsValidInstall(QString installPath, CompatLevel compatLevel);
+    static ValidityReport checkInstallValidity(QString installPath, CompatLevel compatLevel);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

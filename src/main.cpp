@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
     }
 
     //-Link to Flashpoint Install----------------------------------------------------------
-    if(!FP::Install::pathIsValidInstall(CLIFP_PATH, FP::Install::CompatLevel::Execution))
+    if(!FP::Install::checkInstallValidity(CLIFP_PATH, FP::Install::CompatLevel::Execution).installValid)
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
         return printLogAndExit(INSTALL_INVALID);
@@ -1052,7 +1052,7 @@ ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall)
 
     // Query all main additional apps
     FP::Install::DBQueryBuffer mainAddAppIDQuery;
-    searchError = fpInstall.queryAllGameIDs(mainAddAppIDQuery);
+    searchError = fpInstall.queryAllMainAddAppIDs(mainAddAppIDQuery);
     if(searchError.isValid())
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
@@ -1083,12 +1083,12 @@ ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall)
         mainAddAppIDQuery.result.next();
 
         // Create ID and add if valid (should always be)
-        QString gameIDString = mainAddAppIDQuery.result.value(FP::Install::DBTable_Game::COL_ID).toString();
-        QUuid gameID = QUuid(gameIDString);
-        if(!gameID.isNull())
-            playableIDs.append(gameID);
+        QString addAppIDString = mainAddAppIDQuery.result.value(FP::Install::DBTable_Add_App::COL_ID).toString();
+        QUuid addAppID = QUuid(addAppIDString);
+        if(!addAppID.isNull())
+            playableIDs.append(addAppID);
         else
-            logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
+            logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(addAppIDString)));
     }
     logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
 
