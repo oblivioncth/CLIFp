@@ -15,6 +15,7 @@ class Install
 //-Class Enums---------------------------------------------------------------------------------------------------
 public:
     enum class CompatLevel{ Execution, Full };
+    enum class LibraryFilter{ Game, Anim, Either };
 
 //-Class Structs-------------------------------------------------------------------------------------------------
 public:
@@ -105,7 +106,8 @@ public:
                                                COL_BROKEN, COL_EXTREME, COL_PLAY_MODE, COL_STATUS, COL_NOTES, COL_SOURCE, COL_APP_PATH, COL_LAUNCH_COMMAND, COL_RELEASE_DATE,
                                                COL_VERSION, COL_ORIGINAL_DESC, COL_LANGUAGE, COL_LIBRARY, COL_ORDER_TITLE};
 
-        static inline const QString GAME_LIBRARY = "arcade";
+        static inline const QString ENTRY_GAME_LIBRARY = "arcade";
+        static inline const QString ENTRY_ANIM_LIBRARY = "theatre";
         static inline const QString ENTRY_NOT_WORK = "Not Working";
     };
 
@@ -138,7 +140,7 @@ public:
         static inline const QString COL_AUTHOR = "author";
         static inline const QString COL_LIBRARY = "library";
 
-        static inline const QString GAME_LIBRARY = "arcade";
+        static inline const QString ENTRY_GAME_LIBRARY = "arcade";
 
         static inline const QStringList COLUMN_LIST = {COL_ID, COL_TITLE, COL_DESCRIPTION, COL_AUTHOR, COL_LIBRARY};
     };
@@ -300,6 +302,9 @@ public:
                                                                         {DBTable_Playlist_Game::NAME, DBTable_Playlist_Game::COLUMN_LIST}};
     static inline const QString GENERAL_QUERY_SIZE_COMMAND = "COUNT(1)";
 
+    static inline const QString GAME_ONLY_FILTER = DBTable_Game::COL_LIBRARY + " == '" + DBTable_Game::ENTRY_GAME_LIBRARY + "'";
+    static inline const QString ANIM_ONLY_FILTER = DBTable_Game::COL_LIBRARY + " == '" + DBTable_Game::ENTRY_ANIM_LIBRARY + "'";
+
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
     // Files and directories
@@ -366,9 +371,9 @@ public:
 
     // Queries - CLIFp
     QSqlError queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
-    QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID) const;
-    QSqlError queryAllGameIDs(DBQueryBuffer& resultBuffer);
-    QSqlError queryAllMainAddAppIDs(DBQueryBuffer& resultBuffer);
+    QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
+    QSqlError queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter filter) const;
+//    QSqlError queryAllMainAddAppIDs(DBQueryBuffer& resultBuffer, LibraryFilter filter) const;
 
     // Data access
     QString getPath() const;

@@ -25,24 +25,26 @@ enum ErrorCode
     CANT_PARSE_SERVICES = 0x06,
     CONFIG_SERVER_MISSING = 0x07,
     AUTO_ID_NOT_VALID = 0x08,
-    SQL_ERROR = 0x09,
-    DB_MISSING_TABLES = 0x0A,
-    DB_MISSING_COLUMNS = 0x0B,
-    AUTO_NOT_FOUND = 0x0C,
-    MORE_THAN_ONE_AUTO = 0x0D,
-    EXTRA_NOT_FOUND = 0x0E,
-    EXECUTABLE_NOT_FOUND = 0x0F,
-    EXECUTABLE_NOT_VALID = 0x10,
-    PROCESS_START_FAIL = 0x11,
-    WAIT_PROCESS_NOT_HANDLED = 0x12,
-    WAIT_PROCESS_NOT_HOOKED = 0x13,
-    CANT_READ_BAT_FILE = 0x14
+    RAND_FILTER_NOT_VALID = 0x09,
+    SQL_ERROR = 0x0A,
+    SQL_MISMATCH = 0x0B,
+    DB_MISSING_TABLES = 0x0C,
+    DB_MISSING_COLUMNS = 0x0D,
+    AUTO_NOT_FOUND = 0x0E,
+    MORE_THAN_ONE_AUTO = 0x0F,
+    EXTRA_NOT_FOUND = 0x10,
+    EXECUTABLE_NOT_FOUND = 0x11,
+    EXECUTABLE_NOT_VALID = 0x12,
+    PROCESS_START_FAIL = 0x13,
+    WAIT_PROCESS_NOT_HANDLED = 0x14,
+    WAIT_PROCESS_NOT_HOOKED = 0x15,
+    CANT_READ_BAT_FILE = 0x16
 };
 
 enum class OperationMode { Invalid, Normal, Auto, Random, Message, Extra, Information };
 enum class TaskType { Startup, Primary, Auxiliary, Wait, Shutdown };
 enum class ProcessType { Blocking, Deferred, Detached };
-enum class ErrorVerbosity { Full, Quiet, Silent };
+enum class MessageVerbosity { Full, Quiet, Silent };
 
 //-Structs---------------------------------------------------------------------
 struct AppTask
@@ -133,10 +135,12 @@ const QString ERR_INSTALL_INVALID_S = "Check its location and compatability with
 const QString ERR_CANT_PARSE_FILE = "Failed to parse %1 ! It may be corrupted or not compatible with this version of CLIFp.";
 const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
 const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flashpoint database:";
+const QString ERR_SQL_MISMATCH = "Received a different form of result from an SQL query than expected!";
 const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
 const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
 const QString ERR_AUTO_NOT_FOUND = "An entry matching the specified auto ID could not be found in the Flashpoint database.";
 const QString ERR_AUTO_INVALID = "The provided string for auto operation was not a valid GUID/UUID.";
+const QString ERR_RAND_FILTER_INVALID = "The provided string for random operation was not a valid filter.";
 const QString ERR_MORE_THAN_ONE_AUTO_P = "Multiple entries with the specified auto ID were found.";
 const QString ERR_MORE_THAN_ONE_AUTO_S = "This should not be possible and may indicate an error within the Flashpoint database";
 
@@ -154,7 +158,7 @@ const QString WRN_WAIT_PROCESS_NOT_HOOKED_S = "The title may not work correctly"
 const QCommandLineOption CL_OPTION_APP({CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"); // Takes value
 const QCommandLineOption CL_OPTION_PARAM({CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, "parameters"); // Takes value
 const QCommandLineOption CL_OPTION_AUTO({CL_OPT_AUTO_S_NAME, CL_OPT_AUTO_L_NAME}, CL_OPT_AUTO_DESC, "id"); // Takes value
-const QCommandLineOption CL_OPTION_RAND({CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC); // Boolean option
+const QCommandLineOption CL_OPTION_RAND({CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, "random"); // Takes value
 const QCommandLineOption CL_OPTION_MSG({CL_OPT_MSG_S_NAME, CL_OPT_MSG_L_NAME}, CL_OPT_MSG_DESC, "message"); // Takes value
 const QCommandLineOption CL_OPTION_EXTRA({CL_OPT_EXTRA_S_NAME, CL_OPT_EXTRA_L_NAME}, CL_OPT_EXTRA_DESC, "extra"); // Takes value
 const QCommandLineOption CL_OPTION_HELP({CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC); // Boolean option
@@ -176,6 +180,21 @@ const QHash<QSet<QString>, OperationMode> CL_MAIN_OPTIONS_OP_MODE_MAP{
     {{CL_OPT_VERSION_S_NAME}, OperationMode::Information},
     {{CL_OPT_HELP_S_NAME, CL_OPT_VERSION_S_NAME}, OperationMode::Information}
 };
+
+// Random Filter Sets
+const QSet<QString> RAND_ALL_FILTER_SET{"all", "any"};
+const QSet<QString> RAND_GAME_FILTER_SET{"game", "arcade"};
+const QSet<QString> RAND_ANIM_FILTER_SET{"animation", "theatre"};
+
+// Random Selection Info
+const QString RAND_SEL_INFO =
+        "<b>Randomly Selected Game</b><br>"
+        "<br>"
+        "<b>Title:</b> %1<br>"
+        "<b>Developer:</b> %2<br>"
+        "<b>Publisher:</b> %3<br>"
+        "<b>Library:</b> %4<br>"
+        "<b>Variant:</b> %5<br>";
 
 // Suffixes
 const QString EXE_SUFX = "exe";
@@ -208,9 +227,13 @@ const QString LOG_EVENT_HELP_SHOWN = "Displayed help information";
 const QString LOG_EVENT_VER_SHOWN = "Displayed version information";
 const QString LOG_EVENT_INIT = "Initializing CLIFp...";
 const QString LOG_EVENT_GET_SET = "Reading Flashpoint configuration...";
-const QString LOG_EVENT_SEL_RAND = "Selecting a playable game at random...";
-const QString LOG_EVENT_RAND_ID = "Randomly chose game \"%1\"";
-const QString LOG_EVENT_PLAYABLE_COUNT = "Found %1 playable games";
+const QString LOG_EVENT_SEL_RAND = "Selecting a playable title at random...";
+const QString LOG_EVENT_INIT_RAND_ID = "Randomly chose primary title is \"%1\"";
+const QString LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT = "Chosen title has %1 playable additional-apps.";
+const QString LOG_EVENT_RAND_DET_PRIM = "Selected primary title";
+const QString LOG_EVENT_RAND_DET_ADD_APP = "Selected additional-app \"%1\"";
+const QString LOG_EVENT_RAND_GET_INFO = "Querying random game info...";
+const QString LOG_EVENT_PLAYABLE_COUNT = "Found %1 playable primary titles";
 const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
 const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
 const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
@@ -237,7 +260,7 @@ const QString LOG_EVENT_WAIT_QUIT = "Wait-on process %1 has finished";
 const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running after the grace period";
 
 // Globals
-ErrorVerbosity gErrorVerbosity = ErrorVerbosity::Full;
+MessageVerbosity gMessageVerbosity = MessageVerbosity::Full;
 std::unique_ptr<Logger> gLogger;
 bool gCritErrOccured = false;
 
@@ -256,7 +279,8 @@ void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
 
 // Prototypes - Helper
 QString getRawCommandLineParams();
-ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall);
+ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install& fpInstall, FP::Install::LibraryFilter lbFilter);
+ErrorCode getRandomSelectionInfo(QString& infoBuffer, FP::Install& fpInstall, QUuid mainID, QUuid subID);
 Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 QString escapeNativeArgsForCMD(QString nativeArgs);
 void postError(Qx::GenericError error, bool log = true);
@@ -287,8 +311,8 @@ int main(int argc, char *argv[])
     clParser.process(app);
 
     // Set globals based on general flags
-    gErrorVerbosity = clParser.isSet(CL_OPTION_SILENT) ? ErrorVerbosity::Silent :
-                      clParser.isSet(CL_OPTION_QUIET) ? ErrorVerbosity::Quiet : ErrorVerbosity::Full;
+    gMessageVerbosity = clParser.isSet(CL_OPTION_SILENT) ? MessageVerbosity::Silent :
+                      clParser.isSet(CL_OPTION_QUIET) ? MessageVerbosity::Quiet : MessageVerbosity::Full;
 
     //-Create Logger-----------------------------------------------------------------------
 
@@ -407,6 +431,10 @@ int main(int argc, char *argv[])
     ErrorCode enqueueError;
     QFileInfo inputInfo;
     QUuid autoID;
+    QUuid secondaryID;
+    QString rawRandFilter;
+    QString selectionInfo;
+    FP::Install::LibraryFilter randFilter;
     AppTask normalTask;
 
     switch(operationMode)
@@ -431,19 +459,43 @@ int main(int argc, char *argv[])
                 return printLogAndExit(enqueueError);
             break;
         case OperationMode::Random:
+            rawRandFilter = clParser.value(CL_OPTION_RAND);
+
+            // Check for valid filter
+            if(RAND_ALL_FILTER_SET.contains(rawRandFilter))
+                randFilter = FP::Install::LibraryFilter::Either;
+            else if(RAND_GAME_FILTER_SET.contains(rawRandFilter))
+                randFilter = FP::Install::LibraryFilter::Game;
+            else if(RAND_ANIM_FILTER_SET.contains(rawRandFilter))
+                randFilter = FP::Install::LibraryFilter::Anim;
+            else
+            {
+                postError(Qx::GenericError(Qx::GenericError::Critical, ERR_RAND_FILTER_INVALID));
+                return printLogAndExit(ErrorCode::RAND_FILTER_NOT_VALID);
+            }
+
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = randomlySelectID(autoID, flashpointInstall)))
+            if((enqueueError = randomlySelectID(autoID, secondaryID, flashpointInstall, randFilter)))
                 return printLogAndExit(enqueueError);
 
             if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueAutomaticTasks(appTaskQueue, autoID, flashpointInstall)))
+            if((enqueueError = enqueueAutomaticTasks(appTaskQueue, secondaryID.isNull() ? autoID : secondaryID, flashpointInstall)))
                 return printLogAndExit(enqueueError);
-            break;
 
+            // Get selection info if not suppressed
+            if(gMessageVerbosity == MessageVerbosity::Full)
+            {
+                if((enqueueError = getRandomSelectionInfo(selectionInfo, flashpointInstall, autoID, secondaryID)))
+                    return printLogAndExit(enqueueError);
+
+                // Display selection info
+                QMessageBox::information(nullptr, QApplication::applicationName(), selectionInfo);
+            }
+            break;
 
         case OperationMode::Auto:
             if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
@@ -1030,28 +1082,20 @@ QString getRawCommandLineParams()
     return QString::fromStdWString(std::wstring(rawCL));
 }
 
-ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall)
+ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install& fpInstall, FP::Install::LibraryFilter lbFilter)
 {
     logEvent(LOG_EVENT_SEL_RAND);
 
-    // Reset buffer
-    idBuffer = QUuid();
+    // Reset buffers
+    mainIDBuffer = QUuid();
+    subIDBuffer = QUuid();
 
     // SQL Error tracker
     QSqlError searchError;
 
     // Query all main games
     FP::Install::DBQueryBuffer mainGameIDQuery;
-    searchError = fpInstall.queryAllGameIDs(mainGameIDQuery);
-    if(searchError.isValid())
-    {
-        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return SQL_ERROR;
-    }
-
-    // Query all main additional apps
-    FP::Install::DBQueryBuffer mainAddAppIDQuery;
-    searchError = fpInstall.queryAllMainAddAppIDs(mainAddAppIDQuery);
+    searchError = fpInstall.queryAllGameIDs(mainGameIDQuery, lbFilter);
     if(searchError.isValid())
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
@@ -1074,26 +1118,146 @@ ErrorCode randomlySelectID(QUuid& idBuffer, FP::Install& fpInstall)
         else
             logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
     }
+    logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
 
-    // Enumerate main additional app IDs
-    for(int i = 0; i < mainAddAppIDQuery.size; i++)
+    // Select main game
+    mainIDBuffer = playableIDs.value(QRandomGenerator::global()->bounded(playableIDs.size()));
+    logEvent(LOG_EVENT_INIT_RAND_ID.arg(mainIDBuffer.toString(QUuid::WithoutBraces)));
+
+    // Get entry's playable additional apps
+    FP::Install::DBQueryBuffer addAppQuery;
+    searchError = fpInstall.queryEntryAddApps(addAppQuery, mainIDBuffer, true);
+    if(searchError.isValid())
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return SQL_ERROR;
+    }
+    logEvent(LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
+
+    QList<QUuid> playableSubIDs;
+
+    // Enumerate entry's playable additional apps
+    for(int i = 0; i < addAppQuery.size; i++)
     {
         // Go to next record
-        mainAddAppIDQuery.result.next();
+        addAppQuery.result.next();
 
-        // Create ID and add if valid (should always be)
-        QString addAppIDString = mainAddAppIDQuery.result.value(FP::Install::DBTable_Add_App::COL_ID).toString();
+        // Add ID to list
+        QString addAppIDString = addAppQuery.result.value(FP::Install::DBTable_Game::COL_ID).toString();
         QUuid addAppID = QUuid(addAppIDString);
         if(!addAppID.isNull())
-            playableIDs.append(addAppID);
+            playableSubIDs.append(addAppID);
         else
             logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(addAppIDString)));
     }
-    logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
 
-    // Set buffer to random ID
-    idBuffer = playableIDs.value(QRandomGenerator::global()->bounded(playableIDs.size() - 1));
-    logEvent(LOG_EVENT_RAND_ID.arg(idBuffer.toString(QUuid::WithoutBraces)));
+    // Select final ID
+    int randIndex = QRandomGenerator::global()->bounded(playableSubIDs.size() + 1);
+
+    if(randIndex == 0)
+        logEvent(LOG_EVENT_RAND_DET_PRIM);
+    else
+    {
+        subIDBuffer = playableSubIDs.value(randIndex - 1);
+        logEvent(LOG_EVENT_RAND_DET_ADD_APP.arg(subIDBuffer.toString(QUuid::WithoutBraces)));
+    }
+
+    // Return success
+    return NO_ERR;
+}
+
+ErrorCode getRandomSelectionInfo(QString& infoBuffer, FP::Install& fpInstall, QUuid mainID, QUuid subID)
+{
+    logEvent(LOG_EVENT_RAND_GET_INFO);
+
+    // Reset buffer
+    infoBuffer = QString();
+
+    // Template to fill
+    QString infoFillTemplate = RAND_SEL_INFO;
+
+    // SQL Error tracker
+    QSqlError searchError;
+
+    // Get main entry info
+    FP::Install::DBQueryBuffer mainGameQuery;
+    searchError = fpInstall.queryEntryByID(mainGameQuery, mainID);
+    if(searchError.isValid())
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return SQL_ERROR;
+    }
+
+    // Check if ID was found and that only one instance was found
+    if(mainGameQuery.size == 0)
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_AUTO_NOT_FOUND));
+        return AUTO_NOT_FOUND;
+    }
+    else if(mainGameQuery.size > 1)
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
+        return MORE_THAN_ONE_AUTO;
+    }
+
+    // Ensure selection is primary app
+    if(mainGameQuery.source != FP::Install::DBTable_Game::NAME)
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_SQL_MISMATCH));
+        return SQL_MISMATCH;
+    }
+
+    // Advance result to only record
+    mainGameQuery.result.next();
+
+    // Populate buffer with primary info
+    infoFillTemplate = infoFillTemplate.arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_TITLE).toString())
+                               .arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_DEVELOPER).toString())
+                               .arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_PUBLISHER).toString())
+                               .arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_LIBRARY).toString());
+
+    // Determine variant
+    if(subID.isNull())
+        infoFillTemplate = infoFillTemplate.arg("N/A");
+    else
+    {
+        // Get sub entry info
+        FP::Install::DBQueryBuffer addAppQuerry;
+        searchError = fpInstall.queryEntryByID(addAppQuerry, subID);
+        if(searchError.isValid())
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+            return SQL_ERROR;
+        }
+
+        // Check if ID was found and that only one instance was found
+        if(addAppQuerry.size == 0)
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_AUTO_NOT_FOUND));
+            return AUTO_NOT_FOUND;
+        }
+        else if(addAppQuerry.size > 1)
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
+            return MORE_THAN_ONE_AUTO;
+        }
+
+        // Ensure selection is additional app
+        if(addAppQuerry.source != FP::Install::DBTable_Add_App::NAME)
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_SQL_MISMATCH));
+            return SQL_MISMATCH;
+        }
+
+        // Advance result to only record
+        addAppQuerry.result.next();
+
+        // Populate buffer with variant info
+        infoFillTemplate = infoFillTemplate.arg(addAppQuerry.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString());
+    }
+
+    // Set filled template to buffer
+    infoBuffer = infoFillTemplate;
 
     // Return success
     return NO_ERR;
@@ -1154,8 +1318,8 @@ void postError(Qx::GenericError error, bool log)
         logError(error);
 
     // Show error if applicable
-    if(gErrorVerbosity == ErrorVerbosity::Full ||
-       (gErrorVerbosity == ErrorVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
+    if(gMessageVerbosity == MessageVerbosity::Full ||
+       (gMessageVerbosity == MessageVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
         error.exec(QMessageBox::Ok);
 }
 
