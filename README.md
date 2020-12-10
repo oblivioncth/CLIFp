@@ -23,8 +23,8 @@ Each release of this application targets a specific version or versions of BlueM
 |--|--|
 | 0.1 | 8.1 ("Spirit of Adventure") |
 | 0.1.1 | 8.2 ("Approaching Planet Nine") |
-| 0.2-0.3.1.1 | 8.1-8.2 |
-| 0.3.2 | 9.0 |
+| 0.2 - 0.3.1.1 | 8.1 - 8.2 |
+| 0.3.2 - 0.4 | 9.0 ("Glorious Sunset") |
 
 Using a version of CLIFp that does not target the version of Flashpoint you wish to use it with is highly discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however since 0.2 compatibility with newer versions is quite likely even if they aren't explicit listed yet** (usually because I haven't had time to check if an update is needed).
 
@@ -50,10 +50,12 @@ You can find a title's ID by right clicking on an entry in Flashpoint and select
 If the ID belongs to a main game/animation entry, any additional apps that are marked as auto-run before will also be started ahead of time just as they would be when using the Flashpoint Launcher.
 
 **Random:**
-This mode works exactly the same as Auto mode except that the title ID is selected at random (uniformly) for you from the pool of all playable games/animations. A title qualifies as playable if it is a main title who's status is not "Not Working" or if it is an additional-app that is not a message, extra, or otherwise Autostart-before entry. 
+This mode works exactly the same as Auto mode except that the title ID is selected at random (uniformly) for you from the pool of all playable games/animations. A title qualifies as playable if it is a main title who's status is not "Not Working" or if it is an additional-app that is not a message, extra, or otherwise Autostart-before entry. You must specify a library filter: **all** or **any** for all titles to be considered, **game** or **arcade** for only games to be considered, or **animation** or **theatre** for only animations to be considered. Basic information of the game that gets selected will be displayed before it starts unless the **-s** or **-q** switches are specified.
+
+    Example: CLIFp -r all
 
 **App/Param:**
-This method can only start one application at a time. Use the **-x/--exe** switch to specify the relative (from Flashpoint's directory) path to the application to launch and the **-p/--param** switch to provide the launch arguments that will be passed to the target application.
+This method can only start one application at a time. Use the **-x/-\-exe** switch to specify the relative (from Flashpoint's directory) path to the application to launch and the **-p/-\-param** switch to provide the launch arguments that will be passed to the target application.
 
 The applications and arguments that are used for each game/animation can be found within the Flashpoint database ([FP Install Dir]\Data\flashpoint.sqlite)
 
@@ -64,11 +66,11 @@ The applications and arguments that are used for each game/animation can be foun
  -  **-x | --exe:** Relative (to Flashpoint Directory) of primary application to launch
  -  **-p | --param:** Command-line parameters to use when starting the primary application
  -  **-a | --auto:** Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game
- - **-r | --random:** Selects  a  random  game  UUID  from  the  database  and  starts  it  in  the  same  manner  as  using  the  --auto switch.
+ - **-r | --random:** Selects  a  random  game  UUID  from  the  database  and  starts  it  in  the  same  manner  as  using  the  --auto switch. Required value options for this argument (filters):  all/any,  game/arcade,  animation/theatre
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
  -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
- -  **-q | --quiet:** Silences all non-critical error messages
- -  **-s | --silent:** Silences all error messages (takes precedence over quiet mode)
+ -  **-q | --quiet:** Silences all non-critical messages
+ -  **-s | --silent:** Silences all messages (takes precedence over quiet mode)
  
 Use **'exe'** and **'param'** for normal operation, use **'auto'** by itself for automatic operation, use **'random'** by itself for random operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, or use **'help'** and/or **'version'** for information.
 
@@ -102,18 +104,21 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 6 | CANT_PARSE_SERVICES | Failed to parse services.json |
 | 7 | CONFIG_SERVER_MISSING | The server entry specified in config.json was not found in services.json |
 | 8 | AUTO_ID_NOT_VALID | The specified UUID for auto operation is not a valid 128-bit UUID |
-| 9 | SQL_ERROR | An unexpected SQL error occured while reading flashpoint.sqlite |
-| 10 | DB_MISSING_TABLES | flashpoint.sqlite is missing expected tables |
-| 11 | DB_MISSING_COLUMNS | One or more tables in flashpoint.sqlite are missing expected columns |
-| 12 | AUTO_NOT_FOUND | The specified UUID for auto operation is not associated with any title in the Flashpoint database |
-| 13 | MORE_THAN_ONE_AUTO | The specified UUID for auto operation is associated with more than one title (possible collision) |
-| 14 | EXTRA_NOT_FOUND | The specified or auto-determined extra was not found in the Extras folder  |
-| 15 | EXECUTABLE_NOT_FOUND | An enqueued executable was not found at the specified path |
-| 16 | EXECUTABLE_NOT_VALID | An file with the name of an enqueued executable was found but is not actually an executable|
-| 17 | PROCESS_START_FAIL | An enqueued executable failed to start |
-| 18 | WAIT_PROCESS_NOT_HANDLED| A handle to a "wait-on" process (usually for .bat based titles) could not be obtained |
-| 19 | WAIT_PROCESS_NOT_HOOKED | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing |
-| 20 | CANT_READ_BAT_FILE | Failed to read a batch script for checking if it contains a use of a "wait-on" process |
+| 9 | RAND_FILTER_NOT_VALID | The  provided  string  for  random  operation  was  not  a  valid  filter |
+| 10 | SQL_ERROR | An unexpected SQL error occured while reading flashpoint.sqlite |
+| 11 | SQL_MISMATCH | Received  a  different  form  of  result  from  an  SQL  query  than  expected |
+| 12 | DB_MISSING_TABLES | flashpoint.sqlite is missing expected tables |
+| 13 | DB_MISSING_COLUMNS | One or more tables in flashpoint.sqlite are missing expected columns |
+| 14 | AUTO_NOT_FOUND | The specified UUID for auto operation is not associated with any title in the Flashpoint database |
+| 15 | MORE_THAN_ONE_AUTO | The specified UUID for auto operation is associated with more than one title (possible collision) |
+| 16 | EXTRA_NOT_FOUND | The specified or auto-determined extra was not found in the Extras folder  |
+| 17 | EXECUTABLE_NOT_FOUND | An enqueued executable was not found at the specified path |
+| 18 | EXECUTABLE_NOT_VALID | An file with the name of an enqueued executable was found but is not actually an executable|
+| 19 | PROCESS_START_FAIL | An enqueued executable failed to start |
+| 20 | WAIT_PROCESS_NOT_HANDLED| A handle to a "wait-on" process (usually for .bat based titles) could not be obtained |
+| 21 | WAIT_PROCESS_NOT_HOOKED | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing |
+| 22 | CANT_READ_BAT_FILE | Failed to read a batch script for checking if it contains a use of a "wait-on" process |
+
 
 ## Limitations
 

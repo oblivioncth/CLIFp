@@ -91,15 +91,15 @@ const QString CL_OPT_AUTO_DESC = "Finds a game/additional-app by UUID and runs i
 
 const QString CL_OPT_RAND_S_NAME = "r";
 const QString CL_OPT_RAND_L_NAME = "random";
-const QString CL_OPT_RAND_DESC = "Selects a random game UUID from the database and starts it in the same manner as using the --" + CL_OPT_AUTO_L_NAME + " switch.";
+const QString CL_OPT_RAND_DESC = "Selects a random game UUID from the database and starts it in the same manner as using the --" + CL_OPT_AUTO_L_NAME + " switch. Required value options for this argument (filters): all/any, game/arcade, animation/theatre";
 
 const QString CL_OPT_QUIET_S_NAME = "q";
 const QString CL_OPT_QUIET_L_NAME = "quiet";
-const QString CL_OPT_QUIET_DESC = "Silences all non-critical error messages.";
+const QString CL_OPT_QUIET_DESC = "Silences all non-critical messages.";
 
 const QString CL_OPT_SILENT_S_NAME = "s";
 const QString CL_OPT_SILENT_L_NAME = "silent";
-const QString CL_OPT_SILENT_DESC = "Silences all error messages (takes precedence over quiet mode).";
+const QString CL_OPT_SILENT_DESC = "Silences all messages (takes precedence over quiet mode).";
 
 // Command line messages
 const QString CL_HELP_MESSAGE =
@@ -135,7 +135,7 @@ const QString ERR_INSTALL_INVALID_S = "Check its location and compatability with
 const QString ERR_CANT_PARSE_FILE = "Failed to parse %1 ! It may be corrupted or not compatible with this version of CLIFp.";
 const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
 const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flashpoint database:";
-const QString ERR_SQL_MISMATCH = "Received a different form of result from an SQL query than expected!";
+const QString ERR_SQL_MISMATCH = "Received a different form of result from an SQL query than expected.";
 const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
 const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
 const QString ERR_AUTO_NOT_FOUND = "An entry matching the specified auto ID could not be found in the Flashpoint database.";
