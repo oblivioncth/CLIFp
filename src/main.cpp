@@ -10,7 +10,7 @@
 #include "logger.h"
 #include "magic_enum.hpp"
 
-#define CLIFP_PATH QCoreApplication::applicationDirPath()
+#define CLIFP_DIR_PATH QCoreApplication::applicationDirPath()
 #define ENUM_NAME(...) QString::fromStdString(std::string(magic_enum::enum_name(__VA_ARGS__)))
 
 //-Enums-----------------------------------------------------------------------
@@ -217,6 +217,8 @@ const int LOG_MAX_ENTRIES = 50;
 const QString LOG_ERR_INVALID_PARAM = "Invalid combination of parameters used";
 const QString LOG_ERR_CRITICAL = "Aborting execution due to previous critical errors";
 const QString LOG_WRN_INVALID_RAND_ID = "A UUID found in the database during Random operation is invalid (%1)";
+const QString LOG_EVENT_FLASHPOINT_SEARCH = "Searching for Flashpoint root...";
+const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = "Checking if \"%1\" is flashpoint root";
 const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
 const QString LOG_EVENT_OP_MODE = "Operation Mode: %1";
 const QString LOG_EVENT_APP_TASK = "Enqueued App Task: {.type = %1, .path = \"%2\", .filename = \"%3\", "
@@ -266,10 +268,10 @@ bool gCritErrOccured = false;
 
 // Prototypes - Process
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
-ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices);
+ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Config fpConfig, FP::Install::Services fpServices);
 ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall);
 ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
-void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices);
+void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
@@ -279,6 +281,7 @@ void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
 
 // Prototypes - Helper
 QString getRawCommandLineParams();
+QString findFlashpointRoot();
 ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install& fpInstall, FP::Install::LibraryFilter lbFilter);
 ErrorCode getRandomSelectionInfo(QString& infoBuffer, FP::Install& fpInstall, QUuid mainID, QUuid subID);
 Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
@@ -342,7 +345,7 @@ int main(int argc, char *argv[])
         interpCL = LOG_NO_PARAMS;
 
     // Logger instance
-    gLogger = std::make_unique<Logger>(CLIFP_PATH + '/' + LOG_FILE_NAME, rawCL, interpCL, LOG_HEADER, LOG_MAX_ENTRIES);
+    gLogger = std::make_unique<Logger>(CLIFP_DIR_PATH + '/' + LOG_FILE_NAME, rawCL, interpCL, LOG_HEADER, LOG_MAX_ENTRIES);
 
     //-Determine Operation Mode------------------------------------------------------------
     OperationMode operationMode;
@@ -395,15 +398,18 @@ int main(int argc, char *argv[])
         return printLogAndExit(LAUNCHER_OPEN);
     }
 
-    //-Link to Flashpoint Install----------------------------------------------------------
-    if(!FP::Install::checkInstallValidity(CLIFP_PATH, FP::Install::CompatLevel::Execution).installValid)
+    //-Find and link to Flashpoint Install----------------------------------------------------------
+    QString fpRoot;
+    logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
+
+    if((fpRoot = findFlashpointRoot()).isNull())
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
         return printLogAndExit(INSTALL_INVALID);
     }
 
-    FP::Install flashpointInstall(CLIFP_PATH);
-    logEvent(LOG_EVENT_FLASHPOINT_LINK.arg(CLIFP_PATH));
+    FP::Install flashpointInstall(fpRoot, CLIFP_DIR_PATH.remove(fpRoot).remove(1, 1));
+    logEvent(LOG_EVENT_FLASHPOINT_LINK.arg(fpRoot));
 
     //-Get Install Settings----------------------------------------------------------------
     logEvent(LOG_EVENT_GET_SET);
@@ -444,10 +450,10 @@ int main(int argc, char *argv[])
             break;
 
         case OperationMode::Normal: 
-            if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)))
+            if((enqueueError = enqueueStartupTasks(appTaskQueue, fpRoot, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
-            inputInfo = QFileInfo(CLIFP_PATH + '/' + clParser.value(CL_OPTION_APP));
+            inputInfo = QFileInfo(fpRoot + '/' + clParser.value(CL_OPTION_APP));
             normalTask = {TaskType::Primary, inputInfo.absolutePath(), inputInfo.fileName(),
                                   QStringList(), clParser.value(CL_OPTION_PARAM),
                                   ProcessType::Blocking};
@@ -480,7 +486,7 @@ int main(int argc, char *argv[])
             if((enqueueError = randomlySelectID(autoID, secondaryID, flashpointInstall, randFilter)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)))
+            if((enqueueError = enqueueStartupTasks(appTaskQueue, fpRoot, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
             if((enqueueError = enqueueAutomaticTasks(appTaskQueue, secondaryID.isNull() ? autoID : secondaryID, flashpointInstall)))
@@ -507,7 +513,7 @@ int main(int argc, char *argv[])
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueStartupTasks(appTaskQueue, flashpointConfig, flashpointServices)))
+            if((enqueueError = enqueueStartupTasks(appTaskQueue, fpRoot, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
             if((enqueueError = enqueueAutomaticTasks(appTaskQueue, autoID, flashpointInstall)))
@@ -542,7 +548,7 @@ int main(int argc, char *argv[])
     if(appTaskQueue.size() != 1 ||
        (appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_MESSAGE &&
        appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_EXTRAS))
-        enqueueShutdownTasks(appTaskQueue, flashpointServices);
+        enqueueShutdownTasks(appTaskQueue, fpRoot, flashpointServices);
 
     // Process app task queue
     ErrorCode executionError = processTaskQueue(appTaskQueue, activeChildProcesses);
@@ -604,13 +610,13 @@ ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall)
     return NO_ERR;
 }
 
-ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Config fpConfig, FP::Install::Services fpServices)
+ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Config fpConfig, FP::Install::Services fpServices)
 {
     logEvent(LOG_EVENT_ENQ_START);
     // Add Start entries from services
     for(const FP::Install::StartStop& startEntry : fpServices.starts)
     {
-        AppTask currentTask = {TaskType::Startup, CLIFP_PATH + '/' + startEntry.path, startEntry.filename,
+        AppTask currentTask = {TaskType::Startup, fpRoot + '/' + startEntry.path, startEntry.filename,
                                startEntry.arguments, QString(),
                                ProcessType::Blocking};
         taskQueue.push(currentTask);
@@ -627,7 +633,7 @@ ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Confi
         }
 
         FP::Install::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
-        AppTask serverTask = {TaskType::Startup, CLIFP_PATH + '/' + configuredServer.path, configuredServer.filename,
+        AppTask serverTask = {TaskType::Startup, fpRoot + '/' + configuredServer.path, configuredServer.filename,
                               configuredServer.arguments, QString(),
                               configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached};
         taskQueue.push(serverTask);
@@ -638,7 +644,7 @@ ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, FP::Install::Confi
     QHash<QString, FP::Install::ServerDaemon>::const_iterator daemonIt;
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
-        AppTask currentTask = {TaskType::Startup, CLIFP_PATH + '/' + daemonIt.value().path, daemonIt.value().filename,
+        AppTask currentTask = {TaskType::Startup, fpRoot + '/' + daemonIt.value().path, daemonIt.value().filename,
                                daemonIt.value().arguments, QString(),
                                daemonIt.value().kill ? ProcessType::Deferred : ProcessType::Detached};
         taskQueue.push(currentTask);
@@ -729,7 +735,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         // Enqueue game
         QString gamePath = searchResult.result.value(FP::Install::DBTable_Game::COL_APP_PATH).toString();
         QString gameArgs = searchResult.result.value(FP::Install::DBTable_Game::COL_LAUNCH_COMMAND).toString();
-        QFileInfo gameInfo(CLIFP_PATH + '/' + gamePath);
+        QFileInfo gameInfo(fpInstall.getPath() + '/' + gamePath);
         AppTask gameTask = {TaskType::Primary, gameInfo.absolutePath(), gameInfo.fileName(),
                             QStringList(), gameArgs, ProcessType::Blocking};
         taskQueue.push(gameTask);
@@ -773,7 +779,7 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
     }
     else
     {
-        QFileInfo addAppInfo(CLIFP_PATH + '/' + appPath);
+        QFileInfo addAppInfo(fpInstall.getPath() + '/' + appPath);
         AppTask addAppTask = {taskType, addAppInfo.absolutePath(), addAppInfo.fileName(),
                               QStringList(), appArgs,
                               (waitForExit || taskType == TaskType::Primary) ? ProcessType::Blocking : ProcessType::Deferred};
@@ -790,13 +796,13 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
     return NO_ERR;
 }
 
-void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, FP::Install::Services fpServices)
+void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices)
 {
     logEvent(LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
     for(const FP::Install::StartStop& stopEntry : fpServices.stops)
     {
-        AppTask shutdownTask = {TaskType::Shutdown, CLIFP_PATH + '/' + stopEntry.path, stopEntry.filename,
+        AppTask shutdownTask = {TaskType::Shutdown, fpRoot + '/' + stopEntry.path, stopEntry.filename,
                                 stopEntry.arguments, QString(),
                                 ProcessType::Blocking};
         taskQueue.push(shutdownTask);
@@ -1080,6 +1086,22 @@ QString getRawCommandLineParams()
 
     // Return cropped string
     return QString::fromStdWString(std::wstring(rawCL));
+}
+
+QString findFlashpointRoot()
+{
+    QDir currentDir(CLIFP_DIR_PATH);
+
+    do
+    {
+        logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(currentDir.absolutePath()));
+        if(FP::Install::checkInstallValidity(currentDir.absolutePath(), FP::Install::CompatLevel::Execution).installValid)
+            return currentDir.absolutePath();
+    }
+    while(currentDir.cdUp());
+
+    // Return null string on failure to find root
+    return QString();
 }
 
 ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install& fpInstall, FP::Install::LibraryFilter lbFilter)

@@ -318,7 +318,7 @@ QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString 
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::Install(QString installPath)
+Install::Install(QString installPath, QString clifpSubPath)
 {
     // Ensure instance will be at least minimally compatible
     if(!checkInstallValidity(installPath, CompatLevel::Execution).installValid)
@@ -327,12 +327,14 @@ Install::Install(QString installPath)
     // Initialize static files and directories
     mRootDirectory = QDir(installPath);
     mMainEXEFile = std::make_unique<QFile>(installPath + "/" + MAIN_EXE_PATH);
-    mCLIFpEXEFile = std::make_unique<QFile>(installPath + "/" + CLIFp::EXE_NAME);
     mDatabaseFile = std::make_unique<QFile>(installPath + "/" + DATABASE_PATH);
     mServicesJSONFile = std::make_shared<QFile>(installPath + "/" + SERVICES_JSON_PATH);
     mConfigJSONFile = std::make_shared<QFile>(installPath + "/" + CONFIG_JSON_PATH);
     mVersionTXTFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
     mExtrasDirectory = QDir(installPath + "/" + EXTRAS_FOLDER_NAME);
+
+    // Initialize flexible files and directories
+    mCLIFpEXEFile = std::make_unique<QFile>(installPath + "/" + (clifpSubPath.isNull() ? "" : clifpSubPath + "/") + CLIFp::EXE_NAME); // Defaults to root
 
     // Get config
     Config installConfig;
