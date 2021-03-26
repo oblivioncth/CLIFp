@@ -36,7 +36,7 @@ It was later refined to also be used directly with the Flashpoint project to all
 
 That being said, it is perfectly possible to use CLIFp in any manner you see fit.
 
-It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder.
+It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
 ### General
 **NOTE: Do not run CLIFp as an administrator as some titles may not work correctly or run at all**
