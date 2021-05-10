@@ -1,5 +1,5 @@
-#ifndef FLASHPOINTINSTALL_H
-#define FLASHPOINTINSTALL_H
+#ifndef FLASHPOINT_INSTALL_H
+#define FLASHPOINT_INSTALL_H
 
 #include <QString>
 #include <QDir>
@@ -19,6 +19,12 @@ public:
 
 //-Class Structs-------------------------------------------------------------------------------------------------
 public:
+    struct InclusionOptions
+    {
+        bool includeExtreme;
+        bool includeAnimations;
+    };
+
     struct DBTableSpecs
     {
         QString name;
@@ -29,7 +35,7 @@ public:
     {
         QString source;
         QSqlQuery result;
-        int size;
+        int size = 0;
     };
 
     struct Config
@@ -54,7 +60,7 @@ public:
         QStringList arguments;
 
         friend bool operator== (const StartStop& lhs, const StartStop& rhs) noexcept;
-        friend uint qHash(const StartStop& key, uint seed) noexcept;
+        friend size_t qHash(const StartStop& key, size_t seed) noexcept;
     };
 
     struct Services
@@ -302,8 +308,9 @@ public:
                                                                         {DBTable_Playlist_Game::NAME, DBTable_Playlist_Game::COLUMN_LIST}};
     static inline const QString GENERAL_QUERY_SIZE_COMMAND = "COUNT(1)";
 
-    static inline const QString GAME_ONLY_FILTER = DBTable_Game::COL_LIBRARY + " == '" + DBTable_Game::ENTRY_GAME_LIBRARY + "'";
-    static inline const QString ANIM_ONLY_FILTER = DBTable_Game::COL_LIBRARY + " == '" + DBTable_Game::ENTRY_ANIM_LIBRARY + "'";
+    static inline const QString GAME_ONLY_FILTER = DBTable_Game::COL_LIBRARY + " = '" + DBTable_Game::ENTRY_GAME_LIBRARY + "'";
+    static inline const QString ANIM_ONLY_FILTER = DBTable_Game::COL_LIBRARY + " = '" + DBTable_Game::ENTRY_ANIM_LIBRARY + "'";
+    static inline const QString GAME_AND_ANIM_FILTER = "(" + GAME_ONLY_FILTER + " OR " + ANIM_ONLY_FILTER + ")";
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
@@ -364,10 +371,12 @@ public:
     bool deployCLIFp(QString &errorMessage);
 
     // Queries - OFLIb
-    QSqlError initialGameQuery(QList<DBQueryBuffer>& resultBuffer, QSet<QString> selectedPlatforms) const;
-    QSqlError initialAddAppQuery(DBQueryBuffer& resultBuffer) const;
-    QSqlError initialPlaylistQuery(DBQueryBuffer& resultBuffer, QSet<QString> selectedPlaylists) const;
-    QSqlError initialPlaylistGameQuery(QList<DBQueryBuffer>& resultBuffer, const QList<QUuid>& knownPlaylistsToQuery) const;
+    QSqlError queryGamesByPlatform(QList<DBQueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
+                                   const QList<QUuid>& idFilter = {}) const;
+    QSqlError queryAllAddApps(DBQueryBuffer& resultBuffer) const;
+    QSqlError queryPlaylistsByName(DBQueryBuffer& resultBuffer, QStringList playlists) const;
+    QSqlError queryPlaylistGamesByPlaylist(QList<DBQueryBuffer>& resultBuffer, const QList<QUuid>& playlistIDs) const;
+    QSqlError queryPlaylistGameIDs(DBQueryBuffer& resultBuffer, const QList<QUuid>& playlistIDs) const;
 
     // Queries - CLIFp
     QSqlError queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
@@ -389,4 +398,4 @@ public:
 
 
 
-#endif // FLASHPOINTINSTALL_H
+#endif // FLASHPOINT_INSTALL_H

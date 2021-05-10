@@ -6,7 +6,7 @@
 #include <queue>
 #include "qx-windows.h"
 #include "qx-io.h"
-#include "flashpointinstall.h"
+#include "flashpoint-install.h"
 #include "logger.h"
 #include "magic_enum.hpp"
 

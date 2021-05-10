@@ -123,8 +123,8 @@ static inline QString ENDL = "\r\n"; //NOTE: Currently this is windows only
     IOOpReport writeStringToEndOfFile(QFile &textFile, const QString& text, bool ensureNewLine = false, bool createIfDNE = false, bool createDirs = true); // Consider making function just writeStringToFile and use TextPos with bool for overwrite vs insert
     IOOpReport deleteTextRangeFromFile(QFile &textFile, TextPos startPos, TextPos endPos);
 // Directory Based:
-    IOOpReport getDirFileList(QStringList& returnBuffer, QDir directory, QDirIterator::IteratorFlag traversalFlags = QDirIterator::NoIteratorFlags, QStringList extFilter = QStringList(),
-                              bool leadingDotSensitive = true, Qt::CaseSensitivity caseSensitivity = Qt::CaseInsensitive);
+    IOOpReport getDirFileList(QStringList& returnBuffer, QDir directory, QStringList extFilter = QStringList(), QDirIterator::IteratorFlag traversalFlags = QDirIterator::NoIteratorFlags,
+                              Qt::CaseSensitivity caseSensitivity = Qt::CaseInsensitive);
     bool dirContainsFiles(QDir directory, bool includeSubdirectories = false);
     bool dirContainsFiles(QDir directory, IOOpReport& reportBuffer, bool includeSubdirectories = false);
 // Integrity Based

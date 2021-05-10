@@ -1,8 +1,8 @@
 #ifndef QX_H
 #define QX_H
 
-#define ENABLE_IF(...) std::enable_if_t<__VA_ARGS__, int> = 0 // enable_if Macro; allows ENABLE_IF(std::is_arithmetic_v<T>) for example
-#define ENABLE_IF2(...) std::enable_if_t<__VA_ARGS__, int> // enable_if Macro with no default argument, use if template was already forward declared
+#define ENABLE_IF(...) std::enable_if_t<__VA_ARGS__::value, int> = 0 // enable_if Macro; allows ENABLE_IF(std::is_arithmetic<T>) for example
+#define ENABLE_IF2(...) std::enable_if_t<__VA_ARGS__::value, int> // enable_if Macro with no default argument, use if template was already forward declared
 
 #include <QHash>
 #include <QCryptographicHash>
@@ -17,10 +17,11 @@
 namespace Qx
 {
 //-Class Forward Declarations---------------------------------------------------------------------------------------------
-template <typename T, ENABLE_IF(std::is_arithmetic_v<T>)>
+template <typename T, ENABLE_IF(std::is_arithmetic<T>)>
 class NII;
 
 //-Traits-------------------------------------------------------------------------------------------------------
+// TODO: Get these working where they make sense
 template <class T, template <class...> class Template>
 struct is_specialization : std::false_type {};
 
@@ -44,7 +45,7 @@ bool is_json_type_v = is_json_type<T>::value;
 template <typename T>
 struct typeIdentifier {typedef T type; }; // Forces compiler to deduce the type of T from only one argument so that implicit conversions can be used for the others
 
-template<typename T, ENABLE_IF(std::is_integral_v<T>)>
+template<typename T, ENABLE_IF(std::is_integral<T>)>
 T rangeToLength(T start, T end)
 {
     // Returns the length from start to end including start, primarily for support of NII (Negative Is Infinity)
@@ -53,10 +54,10 @@ T rangeToLength(T start, T end)
     return length;
 }
 
-template<typename T, ENABLE_IF(std::is_arithmetic_v<T>)>
+template<typename T, ENABLE_IF(std::is_arithmetic<T>)>
 static bool isOdd(T num) { return num % 2; }
 
-template<typename T, ENABLE_IF(std::is_arithmetic_v<T>)>
+template<typename T, ENABLE_IF(std::is_arithmetic<T>)>
 static bool isEven(T num) { return !isOdd(num); }
 
 //-Classes------------------------------------------------------------------------------------------------------
@@ -139,7 +140,7 @@ class ByteArray
 {
 //-Class Functions----------------------------------------------------------------------------------------------
 public:
-    template<typename T, ENABLE_IF(std::is_integral_v<T>)>
+    template<typename T, ENABLE_IF(std::is_integral<T>)>
     static QByteArray RAWFromPrimitive(T primitive, Endian::Endianness endianness = Endian::LE)
     {
         QByteArray rawBytes;
@@ -163,7 +164,7 @@ public:
         return rawBytes;
     }
 
-    template<typename T, ENABLE_IF(std::is_floating_point_v<T>)>
+    template<typename T, ENABLE_IF(std::is_floating_point<T>)>
     static QByteArray RAWFromPrimitive(T primitive, Endian::Endianness endianness = Endian::LE)
     {
         QByteArray rawBytes;
@@ -199,7 +200,7 @@ public:
         return rawBytes;
     }
 
-    template<typename T, ENABLE_IF(std::is_fundamental_v<T>)>
+    template<typename T, ENABLE_IF(std::is_fundamental<T>)>
     static T RAWToPrimitive(QByteArray ba, Endian::Endianness endianness = Endian::LE)
     {
         static_assert(std::numeric_limits<float>::is_iec559, "Only supports IEC 559 (IEEE 754) float"); // For floats
@@ -279,7 +280,7 @@ public:
     static QDateTime fromMSFileTime(qint64 fileTime);
 };
 
-template <typename T, ENABLE_IF(std::is_integral_v<T>)>
+template <typename T, ENABLE_IF(std::is_integral<T>)>
 class FreeIndexTracker
 {
 //-Class Members-------------------------------------------------------------------------------------------------
@@ -299,10 +300,10 @@ public:
     {
         // Determine programatic limit if "type max" (-1) is specified
         if(maxIndex < 0)
-            maxIndex = std::numeric_limits<T>::max();
+            mMaxIndex = std::numeric_limits<T>::max();
 
         // Insure initial values are valid
-        assert(minIndex >= 0 && minIndex <= maxIndex && (reservedIndicies.isEmpty() ||
+        assert(mMinIndex >= 0 && mMinIndex <= mMaxIndex && (reservedIndicies.isEmpty() ||
                (*std::min_element(reservedIndicies.begin(), reservedIndicies.end())) >= 0));
 
         // Change bounds to match initial reserve list if they are mismatched
@@ -495,7 +496,7 @@ public:
     static Qx::GenericError checkedKeyRetrieval(QJsonObject& valueBuffer, QJsonObject jObject, QString key);
 };
 
-template <typename T, ENABLE_IF2(std::is_arithmetic_v<T>)>
+template <typename T, ENABLE_IF2(std::is_arithmetic<T>)>
 class NII // Negative Is Infinity - Wrapper class (0 is minimum)
 {
 //-Class Members-------------------------------------------------------------------------------------------------
@@ -691,7 +692,7 @@ public:
             return a - b;
     }
 
-    template <typename T, ENABLE_IF(std::is_integral_v<T>)>
+    template <typename T, ENABLE_IF(std::is_integral<T>)>
     static T roundToNearestMultiple(T num, T mult)
     {
         // Ignore negative multiples
@@ -734,6 +735,21 @@ public:
     static QString fromByteArrayHex(QByteArray data);
     static QString fromByteArrayHex(QByteArray data, QChar separator, Endian::Endianness endianness);
     static QString stripToHexOnly(QString string);
+
+    template<typename T, typename F>
+    static QString join(QList<T> list, QString separator, F&& toStringFunc)
+    {
+        QString conjuction;
+
+        for(int i = 0; i < list.length(); i++)
+        {
+            conjuction += toStringFunc(list.at(i));
+            if(i < list.length() - 1)
+                conjuction += separator;
+        }
+
+        return conjuction;
+    }
 };
 
 }

@@ -18,12 +18,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    src/flashpointinstall.cpp \
+    src/flashpoint-install.cpp \
     src/logger.cpp \
     src/main.cpp
 
 HEADERS += \
-    src/flashpointinstall.h \
+    src/flashpoint-install.h \
     src/logger.h \
     src/version.h
 
@@ -35,24 +35,24 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 contains(QT_ARCH, i386) {
-    win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lQx_static32_0-0-2-9_Qt_5-15-0
-    else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lQx_static32_0-0-2-9_Qt_5-15-0d
+    win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lQx_static32_0-0-2-14_Qt_5-15-0
+    else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lQx_static32_0-0-2-14_Qt_5-15-0d
 } else {
-    win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lQx_static64_0-0-2-9_Qt_5-15-0
-    else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lQx_static64_0-0-2-9_Qt_5-15-0d
+    win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lQx_static64_0-0-2-14_Qt_5-15-0
+    else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lQx_static64_0-0-2-14_Qt_5-15-0d
 }
 
 INCLUDEPATH += $$PWD/include
 DEPENDPATH += $$PWD/include
 
 contains(QT_ARCH, i386) {
-    win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static32_0-0-2-9_Qt_5-15-0.a
-    else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static32_0-0-2-9_Qt_5-15-0d.a
-    else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static32_0-0-2-9_Qt_5-15-0.lib
-    else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static32_0-0-2-9_Qt_5-15-0d.lib
+    win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static32_0-0-2-14_Qt_5-15-0.a
+    else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static32_0-0-2-14_Qt_5-15-0d.a
+    else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static32_0-0-2-14_Qt_5-15-0.lib
+    else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static32_0-0-2-14_Qt_5-15-0d.lib
 } else {
-    win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static64_0-0-2-9_Qt_5-15-0.a
-    else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static64_0-0-2-9_Qt_5-15-0d.a
-    else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static64_0-0-2-9_Qt_5-15-0.lib
-    else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static64_0-0-2-9_Qt_5-15-0d.lib
+    win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static64_0-0-2-14_Qt_5-15-0.a
+    else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/libQx_static64_0-0-2-14_Qt_5-15-0d.a
+    else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static64_0-0-2-14_Qt_5-15-0.lib
+    else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/Qx_static64_0-0-2-14_Qt_5-15-0d.lib
 }
