@@ -46,6 +46,9 @@ Qx::GenericError Install::JSONConfigReader::parseConfigDocument(const QJsonDocum
     // Get values
     Qx::GenericError valueError;
 
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->flashpointPath, configDoc.object(), JSONObject_Config::KEY_FLASHPOINT_PATH)).isValid())
+        return valueError;
+
     if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->startServer, configDoc.object(), JSONObject_Config::KEY_START_SERVER)).isValid())
         return valueError;
 
@@ -100,6 +103,9 @@ Qx::GenericError Install::JSONPreferencesReader::parsePreferencesDocument(const 
     if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->imageFolderPath, configDoc.object(), JSONObject_Preferences::KEY_IMAGE_FOLDER_PATH)).isValid())
         return valueError;
 
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->jsonFolderPath, configDoc.object(), JSONObject_Preferences::KEY_JSON_FOLDER_PATH)).isValid())
+        return valueError;
+
     // Return invalid error on success
     return Qx::GenericError();
 
@@ -131,15 +137,15 @@ Qx::GenericError Install::JSONPreferencesReader::readInto()
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::JSONServicesReader::JSONServicesReader(const Install* hostInstall, Services* targetServices, std::shared_ptr<QFile> targetJSONFile)
-    : mHostInstall(hostInstall), mTargetServices(targetServices), mTargetJSONFile(targetJSONFile) {}
+Install::JSONServicesReader::JSONServicesReader(const QString hostInstallPath, Services* targetServices, std::shared_ptr<QFile> targetJSONFile)
+    : mHostInstallPath(hostInstallPath), mTargetServices(targetServices), mTargetJSONFile(targetJSONFile) {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
 QString Install::JSONServicesReader::resolveFlashpointMacros(QString macroString)
 {
     // Resolve all known macros
-    macroString.replace(MACRO_FP_PATH, mHostInstall->getPath());
+    macroString.replace(MACRO_FP_PATH, mHostInstallPath);
 
     return macroString;
 }
@@ -373,10 +379,10 @@ Install::Install(QString installPath, QString clifpSubPath)
     mRootDirectory = QDir(installPath);
     mMainEXEFile = std::make_unique<QFile>(installPath + "/" + MAIN_EXE_PATH);
     mDatabaseFile = std::make_unique<QFile>(installPath + "/" + DATABASE_PATH);
-    mServicesJSONFile = std::make_shared<QFile>(installPath + "/" + SERVICES_JSON_PATH);
     mConfigJSONFile = std::make_shared<QFile>(installPath + "/" + CONFIG_JSON_PATH);
+    mPreferencesJSONFile = std::make_shared<QFile>(installPath + "/" + PREFERENCES_JSON_PATH);
     mVersionTXTFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
-    mExtrasDirectory = QDir(installPath + "/" + EXTRAS_FOLDER_NAME);
+    mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
 
     // Initialize flexible files and directories
     mCLIFpEXEFile = std::make_unique<QFile>(installPath + "/" + (clifpSubPath.isNull() ? "" : clifpSubPath + "/") + CLIFp::EXE_NAME); // Defaults to root
@@ -386,6 +392,7 @@ Install::Install(QString installPath, QString clifpSubPath)
     getPreferences(installPreferences); // Assume that config can be read since this is checked in checkInstallValidity()
 
     // Initialize config based files and directories
+    mServicesJSONFile = std::make_shared<QFile>(installPath + "/" + installPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
     mLogosDirectory = QDir(installPath + "/" + installPreferences.imageFolderPath + '/' + LOGOS_FOLDER_NAME);
     mScreenshotsDirectory = QDir(installPath + "/" + installPreferences.imageFolderPath + '/' + SCREENSHOTS_FOLDER_NAME);
 
@@ -402,49 +409,56 @@ Install::~Install()
 //Public:
 Install::ValidityReport Install::checkInstallValidity(QString installPath, CompatLevel compatLevel)
 {
+    //TODO: Try to disolve this function by simply attempting these steps in the constructor and check afterwards if the instance is valid via
+    // something like isNull(). There may be a catch to this as if recalled correctly this was considered before and abandonded because of a conflict
+    // with the approach, but otherwise this method would be much more preferable and less redundant
+
     QFileInfo mainEXE(installPath + "/" + MAIN_EXE_PATH);
     QFileInfo database(installPath + "/" + DATABASE_PATH);
-    QFileInfo services(installPath + "/" + SERVICES_JSON_PATH);
     QFileInfo config(installPath + "/" + CONFIG_JSON_PATH);
+    QFileInfo preferences(installPath + "/" + PREFERENCES_JSON_PATH);
     QFileInfo version(installPath + "/" + VER_TXT_PATH);
 
-    switch (compatLevel)
+    // Check common requirements
+    if(!database.exists() || !database.isFile())
+        return ValidityReport{false, FILE_DNE.arg(database.filePath())};
+    if(!config.exists() || !config.isFile())
+        return ValidityReport{false, FILE_DNE.arg(config.filePath())};
+
+    Config testConfig; // Check that config can be read
+    std::shared_ptr<QFile> configFile = std::make_shared<QFile>(config.filePath());
+    JSONConfigReader jsConfigReader(&testConfig, configFile);
+    Qx::GenericError configReadReport = jsConfigReader.readInto();
+
+    if(configReadReport.isValid())
+        return ValidityReport{false, configReadReport.primaryInfo() + " [" + configReadReport.secondaryInfo() + "]"};
+
+    Preferences testPreferences; // Check that preferences can be read
+    std::shared_ptr<QFile> preferencesFile = std::make_shared<QFile>(preferences.filePath());
+    JSONPreferencesReader jsPrefReader(&testPreferences, preferencesFile);
+    Qx::GenericError prefReadReport = jsPrefReader.readInto();
+
+    if(prefReadReport.isValid())
+        return ValidityReport{false, prefReadReport.primaryInfo() + " [" + prefReadReport.secondaryInfo() + "]"};
+
+    Services testServices; // Test that services can be read
+    std::shared_ptr<QFile> servicesFile = std::make_shared<QFile>(installPath + "/" + testPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
+    JSONServicesReader jsServicesReader(installPath, &testServices, servicesFile);
+    Qx::GenericError servicesReadReport = jsServicesReader.readInto();
+
+    if(servicesReadReport.isValid())
+        return ValidityReport{false, servicesReadReport.primaryInfo() + " [" + servicesReadReport.secondaryInfo() + "]"};
+
+    // Check full compat level requirements
+    if(compatLevel == CompatLevel::Full)
     {
-        case CompatLevel::Execution:
-            // Check for required existance
-            if(!database.exists() || !database.isFile())
-                return ValidityReport{false, FILE_DNE.arg(database.filePath())};
-            else if(!services.exists() || !services.isFile())
-                return ValidityReport{false, FILE_DNE.arg(services.filePath())};
-            else if(!config.exists() || !config.isFile())
-                return ValidityReport{false, FILE_DNE.arg(config.filePath())};
-            break;
-
-        case CompatLevel::Full:
-            // Check for required existance
-            if(!database.exists() || !database.isFile())
-                return ValidityReport{false, FILE_DNE.arg(database.filePath())};
-            else if(!services.exists() || !services.isFile())
-                return ValidityReport{false, FILE_DNE.arg(services.filePath())};
-            else if(!config.exists() || !config.isFile())
-                return ValidityReport{false, FILE_DNE.arg(config.filePath())};
-            else if(!mainEXE.exists() || !mainEXE.isFile())
-                return ValidityReport{false, FILE_DNE.arg(config.filePath())};
-            else if(!version.exists() || !version.isFile())
-                return ValidityReport{false, FILE_DNE.arg(version.filePath())};
-            break;
-
-            // Check that config can be read
-            Config testConfig;
-            std::shared_ptr<QFile> configFile = std::make_shared<QFile>(config.filePath());
-            JSONConfigReader jsReader(&testConfig, configFile);
-            Qx::GenericError configReadReport = jsReader.readInto();
-
-            if(configReadReport.isValid())
-                return ValidityReport{false, configReadReport.primaryInfo() + " [" + configReadReport.secondaryInfo() + "]"};
-            break;
+        if(!mainEXE.exists() || !mainEXE.isFile())
+            return ValidityReport{false, FILE_DNE.arg(config.filePath())};
+        if(!version.exists() || !version.isFile())
+            return ValidityReport{false, FILE_DNE.arg(version.filePath())};
     }
 
+    // Return valid pass
     return ValidityReport{true, QString()};
 }
 
@@ -569,7 +583,7 @@ Qx::GenericError Install::getPreferences(Preferences& preferencesBuffer)
     preferencesBuffer = Preferences();
 
     // Create reader instance
-    JSONPreferencesReader jsReader(&preferencesBuffer, mConfigJSONFile);
+    JSONPreferencesReader jsReader(&preferencesBuffer, mPreferencesJSONFile);
 
     // Read services file
     return jsReader.readInto();
@@ -581,7 +595,7 @@ Qx::GenericError Install::getServices(Services &servicesBuffer)
     servicesBuffer = Services();
 
     // Create reader instance
-    JSONServicesReader jsReader(this, &servicesBuffer, mServicesJSONFile);
+    JSONServicesReader jsReader(getPath(), &servicesBuffer, mServicesJSONFile);
 
     // Read services file
     return jsReader.readInto();

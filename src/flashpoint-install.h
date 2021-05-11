@@ -42,6 +42,7 @@ public:
 
     struct Config
     {
+        QString flashpointPath;
         bool startServer;
         QString server;
     };
@@ -49,6 +50,7 @@ public:
     struct Preferences
     {
         QString imageFolderPath;
+        QString jsonFolderPath;
     };
 
     struct ServerDaemon
@@ -173,6 +175,7 @@ public:
     class JSONObject_Config
     {
     public:
+        static inline const QString KEY_FLASHPOINT_PATH = "flashpointPath"; // Reading this value is current redundant and unused, but this may change in the future
         static inline const QString KEY_START_SERVER = "startServer";
         static inline const QString KEY_SERVER = "server";
     };
@@ -181,6 +184,7 @@ public:
     {
     public:
         static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
+        static inline const QString KEY_JSON_FOLDER_PATH = "jsonFolderPath";
     };
 
     class JSONObject_Server
@@ -277,13 +281,13 @@ public:
 
     //-Instance Variables--------------------------------------------------------------------------------------------------
     private:
-        const Install* mHostInstall;
+        QString mHostInstallPath;
         Services* mTargetServices;
         std::shared_ptr<QFile> mTargetJSONFile;
 
     //-Constructor--------------------------------------------------------------------------------------------------------
     public:
-        JSONServicesReader(const Install* hostInstall, Services* targetServices, std::shared_ptr<QFile> targetJSONFile);
+        JSONServicesReader(const QString hostInstallPath, Services* targetServices, std::shared_ptr<QFile> targetJSONFile);
 
     //-Instance Functions-------------------------------------------------------------------------------------------------
     private:
@@ -317,22 +321,27 @@ private:
     static inline const QString FILE_DNE = "A required file does not exist: %1";
 
 public:
-    // Paths
+    // Static paths
     static inline const QString MAIN_EXE_PATH = "Launcher/Flashpoint.exe";
     static inline const QString DATABASE_PATH = "Data/flashpoint.sqlite";
-    static inline const QString SERVICES_JSON_PATH = "Data/services.json";
     static inline const QString CONFIG_JSON_PATH = "Launcher/config.json";
+    static inline const QString PREFERENCES_JSON_PATH = "preferences.json";
     static inline const QString VER_TXT_PATH = "version.txt";
 
-    // Folders
+    // Dynamic path file names
+    static inline const QString SERVICES_JSON_NAME = "services.json";
+
+    // Static Folders
+    static inline const QString EXTRAS_PATH = "Extras";
+
+    // Dynamic path folder names
     static inline const QString LOGOS_FOLDER_NAME = "Logos";
     static inline const QString SCREENSHOTS_FOLDER_NAME = "Screenshots";
-    static inline const QString EXTRAS_FOLDER_NAME = "Extras";
 
     // Version check
-    static inline const QByteArray TARGET_EXE_SHA256 = Qx::ByteArray::RAWFromStringHex("6a598f6de11473c2a8a005646dcaff6cccc8d376b2f3f3953ba96dd6a362daa3");
-    static inline const QString TARGET_ULT_VER_STRING = R"(Flashpoint 9.0 Ultimate - "Glorious Sunset")";
-    static inline const QString TARGET_INF_VER_STRING = R"(Flashpoint 9.0 Infinity - "Glorious Sunset")";
+    static inline const QByteArray TARGET_EXE_SHA256 = Qx::ByteArray::RAWFromStringHex("4be65e6d17bfb1ad7299644f58fc6ad639e6b07c8493139447010aa301b47ba6");
+    static inline const QString TARGET_ULT_VER_STRING = R"(Flashpoint 10 Ultimate - "Absence")";
+    static inline const QString TARGET_INF_VER_STRING = R"(Flashpoint 10 Infinity - "Absence")";
 
     // Database
     static inline const QString DATABASE_CONNECTION_NAME = "Flashpoint Database";
@@ -356,8 +365,9 @@ private:
     std::unique_ptr<QFile> mMainEXEFile;
     std::unique_ptr<QFile> mCLIFpEXEFile;
     std::unique_ptr<QFile> mDatabaseFile;
-    std::shared_ptr<QFile> mServicesJSONFile;
     std::shared_ptr<QFile> mConfigJSONFile;
+    std::shared_ptr<QFile> mPreferencesJSONFile;
+    std::shared_ptr<QFile> mServicesJSONFile;
     std::unique_ptr<QFile> mVersionTXTFile;
 
     // Database information

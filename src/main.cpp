@@ -120,7 +120,7 @@ const QString CL_HELP_MESSAGE =
         "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME + "'</b> to view an extra, or use <b>'" + CL_OPT_HELP_L_NAME +
         "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
 
-const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_PRODUCTVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
+const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_FILEVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
 
 // FP Server Applications
 const QFileInfo SECURE_PLAYER_INFO = QFileInfo("FlashpointSecurePlayer.exe");
