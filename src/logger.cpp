@@ -15,7 +15,7 @@ Logger::Logger(QString filePath, QString rawCL, QString interpCL, QString header
 //Public:
 void Logger::appendErrorEvent(Qx::GenericError error)
 {
-    QString errorString = ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + ": " + error.primaryInfo();
+    QString errorString = "[" + ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + "] " + error.primaryInfo();
     if(!error.secondaryInfo().isNull())
         errorString + " " + error.secondaryInfo();
     if(!error.detailedInfo().isNull())

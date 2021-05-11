@@ -172,7 +172,7 @@ public:
         static inline const QStringList COLUMN_LIST = {COL_ID, COL_PLAYLIST_ID, COL_ORDER, COL_GAME_ID};
     };
 
-    class JSONObject_Config
+    class JsonObject_Config
     {
     public:
         static inline const QString KEY_FLASHPOINT_PATH = "flashpointPath"; // Reading this value is current redundant and unused, but this may change in the future
@@ -180,14 +180,14 @@ public:
         static inline const QString KEY_SERVER = "server";
     };
 
-    class JSONObject_Preferences
+    class JsonObject_Preferences
     {
     public:
         static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
         static inline const QString KEY_JSON_FOLDER_PATH = "jsonFolderPath";
     };
 
-    class JSONObject_Server
+    class JsonObject_Server
     {
     public:
         static inline const QString KEY_NAME = "name";
@@ -197,7 +197,7 @@ public:
         static inline const QString KEY_KILL = "kill";
     };
 
-    class JSONObject_StartStop
+    class JsonObject_StartStop
     {
     public:
         static inline const QString KEY_PATH = "path";
@@ -205,7 +205,7 @@ public:
         static inline const QString KEY_ARGUMENTS = "arguments";
     };
 
-    class JSONObject_Daemon
+    class JsonObject_Daemon
     {
     public:
         static inline const QString KEY_NAME = "name";
@@ -215,7 +215,7 @@ public:
         static inline const QString KEY_KILL = "kill";
     };
 
-    class JSONObject_Services
+    class JsonObject_Services
     {
     public:
         static inline const QString KEY_WATCH = "watch";
@@ -225,7 +225,7 @@ public:
         static inline const QString KEY_STOP = "stop";
     };
 
-    class JSONConfigReader
+    class JsonConfigReader
     {
     //-Class variables-----------------------------------------------------------------------------------------------------
     public:
@@ -235,11 +235,11 @@ public:
     //-Instance Variables--------------------------------------------------------------------------------------------------
     private:
         Config* mTargetConfig;
-        std::shared_ptr<QFile> mTargetJSONFile;
+        std::shared_ptr<QFile> mTargetJsonFile;
 
     //-Constructor--------------------------------------------------------------------------------------------------------
     public:
-        JSONConfigReader(Config* targetServices, std::shared_ptr<QFile> targetJSONFile);
+        JsonConfigReader(Config* targetServices, std::shared_ptr<QFile> targetJsonFile);
 
     //-Instance Functions-------------------------------------------------------------------------------------------------
     private:
@@ -248,7 +248,7 @@ public:
         Qx::GenericError readInto();
     };
 
-    class JSONPreferencesReader
+    class JsonPreferencesReader
     {
     //-Class variables-----------------------------------------------------------------------------------------------------
     public:
@@ -258,11 +258,11 @@ public:
     //-Instance Variables--------------------------------------------------------------------------------------------------
     private:
         Preferences* mTargetPreferences;
-        std::shared_ptr<QFile> mTargetJSONFile;
+        std::shared_ptr<QFile> mTargetJsonFile;
 
     //-Constructor--------------------------------------------------------------------------------------------------------
     public:
-        JSONPreferencesReader(Preferences* targetServices, std::shared_ptr<QFile> targetJSONFile);
+        JsonPreferencesReader(Preferences* targetServices, std::shared_ptr<QFile> targetJsonFile);
 
     //-Instance Functions-------------------------------------------------------------------------------------------------
     private:
@@ -271,7 +271,7 @@ public:
         Qx::GenericError readInto();
     };
 
-    class JSONServicesReader
+    class JsonServicesReader
     {
     //-Class variables-----------------------------------------------------------------------------------------------------
     public:
@@ -283,11 +283,11 @@ public:
     private:
         QString mHostInstallPath;
         Services* mTargetServices;
-        std::shared_ptr<QFile> mTargetJSONFile;
+        std::shared_ptr<QFile> mTargetJsonFile;
 
     //-Constructor--------------------------------------------------------------------------------------------------------
     public:
-        JSONServicesReader(const QString hostInstallPath, Services* targetServices, std::shared_ptr<QFile> targetJSONFile);
+        JsonServicesReader(const QString hostInstallPath, Services* targetServices, std::shared_ptr<QFile> targetJsonFile);
 
     //-Instance Functions-------------------------------------------------------------------------------------------------
     private:
@@ -365,9 +365,9 @@ private:
     std::unique_ptr<QFile> mMainEXEFile;
     std::unique_ptr<QFile> mCLIFpEXEFile;
     std::unique_ptr<QFile> mDatabaseFile;
-    std::shared_ptr<QFile> mConfigJSONFile;
-    std::shared_ptr<QFile> mPreferencesJSONFile;
-    std::shared_ptr<QFile> mServicesJSONFile;
+    std::shared_ptr<QFile> mConfigJsonFile;
+    std::shared_ptr<QFile> mPreferencesJsonFile;
+    std::shared_ptr<QFile> mServicesJsonFile;
     std::unique_ptr<QFile> mVersionTXTFile;
 
     // Database information

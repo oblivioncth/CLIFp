@@ -457,7 +457,7 @@ public:
     QString secondaryInfo();
     QString detailedInfo();
 
-    void setErrorLevel(ErrorLevel errorLevel);
+    Qx::GenericError& setErrorLevel(ErrorLevel errorLevel);
 
     int exec(QMessageBox::StandardButtons choices);
 };

@@ -27,33 +27,33 @@ uint qHash(const Install::StartStop& key, uint seed) noexcept
 }
 
 //===============================================================================================================
-// INSTALL::JSONConfigReader
+// INSTALL::JsonConfigReader
 //===============================================================================================================
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::JSONConfigReader::JSONConfigReader(Config* targetConfig, std::shared_ptr<QFile> targetJSONFile)
-    : mTargetConfig(targetConfig), mTargetJSONFile(targetJSONFile) {}
+Install::JsonConfigReader::JsonConfigReader(Config* targetConfig, std::shared_ptr<QFile> targetJsonFile)
+    : mTargetConfig(targetConfig), mTargetJsonFile(targetJsonFile) {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
-Qx::GenericError Install::JSONConfigReader::parseConfigDocument(const QJsonDocument& configDoc)
+Qx::GenericError Install::JsonConfigReader::parseConfigDocument(const QJsonDocument& configDoc)
 {
     // Ensure top level container is object
     if(!configDoc.isObject())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get values
     Qx::GenericError valueError;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->flashpointPath, configDoc.object(), JSONObject_Config::KEY_FLASHPOINT_PATH)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->flashpointPath, configDoc.object(), JsonObject_Config::KEY_FLASHPOINT_PATH)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->startServer, configDoc.object(), JSONObject_Config::KEY_START_SERVER)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->startServer, configDoc.object(), JsonObject_Config::KEY_START_SERVER)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->server, configDoc.object(), JSONObject_Config::KEY_SERVER)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetConfig->server, configDoc.object(), JsonObject_Config::KEY_SERVER)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Return invalid error on success
     return Qx::GenericError();
@@ -61,50 +61,50 @@ Qx::GenericError Install::JSONConfigReader::parseConfigDocument(const QJsonDocum
 }
 
 //Public:
-Qx::GenericError Install::JSONConfigReader::readInto()
+Qx::GenericError Install::JsonConfigReader::readInto()
 {
     // Load original JSON file
     QByteArray configData;
-    Qx::IOOpReport configLoadReport = Qx::readAllBytesFromFile(configData, *mTargetJSONFile);
+    Qx::IOOpReport configLoadReport = Qx::readAllBytesFromFile(configData, *mTargetJsonFile);
 
     if(!configLoadReport.wasSuccessful())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), configLoadReport.getOutcomeInfo());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), configLoadReport.getOutcomeInfo());
 
     // Parse original JSON data
     QJsonParseError parseError;
     QJsonDocument configDocument = QJsonDocument::fromJson(configData, &parseError);
 
     if(configDocument.isNull())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), parseError.errorString());
     else
         return parseConfigDocument(configDocument);
 }
 
 //===============================================================================================================
-// INSTALL::JSONPreferencesReader
+// INSTALL::JsonPreferencesReader
 //===============================================================================================================
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::JSONPreferencesReader::JSONPreferencesReader(Preferences* targetPreferences, std::shared_ptr<QFile> targetJSONFile)
-    : mTargetPreferences(targetPreferences), mTargetJSONFile(targetJSONFile) {}
+Install::JsonPreferencesReader::JsonPreferencesReader(Preferences* targetPreferences, std::shared_ptr<QFile> targetJsonFile)
+    : mTargetPreferences(targetPreferences), mTargetJsonFile(targetJsonFile) {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
-Qx::GenericError Install::JSONPreferencesReader::parsePreferencesDocument(const QJsonDocument& configDoc)
+Qx::GenericError Install::JsonPreferencesReader::parsePreferencesDocument(const QJsonDocument& configDoc)
 {
     // Ensure top level container is object
     if(!configDoc.isObject())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get values
     Qx::GenericError valueError;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->imageFolderPath, configDoc.object(), JSONObject_Preferences::KEY_IMAGE_FOLDER_PATH)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->imageFolderPath, configDoc.object(), JsonObject_Preferences::KEY_IMAGE_FOLDER_PATH)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->jsonFolderPath, configDoc.object(), JSONObject_Preferences::KEY_JSON_FOLDER_PATH)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->jsonFolderPath, configDoc.object(), JsonObject_Preferences::KEY_JSON_FOLDER_PATH)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Return invalid error on success
     return Qx::GenericError();
@@ -112,37 +112,37 @@ Qx::GenericError Install::JSONPreferencesReader::parsePreferencesDocument(const 
 }
 
 //Public:
-Qx::GenericError Install::JSONPreferencesReader::readInto()
+Qx::GenericError Install::JsonPreferencesReader::readInto()
 {
     // Load original JSON file
     QByteArray preferencesData;
-    Qx::IOOpReport preferencesLoadReport = Qx::readAllBytesFromFile(preferencesData, *mTargetJSONFile);
+    Qx::IOOpReport preferencesLoadReport = Qx::readAllBytesFromFile(preferencesData, *mTargetJsonFile);
 
     if(!preferencesLoadReport.wasSuccessful())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), preferencesLoadReport.getOutcomeInfo());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), preferencesLoadReport.getOutcomeInfo());
 
     // Parse original JSON data
     QJsonParseError parseError;
     QJsonDocument preferencesDocument = QJsonDocument::fromJson(preferencesData, &parseError);
 
     if(preferencesDocument.isNull())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), parseError.errorString());
     else
         return parsePreferencesDocument(preferencesDocument);
 }
 
 //===============================================================================================================
-// INSTALL::JSONServicesReader
+// INSTALL::JsonServicesReader
 //===============================================================================================================
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::JSONServicesReader::JSONServicesReader(const QString hostInstallPath, Services* targetServices, std::shared_ptr<QFile> targetJSONFile)
-    : mHostInstallPath(hostInstallPath), mTargetServices(targetServices), mTargetJSONFile(targetJSONFile) {}
+Install::JsonServicesReader::JsonServicesReader(const QString hostInstallPath, Services* targetServices, std::shared_ptr<QFile> targetJsonFile)
+    : mHostInstallPath(hostInstallPath), mTargetServices(targetServices), mTargetJsonFile(targetJsonFile) {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
-QString Install::JSONServicesReader::resolveFlashpointMacros(QString macroString)
+QString Install::JsonServicesReader::resolveFlashpointMacros(QString macroString)
 {
     // Resolve all known macros
     macroString.replace(MACRO_FP_PATH, mHostInstallPath);
@@ -150,11 +150,11 @@ QString Install::JSONServicesReader::resolveFlashpointMacros(QString macroString
     return macroString;
 }
 
-Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonDocument& servicesDoc)
+Qx::GenericError Install::JsonServicesReader::parseServicesDocument(const QJsonDocument& servicesDoc)
 {
     // Ensure top level container is object
     if(!servicesDoc.isObject())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Value error checking buffer
     Qx::GenericError valueError;
@@ -164,8 +164,8 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
 
     // Get servers
     QJsonArray jaServers;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaServers, servicesDoc.object(), JSONObject_Services::KEY_SERVER)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaServers, servicesDoc.object(), JsonObject_Services::KEY_SERVER)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse servers
     for(const QJsonValue& jvServer : jaServers)
@@ -179,8 +179,8 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
 
     // Get daemons
     QJsonArray jaDaemons;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaDaemons, servicesDoc.object(), JSONObject_Services::KEY_DAEMON)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaDaemons, servicesDoc.object(), JsonObject_Services::KEY_DAEMON)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse daemons
     for(const QJsonValue& jvDaemon : jaDaemons)
@@ -194,8 +194,8 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
 
     // Get starts
     QJsonArray jaStarts;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaStarts, servicesDoc.object(), JSONObject_Services::KEY_START)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaStarts, servicesDoc.object(), JsonObject_Services::KEY_START)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse starts
     for(const QJsonValue& jvStart : jaStarts)
@@ -209,8 +209,8 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
 
     // Get stops
     QJsonArray jaStops;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaStops, servicesDoc.object(), JSONObject_Services::KEY_STOP)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaStops, servicesDoc.object(), JsonObject_Services::KEY_STOP)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse starts
     for(const QJsonValue& jvStop : jaStops)
@@ -226,11 +226,11 @@ Qx::GenericError Install::JSONServicesReader::parseServicesDocument(const QJsonD
     return Qx::GenericError();
 }
 
-Qx::GenericError Install::JSONServicesReader::parseServerDaemon(ServerDaemon& serverBuffer, const QJsonValue& jvServer)
+Qx::GenericError Install::JsonServicesReader::parseServerDaemon(ServerDaemon& serverBuffer, const QJsonValue& jvServer)
 {
     // Ensure array element is Object
     if(!jvServer.isObject())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get server Object
     QJsonObject joServer = jvServer.toObject();
@@ -239,28 +239,28 @@ Qx::GenericError Install::JSONServicesReader::parseServerDaemon(ServerDaemon& se
     Qx::GenericError valueError;
 
     // Get direct values
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.name, joServer, JSONObject_Server::KEY_NAME)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.name, joServer, JsonObject_Server::KEY_NAME)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.path, joServer, JSONObject_Server::KEY_PATH)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.path, joServer, JsonObject_Server::KEY_PATH)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.filename, joServer, JSONObject_Server::KEY_FILENAME)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.filename, joServer, JsonObject_Server::KEY_FILENAME)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.kill, joServer, JSONObject_Server::KEY_KILL)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.kill, joServer, JsonObject_Server::KEY_KILL)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Get arguments
     QJsonArray jaArgs;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joServer, JSONObject_Server::KEY_ARGUMENTS)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joServer, JsonObject_Server::KEY_ARGUMENTS)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     for(const QJsonValue& jvArg : jaArgs)
     {
         // Ensure array element is String
         if(!jvArg.isString())
-            return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+            return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
         serverBuffer.arguments.append(jvArg.toString());
     }
@@ -278,14 +278,14 @@ Qx::GenericError Install::JSONServicesReader::parseServerDaemon(ServerDaemon& se
     return Qx::GenericError();
 }
 
-Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startStopBuffer, const QJsonValue& jvStartStop)
+Qx::GenericError Install::JsonServicesReader::parseStartStop(StartStop& startStopBuffer, const QJsonValue& jvStartStop)
 {
     // Ensure return buffer is null
     startStopBuffer = StartStop();
 
     // Ensure array element is Object
     if(!jvStartStop.isObject())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
     // Get server Object
     QJsonObject joStartStop = jvStartStop.toObject();
@@ -294,22 +294,22 @@ Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startSto
     Qx::GenericError valueError;
 
     // Get direct values
-    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.path, joStartStop , JSONObject_StartStop::KEY_PATH)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.path, joStartStop , JsonObject_StartStop::KEY_PATH)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.filename, joStartStop, JSONObject_StartStop::KEY_FILENAME)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.filename, joStartStop, JsonObject_StartStop::KEY_FILENAME)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Get arguments
     QJsonArray jaArgs;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joStartStop, JSONObject_StartStop::KEY_ARGUMENTS)).isValid())
-        return valueError;
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joStartStop, JsonObject_StartStop::KEY_ARGUMENTS)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     for(const QJsonValue& jvArg : jaArgs)
     {
         // Ensure array element is String
         if(!jvArg.isString())
-            return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), ERR_JSON_UNEXP_FORMAT);
+            return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), ERR_JSON_UNEXP_FORMAT);
 
         startStopBuffer.arguments.append(jvArg.toString());
     }
@@ -328,21 +328,21 @@ Qx::GenericError Install::JSONServicesReader::parseStartStop(StartStop& startSto
 }
 
 //Public:
-Qx::GenericError Install::JSONServicesReader::readInto()
+Qx::GenericError Install::JsonServicesReader::readInto()
 {
     // Load original JSON file
     QByteArray servicesData;
-    Qx::IOOpReport servicesLoadReport = Qx::readAllBytesFromFile(servicesData, *mTargetJSONFile);
+    Qx::IOOpReport servicesLoadReport = Qx::readAllBytesFromFile(servicesData, *mTargetJsonFile);
 
     if(!servicesLoadReport.wasSuccessful())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), servicesLoadReport.getOutcomeInfo());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), servicesLoadReport.getOutcomeInfo());
 
     // Parse original JSON data
     QJsonParseError parseError;
     QJsonDocument servicesDocument = QJsonDocument::fromJson(servicesData, &parseError);
 
     if(servicesDocument.isNull())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJSONFile->fileName()), parseError.errorString());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mTargetJsonFile->fileName()), parseError.errorString());
     else
         return parseServicesDocument(servicesDocument);
 }
@@ -379,8 +379,8 @@ Install::Install(QString installPath, QString clifpSubPath)
     mRootDirectory = QDir(installPath);
     mMainEXEFile = std::make_unique<QFile>(installPath + "/" + MAIN_EXE_PATH);
     mDatabaseFile = std::make_unique<QFile>(installPath + "/" + DATABASE_PATH);
-    mConfigJSONFile = std::make_shared<QFile>(installPath + "/" + CONFIG_JSON_PATH);
-    mPreferencesJSONFile = std::make_shared<QFile>(installPath + "/" + PREFERENCES_JSON_PATH);
+    mConfigJsonFile = std::make_shared<QFile>(installPath + "/" + CONFIG_JSON_PATH);
+    mPreferencesJsonFile = std::make_shared<QFile>(installPath + "/" + PREFERENCES_JSON_PATH);
     mVersionTXTFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
     mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
 
@@ -392,7 +392,7 @@ Install::Install(QString installPath, QString clifpSubPath)
     getPreferences(installPreferences); // Assume that config can be read since this is checked in checkInstallValidity()
 
     // Initialize config based files and directories
-    mServicesJSONFile = std::make_shared<QFile>(installPath + "/" + installPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
+    mServicesJsonFile = std::make_shared<QFile>(installPath + "/" + installPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
     mLogosDirectory = QDir(installPath + "/" + installPreferences.imageFolderPath + '/' + LOGOS_FOLDER_NAME);
     mScreenshotsDirectory = QDir(installPath + "/" + installPreferences.imageFolderPath + '/' + SCREENSHOTS_FOLDER_NAME);
 
@@ -427,7 +427,7 @@ Install::ValidityReport Install::checkInstallValidity(QString installPath, Compa
 
     Config testConfig; // Check that config can be read
     std::shared_ptr<QFile> configFile = std::make_shared<QFile>(config.filePath());
-    JSONConfigReader jsConfigReader(&testConfig, configFile);
+    JsonConfigReader jsConfigReader(&testConfig, configFile);
     Qx::GenericError configReadReport = jsConfigReader.readInto();
 
     if(configReadReport.isValid())
@@ -435,7 +435,7 @@ Install::ValidityReport Install::checkInstallValidity(QString installPath, Compa
 
     Preferences testPreferences; // Check that preferences can be read
     std::shared_ptr<QFile> preferencesFile = std::make_shared<QFile>(preferences.filePath());
-    JSONPreferencesReader jsPrefReader(&testPreferences, preferencesFile);
+    JsonPreferencesReader jsPrefReader(&testPreferences, preferencesFile);
     Qx::GenericError prefReadReport = jsPrefReader.readInto();
 
     if(prefReadReport.isValid())
@@ -443,7 +443,7 @@ Install::ValidityReport Install::checkInstallValidity(QString installPath, Compa
 
     Services testServices; // Test that services can be read
     std::shared_ptr<QFile> servicesFile = std::make_shared<QFile>(installPath + "/" + testPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
-    JSONServicesReader jsServicesReader(installPath, &testServices, servicesFile);
+    JsonServicesReader jsServicesReader(installPath, &testServices, servicesFile);
     Qx::GenericError servicesReadReport = jsServicesReader.readInto();
 
     if(servicesReadReport.isValid())
@@ -571,7 +571,7 @@ Qx::GenericError Install::getConfig(Config& configBuffer)
     configBuffer = Config();
 
     // Create reader instance
-    JSONConfigReader jsReader(&configBuffer, mConfigJSONFile);
+    JsonConfigReader jsReader(&configBuffer, mConfigJsonFile);
 
     // Read services file
     return jsReader.readInto();
@@ -583,7 +583,7 @@ Qx::GenericError Install::getPreferences(Preferences& preferencesBuffer)
     preferencesBuffer = Preferences();
 
     // Create reader instance
-    JSONPreferencesReader jsReader(&preferencesBuffer, mPreferencesJSONFile);
+    JsonPreferencesReader jsReader(&preferencesBuffer, mPreferencesJsonFile);
 
     // Read services file
     return jsReader.readInto();
@@ -595,7 +595,7 @@ Qx::GenericError Install::getServices(Services &servicesBuffer)
     servicesBuffer = Services();
 
     // Create reader instance
-    JSONServicesReader jsReader(getPath(), &servicesBuffer, mServicesJSONFile);
+    JsonServicesReader jsReader(getPath(), &servicesBuffer, mServicesJsonFile);
 
     // Read services file
     return jsReader.readInto();
