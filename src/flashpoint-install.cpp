@@ -962,7 +962,7 @@ QSqlError Install::queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) cons
     if((queryError = makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
         return queryError;
 
-    // Return result if one or more result were found (reciever handles situation in latter case)
+    // Return result if one or more results were found (reciever handles situation in latter case)
     if(resultBuffer.size >= 1)
         return QSqlError();
 
@@ -974,6 +974,27 @@ QSqlError Install::queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) cons
 
     // Make query and return result regardless of outcome
     resultBuffer.source = DBTable_Add_App::NAME;
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::queryEntryDataByID(DBQueryBuffer& resultBuffer, QUuid appID) const
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Setup ID query
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game_Data::NAME + " WHERE " +
+            DBTable_Game_Data::COL_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game_Data::COLUMN_LIST.join("`,`") + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query
+    QSqlError queryError;
+    resultBuffer.source = DBTable_Game_Data::NAME;
+
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
@@ -999,6 +1020,47 @@ QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, b
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
+QSqlError Install::queryEntrySource(DBQueryBuffer& resultBuffer)
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Setup ID query
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Source::NAME;
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Source::COLUMN_LIST.join("`,`") + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query
+    QSqlError queryError;
+    resultBuffer.source = DBTable_Source::NAME;
+
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::queryEntrySourceData(DBQueryBuffer& resultBuffer, QString appSha256Hex)
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Setup ID query
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Source_Data::NAME + " WHERE " +
+            DBTable_Source_Data::COL_SHA256 + " == '" + appSha256Hex + "'";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Source_Data::COLUMN_LIST.join("`,`") + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query
+    QSqlError queryError;
+    resultBuffer.source = DBTable_Source_Data::NAME;
+
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
 QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter filter) const
 {
     // Ensure return buffer is effectively null
@@ -1016,6 +1078,34 @@ QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter fi
 
     resultBuffer.source = DBTable_Game::NAME;
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::entryIsGameZip(bool& resultBuffer, QUuid gameId) const
+{
+    // Default return buffer to false
+    resultBuffer = false;
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Make query
+    QString zipCheckQueryCommand = "SELECT " + GENERAL_QUERY_SIZE_COMMAND + " FROM " + DBTable_Game_Data::NAME + " WHERE " +
+                                   DBTable_Game_Data::COL_GAME_ID + " == '" + gameId.toString(QUuid::WithoutBraces) + "'";
+
+    QSqlQuery zipCheckQuery(fpDB);
+    zipCheckQuery.setForwardOnly(true);
+    zipCheckQuery.prepare(zipCheckQueryCommand);
+
+    // Execute query and return if error occurs
+    if(!zipCheckQuery.exec())
+        return zipCheckQuery.lastError();
+
+    // Set buffer based on result
+    zipCheckQuery.next();
+    resultBuffer = zipCheckQuery.value(0).toInt() > 0;
+
+    // Return invalid SqlError
+    return QSqlError();
 }
 
 QString Install::getPath() const { return mRootDirectory.absolutePath(); }

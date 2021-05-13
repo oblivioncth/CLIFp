@@ -38,7 +38,8 @@ enum ErrorCode
     PROCESS_START_FAIL = 0x13,
     WAIT_PROCESS_NOT_HANDLED = 0x14,
     WAIT_PROCESS_NOT_HOOKED = 0x15,
-    CANT_READ_BAT_FILE = 0x16
+    CANT_READ_BAT_FILE = 0x16,
+    PARENT_INVALID = 0x17
 };
 
 enum class OperationMode { Invalid, Normal, Auto, Random, Message, Extra, Information };
@@ -143,6 +144,7 @@ const QString ERR_AUTO_INVALID = "The provided string for auto operation was not
 const QString ERR_RAND_FILTER_INVALID = "The provided string for random operation was not a valid filter.";
 const QString ERR_MORE_THAN_ONE_AUTO_P = "Multiple entries with the specified auto ID were found.";
 const QString ERR_MORE_THAN_ONE_AUTO_S = "This should not be possible and may indicate an error within the Flashpoint database";
+const QString ERR_PARENT_INVALID = "The parent ID of the target additional app was not valid.";
 
 // Error Messages - Execution
 const QString ERR_EXTRA_NOT_FOUND = "The extra %1 does not exist!";
@@ -236,8 +238,10 @@ const QString LOG_EVENT_RAND_DET_PRIM = "Selected primary title";
 const QString LOG_EVENT_RAND_DET_ADD_APP = "Selected additional-app \"%1\"";
 const QString LOG_EVENT_RAND_GET_INFO = "Querying random game info...";
 const QString LOG_EVENT_PLAYABLE_COUNT = "Found %1 playable primary titles";
+const QString LOG_EVENT_GAMEZIP_TITLE = "Selected title uses Game Zip.";
 const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
 const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
+const QString LOG_EVENT_ENQ_GAMEZIP = "Enqueuing Game Zip tasks...";
 const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
 const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
 const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
@@ -273,6 +277,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
 ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
+ErrorCode enqueueGameZipTask(std::queue<AppTask>& taskQueue, QUuid targetID);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
@@ -690,20 +695,67 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     {
         logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString()));
 
-        // Replace queue with this single entry if it is a message or extra
+        // Clear queue if this entry is a message or extra
         QString appPath = searchResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
         if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE || appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
             taskQueue = std::queue<AppTask>();
 
         logEvent(LOG_EVENT_QUEUE_CLEARED);
 
-        ErrorCode enqueueError = enqueueAdditionalApp(taskQueue, searchResult, TaskType::Primary, fpInstall);
+        // Check if parent entry is game zip
+        QSqlError zipCheckError;
+        bool parentIsGameZip;
+        QUuid parentID = searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toString();
+
+        if(parentID.isNull())
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_PARENT_INVALID, searchResult.result.value(FP::Install::DBTable_Add_App::COL_ID).toString()));
+            return PARENT_INVALID;
+        }
+
+        if((zipCheckError = fpInstall.entryIsGameZip(parentIsGameZip, parentID)).isValid())
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, zipCheckError.text()));
+            return SQL_ERROR;
+        }
+
+        if(parentIsGameZip)
+        {
+            logEvent(LOG_EVENT_GAMEZIP_TITLE);
+            enqueueError = enqueueGameZipTask(taskQueue, parentID);
+
+            if(enqueueError)
+                return enqueueError;
+        }
+
+        enqueueError= enqueueAdditionalApp(taskQueue, searchResult, TaskType::Primary, fpInstall);
+
         if(enqueueError)
             return enqueueError;
     }
     else if(searchResult.source == FP::Install::DBTable_Game::NAME) // Get autorun additional apps if result is game
     {
         logEvent(LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString()));
+
+        // Check if parent entry is game zip
+        QSqlError zipCheckError;
+        bool entryIsGameZip;
+        QUuid entryId = searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString();
+
+        if((zipCheckError = fpInstall.entryIsGameZip(entryIsGameZip, entryId)).isValid())
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, zipCheckError.text()));
+            return SQL_ERROR;
+        }
+
+        if(entryIsGameZip)
+        {
+            logEvent(LOG_EVENT_GAMEZIP_TITLE);
+            enqueueError = enqueueGameZipTask(taskQueue, entryId);
+
+            if(enqueueError)
+                return enqueueError;
+        }
 
         // Get game's additional apps
         QSqlError addAppSearchError;
@@ -834,6 +886,11 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
     return NO_ERR;
 
     // Possible future waits...
+}
+
+ErrorCode enqueueGameZipTask(std::queue<AppTask>& taskQueue, QUuid targetID)
+{
+
 }
 
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses)

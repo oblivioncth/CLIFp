@@ -125,6 +125,25 @@ public:
         static inline const QString ENTRY_NOT_WORK = "Not Working";
     };
 
+    class DBTable_Game_Data
+    {
+    public:
+        static inline const QString NAME = "game_data";
+
+        static inline const QString COL_ID = "id";
+        static inline const QString COL_GAME_ID = "gameId";
+        static inline const QString COL_TITLE = "title";
+        static inline const QString COL_DATE_ADDED = "dateAdded";
+        static inline const QString COL_SHA256 = "sha256";
+        static inline const QString COL_CRC32 = "crc32";
+        static inline const QString COL_PRES_ON_DISK = "presentOnDisk";
+        static inline const QString COL_PATH = "path";
+        static inline const QString COL_SIZE = "size";
+        static inline const QString COL_PARAM = "parameters";
+
+        static inline const QStringList COLUMN_LIST = {COL_ID, COL_GAME_ID, COL_TITLE, COL_DATE_ADDED, COL_SHA256, COL_CRC32, COL_PRES_ON_DISK, COL_PATH, COL_SIZE, COL_PARAM};
+    };
+
     class DBTable_Add_App
     {
     public:
@@ -170,6 +189,35 @@ public:
         static inline const QString COL_GAME_ID = "gameId";
 
         static inline const QStringList COLUMN_LIST = {COL_ID, COL_PLAYLIST_ID, COL_ORDER, COL_GAME_ID};
+    };
+
+    class DBTable_Source
+    {
+    public:
+        static inline const QString NAME = "source";
+
+        static inline const QString COL_ID = "id";
+        static inline const QString COL_NAME = "name";
+        static inline const QString COL_DATE_ADDED = "dateAdded";
+        static inline const QString COL_LAST_UPDATED = "lastUpdated";
+        static inline const QString COL_SRC_FILE_URL = "sourceFileUrl";
+        static inline const QString COL_BASE_URL = "baseUrl";
+        static inline const QString COL_COUNT = "count";
+
+        static inline const QStringList COLUMN_LIST = {COL_ID, COL_NAME, COL_DATE_ADDED, COL_LAST_UPDATED, COL_SRC_FILE_URL, COL_BASE_URL, COL_COUNT};
+    };
+
+    class DBTable_Source_Data
+    {
+    public:
+        static inline const QString NAME = "source_data";
+
+        static inline const QString COL_ID = "id";
+        static inline const QString COL_SOURCE_ID = "sourceId";
+        static inline const QString COL_SHA256 = "sha256";
+        static inline const QString COL_URL_PATH = "urlPath";
+
+        static inline const QStringList COLUMN_LIST = {COL_ID, COL_SOURCE_ID, COL_SHA256, COL_URL_PATH};
     };
 
     class JsonObject_Config
@@ -425,8 +473,14 @@ public:
 
     // Queries - CLIFp
     QSqlError queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntryDataByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
     QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
+    QSqlError queryEntrySource(DBQueryBuffer& resultBuffer);
+    QSqlError queryEntrySourceData(DBQueryBuffer& resultBuffer, QString appSha256Hex);
     QSqlError queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter filter) const;
+
+    // Checks
+    QSqlError entryIsGameZip(bool& resultBuffer, QUuid gameId) const;
 
     // Data access
     QString getPath() const;
