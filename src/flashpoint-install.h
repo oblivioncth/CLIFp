@@ -372,10 +372,11 @@ private:
 
 public:
     // Static paths
-    static inline const QString MAIN_EXE_PATH = "Launcher/Flashpoint.exe";
+    static inline const QString LAUNCHER_PATH = "Launcher/Flashpoint.exe";
     static inline const QString DATABASE_PATH = "Data/flashpoint.sqlite";
     static inline const QString CONFIG_JSON_PATH = "Launcher/config.json";
     static inline const QString PREFERENCES_JSON_PATH = "preferences.json";
+    static inline const QString DATA_PACK_MOUNTER_PATH = "FPSoftware/fpmount/fpmount.exe";
     static inline const QString VER_TXT_PATH = "version.txt";
 
     // Dynamic path file names
@@ -412,13 +413,14 @@ private:
     QDir mLogosDirectory;
     QDir mScreenshotsDirectory;
     QDir mExtrasDirectory;
-    std::unique_ptr<QFile> mMainEXEFile;
-    std::unique_ptr<QFile> mCLIFpEXEFile;
+    std::unique_ptr<QFile> mLauncherFile;
+    std::unique_ptr<QFile> mCLIFpFile;
     std::unique_ptr<QFile> mDatabaseFile;
     std::shared_ptr<QFile> mConfigJsonFile;
     std::shared_ptr<QFile> mPreferencesJsonFile;
     std::shared_ptr<QFile> mServicesJsonFile;
-    std::unique_ptr<QFile> mVersionTXTFile;
+    std::shared_ptr<QFile> mDataPackMounterFile;
+    std::unique_ptr<QFile> mVersionFile;
 
     // Database information
     QStringList mPlatformList;
@@ -477,12 +479,12 @@ public:
     QSqlError queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
     QSqlError queryEntryDataByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
     QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
-    QSqlError queryEntrySource(DBQueryBuffer& resultBuffer);
-    QSqlError queryEntrySourceData(DBQueryBuffer& resultBuffer, QString appSha256Hex);
+    QSqlError queryEntrySource(DBQueryBuffer& resultBuffer) const;
+    QSqlError queryEntrySourceData(DBQueryBuffer& resultBuffer, QString appSha256Hex) const;
     QSqlError queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter filter) const;
 
     // Checks
-    QSqlError entryIsGameZip(bool& resultBuffer, QUuid gameId) const;
+    QSqlError entryUsesDataPack(bool& resultBuffer, QUuid gameId) const;
 
     // Data access
     QString getPath() const;
@@ -492,6 +494,7 @@ public:
     QDir getScrenshootsDirectory() const;
     QDir getExtrasDirectory() const;
     QString getCLIFpPath() const;
+    QString getDataPackMounterPath() const;
 };
 
 }

@@ -44,7 +44,7 @@ enum ErrorCode
 };
 
 enum class OperationMode { Invalid, Normal, Auto, Random, Message, Extra, Information };
-enum class TaskType { Startup, Primary, Auxiliary, Wait, Shutdown };
+enum class TaskType { Startup, Primary, Download, Auxiliary, Wait, Shutdown }; // TODO: Switch to using custom registered types with QVariant as the queue object instead
 enum class ProcessType { Blocking, Deferred, Detached };
 enum class MessageVerbosity { Full, Quiet, Silent };
 
@@ -234,16 +234,21 @@ const QString LOG_EVENT_INIT = "Initializing CLIFp...";
 const QString LOG_EVENT_GET_SET = "Reading Flashpoint configuration...";
 const QString LOG_EVENT_SEL_RAND = "Selecting a playable title at random...";
 const QString LOG_EVENT_INIT_RAND_ID = "Randomly chose primary title is \"%1\"";
-const QString LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT = "Chosen title has %1 playable additional-apps.";
+const QString LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT = "Chosen title has %1 playable additional-apps";
 const QString LOG_EVENT_RAND_DET_PRIM = "Selected primary title";
 const QString LOG_EVENT_RAND_DET_ADD_APP = "Selected additional-app \"%1\"";
 const QString LOG_EVENT_RAND_GET_INFO = "Querying random game info...";
 const QString LOG_EVENT_PLAYABLE_COUNT = "Found %1 playable primary titles";
-const QString LOG_EVENT_GAMEZIP_TITLE = "Selected title uses Game Zip.";
+const QString LOG_EVENT_DATA_PACK_TITLE = "Selected title uses a data pack";
 const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
 const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
-const QString LOG_EVENT_ENQ_GAMEZIP = "Enqueuing Game Zip tasks...";
+const QString LOG_EVENT_ENQ_DATA_PACK = "Enqueuing Data Pack tasks...";
 const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
+const QString LOG_EVENT_ID_MATCH_TITLE = "Auto ID matches main title: %1";
+const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1";
+const QString LOG_EVENT_QUEUE_CLEARED = "Previous queue entries cleared due to auto task being a Message/Extra";
+const QString LOG_EVENT_FOUND_AUTORUN = "Found autorun-before additional app: %1";
+const QString LOG_EVENT_DATA_PACK_MISS = "Title Data Pack is not available locally";
 const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
 const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
 const QString LOG_EVENT_TASK_FINISH = "End of task %1";
@@ -251,10 +256,6 @@ const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
 const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
 const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
 const QString LOG_EVENT_ALL_FINISH = "Execution finished successfully";
-const QString LOG_EVENT_ID_MATCH_TITLE = "Auto ID matches main title: %1";
-const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1";
-const QString LOG_EVENT_QUEUE_CLEARED = "Previous queue entries cleared due to auto task being a Message/Extra";
-const QString LOG_EVENT_FOUND_AUTORUN = "Found autorun-before additional app: %1";
 const QString LOG_EVENT_TASK_SKIP = "App Task skipped due to previous errors";
 const QString LOG_EVENT_CD = "Changed current directory to: %1";
 const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
@@ -278,7 +279,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
 ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
-ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall);
+ErrorCode enqueueDataPackTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
@@ -398,7 +399,7 @@ int main(int argc, char *argv[])
     }
 
     // Ensure Flashpoint Launcher isn't running
-    if(Qx::processIsRunning(QFileInfo(FP::Install::MAIN_EXE_PATH).fileName()))
+    if(Qx::processIsRunning(QFileInfo(FP::Install::LAUNCHER_PATH).fileName()))
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
         return printLogAndExit(LAUNCHER_OPEN);
@@ -703,9 +704,9 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
 
         logEvent(LOG_EVENT_QUEUE_CLEARED);
 
-        // Check if parent entry is game zip
-        QSqlError zipCheckError;
-        bool parentIsGameZip;
+        // Check if parent entry uses a data pack
+        QSqlError packCheckError;
+        bool parentUsesDataPack;
         QUuid parentID = searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toString();
 
         if(parentID.isNull())
@@ -714,16 +715,16 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
             return PARENT_INVALID;
         }
 
-        if((zipCheckError = fpInstall.entryIsGameZip(parentIsGameZip, parentID)).isValid())
+        if((packCheckError = fpInstall.entryUsesDataPack(parentUsesDataPack, parentID)).isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, zipCheckError.text()));
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, packCheckError.text()));
             return SQL_ERROR;
         }
 
-        if(parentIsGameZip)
+        if(parentUsesDataPack)
         {
-            logEvent(LOG_EVENT_GAMEZIP_TITLE);
-            enqueueError = enqueueGameZipTasks(taskQueue, parentID, fpInstall);
+            logEvent(LOG_EVENT_DATA_PACK_TITLE);
+            enqueueError = enqueueDataPackTasks(taskQueue, parentID, fpInstall);
 
             if(enqueueError)
                 return enqueueError;
@@ -738,21 +739,21 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     {
         logEvent(LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString()));
 
-        // Check if parent entry is game zip
-        QSqlError zipCheckError;
-        bool entryIsGameZip;
+        // Check if parent entry uses a data pack
+        QSqlError packCheckError;
+        bool entryUsesDataPack;
         QUuid entryId = searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString();
 
-        if((zipCheckError = fpInstall.entryIsGameZip(entryIsGameZip, entryId)).isValid())
+        if((packCheckError = fpInstall.entryUsesDataPack(entryUsesDataPack, entryId)).isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, zipCheckError.text()));
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, packCheckError.text()));
             return SQL_ERROR;
         }
 
-        if(entryIsGameZip)
+        if(entryUsesDataPack)
         {
-            logEvent(LOG_EVENT_GAMEZIP_TITLE);
-            enqueueError = enqueueGameZipTasks(taskQueue, entryId, fpInstall);
+            logEvent(LOG_EVENT_DATA_PACK_TITLE);
+            enqueueError = enqueueDataPackTasks(taskQueue, entryId, fpInstall);
 
             if(enqueueError)
                 return enqueueError;
@@ -889,9 +890,9 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
     // Possible future waits...
 }
 
-ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall)
+ErrorCode enqueueDataPackTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall)
 {
-    logEvent(LOG_EVENT_ENQ_GAMEZIP);
+    logEvent(LOG_EVENT_ENQ_DATA_PACK);
 
     // Get preferences
     FP::Install::Preferences fpPreferences;
@@ -918,10 +919,58 @@ ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID, co
     searchResult.result.next();
 
     // Extract relavent data
-    QString zipDestPath = fpInstall.getPath() + "/" + fpPreferences.dataPacksFolderPath + '/' +
-                          searchResult.result.value(FP::Install::DBTable_Game_Data::COL_PATH).toString();
-    QString zipSha256 = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_SHA256).toString();
+    QString packDestFolderPath = fpInstall.getPath() + "/" + fpPreferences.dataPacksFolderPath;
+    QString packFileName = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_PATH).toString();
+    QString packSha256 = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_SHA256).toString();
 
+    // Enqueue pack download if it doesn't exist
+    if(!QFileInfo::exists(packDestFolderPath + "/" + packFileName))
+    {
+        logEvent(LOG_EVENT_DATA_PACK_MISS);
+
+        // Get Data Pack source info
+        searchError = fpInstall.queryEntrySource(searchResult);
+        if(searchError.isValid())
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+            return SQL_ERROR;
+        }
+
+        // Advance result to only record (or first if there are more than one in future versions)
+        searchResult.result.next();
+
+        // Get Data Pack source base URL
+        QString sourceBaseUrl = searchResult.result.value(FP::Install::DBTable_Source::COL_BASE_URL).toString();
+
+        // Get title specific Data Pack source info
+        searchError = fpInstall.queryEntrySourceData(searchResult, packSha256);
+        if(searchError.isValid())
+        {
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+            return SQL_ERROR;
+        }
+
+        // Advance result to only record
+        searchResult.result.next();
+
+        // Get title's Data Pack sub-URL
+        QString packSubUrl = searchResult.result.value(FP::Install::DBTable_Source_Data::COL_URL_PATH).toString().replace('\\','/');
+
+        AppTask downloadTask = {TaskType::Download, packDestFolderPath, packFileName,
+                                QStringList(), sourceBaseUrl + packSubUrl,            // Source base URL already ends with /
+                                ProcessType::Blocking};
+        taskQueue.push(downloadTask);
+        logAppTask(downloadTask);
+    }
+
+    // Enqeue pack mount
+    QFileInfo mounterInfo(fpInstall.getDataPackMounterPath());
+    AppTask mountTask = {TaskType::Auxiliary, mounterInfo.absolutePath(), mounterInfo.fileName(),
+                         {targetID.toString(QUuid::WithoutBraces), packDestFolderPath + "/" + packFileName}, QString(),
+                         ProcessType::Blocking};
+
+    // Return success
+    return NO_ERR;
 }
 
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses)
@@ -971,6 +1020,10 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                     handleExecutionError(taskQueue, taskNum, executionError, waitError);
                     continue; // Continue to next task
                 }
+            }
+            else if(currentTask.type == TaskType::Download)
+            {
+
             }
             else // General case
             {

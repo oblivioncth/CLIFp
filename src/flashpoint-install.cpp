@@ -380,15 +380,16 @@ Install::Install(QString installPath, QString clifpSubPath)
 
     // Initialize static files and directories
     mRootDirectory = QDir(installPath);
-    mMainEXEFile = std::make_unique<QFile>(installPath + "/" + MAIN_EXE_PATH);
+    mLauncherFile = std::make_unique<QFile>(installPath + "/" + LAUNCHER_PATH);
     mDatabaseFile = std::make_unique<QFile>(installPath + "/" + DATABASE_PATH);
     mConfigJsonFile = std::make_shared<QFile>(installPath + "/" + CONFIG_JSON_PATH);
     mPreferencesJsonFile = std::make_shared<QFile>(installPath + "/" + PREFERENCES_JSON_PATH);
-    mVersionTXTFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
+    mDataPackMounterFile = std::make_shared<QFile>(installPath + "/" + DATA_PACK_MOUNTER_PATH);
+    mVersionFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
     mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
 
     // Initialize flexible files and directories
-    mCLIFpEXEFile = std::make_unique<QFile>(installPath + "/" + (clifpSubPath.isNull() ? "" : clifpSubPath + "/") + CLIFp::EXE_NAME); // Defaults to root
+    mCLIFpFile = std::make_unique<QFile>(installPath + "/" + (clifpSubPath.isNull() ? "" : clifpSubPath + "/") + CLIFp::EXE_NAME); // Defaults to root
 
     // Get preferences
     Preferences installPreferences;
@@ -416,7 +417,7 @@ Install::ValidityReport Install::checkInstallValidity(QString installPath, Compa
     // something like isNull(). There may be a catch to this as if recalled correctly this was considered before and abandonded because of a conflict
     // with the approach, but otherwise this method would be much more preferable and less redundant
 
-    QFileInfo mainEXE(installPath + "/" + MAIN_EXE_PATH);
+    QFileInfo mainEXE(installPath + "/" + LAUNCHER_PATH);
     QFileInfo database(installPath + "/" + DATABASE_PATH);
     QFileInfo config(installPath + "/" + CONFIG_JSON_PATH);
     QFileInfo preferences(installPath + "/" + PREFERENCES_JSON_PATH);
@@ -518,19 +519,19 @@ QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* d
 bool Install::matchesTargetVersion() const
 {    
     // Check exe checksum
-    mMainEXEFile->open(QFile::ReadOnly);
-    QByteArray mainEXEFileData = mMainEXEFile->readAll();
-    mMainEXEFile->close();
+    mLauncherFile->open(QFile::ReadOnly);
+    QByteArray mainEXEFileData = mLauncherFile->readAll();
+    mLauncherFile->close();
 
     if(Qx::Integrity::generateChecksum(mainEXEFileData, QCryptographicHash::Sha256) != TARGET_EXE_SHA256)
         return false;
 
     // Check version file
     QString readVersion;
-    if(!mVersionTXTFile->exists())
+    if(!mVersionFile->exists())
         return false;
 
-    if(!Qx::readTextFromFile(readVersion, *mVersionTXTFile, Qx::TextPos::START).wasSuccessful())
+    if(!Qx::readTextFromFile(readVersion, *mVersionFile, Qx::TextPos::START).wasSuccessful())
         return false;
 
     if(readVersion != TARGET_ULT_VER_STRING && readVersion != TARGET_INF_VER_STRING)
@@ -542,7 +543,7 @@ bool Install::matchesTargetVersion() const
 
 bool Install::hasCLIFp() const
 {
-    QFileInfo presentInfo(*mCLIFpEXEFile);
+    QFileInfo presentInfo(*mCLIFpFile);
     return presentInfo.exists() && presentInfo.isFile();
 }
 
@@ -551,7 +552,7 @@ Qx::MMRB Install::currentCLIFpVersion() const
     if(!hasCLIFp())
         return Qx::MMRB();
     else
-        return Qx::getFileDetails(mCLIFpEXEFile->fileName()).getFileVersion();
+        return Qx::getFileDetails(mCLIFpFile->fileName()).getFileVersion();
 }
 
 QSqlError Install::openThreadDatabaseConnection()
@@ -713,25 +714,25 @@ bool Install::deployCLIFp(QString& errorMessage)
     errorMessage = QString();
 
     // Delete existing if present
-    if(QFile::exists(mCLIFpEXEFile->fileName()) && QFileInfo(mCLIFpEXEFile->fileName()).isFile())
+    if(QFile::exists(mCLIFpFile->fileName()) && QFileInfo(mCLIFpFile->fileName()).isFile())
     {
-        if(!mCLIFpEXEFile->remove())
+        if(!mCLIFpFile->remove())
         {
-            errorMessage = mCLIFpEXEFile->errorString();
+            errorMessage = mCLIFpFile->errorString();
             return false;
         }
     }
 
     // Deploy new
     QFile internalCLIFp(":/res/file/" + FP::Install::CLIFp::EXE_NAME);
-    if(!internalCLIFp.copy(mCLIFpEXEFile->fileName()))
+    if(!internalCLIFp.copy(mCLIFpFile->fileName()))
     {
         errorMessage = internalCLIFp.errorString();
         return false;
     }
 
     // Remove default read-only state
-    mCLIFpEXEFile->setPermissions(QFile::ReadOther | QFile::WriteOther);
+    mCLIFpFile->setPermissions(QFile::ReadOther | QFile::WriteOther);
 
     // Return true on
     return true;
@@ -1023,7 +1024,7 @@ QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, b
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError Install::queryEntrySource(DBQueryBuffer& resultBuffer)
+QSqlError Install::queryEntrySource(DBQueryBuffer& resultBuffer) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = DBQueryBuffer();
@@ -1043,7 +1044,7 @@ QSqlError Install::queryEntrySource(DBQueryBuffer& resultBuffer)
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError Install::queryEntrySourceData(DBQueryBuffer& resultBuffer, QString appSha256Hex)
+QSqlError Install::queryEntrySourceData(DBQueryBuffer& resultBuffer, QString appSha256Hex) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = DBQueryBuffer();
@@ -1083,7 +1084,7 @@ QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter fi
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError Install::entryIsGameZip(bool& resultBuffer, QUuid gameId) const
+QSqlError Install::entryUsesDataPack(bool& resultBuffer, QUuid gameId) const
 {
     // Default return buffer to false
     resultBuffer = false;
@@ -1092,20 +1093,20 @@ QSqlError Install::entryIsGameZip(bool& resultBuffer, QUuid gameId) const
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 
     // Make query
-    QString zipCheckQueryCommand = "SELECT " + GENERAL_QUERY_SIZE_COMMAND + " FROM " + DBTable_Game_Data::NAME + " WHERE " +
+    QString packCheckQueryCommand = "SELECT " + GENERAL_QUERY_SIZE_COMMAND + " FROM " + DBTable_Game_Data::NAME + " WHERE " +
                                    DBTable_Game_Data::COL_GAME_ID + " == '" + gameId.toString(QUuid::WithoutBraces) + "'";
 
-    QSqlQuery zipCheckQuery(fpDB);
-    zipCheckQuery.setForwardOnly(true);
-    zipCheckQuery.prepare(zipCheckQueryCommand);
+    QSqlQuery packCheckQuery(fpDB);
+    packCheckQuery.setForwardOnly(true);
+    packCheckQuery.prepare(packCheckQueryCommand);
 
     // Execute query and return if error occurs
-    if(!zipCheckQuery.exec())
-        return zipCheckQuery.lastError();
+    if(!packCheckQuery.exec())
+        return packCheckQuery.lastError();
 
     // Set buffer based on result
-    zipCheckQuery.next();
-    resultBuffer = zipCheckQuery.value(0).toInt() > 0;
+    packCheckQuery.next();
+    resultBuffer = packCheckQuery.value(0).toInt() > 0;
 
     // Return invalid SqlError
     return QSqlError();
@@ -1117,6 +1118,7 @@ QStringList Install::getPlaylistList() const { return mPlaylistList; }
 QDir Install::getLogosDirectory() const { return mLogosDirectory; }
 QDir Install::getScrenshootsDirectory() const { return mScreenshotsDirectory; }
 QDir Install::getExtrasDirectory() const { return mExtrasDirectory; }
-QString Install::getCLIFpPath() const { return mCLIFpEXEFile->fileName(); }
+QString Install::getCLIFpPath() const { return mCLIFpFile->fileName(); }
+QString Install::getDataPackMounterPath() const { return mDataPackMounterFile->fileName(); }
 
 }
