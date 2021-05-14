@@ -22,24 +22,25 @@ enum ErrorCode
     LAUNCHER_OPEN = 0x03,
     INSTALL_INVALID = 0x04,
     CANT_PARSE_CONFIG = 0x05,
-    CANT_PARSE_SERVICES = 0x06,
-    CONFIG_SERVER_MISSING = 0x07,
-    AUTO_ID_NOT_VALID = 0x08,
-    RAND_FILTER_NOT_VALID = 0x09,
-    SQL_ERROR = 0x0A,
-    SQL_MISMATCH = 0x0B,
-    DB_MISSING_TABLES = 0x0C,
-    DB_MISSING_COLUMNS = 0x0D,
-    AUTO_NOT_FOUND = 0x0E,
-    MORE_THAN_ONE_AUTO = 0x0F,
-    EXTRA_NOT_FOUND = 0x10,
-    EXECUTABLE_NOT_FOUND = 0x11,
-    EXECUTABLE_NOT_VALID = 0x12,
-    PROCESS_START_FAIL = 0x13,
-    WAIT_PROCESS_NOT_HANDLED = 0x14,
-    WAIT_PROCESS_NOT_HOOKED = 0x15,
-    CANT_READ_BAT_FILE = 0x16,
-    PARENT_INVALID = 0x17
+    CANT_PARSE_PREF = 0x06,
+    CANT_PARSE_SERVICES = 0x07,
+    CONFIG_SERVER_MISSING = 0x08,
+    AUTO_ID_NOT_VALID = 0x09,
+    RAND_FILTER_NOT_VALID = 0x0A,
+    SQL_ERROR = 0x0B,
+    SQL_MISMATCH = 0x0C,
+    DB_MISSING_TABLES = 0x0D,
+    DB_MISSING_COLUMNS = 0x0E,
+    AUTO_NOT_FOUND = 0x0F,
+    MORE_THAN_ONE_AUTO = 0x10,
+    EXTRA_NOT_FOUND = 0x11,
+    EXECUTABLE_NOT_FOUND = 0x12,
+    EXECUTABLE_NOT_VALID = 0x13,
+    PROCESS_START_FAIL = 0x14,
+    WAIT_PROCESS_NOT_HANDLED = 0x15,
+    WAIT_PROCESS_NOT_HOOKED = 0x16,
+    CANT_READ_BAT_FILE = 0x17,
+    PARENT_INVALID = 0x18
 };
 
 enum class OperationMode { Invalid, Normal, Auto, Random, Message, Extra, Information };
@@ -277,7 +278,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
 ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
-ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID);
+ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
@@ -722,7 +723,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         if(parentIsGameZip)
         {
             logEvent(LOG_EVENT_GAMEZIP_TITLE);
-            enqueueError = enqueueGameZipTasks(taskQueue, parentID);
+            enqueueError = enqueueGameZipTasks(taskQueue, parentID, fpInstall);
 
             if(enqueueError)
                 return enqueueError;
@@ -751,7 +752,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         if(entryIsGameZip)
         {
             logEvent(LOG_EVENT_GAMEZIP_TITLE);
-            enqueueError = enqueueGameZipTasks(taskQueue, entryId);
+            enqueueError = enqueueGameZipTasks(taskQueue, entryId, fpInstall);
 
             if(enqueueError)
                 return enqueueError;
@@ -888,8 +889,38 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
     // Possible future waits...
 }
 
-ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID)
+ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall)
 {
+    logEvent(LOG_EVENT_ENQ_GAMEZIP);
+
+    // Get preferences
+    FP::Install::Preferences fpPreferences;
+    Qx::GenericError prefError;
+
+    if((fpInstall.getPreferences(fpPreferences)).isValid())
+    {
+        postError(prefError);
+        return ErrorCode::CANT_PARSE_PREF;
+    }
+
+    // Get entry data
+    QSqlError searchError;
+    FP::Install::DBQueryBuffer searchResult;
+
+    searchError = fpInstall.queryEntryDataByID(searchResult, targetID);
+    if(searchError.isValid())
+    {
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return SQL_ERROR;
+    }
+
+    // Advance result to only record
+    searchResult.result.next();
+
+    // Extract relavent data
+    QString zipDestPath = fpInstall.getPath() + "/" + fpPreferences.dataPacksFolderPath + '/' +
+                          searchResult.result.value(FP::Install::DBTable_Game_Data::COL_PATH).toString();
+    QString zipSha256 = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_SHA256).toString();
 
 }
 

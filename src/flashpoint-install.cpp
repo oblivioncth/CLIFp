@@ -101,9 +101,12 @@ Qx::GenericError Install::JsonPreferencesReader::parsePreferencesDocument(const 
     Qx::GenericError valueError;
 
     if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->imageFolderPath, configDoc.object(), JsonObject_Preferences::KEY_IMAGE_FOLDER_PATH)).isValid())
-        return valueError.setErrorLevel(Qx::GenericError::Critical);;
+        return valueError.setErrorLevel(Qx::GenericError::Critical);
 
     if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->jsonFolderPath, configDoc.object(), JsonObject_Preferences::KEY_JSON_FOLDER_PATH)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);
+
+    if((valueError = Qx::Json::checkedKeyRetrieval(mTargetPreferences->dataPacksFolderPath, configDoc.object(), JsonObject_Preferences::KEY_DATA_PACKS_FOLDER_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Return invalid error on success
@@ -389,7 +392,7 @@ Install::Install(QString installPath, QString clifpSubPath)
 
     // Get preferences
     Preferences installPreferences;
-    getPreferences(installPreferences); // Assume that config can be read since this is checked in checkInstallValidity()
+    getPreferences(installPreferences); // Assume that prefernces can be read since this is checked in checkInstallValidity()
 
     // Initialize config based files and directories
     mServicesJsonFile = std::make_shared<QFile>(installPath + "/" + installPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
@@ -565,7 +568,7 @@ void Install::closeThreadedDatabaseConnection() { getThreadedDatabaseConnection(
 
 bool Install::databaseConnectionOpenInThisThread() { return getThreadedDatabaseConnection().isOpen(); }
 
-Qx::GenericError Install::getConfig(Config& configBuffer)
+Qx::GenericError Install::getConfig(Config& configBuffer) const
 {
     // Ensure return services is null
     configBuffer = Config();
@@ -577,7 +580,7 @@ Qx::GenericError Install::getConfig(Config& configBuffer)
     return jsReader.readInto();
 }
 
-Qx::GenericError Install::getPreferences(Preferences& preferencesBuffer)
+Qx::GenericError Install::getPreferences(Preferences& preferencesBuffer) const
 {
     // Ensure return services is null
     preferencesBuffer = Preferences();
@@ -589,7 +592,7 @@ Qx::GenericError Install::getPreferences(Preferences& preferencesBuffer)
     return jsReader.readInto();
 }
 
-Qx::GenericError Install::getServices(Services &servicesBuffer)
+Qx::GenericError Install::getServices(Services &servicesBuffer) const
 {
     // Ensure return services is null
     servicesBuffer = Services();

@@ -51,6 +51,7 @@ public:
     {
         QString imageFolderPath;
         QString jsonFolderPath;
+        QString dataPacksFolderPath;
     };
 
     struct ServerDaemon
@@ -233,6 +234,7 @@ public:
     public:
         static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
         static inline const QString KEY_JSON_FOLDER_PATH = "jsonFolderPath";
+        static inline const QString KEY_DATA_PACKS_FOLDER_PATH = "dataPacksFolderPath";
     };
 
     class JsonObject_Server
@@ -451,9 +453,9 @@ public:
     bool databaseConnectionOpenInThisThread();
 
     // Support Application Checks
-    Qx::GenericError getConfig(Config& configBuffer);
-    Qx::GenericError getPreferences(Preferences& preferencesBuffer);
-    Qx::GenericError getServices(Services& servicesBuffer);
+    Qx::GenericError getConfig(Config& configBuffer) const;
+    Qx::GenericError getPreferences(Preferences& preferencesBuffer) const;
+    Qx::GenericError getServices(Services& servicesBuffer) const;
 
     // Requirement Checking
     QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
