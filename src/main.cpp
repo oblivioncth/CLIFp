@@ -277,7 +277,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
 ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
 void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
 ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
-ErrorCode enqueueGameZipTask(std::queue<AppTask>& taskQueue, QUuid targetID);
+ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID);
 ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
 void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
@@ -722,7 +722,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         if(parentIsGameZip)
         {
             logEvent(LOG_EVENT_GAMEZIP_TITLE);
-            enqueueError = enqueueGameZipTask(taskQueue, parentID);
+            enqueueError = enqueueGameZipTasks(taskQueue, parentID);
 
             if(enqueueError)
                 return enqueueError;
@@ -751,7 +751,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         if(entryIsGameZip)
         {
             logEvent(LOG_EVENT_GAMEZIP_TITLE);
-            enqueueError = enqueueGameZipTask(taskQueue, entryId);
+            enqueueError = enqueueGameZipTasks(taskQueue, entryId);
 
             if(enqueueError)
                 return enqueueError;
@@ -888,7 +888,7 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
     // Possible future waits...
 }
 
-ErrorCode enqueueGameZipTask(std::queue<AppTask>& taskQueue, QUuid targetID)
+ErrorCode enqueueGameZipTasks(std::queue<AppTask>& taskQueue, QUuid targetID)
 {
 
 }
