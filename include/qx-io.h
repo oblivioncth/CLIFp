@@ -7,13 +7,13 @@
 #include <QDir>
 #include <QCryptographicHash>
 #include <QTextStream>
+#include <QDataStream>
 #include <QDirIterator>
 
 namespace Qx
 {
 
 //-Types------------------------------------------------------------------------------------------------------
-
 enum IOOpType { IO_OP_READ, IO_OP_WRITE, IO_OP_ENUMERATE, IO_OP_INSPECT };
 enum IOOpResultType { IO_SUCCESS, IO_ERR_UNKNOWN, IO_ERR_ACCESS_DENIED, IO_ERR_NOT_A_FILE, IO_ERR_NOT_A_DIR, IO_ERR_OUT_OF_RES,
                       IO_ERR_READ, IO_ERR_WRITE, IO_ERR_FATAL, IO_ERR_OPEN, IO_ERR_ABORT,
@@ -47,6 +47,7 @@ private:
     QString mTarget = QString();
     QString mOutcome = QString();
     QString mOutcomeInfo = QString();
+
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
     IOOpReport();
@@ -74,10 +75,12 @@ class TextPos
 public:
     static const TextPos START;
     static const TextPos END;
+
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     int mLineNum;
     int mCharNum;
+
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
     TextPos();
@@ -100,16 +103,35 @@ public:
     bool operator<= (const TextPos &otherTextPos);
 };
 
-//-Variables------------------------------------------------------------------------------------------------------------
+class FileStreamWriter
+{
+//-Instance Variables------------------------------------------------------------------------------------------------
+private:
+    QDataStream mStreamWriter;
+    QFile& mTargetFile;
+    bool mOverwrite;
+    bool mCreateDirs;
 
-static inline QString ENDL = "\r\n"; //NOTE: Currently this is windows only
+//-Constructor-------------------------------------------------------------------------------------------------------
+public:
+    FileStreamWriter(QFile& file, bool overwriteIfExist = false, bool createDirs = true);
+
+//-Instance Functions------------------------------------------------------------------------------------------------
+public:
+    IOOpReport openFile();
+    IOOpReport writeData(QByteArray data);
+    void closeFile();
+};
+
+//-Variables------------------------------------------------------------------------------------------------------------
+   const QString ENDL = "\r\n"; //NOTE: Currently this is windows only
 
 //-Functions-------------------------------------------------------------------------------------------------------------
-
 // General:
     bool fileIsEmpty(const QFile& file);
     bool fileIsEmpty(const QFile& file, IOOpReport& reportBuffer);
     QString kosherizeFileName(QString fileName);
+
 // Text Based:
     IOOpReport getLineCountOfFile(long long& returnBuffer, QFile& textFile);
     IOOpReport findStringInFile(TextPos& returnBuffer, QFile& textFile, const QString& query, Qt::CaseSensitivity caseSensitivity = Qt::CaseSensitive, int hitsToSkip = 0 );
@@ -122,13 +144,17 @@ static inline QString ENDL = "\r\n"; //NOTE: Currently this is windows only
     IOOpReport writeStringAsFile(QFile &textFile, const QString& text, bool overwriteIfExist = false, bool createDirs = true);
     IOOpReport writeStringToEndOfFile(QFile &textFile, const QString& text, bool ensureNewLine = false, bool createIfDNE = false, bool createDirs = true); // Consider making function just writeStringToFile and use TextPos with bool for overwrite vs insert
     IOOpReport deleteTextRangeFromFile(QFile &textFile, TextPos startPos, TextPos endPos);
+
 // Directory Based:
     IOOpReport getDirFileList(QStringList& returnBuffer, QDir directory, QStringList extFilter = QStringList(), QDirIterator::IteratorFlag traversalFlags = QDirIterator::NoIteratorFlags,
                               Qt::CaseSensitivity caseSensitivity = Qt::CaseInsensitive);
     bool dirContainsFiles(QDir directory, bool includeSubdirectories = false);
     bool dirContainsFiles(QDir directory, IOOpReport& reportBuffer, bool includeSubdirectories = false);
+
 // Integrity Based
-    IOOpReport calculateFileChecksum(QByteArray& returnBuffer, QFile& file, QCryptographicHash::Algorithm hashAlgorithm);
+    IOOpReport calculateFileChecksum(QString& returnBuffer, QFile& file, QCryptographicHash::Algorithm hashAlgorithm);
+    IOOpReport fileMatchesChecksum(bool& returnBuffer, QFile& file, QString checksum, QCryptographicHash::Algorithm hashAlgorithm);
+
 // Raw Based
     IOOpReport readAllBytesFromFile(QByteArray& returnBuffer, QFile &file);
     IOOpReport readBytesFromFile(QByteArray& returnBuffer, QFile &file, long long start, long long end = -1);

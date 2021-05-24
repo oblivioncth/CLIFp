@@ -991,7 +991,7 @@ QSqlError Install::queryEntryDataByID(DBQueryBuffer& resultBuffer, QUuid appID) 
 
     // Setup ID query
     QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game_Data::NAME + " WHERE " +
-            DBTable_Game_Data::COL_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+            DBTable_Game_Data::COL_GAME_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
     QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game_Data::COLUMN_LIST.join("`,`") + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 

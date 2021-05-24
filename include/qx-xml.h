@@ -10,6 +10,18 @@ class XmlStreamReaderError
 {
 //-Instance Members----------------------------------------------------------------------------------------------
 private:
+    static inline const QHash<QXmlStreamReader::Error, QString> STD_ERR_TXT = {
+        {QXmlStreamReader::NoError, "No error has occured."},
+        {QXmlStreamReader::CustomError, "A custom error has been raised with raiseError()."},
+        {QXmlStreamReader::NotWellFormedError, "The parser internally raised an error due to the read XML not being well-formed."},
+        {QXmlStreamReader::PrematureEndOfDocumentError, "The input stream ended before a well-formed XML document was parsed."},
+        {QXmlStreamReader::UnexpectedElementError, "The parser encountered an element that was different to those it expected."}
+    };
+
+    //TODO: Because of the missed errorString() method that is part of QIODevice, this hash isn't needed
+
+//-Instance Members----------------------------------------------------------------------------------------------
+private:
     QXmlStreamReader::Error mErrorType;
     QString mErrorText;
 
@@ -18,10 +30,6 @@ public:
     XmlStreamReaderError();
     XmlStreamReaderError(QXmlStreamReader::Error standardError);
     XmlStreamReaderError(QString customError);
-
-//-Class Functions-----------------------------------------------------------------------------------------------
-private:
-    static QString textFromStandardError(QXmlStreamReader::Error standardError);
 
 //-Instance Functions--------------------------------------------------------------------------------------------
 public:

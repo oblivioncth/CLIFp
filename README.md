@@ -25,7 +25,7 @@ Each release of this application targets a specific version or versions of BlueM
 | 0.1.1           | 8.2 ("Approaching Planet Nine") |
 | 0.2 - 0.3.1.1   | 8.1 - 8.2                       |
 | 0.3.2 - 0.4.0.1 | 9.0 ("Glorious Sunset")         |
-| 0.4.1           | 10.0 ("Absence")                |
+| 0.4.1 - 0.5     | 10.0 ("Absence")                |
 
 Using a version of CLIFp that does not target the version of Flashpoint you wish to use it with is highly discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however since 0.2 compatibility with newer versions is quite likely even if they aren't explicit listed yet** (usually because I haven't had time to check if an update is needed).
 
@@ -60,6 +60,8 @@ This mode works exactly the same as Auto mode except that the title ID is select
 **App/Param:**
 This method can only start one application at a time. Use the **-x/-\-exe** switch to specify the relative (from Flashpoint's directory) path to the application to launch and the **-p/-\-param** switch to provide the launch arguments that will be passed to the target application.
 
+If the application needs to use files from a Data Pack that pack will need to be downloaded/mounted first using **-i/-\-prepare** or else it won't work.
+
 The applications and arguments that are used for each game/animation can be found within the Flashpoint database ([FP Install Dir]\Data\flashpoint.sqlite)
 
 ### All Switches/Arguments
@@ -70,12 +72,13 @@ The applications and arguments that are used for each game/animation can be foun
  -  **-p | --param:** Command-line parameters to use when starting the primary application
  -  **-a | --auto:** Finds a game/additional-app by UUID and runs it if found, including run-before additional apps in the case of a game
  - **-r | --random:** Selects  a  random  game  UUID  from  the  database  and  starts  it  in  the  same  manner  as  using  the  --auto switch. Required value options for this argument (filters):  all/any,  game/arcade,  animation/theatre
+ - **-i | --prepare:** Initializes  Flashpoint  for  playing  the  provided  Data  Pack  based  title  by  UUID.  If  the  title  does  not  use  a  Data  Pack  this  option  has  no  effect
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
  -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
  -  **-q | --quiet:** Silences all non-critical messages
  -  **-s | --silent:** Silences all messages (takes precedence over quiet mode)
  
-Use **'exe'** and **'param'** for normal operation, use **'auto'** by itself for automatic operation, use **'random'** by itself for random operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, or use **'help'** and/or **'version'** for information.
+Use **'exe'** and **'param'** for direct operation, use **'auto'** by itself for automatic operation, use **'random'** by itself for random operation, use **'msg'** to display a popup message, use **'extra'** to view an extra, use **'prepare'**  to  prepare  a  Data  Pack  game, or use **'help'** and/or **'version'** for information.
 
 **NOTE:** When using the **--exe** and **--param** switches all quotes that are part of the input itself must be escaped for the command to be passed correctly. For example, the launch command
 
@@ -107,13 +110,13 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 6  | CANT_PARSE_PREF         | Failed to parse preferences.json                                                                          |
 | 7  | CANT_PARSE_SERVICES     | Failed to parse services.json                                                                             |
 | 8  | CONFIG_SERVER_MISSING   | The server entry specified in config.json was not found in services.json                                  |
-| 9  | AUTO_ID_NOT_VALID       | The specified UUID for auto operation is not a valid 128-bit UUID                                         |
-| 10  | RAND_FILTER_NOT_VALID   | The  provided  string  for  random  operation  was  not  a  valid  filter                                 |
-| 11 | SQL_ERROR               | An unexpected SQL error occured while reading flashpoint.sqlite                                           |
+| 9  | ID_NOT_VALID            | The specified string is not a valid 128-bit UUID                                                          |
+| 10 | RAND_FILTER_NOT_VALID   | The  provided  string  for  random  operation  was  not  a  valid  filter                                 |
+| 11 | SQL_ERROR               | An unexpected SQL error occurred while reading flashpoint.sqlite                                           |
 | 12 | SQL_MISMATCH            | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
 | 13 | DB_MISSING_TABLES       | flashpoint.sqlite is missing expected tables                                                              |
 | 14 | DB_MISSING_COLUMNS      | One or more tables in flashpoint.sqlite are missing expected columns                                      |
-| 15 | AUTO_NOT_FOUND          | The specified UUID for auto operation is not associated with any title in the Flashpoint database         |
+| 15 | ID_NOT_FOUND            | The specified UUID is not associated with any title in the Flashpoint database                            |
 | 16 | MORE_THAN_ONE_AUTO      | The specified UUID for auto operation is associated with more than one title (possible collision)         |
 | 17 | EXTRA_NOT_FOUND         | The specified or auto-determined extra was not found in the Extras folder                                 |
 | 18 | EXECUTABLE_NOT_FOUND    | An enqueued executable was not found at the specified path                                                |
@@ -122,15 +125,16 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 21 | WAIT_PROCESS_NOT_HANDLED| A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
 | 22 | WAIT_PROCESS_NOT_HOOKED | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
 | 23 | CANT_READ_BAT_FILE      | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
-| 24 | PARENT_INVALID          | The parent ID of the target additional app is missing or invalid
-
+| 24 | PARENT_INVALID          | The parent ID of the target additional app is missing or invalid                                          |
+| 25 | CANT_OBTAIN_DATA_PACK   | Failed to download the selected title's Data Pack                                                         |
+| 26 | DATA_PACK_INVALID       | The selected title's Data Pack checksum did not match it's known value after download                     |
 
 ## Limitations
 
  - Although general compatibility is quite high, compatibility with every single title cannot be assured. Issues with a title or group of titles will be fixed as they are discovered
 
 ## Source
-This tool was written in C++ 17 along with Qt 5 and currently only targets Windows Vista and above; however, this tool can easily be ported to Linux with minimal changes, though to what end I am not sure since this is for a Windows application. The source includes an easy-to-use .pro file if you wish to build the application in Qt Creator and the available latest release was compiled in Qt Creator using MSVC 2019 and a static compilation of Qt 5.15.0. Other than a C++ 17 capable compiler and Qt 5.15.x+ all files required to compile this software are included, with the exception of a standard make file.
+This tool was written in C++ 17 along with Qt 5 and currently only targets Windows Vista and above; however, this tool can easily be ported to Linux with minimal changes, though to what end I am not sure since this is for a Windows application. The source includes an easy-to-use .pro file if you wish to build the application in Qt Creator and the available latest release was compiled in Qt Creator using MSVC 2019 and a static compilation of Qt 5.15.2. Other than a C++ 17 capable compiler and Qt 5.15.x+ (compiled with some form of SSL support) all files required to compile this software are included, with the exception of a standard make file.
 
 All functions/variables under the "Qx" (QExtended) namespace belong to a small, personal library I maintain to always have access to frequently used functionality in my projects. A pre-compiled static version of this library is provided with the source for this tool. If anyone truly needs it, I can provide the source for this library as well.
 

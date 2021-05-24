@@ -3,12 +3,15 @@
 #include <QProcess>
 #include <QCommandLineParser>
 #include <QDesktopServices>
+#include <QProgressDialog>
 #include <queue>
 #include "qx-windows.h"
 #include "qx-io.h"
+#include "qx-net.h"
 #include "flashpoint-install.h"
 #include "logger.h"
 #include "magic_enum.hpp"
+#include "errors.h"
 
 #define CLIFP_DIR_PATH QCoreApplication::applicationDirPath()
 #define ENUM_NAME(...) QString::fromStdString(std::string(magic_enum::enum_name(__VA_ARGS__)))
@@ -25,13 +28,13 @@ enum ErrorCode
     CANT_PARSE_PREF = 0x06,
     CANT_PARSE_SERVICES = 0x07,
     CONFIG_SERVER_MISSING = 0x08,
-    AUTO_ID_NOT_VALID = 0x09,
+    ID_NOT_VALID = 0x09,
     RAND_FILTER_NOT_VALID = 0x0A,
     SQL_ERROR = 0x0B,
     SQL_MISMATCH = 0x0C,
     DB_MISSING_TABLES = 0x0D,
     DB_MISSING_COLUMNS = 0x0E,
-    AUTO_NOT_FOUND = 0x0F,
+    ID_NOT_FOUND = 0x0F,
     MORE_THAN_ONE_AUTO = 0x10,
     EXTRA_NOT_FOUND = 0x11,
     EXECUTABLE_NOT_FOUND = 0x12,
@@ -40,23 +43,104 @@ enum ErrorCode
     WAIT_PROCESS_NOT_HANDLED = 0x15,
     WAIT_PROCESS_NOT_HOOKED = 0x16,
     CANT_READ_BAT_FILE = 0x17,
-    PARENT_INVALID = 0x18
+    PARENT_INVALID = 0x18,
+    CANT_OBTAIN_DATA_PACK = 0x19,
+    DATA_PACK_INVALID = 0x20
 };
 
-enum class OperationMode { Invalid, Normal, Auto, Random, Message, Extra, Information };
-enum class TaskType { Startup, Primary, Download, Auxiliary, Wait, Shutdown }; // TODO: Switch to using custom registered types with QVariant as the queue object instead
+enum class OperationMode { Invalid, Direct, Auto, Random, Prepare, Message, Extra, Information };
+enum class TaskStage { Startup, Primary, Auxiliary, Shutdown };
 enum class ProcessType { Blocking, Deferred, Detached };
-enum class MessageVerbosity { Full, Quiet, Silent };
+enum class NotificationVerbosity { Full, Quiet, Silent };
 
 //-Structs---------------------------------------------------------------------
-struct AppTask
+struct Task
 {
-    TaskType type;
+    TaskStage stage;
+
+    virtual QString name() const = 0;
+    virtual QStringList members() const { return {".stage = " + ENUM_NAME(stage)}; }
+};
+
+struct ExecTask : public Task
+{
     QString path;
     QString filename;
     QStringList param;
     QString nativeParam;
     ProcessType processType;
+
+    QString name() const { return "ExecTask"; }
+    QStringList members() const
+    {
+        QStringList ml = Task::members();
+        ml << ".path = \"" << path << "\"";
+        ml << ".filename = \"" << filename << "\"";
+        ml << ".param = {\"" << param.join(R"(", ")") << "\"}";
+        ml << ".nativeParam = \"" << nativeParam << "\"";
+        ml << ".processType = " << ENUM_NAME(processType);
+        return ml;
+    }
+};
+
+struct MessageTask : public Task
+{
+    QString message;
+    bool modal;
+
+    QString name() const { return "MessageTask"; }
+    QStringList members() const
+    {
+        QStringList ml = Task::members();
+        ml << ".message = \"" << message << "\"";
+        ml << ".modal = \"" << (modal ? "true" : "false");
+        return ml;
+    }
+};
+
+struct ExtraTask : public Task
+{
+    QDir dir;
+
+    QString name() const { return "ExtraTask"; }
+    QStringList members() const
+    {
+        QStringList ml = Task::members();
+        ml << ".extraDir = \"" << dir.path() << "\"";
+        return ml;
+    }
+};
+
+struct WaitTask : public Task
+{
+    QString processName;
+
+    QString name() const { return "WaitTask"; }
+    QStringList members() const
+    {
+        QStringList ml = Task::members();
+        ml << ".processName = \"" << processName << "\"";
+        return ml;
+    }
+};
+
+struct DownloadTask : public Task
+{
+    QString destPath;
+    QString destFileName;
+    QUrl targetFile;
+    QString sha256;
+
+    QString name() const { return "DownloadTask"; }
+    QStringList members() const
+    {
+        QStringList ml = Task::members();
+        ml << ".destPath = \"" << destPath << "\"";
+        ml << ".destFileName = \"" << destFileName << "\"";
+        ml << ".targetFile = \"" << targetFile.toString() << "\"";
+        ml << ".sha256 = " << sha256;
+        return ml;
+    }
 };
 
 //-Constants-------------------------------------------------------------------
@@ -95,6 +179,10 @@ const QString CL_OPT_RAND_S_NAME = "r";
 const QString CL_OPT_RAND_L_NAME = "random";
 const QString CL_OPT_RAND_DESC = "Selects a random game UUID from the database and starts it in the same manner as using the --" + CL_OPT_AUTO_L_NAME + " switch. Required value options for this argument (filters): all/any, game/arcade, animation/theatre";
 
+const QString CL_OPT_PREP_S_NAME = "i";
+const QString CL_OPT_PREP_L_NAME = "prepare";
+const QString CL_OPT_PREP_DESC = "Initializes Flashpoint for playing the provided Data Pack based title by UUID. If the title does not use a Data Pack this option has no effect.";
+
 const QString CL_OPT_QUIET_S_NAME = "q";
 const QString CL_OPT_QUIET_L_NAME = "quiet";
 const QString CL_OPT_QUIET_DESC = "Silences all non-critical messages.";
@@ -113,14 +201,15 @@ const QString CL_HELP_MESSAGE =
         "<b>-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ":</b> &nbsp;" + CL_OPT_PARAM_DESC + "<br>"
         "<b>-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ":</b> &nbsp;" + CL_OPT_AUTO_DESC + "<br>"
         "<b>-" + CL_OPT_RAND_S_NAME + " | --" + CL_OPT_RAND_L_NAME + ":</b> &nbsp;" + CL_OPT_RAND_DESC + "<br>"
+        "<b>-" + CL_OPT_PREP_S_NAME + " | --" + CL_OPT_PREP_L_NAME + ":</b> &nbsp;" + CL_OPT_PREP_DESC + "<br>"
         "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
         "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
         "<b>-" + CL_OPT_QUIET_S_NAME + " | --" + CL_OPT_QUIET_L_NAME + ":</b> &nbsp;" + CL_OPT_QUIET_DESC + "<br>"
         "<b>-" + CL_OPT_SILENT_S_NAME + " | --" + CL_OPT_SILENT_L_NAME + ":</b> &nbsp;" + CL_OPT_SILENT_DESC + "<br>"
-        "Use <b>'" + CL_OPT_APP_L_NAME + "'</b> and <b>'" + CL_OPT_PARAM_L_NAME + "'</b> for normal operation, use <b>'" + CL_OPT_AUTO_L_NAME +
+        "Use <b>'" + CL_OPT_APP_L_NAME + "'</b> and <b>'" + CL_OPT_PARAM_L_NAME + "'</b> for direct operation, use <b>'" + CL_OPT_AUTO_L_NAME +
         "'</b> by itself for automatic operation, use <b>'" + CL_OPT_MSG_L_NAME  + "'</b> by itself for random operation,  use <b>'" + CL_OPT_MSG_L_NAME  +
-        "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME + "'</b> to view an extra, or use <b>'" + CL_OPT_HELP_L_NAME +
-        "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
+        "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME + "'</b> to view an extra, use <b>'" + CL_OPT_PREP_L_NAME +
+        "'</b> to prepare a Data Pack game, or use <b>'" + CL_OPT_HELP_L_NAME + "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
 
 const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_FILEVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
 
@@ -140,18 +229,20 @@ const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flas
 const QString ERR_SQL_MISMATCH = "Received a different form of result from an SQL query than expected.";
 const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
 const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
-const QString ERR_AUTO_NOT_FOUND = "An entry matching the specified auto ID could not be found in the Flashpoint database.";
-const QString ERR_AUTO_INVALID = "The provided string for auto operation was not a valid GUID/UUID.";
+const QString ERR_ID_NOT_FOUND = "An entry matching the specified ID could not be found in the Flashpoint database.";
+const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
 const QString ERR_RAND_FILTER_INVALID = "The provided string for random operation was not a valid filter.";
 const QString ERR_MORE_THAN_ONE_AUTO_P = "Multiple entries with the specified auto ID were found.";
 const QString ERR_MORE_THAN_ONE_AUTO_S = "This should not be possible and may indicate an error within the Flashpoint database";
 const QString ERR_PARENT_INVALID = "The parent ID of the target additional app was not valid.";
+const QString WRN_EXIST_PACK_SUM_MISMATCH = "The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.";
 
 // Error Messages - Execution
 const QString ERR_EXTRA_NOT_FOUND = "The extra %1 does not exist!";
 const QString ERR_EXE_NOT_FOUND = "Could not find %1!";
 const QString ERR_EXE_NOT_STARTED = "Could not start %1!";
 const QString ERR_EXE_NOT_VALID = "%1 is not an executable file!";
+const QString ERR_PACK_SUM_MISMATCH = "The title's Data Pack checksum does not match its record!";
 const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = "Could not get a wait handle to %1.";
 const QString WRN_WAIT_PROCESS_NOT_HANDLED_S = "The title may not work correctly";
 const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting.";
@@ -162,6 +253,7 @@ const QCommandLineOption CL_OPTION_APP({CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, C
 const QCommandLineOption CL_OPTION_PARAM({CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, "parameters"); // Takes value
 const QCommandLineOption CL_OPTION_AUTO({CL_OPT_AUTO_S_NAME, CL_OPT_AUTO_L_NAME}, CL_OPT_AUTO_DESC, "id"); // Takes value
 const QCommandLineOption CL_OPTION_RAND({CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, "random"); // Takes value
+const QCommandLineOption CL_OPTION_PREP({CL_OPT_PREP_S_NAME, CL_OPT_PREP_L_NAME}, CL_OPT_PREP_DESC, "prep"); // Takes value
 const QCommandLineOption CL_OPTION_MSG({CL_OPT_MSG_S_NAME, CL_OPT_MSG_L_NAME}, CL_OPT_MSG_DESC, "message"); // Takes value
 const QCommandLineOption CL_OPTION_EXTRA({CL_OPT_EXTRA_S_NAME, CL_OPT_EXTRA_L_NAME}, CL_OPT_EXTRA_DESC, "extra"); // Takes value
 const QCommandLineOption CL_OPTION_HELP({CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC); // Boolean option
@@ -169,14 +261,15 @@ const QCommandLineOption CL_OPTION_VERSION({CL_OPT_VERSION_S_NAME, CL_OPT_VERSIO
 const QCommandLineOption CL_OPTION_QUIET({CL_OPT_QUIET_S_NAME, CL_OPT_QUIET_L_NAME}, CL_OPT_QUIET_DESC); // Boolean option
 const QCommandLineOption CL_OPTION_SILENT({CL_OPT_SILENT_S_NAME, CL_OPT_SILENT_L_NAME}, CL_OPT_SILENT_DESC); // Boolean option
 const QList<const QCommandLineOption*> CL_OPTIONS_MAIN{&CL_OPTION_APP, &CL_OPTION_PARAM, &CL_OPTION_AUTO, &CL_OPTION_MSG,
-                                                       &CL_OPTION_EXTRA, &CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_RAND};
+                                                       &CL_OPTION_EXTRA, &CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_RAND, &CL_OPTION_PREP};
 const QList<const QCommandLineOption*> CL_OPTIONS_ALL = CL_OPTIONS_MAIN + QList<const QCommandLineOption*>{&CL_OPTION_QUIET, &CL_OPTION_SILENT};
 
 // CLI Option Operation Mode Map TODO: Submit a patch for Qt6 to make QCommandLineOption directly hashable (implement == and qHash)
 const QHash<QSet<QString>, OperationMode> CL_MAIN_OPTIONS_OP_MODE_MAP{
-    {{CL_OPT_APP_S_NAME, CL_OPT_PARAM_S_NAME}, OperationMode::Normal},
+    {{CL_OPT_APP_S_NAME, CL_OPT_PARAM_S_NAME}, OperationMode::Direct},
     {{CL_OPT_AUTO_S_NAME}, OperationMode::Auto},
     {{CL_OPT_RAND_S_NAME}, OperationMode::Random},
+    {{CL_OPT_PREP_S_NAME}, OperationMode::Prepare},
     {{CL_OPT_MSG_S_NAME}, OperationMode::Message},
     {{CL_OPT_EXTRA_S_NAME}, OperationMode::Extra},
     {{CL_OPT_HELP_S_NAME}, OperationMode::Information},
@@ -220,12 +313,12 @@ const int LOG_MAX_ENTRIES = 50;
 const QString LOG_ERR_INVALID_PARAM = "Invalid combination of parameters used";
 const QString LOG_ERR_CRITICAL = "Aborting execution due to previous critical errors";
 const QString LOG_WRN_INVALID_RAND_ID = "A UUID found in the database during Random operation is invalid (%1)";
+const QString LOG_WRN_PREP_NOT_DATA_PACK = "The provided ID does not belong to a Data Pack based game (%1). No action will be taken.";
 const QString LOG_EVENT_FLASHPOINT_SEARCH = "Searching for Flashpoint root...";
 const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = "Checking if \"%1\" is flashpoint root";
 const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
 const QString LOG_EVENT_OP_MODE = "Operation Mode: %1";
-const QString LOG_EVENT_APP_TASK = "Enqueued App Task: {.type = %1, .path = \"%2\", .filename = \"%3\", "
-                                   ".param = {\"%4\"}, .nativeParam = \"%5\", .processType = %6}";
+const QString LOG_EVENT_TASK_ENQ = "Enqueued %1: {%2}";
 const QString LOG_EVENT_SHOW_MESSAGE = "Displayed message";
 const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
 const QString LOG_EVENT_HELP_SHOWN = "Displayed help information";
@@ -266,22 +359,24 @@ const QString LOG_EVENT_WAIT_RUNNING = "Wait-on process %1 is running";
 const QString LOG_EVENT_WAIT_ON = "Waiting for process %1 to finish";
 const QString LOG_EVENT_WAIT_QUIT = "Wait-on process %1 has finished";
 const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running after the grace period";
+const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
+const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
 
 // Globals
-MessageVerbosity gMessageVerbosity = MessageVerbosity::Full;
+NotificationVerbosity gNotificationVerbosity = NotificationVerbosity::Full;
 std::unique_ptr<Logger> gLogger;
-bool gCritErrOccured = false;
+bool gCritErrOccurred = false;
 
 // Prototypes - Process
 ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall);
-ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Config fpConfig, FP::Install::Services fpServices);
-ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall);
-ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall);
-void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
-ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo);
-ErrorCode enqueueDataPackTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall);
-ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses);
-void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
+ErrorCode enqueueStartupTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QString fpRoot, FP::Install::Config fpConfig, FP::Install::Services fpServices);
+ErrorCode enqueueAutomaticTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QUuid targetID, FP::Install& fpInstall);
+ErrorCode enqueueAdditionalApp(std::queue<std::shared_ptr<Task>>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskStage taskStage, const FP::Install& fpInstall);
+void enqueueShutdownTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QString fpRoot, FP::Install::Services fpServices);
+ErrorCode enqueueConditionalWaitTask(std::queue<std::shared_ptr<Task>>& taskQueue, QFileInfo precedingAppInfo);
+ErrorCode enqueueDataPackTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QUuid targetID, const FP::Install& fpInstall);
+ErrorCode processTaskQueue(std::queue<std::shared_ptr<Task>>& taskQueue, QList<QProcess*>& childProcesses);
+void handleExecutionError(std::queue<std::shared_ptr<Task>>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
 ErrorCode waitOnProcess(QString processName, int graceSecs);
 void cleanup(FP::Install& fpInstall, QList<QProcess*>& childProcesses);
@@ -295,7 +390,7 @@ Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo
 QString escapeNativeArgsForCMD(QString nativeArgs);
 void postError(Qx::GenericError error, bool log = true);
 void logEvent(QString event);
-void logAppTask(const AppTask& appTask);
+void logTask(const Task* const task);
 void logProcessStart(const QProcess* process, ProcessType type);
 void logProcessEnd(const QProcess* process, ProcessType type);
 void logError(Qx::GenericError error);
@@ -321,8 +416,8 @@ int main(int argc, char *argv[])
     clParser.process(app);
 
     // Set globals based on general flags
-    gMessageVerbosity = clParser.isSet(CL_OPTION_SILENT) ? MessageVerbosity::Silent :
-                      clParser.isSet(CL_OPTION_QUIET) ? MessageVerbosity::Quiet : MessageVerbosity::Full;
+    gNotificationVerbosity = clParser.isSet(CL_OPTION_SILENT) ? NotificationVerbosity::Silent :
+                      clParser.isSet(CL_OPTION_QUIET) ? NotificationVerbosity::Quiet : NotificationVerbosity::Full;
 
     //-Create Logger-----------------------------------------------------------------------
 
@@ -438,37 +533,44 @@ int main(int argc, char *argv[])
 
     //-Proccess Tracking-------------------------------------------------------------------
     QList<QProcess*> activeChildProcesses;
-    std::queue<AppTask> appTaskQueue;
+    std::queue<std::shared_ptr<Task>> taskQueue;
 
     //-Handle Mode Specific Operations-----------------------------------------------------
     ErrorCode enqueueError;
+    QSqlError sqlError;
     QFileInfo inputInfo;
     QUuid autoID;
     QUuid secondaryID;
     QString rawRandFilter;
     QString selectionInfo;
     FP::Install::LibraryFilter randFilter;
-    AppTask normalTask;
+    std::shared_ptr<ExecTask> directTask;
 
     switch(operationMode)
-    {    
+    {
         case OperationMode::Invalid:
             // Already handled
             break;
 
-        case OperationMode::Normal: 
-            if((enqueueError = enqueueStartupTasks(appTaskQueue, fpRoot, flashpointConfig, flashpointServices)))
+        case OperationMode::Direct:
+            if((enqueueError = enqueueStartupTasks(taskQueue, fpRoot, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
             inputInfo = QFileInfo(fpRoot + '/' + clParser.value(CL_OPTION_APP));
-            normalTask = {TaskType::Primary, inputInfo.absolutePath(), inputInfo.fileName(),
-                                  QStringList(), clParser.value(CL_OPTION_PARAM),
-                                  ProcessType::Blocking};
-            appTaskQueue.push(normalTask);
-            logAppTask(normalTask);
+
+            directTask = std::make_shared<ExecTask>();
+            directTask->stage = TaskStage::Primary;
+            directTask->path = inputInfo.absolutePath();
+            directTask->filename = inputInfo.fileName();
+            directTask->param = QStringList();
+            directTask->nativeParam = clParser.value(CL_OPTION_PARAM);
+            directTask->processType = ProcessType::Blocking;
+
+            taskQueue.push(directTask);
+            logTask(directTask.get());
 
             // Add wait task if required
-            if((enqueueError = enqueueConditionalWaitTask(appTaskQueue, inputInfo)))
+            if((enqueueError = enqueueConditionalWaitTask(taskQueue, inputInfo)))
                 return printLogAndExit(enqueueError);
             break;
         case OperationMode::Random:
@@ -493,14 +595,14 @@ int main(int argc, char *argv[])
             if((enqueueError = randomlySelectID(autoID, secondaryID, flashpointInstall, randFilter)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueStartupTasks(appTaskQueue, fpRoot, flashpointConfig, flashpointServices)))
+            if((enqueueError = enqueueStartupTasks(taskQueue, fpRoot, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueAutomaticTasks(appTaskQueue, secondaryID.isNull() ? autoID : secondaryID, flashpointInstall)))
+            if((enqueueError = enqueueAutomaticTasks(taskQueue, secondaryID.isNull() ? autoID : secondaryID, flashpointInstall)))
                 return printLogAndExit(enqueueError);
 
             // Get selection info if not suppressed
-            if(gMessageVerbosity == MessageVerbosity::Full)
+            if(gNotificationVerbosity == NotificationVerbosity::Full)
             {
                 if((enqueueError = getRandomSelectionInfo(selectionInfo, flashpointInstall, autoID, secondaryID)))
                     return printLogAndExit(enqueueError);
@@ -513,18 +615,47 @@ int main(int argc, char *argv[])
         case OperationMode::Auto:
             if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
             {
-                postError(Qx::GenericError(Qx::GenericError::Critical, ERR_AUTO_INVALID));
-                return printLogAndExit(AUTO_ID_NOT_VALID);
+                postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
+                return printLogAndExit(ID_NOT_VALID);
             }
 
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueStartupTasks(appTaskQueue, fpRoot, flashpointConfig, flashpointServices)))
+            if((enqueueError = enqueueStartupTasks(taskQueue, fpRoot, flashpointConfig, flashpointServices)))
                 return printLogAndExit(enqueueError);
 
-            if((enqueueError = enqueueAutomaticTasks(appTaskQueue, autoID, flashpointInstall)))
+            if((enqueueError = enqueueAutomaticTasks(taskQueue, autoID, flashpointInstall)))
                 return printLogAndExit(enqueueError);
+            break;
+
+        case OperationMode::Prepare:
+            if((secondaryID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
+            {
+                postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
+                return printLogAndExit(ID_NOT_VALID);
+            }
+
+            if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
+                return printLogAndExit(enqueueError);
+
+            bool titleUsesDataPack;
+            if((sqlError = flashpointInstall.entryUsesDataPack(titleUsesDataPack, secondaryID)).isValid())
+            {
+                postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, sqlError.text()));
+                return printLogAndExit(SQL_ERROR);
+            }
+
+            if(titleUsesDataPack)
+            {
+                if((enqueueError = enqueueDataPackTasks(taskQueue, secondaryID, flashpointInstall)))
+                    return printLogAndExit(enqueueError);
+            }
+            else
+            {
+                logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(secondaryID.toString(QUuid::WithoutBraces))));
+                return printLogAndExit(NO_ERR);
+            }
             break;
 
         case OperationMode::Message:
@@ -551,14 +682,15 @@ int main(int argc, char *argv[])
             break;
     }
 
-    // Enqueue Shudown Tasks if main task isn't message/extra
-    if(appTaskQueue.size() != 1 ||
-       (appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_MESSAGE &&
-       appTaskQueue.front().path != FP::Install::DBTable_Add_App::ENTRY_EXTRAS))
-        enqueueShutdownTasks(appTaskQueue, fpRoot, flashpointServices);
+    // Enqueue Shudown Tasks if main task isn't message/extra/prep
+    if(taskQueue.size() != 1 ||
+       (!std::dynamic_pointer_cast<MessageTask>(taskQueue.front()) &&
+       !std::dynamic_pointer_cast<ExtraTask>(taskQueue.front()) &&
+       operationMode != OperationMode::Prepare))
+        enqueueShutdownTasks(taskQueue, fpRoot, flashpointServices);
 
     // Process app task queue
-    ErrorCode executionError = processTaskQueue(appTaskQueue, activeChildProcesses);
+    ErrorCode executionError = processTaskQueue(taskQueue, activeChildProcesses);
     logEvent(LOG_EVENT_QUEUE_FINISH);
 
     // Cleanup
@@ -617,17 +749,22 @@ ErrorCode openAndVerifyProperDatabase(FP::Install& fpInstall)
     return NO_ERR;
 }
 
-ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Config fpConfig, FP::Install::Services fpServices)
+ErrorCode enqueueStartupTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QString fpRoot, FP::Install::Config fpConfig, FP::Install::Services fpServices)
 {
     logEvent(LOG_EVENT_ENQ_START);
     // Add Start entries from services
     for(const FP::Install::StartStop& startEntry : fpServices.starts)
-    {
-        AppTask currentTask = {TaskType::Startup, fpRoot + '/' + startEntry.path, startEntry.filename,
-                               startEntry.arguments, QString(),
-                               ProcessType::Blocking};
+    {        
+        std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
+        currentTask->stage = TaskStage::Startup;
+        currentTask->path = fpRoot + '/' + startEntry.path;
+        currentTask->filename = startEntry.filename;
+        currentTask->param = startEntry.arguments;
+        currentTask->nativeParam = QString();
+        currentTask->processType = ProcessType::Blocking;
+
         taskQueue.push(currentTask);
-        logAppTask(currentTask);
+        logTask(currentTask.get());
     }
 
     // Add Server entry from services if applicable
@@ -640,29 +777,40 @@ ErrorCode enqueueStartupTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP
         }
 
         FP::Install::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
-        AppTask serverTask = {TaskType::Startup, fpRoot + '/' + configuredServer.path, configuredServer.filename,
-                              configuredServer.arguments, QString(),
-                              configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached};
+
+        std::shared_ptr<ExecTask> serverTask = std::make_shared<ExecTask>();
+        serverTask->stage = TaskStage::Startup;
+        serverTask->path = fpRoot + '/' + configuredServer.path;
+        serverTask->filename = configuredServer.filename;
+        serverTask->param = configuredServer.arguments;
+        serverTask->nativeParam = QString();
+        serverTask->processType = configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached;
+
         taskQueue.push(serverTask);
-        logAppTask(serverTask);
+        logTask(serverTask.get());
     }
 
     // Add Daemon entry from services
     QHash<QString, FP::Install::ServerDaemon>::const_iterator daemonIt;
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
-        AppTask currentTask = {TaskType::Startup, fpRoot + '/' + daemonIt.value().path, daemonIt.value().filename,
-                               daemonIt.value().arguments, QString(),
-                               daemonIt.value().kill ? ProcessType::Deferred : ProcessType::Detached};
+        std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
+        currentTask->stage = TaskStage::Startup;
+        currentTask->path = fpRoot + '/' + daemonIt.value().path;
+        currentTask->filename = daemonIt.value().filename;
+        currentTask->param = daemonIt.value().arguments;
+        currentTask->nativeParam = QString();
+        currentTask->processType = daemonIt.value().kill ? ProcessType::Deferred : ProcessType::Detached;
+
         taskQueue.push(currentTask);
-        logAppTask(currentTask);
+        logTask(currentTask.get());
     }
 
     // Return success
     return NO_ERR;
 }
 
-ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, FP::Install& fpInstall)
+ErrorCode enqueueAutomaticTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QUuid targetID, FP::Install& fpInstall)
 {
     logEvent(LOG_EVENT_ENQ_AUTO);
     // Search FP database for entry via ID
@@ -680,8 +828,8 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     // Check if ID was found and that only one instance was found
     if(searchResult.size == 0)
     {
-        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_AUTO_NOT_FOUND));
-        return AUTO_NOT_FOUND;
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+        return ID_NOT_FOUND;
     }
     else if(searchResult.size > 1)
     {
@@ -700,7 +848,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         // Clear queue if this entry is a message or extra
         QString appPath = searchResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
         if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE || appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
-            taskQueue = std::queue<AppTask>();
+            taskQueue = {};
 
         logEvent(LOG_EVENT_QUEUE_CLEARED);
 
@@ -730,7 +878,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
                 return enqueueError;
         }
 
-        enqueueError= enqueueAdditionalApp(taskQueue, searchResult, TaskType::Primary, fpInstall);
+        enqueueError= enqueueAdditionalApp(taskQueue, searchResult, TaskStage::Primary, fpInstall);
 
         if(enqueueError)
             return enqueueError;
@@ -739,7 +887,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     {
         logEvent(LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString()));
 
-        // Check if parent entry uses a data pack
+        // Check if entry uses a data pack
         QSqlError packCheckError;
         bool entryUsesDataPack;
         QUuid entryId = searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString();
@@ -780,7 +928,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
             if(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_AUTORUN).toInt() != 0)
             {
                 logEvent(LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString()));
-                enqueueError = enqueueAdditionalApp(taskQueue, addAppSearchResult, TaskType::Auxiliary, fpInstall);
+                enqueueError = enqueueAdditionalApp(taskQueue, addAppSearchResult, TaskStage::Auxiliary, fpInstall);
                 if(enqueueError)
                     return enqueueError;
             }
@@ -790,10 +938,17 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
         QString gamePath = searchResult.result.value(FP::Install::DBTable_Game::COL_APP_PATH).toString();
         QString gameArgs = searchResult.result.value(FP::Install::DBTable_Game::COL_LAUNCH_COMMAND).toString();
         QFileInfo gameInfo(fpInstall.getPath() + '/' + gamePath);
-        AppTask gameTask = {TaskType::Primary, gameInfo.absolutePath(), gameInfo.fileName(),
-                            QStringList(), gameArgs, ProcessType::Blocking};
+
+        std::shared_ptr<ExecTask> gameTask = std::make_shared<ExecTask>();
+        gameTask->stage = TaskStage::Primary;
+        gameTask->path = gameInfo.absolutePath();
+        gameTask->filename = gameInfo.fileName();
+        gameTask->param = QStringList();
+        gameTask->nativeParam = gameArgs;
+        gameTask->processType = ProcessType::Blocking;
+
         taskQueue.push(gameTask);
-        logAppTask(gameTask);
+        logTask(gameTask.get());
 
         // Add wait task if required
         if((enqueueError = enqueueConditionalWaitTask(taskQueue, gameInfo)))
@@ -806,7 +961,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<AppTask>& taskQueue, QUuid targetID, 
     return NO_ERR;
 }
 
-ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskType taskType, const FP::Install& fpInstall)
+ErrorCode enqueueAdditionalApp(std::queue<std::shared_ptr<Task>>& taskQueue, FP::Install::DBQueryBuffer addAppResult, TaskStage taskStage, const FP::Install& fpInstall)
 {
     // Ensure query result is additional app
     assert(addAppResult.source == FP::Install::DBTable_Add_App::NAME);
@@ -817,28 +972,37 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
 
     if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE)
     {
-        AppTask messageTask = {taskType, appPath, QString(),
-                               QStringList(), appArgs,
-                               (waitForExit || taskType == TaskType::Primary) ? ProcessType::Blocking : ProcessType::Deferred};
+        std::shared_ptr<MessageTask> messageTask = std::make_shared<MessageTask>();
+        messageTask->stage = taskStage;
+        messageTask->message = appArgs;
+        messageTask->modal = waitForExit || taskStage == TaskStage::Primary;
+
         taskQueue.push(messageTask);
-        logAppTask(messageTask);
+        logTask(messageTask.get());
     }
     else if(appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
     {
-        AppTask extraTask = {taskType, appPath, QString(),
-                             QStringList(), fpInstall.getExtrasDirectory().absolutePath() + "/" + appArgs,
-                             ProcessType::Detached};
+        std::shared_ptr<ExtraTask> extraTask = std::make_shared<ExtraTask>();
+        extraTask->stage = taskStage;
+        extraTask->dir = QDir(fpInstall.getExtrasDirectory().absolutePath() + "/" + appArgs);
+
         taskQueue.push(extraTask);
-        logAppTask(extraTask);
+        logTask(extraTask.get());
     }
     else
     {
         QFileInfo addAppInfo(fpInstall.getPath() + '/' + appPath);
-        AppTask addAppTask = {taskType, addAppInfo.absolutePath(), addAppInfo.fileName(),
-                              QStringList(), appArgs,
-                              (waitForExit || taskType == TaskType::Primary) ? ProcessType::Blocking : ProcessType::Deferred};
+
+        std::shared_ptr<ExecTask> addAppTask = std::make_shared<ExecTask>();
+        addAppTask->stage = taskStage;
+        addAppTask->path = addAppInfo.absolutePath();
+        addAppTask->filename = addAppInfo.fileName();
+        addAppTask->param = QStringList();
+        addAppTask->nativeParam = appArgs;
+        addAppTask->processType = (waitForExit || taskStage == TaskStage::Primary) ? ProcessType::Blocking : ProcessType::Deferred;
+
         taskQueue.push(addAppTask);
-        logAppTask(addAppTask);
+        logTask(addAppTask.get());
 
         // Add wait task if required
         ErrorCode enqueueError = enqueueConditionalWaitTask(taskQueue, addAppInfo);
@@ -850,21 +1014,26 @@ ErrorCode enqueueAdditionalApp(std::queue<AppTask>& taskQueue, FP::Install::DBQu
     return NO_ERR;
 }
 
-void enqueueShutdownTasks(std::queue<AppTask>& taskQueue, QString fpRoot, FP::Install::Services fpServices)
+void enqueueShutdownTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QString fpRoot, FP::Install::Services fpServices)
 {
     logEvent(LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
     for(const FP::Install::StartStop& stopEntry : fpServices.stops)
     {
-        AppTask shutdownTask = {TaskType::Shutdown, fpRoot + '/' + stopEntry.path, stopEntry.filename,
-                                stopEntry.arguments, QString(),
-                                ProcessType::Blocking};
+        std::shared_ptr<ExecTask> shutdownTask = std::make_shared<ExecTask>();
+        shutdownTask->stage = TaskStage::Shutdown;
+        shutdownTask->path = fpRoot + '/' + stopEntry.path;
+        shutdownTask->filename = stopEntry.filename;
+        shutdownTask->param = stopEntry.arguments;
+        shutdownTask->nativeParam = QString();
+        shutdownTask->processType = ProcessType::Blocking;
+
         taskQueue.push(shutdownTask);
-        logAppTask(shutdownTask);
+        logTask(shutdownTask.get());
     }
 }
 
-ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo precedingAppInfo)
+ErrorCode enqueueConditionalWaitTask(std::queue<std::shared_ptr<Task>>& taskQueue, QFileInfo precedingAppInfo)
 {
     // Add wait for apps that involve secure player
     bool involvesSecurePlayer;
@@ -877,11 +1046,12 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
 
     if(involvesSecurePlayer)
     {
-        AppTask waitTask = {TaskType::Wait, QString(), SECURE_PLAYER_INFO.fileName(),
-                            QStringList(), QString(),
-                            ProcessType::Blocking};
+        std::shared_ptr<WaitTask> waitTask = std::make_shared<WaitTask>();
+        waitTask->stage = TaskStage::Auxiliary;
+        waitTask->processName = SECURE_PLAYER_INFO.fileName();
+
         taskQueue.push(waitTask);
-        logAppTask(waitTask);
+        logTask(waitTask.get());
     }
 
     // Return success
@@ -890,7 +1060,7 @@ ErrorCode enqueueConditionalWaitTask(std::queue<AppTask>& taskQueue, QFileInfo p
     // Possible future waits...
 }
 
-ErrorCode enqueueDataPackTasks(std::queue<AppTask>& taskQueue, QUuid targetID, const FP::Install& fpInstall)
+ErrorCode enqueueDataPackTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QUuid targetID, const FP::Install& fpInstall)
 {
     logEvent(LOG_EVENT_ENQ_DATA_PACK);
 
@@ -922,12 +1092,26 @@ ErrorCode enqueueDataPackTasks(std::queue<AppTask>& taskQueue, QUuid targetID, c
     QString packDestFolderPath = fpInstall.getPath() + "/" + fpPreferences.dataPacksFolderPath;
     QString packFileName = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_PATH).toString();
     QString packSha256 = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_SHA256).toString();
+    QFile packFile(packDestFolderPath + "/" + packFileName);
 
-    // Enqueue pack download if it doesn't exist
-    if(!QFileInfo::exists(packDestFolderPath + "/" + packFileName))
+    // Get current file checksum if it exists
+    bool checksumMatches = false;
+
+    if(packFile.exists())
     {
+        Qx::IOOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, packSha256, QCryptographicHash::Sha256);
+        if(!checksumReport.wasSuccessful())
+            logError(Qx::GenericError(Qx::GenericError::Error, checksumReport.getOutcome(), checksumReport.getOutcomeInfo()));
+
+        if(!checksumMatches)
+            postError(Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
+    }
+    else
         logEvent(LOG_EVENT_DATA_PACK_MISS);
 
+    // Enqueue pack download if it doesn't exist or is different than expected
+    if(!packFile.exists() || !checksumMatches)
+    {
         // Get Data Pack source info
         searchError = fpInstall.queryEntrySource(searchResult);
         if(searchError.isValid())
@@ -956,24 +1140,36 @@ ErrorCode enqueueDataPackTasks(std::queue<AppTask>& taskQueue, QUuid targetID, c
         // Get title's Data Pack sub-URL
         QString packSubUrl = searchResult.result.value(FP::Install::DBTable_Source_Data::COL_URL_PATH).toString().replace('\\','/');
 
-        AppTask downloadTask = {TaskType::Download, packDestFolderPath, packFileName,
-                                QStringList(), sourceBaseUrl + packSubUrl,            // Source base URL already ends with /
-                                ProcessType::Blocking};
+        std::shared_ptr<DownloadTask> downloadTask = std::make_shared<DownloadTask>();
+        downloadTask->stage = TaskStage::Auxiliary;
+        downloadTask->destPath = packDestFolderPath;
+        downloadTask->destFileName = packFileName;
+        downloadTask->targetFile = sourceBaseUrl + packSubUrl;
+        downloadTask->sha256 = packSha256;
+
         taskQueue.push(downloadTask);
-        logAppTask(downloadTask);
+        logTask(downloadTask.get());
     }
 
     // Enqeue pack mount
     QFileInfo mounterInfo(fpInstall.getDataPackMounterPath());
-    AppTask mountTask = {TaskType::Auxiliary, mounterInfo.absolutePath(), mounterInfo.fileName(),
-                         {targetID.toString(QUuid::WithoutBraces), packDestFolderPath + "/" + packFileName}, QString(),
-                         ProcessType::Blocking};
+
+    std::shared_ptr<ExecTask> mountTask = std::make_shared<ExecTask>();
+    mountTask->stage = TaskStage::Auxiliary;
+    mountTask->path = mounterInfo.absolutePath();
+    mountTask->filename = mounterInfo.fileName();
+    mountTask->param = QStringList{targetID.toString(QUuid::WithoutBraces), packDestFolderPath + "/" + packFileName};
+    mountTask->nativeParam = QString();
+    mountTask->processType = ProcessType::Blocking;
+
+    taskQueue.push(mountTask);
+    logTask(mountTask.get());
 
     // Return success
     return NO_ERR;
 }
 
-ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& childProcesses)
+ErrorCode processTaskQueue(std::queue<std::shared_ptr<Task>>& taskQueue, QList<QProcess*>& childProcesses)
 {
     logEvent(LOG_EVENT_QUEUE_START);
     // Error tracker
@@ -985,53 +1181,100 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
     {
         // Handle task at front of queue
         ++taskNum;
-        AppTask currentTask = taskQueue.front();
-        logEvent(LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask.type)));
+        std::shared_ptr<Task> currentTask = taskQueue.front();
+        logEvent(LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask->stage)));
 
         // Only execute task after an error if it is a Shutdown task
-        if(!executionError || currentTask.type == TaskType::Shutdown)
+        if(!executionError || currentTask->stage == TaskStage::Shutdown)
         {
-            // Handle general and special case(s)
-            if(currentTask.path == FP::Install::DBTable_Add_App::ENTRY_MESSAGE) // Message (currently ignores process type)
+            // Cover each task type
+            if(std::dynamic_pointer_cast<MessageTask>(currentTask)) // Message (currently ignores process type)
             {
-                QMessageBox::information(nullptr, QCoreApplication::applicationName(), currentTask.nativeParam);
+                std::shared_ptr<MessageTask> messageTask = std::static_pointer_cast<MessageTask>(currentTask);
+
+                QMessageBox::information(nullptr, QCoreApplication::applicationName(), messageTask->message);
                 logEvent(LOG_EVENT_SHOW_MESSAGE);
             }
-            else if(currentTask.path == FP::Install::DBTable_Add_App::ENTRY_EXTRAS) // Extra
+            else if(std::dynamic_pointer_cast<ExtraTask>(currentTask)) // Extra
             {
+                std::shared_ptr<ExtraTask> extraTask = std::static_pointer_cast<ExtraTask>(currentTask);
+
                 // Ensure extra exists
-                QFileInfo extraInfo(currentTask.nativeParam);
-                if(!extraInfo.exists() || !extraInfo.isDir())
+                if(!extraTask->dir.exists())
                 {
-                    postError(Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraInfo.fileName())));
+                    postError(Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraTask->dir.path())));
                     handleExecutionError(taskQueue, taskNum, executionError, EXTRA_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
                 // Open extra
-                QDesktopServices::openUrl(QUrl::fromLocalFile(extraInfo.absoluteFilePath()));
-                logEvent(LOG_EVENT_SHOW_EXTRA.arg(extraInfo.fileName()));
+                QDesktopServices::openUrl(QUrl::fromLocalFile(extraTask->dir.absolutePath()));
+                logEvent(LOG_EVENT_SHOW_EXTRA.arg(extraTask->dir.path()));
             }
-            else if(currentTask.type == TaskType::Wait) // Wait task
+            else if(std::dynamic_pointer_cast<WaitTask>(currentTask)) // Wait task
             {
-                ErrorCode waitError = waitOnProcess(currentTask.filename, SECURE_PLAYER_GRACE);
+                std::shared_ptr<WaitTask> waitTask = std::static_pointer_cast<WaitTask>(currentTask);
+
+                ErrorCode waitError = waitOnProcess(waitTask->processName, SECURE_PLAYER_GRACE);
                 if(waitError)
                 {
                     handleExecutionError(taskQueue, taskNum, executionError, waitError);
                     continue; // Continue to next task
                 }
             }
-            else if(currentTask.type == TaskType::Download)
+            else if(std::dynamic_pointer_cast<DownloadTask>(currentTask))
             {
+                std::shared_ptr<DownloadTask> downloadTask = std::static_pointer_cast<DownloadTask>(currentTask);
 
+                // Setup download
+                QFile packFile(downloadTask->destPath + "/" + downloadTask->destFileName);
+                Qx::SyncDownloadManager dm;
+                dm.setOverwrite(true);
+                dm.appendTask(Qx::DownloadTask{downloadTask->targetFile, &packFile});
+
+                // Log/label string
+                QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(QFileInfo(packFile).fileName());
+                logEvent(label);
+
+                // Prepare progress bar
+                QProgressDialog pd(label, QString(), 0, 0);
+                pd.setWindowModality(Qt::WindowModal);
+                pd.setMinimumDuration(0);
+                QObject::connect(&dm, &Qx::SyncDownloadManager::downloadTotalChanged, &pd, &QProgressDialog::setMaximum);
+                QObject::connect(&dm, &Qx::SyncDownloadManager::downloadProgress, &pd, &QProgressDialog::setValue);
+
+                // Start download
+                Qx::GenericError downloadError= dm.processQueue();
+
+                // Handle result
+                pd.close();
+                if(downloadError.isValid())
+                {
+                    downloadError.setErrorLevel(Qx::GenericError::Critical);
+                    postError(downloadError);
+                    handleExecutionError(taskQueue, taskNum, executionError, CANT_OBTAIN_DATA_PACK);
+                }
+
+                // Confirm checksum
+                bool checksumMatch;
+                Qx::IOOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
+                if(!checksumResult.wasSuccessful() || !checksumMatch)
+                {
+                    postError(Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
+                    handleExecutionError(taskQueue, taskNum, executionError, DATA_PACK_INVALID);
+                }
+
+                logEvent(LOG_EVENT_DOWNLOAD_SUCC);
             }
-            else // General case
+            else if(std::dynamic_pointer_cast<ExecTask>(currentTask)) // Execution task
             {
+                std::shared_ptr<ExecTask> execTask = std::static_pointer_cast<ExecTask>(currentTask);
+
                 // Ensure executable exists
-                QFileInfo executableInfo(currentTask.path + "/" + currentTask.filename);
+                QFileInfo executableInfo(execTask->path + "/" + execTask->filename);
                 if(!executableInfo.exists() || !executableInfo.isFile())
                 {
-                    postError(Qx::GenericError(currentTask.type == TaskType::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                    postError(Qx::GenericError(execTask->stage == TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
                     handleExecutionError(taskQueue, taskNum, executionError, EXECUTABLE_NOT_FOUND);
                     continue; // Continue to next task
@@ -1040,30 +1283,30 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                 // Ensure executable is valid
                 if(!executableInfo.isExecutable())
                 {
-                    postError(Qx::GenericError(currentTask.type == TaskType::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                    postError(Qx::GenericError(execTask->stage == TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
                     handleExecutionError(taskQueue, taskNum, executionError, EXECUTABLE_NOT_VALID);
                     continue; // Continue to next task
                 }
 
                 // Move to executable directory
-                QDir::setCurrent(currentTask.path);
-                logEvent(LOG_EVENT_CD.arg(currentTask.path));
+                QDir::setCurrent(execTask->path);
+                logEvent(LOG_EVENT_CD.arg(execTask->path));
 
                 // Check if task is a batch file
-                bool batchTask = QFileInfo(currentTask.filename).suffix() == BAT_SUFX;
+                bool batchTask = QFileInfo(execTask->filename).suffix() == BAT_SUFX;
 
                 // Create process handle
                 QProcess* taskProcess = new QProcess();
-                taskProcess->setProgram(batchTask ? CMD_EXE : currentTask.filename);
-                taskProcess->setArguments(currentTask.param);
-                taskProcess->setNativeArguments(batchTask ? CMD_ARG_TEMPLATE.arg(currentTask.filename, escapeNativeArgsForCMD(currentTask.nativeParam))
-                                                          : currentTask.nativeParam);
+                taskProcess->setProgram(batchTask ? CMD_EXE : execTask->filename);
+                taskProcess->setArguments(execTask->param);
+                taskProcess->setNativeArguments(batchTask ? CMD_ARG_TEMPLATE.arg(execTask->filename, escapeNativeArgsForCMD(execTask->nativeParam))
+                                                          : execTask->nativeParam);
                 taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inhert console window
                 taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inhert console window
 
                 // Cover each process type
-                switch(currentTask.processType)
+                switch(execTask->processType)
                 {
                     case ProcessType::Blocking:
                         if(!cleanStartProcess(taskProcess, executableInfo))
@@ -1099,6 +1342,8 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
                         break;
                 }
             }
+            else
+                throw new std::runtime_error("Unhandled Task child was present in task queue");
         }
         else
             logEvent(LOG_EVENT_TASK_SKIP);
@@ -1112,7 +1357,7 @@ ErrorCode processTaskQueue(std::queue<AppTask>& taskQueue, QList<QProcess*>& chi
     return executionError;
 }
 
-void handleExecutionError(std::queue<AppTask>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError)
+void handleExecutionError(std::queue<std::shared_ptr<Task>>& taskQueue, int taskNum, ErrorCode& currentError, ErrorCode newError)
 {
     if(!currentError) // Only record first error
         currentError = newError;
@@ -1354,8 +1599,8 @@ ErrorCode getRandomSelectionInfo(QString& infoBuffer, FP::Install& fpInstall, QU
     // Check if ID was found and that only one instance was found
     if(mainGameQuery.size == 0)
     {
-        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_AUTO_NOT_FOUND));
-        return AUTO_NOT_FOUND;
+        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+        return ID_NOT_FOUND;
     }
     else if(mainGameQuery.size > 1)
     {
@@ -1396,8 +1641,8 @@ ErrorCode getRandomSelectionInfo(QString& infoBuffer, FP::Install& fpInstall, QU
         // Check if ID was found and that only one instance was found
         if(addAppQuerry.size == 0)
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_AUTO_NOT_FOUND));
-            return AUTO_NOT_FOUND;
+            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+            return ID_NOT_FOUND;
         }
         else if(addAppQuerry.size > 1)
         {
@@ -1481,25 +1726,14 @@ void postError(Qx::GenericError error, bool log)
         logError(error);
 
     // Show error if applicable
-    if(gMessageVerbosity == MessageVerbosity::Full ||
-       (gMessageVerbosity == MessageVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
+    if(gNotificationVerbosity == NotificationVerbosity::Full ||
+       (gNotificationVerbosity == NotificationVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
         error.exec(QMessageBox::Ok);
 }
 
 void logEvent(QString event) { gLogger->appendGeneralEvent(event); }
 
-void logAppTask(const AppTask& appTask)
-{
-    QString eventStr = LOG_EVENT_APP_TASK
-            .arg(ENUM_NAME(appTask.type))
-            .arg(appTask.path)
-            .arg(appTask.filename)
-            .arg(appTask.param.join(R"(", ")"))
-            .arg(appTask.nativeParam)
-            .arg(ENUM_NAME(appTask.processType));
-
-    logEvent(eventStr);
-}
+void logTask(const Task* const task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name()).arg(task->members().join(", "))); }
 
 void logProcessStart(const QProcess* process, ProcessType type)
 {
@@ -1522,12 +1756,12 @@ void logError(Qx::GenericError error)
     gLogger->appendErrorEvent(error);
 
     if(error.errorLevel() == Qx::GenericError::Critical)
-        gCritErrOccured = true;
+        gCritErrOccurred = true;
 }
 
 int printLogAndExit(int exitCode)
 {
-    if(gCritErrOccured)
+    if(gCritErrOccurred)
         logEvent(LOG_ERR_CRITICAL);
 
     Qx::IOOpReport logPrintReport = gLogger->finish(exitCode);
