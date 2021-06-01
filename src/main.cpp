@@ -364,6 +364,7 @@ const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
 const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
 
 // Globals
+QApplication* gAppInstancePtr;
 NotificationVerbosity gNotificationVerbosity = NotificationVerbosity::Full;
 std::unique_ptr<Logger> gLogger;
 bool gCritErrOccurred = false;
@@ -404,6 +405,7 @@ int main(int argc, char *argv[])
 
     // QApplication Object
     QApplication app(argc, argv);
+    gAppInstancePtr = &app;
 
     // Set application name
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
@@ -1332,6 +1334,7 @@ ErrorCode processTaskQueue(std::queue<std::shared_ptr<Task>>& taskQueue, QList<Q
                 switch(execTask->processType)
                 {
                     case ProcessType::Blocking:
+                        taskProcess->setParent(gAppInstancePtr);
                         if(!cleanStartProcess(taskProcess, executableInfo))
                         {
                             handleExecutionError(taskQueue, taskNum, executionError, PROCESS_START_FAIL);
@@ -1345,6 +1348,7 @@ ErrorCode processTaskQueue(std::queue<std::shared_ptr<Task>>& taskQueue, QList<Q
                         break;
 
                     case ProcessType::Deferred:
+                        taskProcess->setParent(gAppInstancePtr);
                         if(!cleanStartProcess(taskProcess, executableInfo))
                         {
                             handleExecutionError(taskQueue, taskNum, executionError, PROCESS_START_FAIL);
