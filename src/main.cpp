@@ -8,6 +8,7 @@
 #include "qx-windows.h"
 #include "qx-io.h"
 #include "qx-net.h"
+#include "qx-widgets.h"
 #include "flashpoint-install.h"
 #include "logger.h"
 #include "magic_enum.hpp"
@@ -388,7 +389,7 @@ ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install&
 ErrorCode getRandomSelectionInfo(QString& infoBuffer, FP::Install& fpInstall, QUuid mainID, QUuid subID);
 Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 QString escapeNativeArgsForCMD(QString nativeArgs);
-void postError(Qx::GenericError error, bool log = true);
+int postError(Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
 void logEvent(QString event);
 void logTask(const Task* const task);
 void logProcessStart(const QProcess* process, ProcessType type);
@@ -1232,16 +1233,38 @@ ErrorCode processTaskQueue(std::queue<std::shared_ptr<Task>>& taskQueue, QList<Q
                 dm.setOverwrite(true);
                 dm.appendTask(Qx::DownloadTask{downloadTask->targetFile, &packFile});
 
+                // Download event handlers
+                QObject::connect(&dm, &Qx::SyncDownloadManager::sslErrors, [](Qx::GenericError errorMsg, bool* abort) {
+                    int choice = postError(errorMsg, true, QMessageBox::Yes | QMessageBox::Abort, QMessageBox::Abort);
+                    *abort = choice == QMessageBox::Abort;
+                });
+
+                QObject::connect(&dm, &Qx::SyncDownloadManager::authenticationRequired, [](QString prompt, QString* username, QString* password, bool* abort) {
+                    Qx::LoginDialog ld;
+                    ld.setPrompt(prompt);
+
+                    int choice = ld.exec();
+
+                    if(choice == QDialog::Accepted)
+                    {
+                        *username = ld.getUsername();
+                        *password = ld.getPassword();
+                    }
+                    else
+                        *abort = true;
+                });
+
                 // Log/label string
                 QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(QFileInfo(packFile).fileName());
                 logEvent(label);
 
                 // Prepare progress bar
-                QProgressDialog pd(label, QString(), 0, 0);
+                QProgressDialog pd(label, QString("Cancel"), 0, 0);
                 pd.setWindowModality(Qt::WindowModal);
                 pd.setMinimumDuration(0);
                 QObject::connect(&dm, &Qx::SyncDownloadManager::downloadTotalChanged, &pd, &QProgressDialog::setMaximum);
                 QObject::connect(&dm, &Qx::SyncDownloadManager::downloadProgress, &pd, &QProgressDialog::setValue);
+                QObject::connect(&pd, &QProgressDialog::canceled, &dm, &Qx::SyncDownloadManager::abort);
 
                 // Start download
                 Qx::GenericError downloadError= dm.processQueue();
@@ -1719,7 +1742,7 @@ QString escapeNativeArgsForCMD(QString nativeArgs)
     return escapedNativeArgs;
 }
 
-void postError(Qx::GenericError error, bool log)
+int postError(Qx::GenericError error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
 {
     // Logging
     if(log)
@@ -1728,7 +1751,9 @@ void postError(Qx::GenericError error, bool log)
     // Show error if applicable
     if(gNotificationVerbosity == NotificationVerbosity::Full ||
        (gNotificationVerbosity == NotificationVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
-        error.exec(QMessageBox::Ok);
+        return error.exec(bs, def);
+    else
+        return def;
 }
 
 void logEvent(QString event) { gLogger->appendGeneralEvent(event); }
