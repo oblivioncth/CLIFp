@@ -1760,7 +1760,7 @@ int postError(Qx::GenericError error, bool log, QMessageBox::StandardButtons bs,
         return def;
 }
 
-void logEvent(QString event) { gLogger->appendGeneralEvent(event); }
+void logEvent(QString event) { gLogger->recordGeneralEvent(event); }
 
 void logTask(const Task* const task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name()).arg(task->members().join(", "))); }
 
@@ -1782,7 +1782,7 @@ void logProcessEnd(const QProcess* process, ProcessType type)
 
 void logError(Qx::GenericError error)
 {
-    gLogger->appendErrorEvent(error);
+    gLogger->recordErrorEvent(error);
 
     if(error.errorLevel() == Qx::GenericError::Critical)
         gCritErrOccurred = true;

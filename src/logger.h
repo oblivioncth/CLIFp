@@ -28,25 +28,26 @@ private:
 //-Instance Variables-------------------------------------------------------------------------------------------------
 private:
     // From constructor
-    QString mFilePath;
+    QFile const* mLogFile;
     QString mRawCommandLine;
     QString mInterpretedCommandLine;
     QString mEntryHeader;
+    QDateTime mTimeStamp;
     int mMaxEntries;
 
-    // Working vars
-    QDateTime mTimeStamp;
-    QStringList mEvents;
+    // Working var
+    std::unique_ptr<Qx::TextStreamWriter> mTextStreamWriter;
 
 //-Constructor--------------------------------------------------------------------------------------------------------
 public:
-    Logger(QString filePath, QString rawCL, QString interpCL, QString header, int maxEntries);
+    Logger(QFile* const logFile, QString rawCL, QString interpCL, QString header, int maxEntries);
 
 //-Instance Functions-------------------------------------------------------------------------------------------------
 public:
-    void appendErrorEvent(Qx::GenericError error);
-    void appendGeneralEvent(QString event);
-    Qx::IOOpReport finish(int returnCode);
+    Qx::IOOpReport openLog();
+    void recordErrorEvent(Qx::GenericError error);
+    void recordGeneralEvent(QString event);
+    Qx::IOOpReport closeLog(int returnCode);
 };
 
 #endif // LOGGER_H

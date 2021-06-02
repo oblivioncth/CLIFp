@@ -6,14 +6,58 @@
 
 //-Constructor---------------------------------------------------------------------------------------------------
 //Public:
-Logger::Logger(QString filePath, QString rawCL, QString interpCL, QString header, int maxEntries)
-    : mFilePath(filePath), mRawCommandLine(rawCL), mInterpretedCommandLine(interpCL),
-      mEntryHeader(HEADER_TEMPLATE.arg(header)), mMaxEntries(maxEntries), mTimeStamp(QDateTime::currentDateTime())
-{}
+Logger::Logger(QFile* const logFile, QString rawCL, QString interpCL, QString header, int maxEntries)
+    : mLogFile(logFile), mRawCommandLine(rawCL), mInterpretedCommandLine(interpCL),
+      mEntryHeader(HEADER_TEMPLATE.arg(header)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
+{
+    // Initializer stream writer
+    mTextStreamWriter = std::make_unique<Qx::TextStreamWriter>(*mLogFile);
+}
 
 //-Instance Functions--------------------------------------------------------------------------------------------
 //Public:
-void Logger::appendErrorEvent(Qx::GenericError error)
+Qx::IOOpReport Logger::openLog()
+{
+    //-Prepare Log File--------------------------------------------------
+    QFileInfo logFileInfo(*mLogFile);
+    Qx::IOOpReport logFileOpReport;
+
+    QString entryStart;
+
+    //-Handle Formating For Existing Log---------------------------------
+    if(logFileInfo.exists() && logFileInfo.isFile() && !Qx::fileIsEmpty(*mLogFile))
+    {
+        // Add spacer to start of new entry
+        entry.prepend('\n');
+
+        // Get entry count and locations
+        QList<Qx::TextPos> entryStartLocations;
+        logFileOpReport = Qx::findStringInFile(entryStartLocations, logFile, mEntryHeader);
+        if(!logFileOpReport.wasSuccessful())
+            return logFileOpReport;
+
+        // Purge oldest entries if current count is at or above limit
+        if(entryStartLocations.count() >= mMaxEntries)
+        {
+            int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
+            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).getLineNum() - 1, -1);
+            logFileOpReport = Qx::deleteTextRangeFromFile(logFile, Qx::TextPos::START, deleteEnd);
+            if(!logFileOpReport.wasSuccessful())
+                return logFileOpReport;
+        }
+    }
+
+    // Open log through stream
+    Qx::IOOpReport openReport = mTextStreamWriter->openFile();
+
+    if(!openReport.wasSuccessful())
+        return openReport;
+
+    // Construct entry start
+    if(mTextStreamWriter)
+}
+
+void Logger::recordErrorEvent(Qx::GenericError error)
 {
     QString errorString = "[" + ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + "] " + error.primaryInfo();
     if(!error.secondaryInfo().isNull())
@@ -24,7 +68,7 @@ void Logger::appendErrorEvent(Qx::GenericError error)
     mEvents.append(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), errorString));
 }
 
-void Logger::appendGeneralEvent(QString event) { mEvents.append(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), event)); }
+void Logger::recordGeneralEvent(QString event) { mEvents.append(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), event)); }
 
 Qx::IOOpReport Logger::finish(int returnCode)
 {

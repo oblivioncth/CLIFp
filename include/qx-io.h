@@ -21,6 +21,7 @@ enum IOOpResultType { IO_SUCCESS, IO_ERR_UNKNOWN, IO_ERR_ACCESS_DENIED, IO_ERR_N
                       IO_ERR_RESIZE, IO_ERR_COPY, IO_ERR_FILE_DNE, IO_ERR_DIR_DNE,
                       IO_ERR_FILE_EXISTS, IO_ERR_CANT_MAKE_DIR, IO_ERR_FILE_SIZE_MISMATCH, IO_ERR_CURSOR_OOB};
 enum IOOpTargetType { IO_FILE, IO_DIR };
+enum WriteMode { Append, Overwrite, NewOnly, ExistingOnly }; // TODO - Modify all classes in this unit to use this instead of overwrite bool
 
 //-Classes--------------------------------------------------------------------------------------------
 class IOOpReport
@@ -109,12 +110,12 @@ class FileStreamWriter
 private:
     QDataStream mStreamWriter;
     QFile& mTargetFile;
-    bool mOverwrite;
+    WriteMode mWriteMode;
     bool mCreateDirs;
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
-    FileStreamWriter(QFile& file, bool overwriteIfExist = false, bool createDirs = true);
+    FileStreamWriter(QFile& file, WriteMode writeMode = Append, bool createDirs = true);
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 public:
@@ -123,9 +124,39 @@ public:
     void closeFile();
 };
 
+class TextStreamWriter
+{
+//-Instance Variables------------------------------------------------------------------------------------------------
+private:
+    QTextStream mStreamWriter;
+    QFile& mTargetFile;
+    WriteMode mWriteMode;
+    bool mCreateDirs;
+    bool mAtLineStart;
+
+//-Constructor-------------------------------------------------------------------------------------------------------
+public:
+    TextStreamWriter(QFile& file, WriteMode writeMode = Append, bool createDirs = true);
+
+//-Instance Functions------------------------------------------------------------------------------------------------
+public:
+    IOOpReport openFile();
+    IOOpReport writeLine(QString line, bool ensureLineStart = true);
+    IOOpReport writeText(QString text);
+    void closeFile();
+};
+
+
 //-Variables------------------------------------------------------------------------------------------------------------
-   const QString ENDL = "\r\n"; //NOTE: Currently this is windows only
-   const QString LIST_ITM_PRFX = "- ";
+    const QString ENDL = "\n"; //Auto cross platform thanks to QIODevice::OpenMode Text
+    const QString LIST_ITM_PRFX = "- ";
+
+    const QHash<WriteMode, QIODevice::OpenMode> WRITE_OPEN_FLAGS_MAP = {
+        {Append, QIODevice::Append},
+        {Overwrite, QIODevice::Truncate},
+        {NewOnly, QIODevice::NewOnly},
+        {ExistingOnly, QIODevice::ExistingOnly | QIODevice::Append}
+    };
 
 //-Functions-------------------------------------------------------------------------------------------------------------
 // General:
