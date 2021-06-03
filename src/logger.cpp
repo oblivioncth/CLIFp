@@ -11,7 +11,7 @@ Logger::Logger(QFile* const logFile, QString rawCL, QString interpCL, QString he
       mEntryHeader(HEADER_TEMPLATE.arg(header)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
 {
     // Initializer stream writer
-    mTextStreamWriter = std::make_unique<Qx::TextStreamWriter>(*mLogFile);
+    mTextStreamWriter = std::make_unique<Qx::TextStreamWriter>(*mLogFile, Qx::Append, true, false);
 }
 
 //-Instance Functions--------------------------------------------------------------------------------------------

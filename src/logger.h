@@ -12,7 +12,7 @@ class Logger
 private:
     static inline const QString HEADER_TEMPLATE = "[ %1 ]";
     static inline const QString ENTRY_START_TEMPLATE = "%1 : %2";
-    static inline const QString EVENT_TEMPLATE = "<%1> %2";
+    static inline const QString EVENT_TEMPLATE = " - <%1> %2";
     static inline const QString RAW_CL_LABEL = "Raw Parameters:";
     static inline const QString INTERP_CL_LABEL = "Interpreted Parameters:";
     static inline const QString EVENTS_LABEL = "Events:";

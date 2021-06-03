@@ -19,7 +19,8 @@ enum IOOpResultType { IO_SUCCESS, IO_ERR_UNKNOWN, IO_ERR_ACCESS_DENIED, IO_ERR_N
                       IO_ERR_READ, IO_ERR_WRITE, IO_ERR_FATAL, IO_ERR_OPEN, IO_ERR_ABORT,
                       IO_ERR_TIMEOUT, IO_ERR_REMOVE, IO_ERR_RENAME, IO_ERR_REPOSITION,
                       IO_ERR_RESIZE, IO_ERR_COPY, IO_ERR_FILE_DNE, IO_ERR_DIR_DNE,
-                      IO_ERR_FILE_EXISTS, IO_ERR_CANT_MAKE_DIR, IO_ERR_FILE_SIZE_MISMATCH, IO_ERR_CURSOR_OOB};
+                      IO_ERR_FILE_EXISTS, IO_ERR_CANT_MAKE_DIR, IO_ERR_FILE_SIZE_MISMATCH, IO_ERR_CURSOR_OOB,
+                      IO_ERR_FILE_NOT_OPEN};
 enum IOOpTargetType { IO_FILE, IO_DIR };
 enum WriteMode { Append, Overwrite, NewOnly, ExistingOnly }; // TODO - Modify all classes in this unit to use this instead of overwrite bool
 
@@ -37,7 +38,8 @@ public:
                                                   "General read error.", "General write error.", "A fatal error has occured.", "Could not open file.", "The opperation was aborted.",
                                                   "Request timed out.", "The file could not be removed.", "The file could not be renamed.", "The file could not be moved.",
                                                   "The file could not be resized.", "The file could not be copied.", "File does not exist.", "Directory does not exist.",
-                                                  "The file already exists.", "The directory could not be created.", "File size mismatch.", "File data cursor has gone out of bounds."};
+                                                  "The file already exists.", "The directory could not be created.", "File size mismatch.", "File data cursor has gone out of bounds.",
+                                                  "The file is not open."};
 
 //-Instance Members-------------------------------------------------------------------------------------------------
 private:
@@ -132,11 +134,12 @@ private:
     QFile& mTargetFile;
     WriteMode mWriteMode;
     bool mCreateDirs;
+    bool mBuffered;
     bool mAtLineStart;
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
-    TextStreamWriter(QFile& file, WriteMode writeMode = Append, bool createDirs = true);
+    TextStreamWriter(QFile& file, WriteMode writeMode = Append, bool createDirs = true, bool buffered = true);
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 public:

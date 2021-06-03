@@ -343,6 +343,7 @@ const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1";
 const QString LOG_EVENT_QUEUE_CLEARED = "Previous queue entries cleared due to auto task being a Message/Extra";
 const QString LOG_EVENT_FOUND_AUTORUN = "Found autorun-before additional app: %1";
 const QString LOG_EVENT_DATA_PACK_MISS = "Title Data Pack is not available locally";
+const QString LOG_EVENT_DATA_PACK_FOUND = "Title Data Pack with correct hash is already present, no need to download";
 const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
 const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
 const QString LOG_EVENT_TASK_FINISH = "End of task %1";
@@ -360,6 +361,7 @@ const QString LOG_EVENT_WAIT_ON = "Waiting for process %1 to finish";
 const QString LOG_EVENT_WAIT_QUIT = "Wait-on process %1 has finished";
 const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running after the grace period";
 const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
+const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
 const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
 
 // Globals
@@ -451,6 +453,11 @@ int main(int argc, char *argv[])
     // Logger instance
     QFile logFile(CLIFP_DIR_PATH + '/' + LOG_FILE_NAME);
     gLogger = std::make_unique<Logger>(&logFile, rawCL, interpCL, LOG_HEADER, LOG_MAX_ENTRIES);
+
+    // Open log
+    Qx::IOOpReport logOpen = gLogger->openLog();
+    if(!logOpen.wasSuccessful())
+        postError(Qx::GenericError(Qx::GenericError::Warning, logOpen.getOutcome(), logOpen.getOutcomeInfo()), false);
 
     //-Determine Operation Mode------------------------------------------------------------
     OperationMode operationMode;
@@ -1107,6 +1114,8 @@ ErrorCode enqueueDataPackTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QUu
 
         if(!checksumMatches)
             postError(Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
+
+        logEvent(LOG_EVENT_DATA_PACK_FOUND);
     }
     else
         logEvent(LOG_EVENT_DATA_PACK_MISS);
@@ -1241,6 +1250,7 @@ ErrorCode processTaskQueue(std::queue<std::shared_ptr<Task>>& taskQueue, QList<Q
                 });
 
                 QObject::connect(&dm, &Qx::SyncDownloadManager::authenticationRequired, [](QString prompt, QString* username, QString* password, bool* abort) {
+                    logEvent(LOG_EVENT_DOWNLOAD_AUTH);
                     Qx::LoginDialog ld;
                     ld.setPrompt(prompt);
 
