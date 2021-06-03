@@ -28,101 +28,94 @@ Qx::IOOpReport Logger::openLog()
     if(logFileInfo.exists() && logFileInfo.isFile() && !Qx::fileIsEmpty(*mLogFile))
     {
         // Add spacer to start of new entry
-        entry.prepend('\n');
+        entryStart.prepend('\n');
 
         // Get entry count and locations
         QList<Qx::TextPos> entryStartLocations;
-        logFileOpReport = Qx::findStringInFile(entryStartLocations, logFile, mEntryHeader);
+        logFileOpReport = Qx::findStringInFile(entryStartLocations, *mLogFile, mEntryHeader);
         if(!logFileOpReport.wasSuccessful())
+        {
+            mErrorStatus = logFileOpReport;
             return logFileOpReport;
+        }
 
         // Purge oldest entries if current count is at or above limit
         if(entryStartLocations.count() >= mMaxEntries)
         {
             int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
             Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).getLineNum() - 1, -1);
-            logFileOpReport = Qx::deleteTextRangeFromFile(logFile, Qx::TextPos::START, deleteEnd);
+            logFileOpReport = Qx::deleteTextRangeFromFile(*mLogFile, Qx::TextPos::START, deleteEnd);
             if(!logFileOpReport.wasSuccessful())
+            {
+                mErrorStatus = logFileOpReport;
                 return logFileOpReport;
+            }
         }
     }
 
     // Open log through stream
-    Qx::IOOpReport openReport = mTextStreamWriter->openFile();
-
-    if(!openReport.wasSuccessful())
-        return openReport;
+    logFileOpReport = mTextStreamWriter->openFile();
+    if(!logFileOpReport.wasSuccessful())
+    {
+        mErrorStatus = logFileOpReport;
+        return logFileOpReport;
+    }
 
     // Construct entry start
-    if(mTextStreamWriter)
+    // Header
+    entryStart += ENTRY_START_TEMPLATE.arg(mEntryHeader, mTimeStamp.toString()) + "\n";
+
+    // Start parameters
+    entryStart += RAW_CL_LABEL + " " + mRawCommandLine + "\n";
+    entryStart += INTERP_CL_LABEL + " " + mInterpretedCommandLine + "\n";
+
+    // Write start of entry
+    logFileOpReport = mTextStreamWriter->writeText(entryStart);
+    return logFileOpReport;
 }
 
-void Logger::recordErrorEvent(Qx::GenericError error)
+Qx::IOOpReport Logger::recordErrorEvent(Qx::GenericError error)
 {
-    QString errorString = "[" + ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + "] " + error.primaryInfo();
-    if(!error.secondaryInfo().isNull())
-        errorString + " " + error.secondaryInfo();
-    if(!error.detailedInfo().isNull())
-        errorString + " " + error.detailedInfo();
+    if(mErrorStatus.wasSuccessful())
+    {
+        QString errorString = EVENT_TEMPLATE.arg(QTime::currentTime().toString(), "[" + ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + "] " + error.primaryInfo());
+        if(!error.secondaryInfo().isNull())
+            errorString + " " + error.secondaryInfo();
+        if(!error.detailedInfo().isNull())
+            errorString + "\n\t" + error.detailedInfo().replace("\n", "\n\t");
 
-    mEvents.append(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), errorString));
+        mErrorStatus = mTextStreamWriter->writeLine(errorString);
+        return mErrorStatus;
+    }
+
+    return Qx::IOOpReport();
 }
 
-void Logger::recordGeneralEvent(QString event) { mEvents.append(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), event)); }
+Qx::IOOpReport Logger::recordGeneralEvent(QString event)
+{
+    if(mErrorStatus.wasSuccessful())
+    {
+        mErrorStatus = mTextStreamWriter->writeLine(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), event));
+        return mErrorStatus;
+    }
+
+    return Qx::IOOpReport();
+}
 
 Qx::IOOpReport Logger::finish(int returnCode)
 {
-    //-Construct Entry---------------------------------------------------
-    QString entry;
-
-    // Header
-    entry += ENTRY_START_TEMPLATE.arg(mEntryHeader, mTimeStamp.toString()) + "\n";
-
-    // Start parameters
-    entry += RAW_CL_LABEL + " " + mRawCommandLine + "\n";
-    entry += INTERP_CL_LABEL + " " + mInterpretedCommandLine + "\n";
-
-    // Exit code
-    entry += EXIT_CODE_LABEL + " " + QString::number(returnCode) + "\n";
-
-    // Entries
-    entry += EVENTS_LABEL;
-    for(const QString& event : mEvents)
-        entry += "\n - " + event;
-
-    //-Prepare Log File--------------------------------------------------
-    QFile logFile(mFilePath);
-    QFileInfo logFileInfo(logFile);
-    Qx::IOOpReport logFileOpReport;
-
-    //-Handle Formating For Existing Log---------------------------------
-    if(logFileInfo.exists() && logFileInfo.isFile() && !Qx::fileIsEmpty(logFile))
+    if(mErrorStatus.wasSuccessful())
     {
-        // Add spacer to start of new entry
-        entry.prepend('\n');
+        // Print exit code
+        mErrorStatus = mTextStreamWriter->writeLine(FINISH_TEMPLATE.arg(returnCode == 0 ? FINISH_SUCCESS : FINISH_ERR).arg(returnCode));
 
-        // Get entry count and locations
-        QList<Qx::TextPos> entryStartLocations;
-        logFileOpReport = Qx::findStringInFile(entryStartLocations, logFile, mEntryHeader);
-        if(!logFileOpReport.wasSuccessful())
-            return logFileOpReport;
-
-        // Purge oldest entries if current count is at or above limit
-        if(entryStartLocations.count() >= mMaxEntries)
-        {
-            int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
-            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).getLineNum() - 1, -1);
-            logFileOpReport = Qx::deleteTextRangeFromFile(logFile, Qx::TextPos::START, deleteEnd);
-            if(!logFileOpReport.wasSuccessful())
-                return logFileOpReport;
-        }
+        // Close log
+        mTextStreamWriter->closeFile();
+        return mErrorStatus;
     }
 
-    //-Append Entry to Log----------------------------------------------
-    logFileOpReport = Qx::writeStringToEndOfFile(logFile, entry, true, true);
-    if(!logFileOpReport.wasSuccessful())
-        return logFileOpReport;
-
-    // Return Success
-    return Qx::IOOpReport(Qx::IO_OP_WRITE, Qx::IO_SUCCESS, logFile);
+    return Qx::IOOpReport();
 }
+
+Qx::IOOpReport Logger::error() { return mErrorStatus; }
+bool Logger::hasError() { return !mErrorStatus.wasSuccessful(); }

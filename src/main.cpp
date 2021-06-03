@@ -349,7 +349,6 @@ const QString LOG_EVENT_TASK_FINISH = "End of task %1";
 const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
 const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
 const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
-const QString LOG_EVENT_ALL_FINISH = "Execution finished successfully";
 const QString LOG_EVENT_TASK_SKIP = "App Task skipped due to previous errors";
 const QString LOG_EVENT_CD = "Changed current directory to: %1";
 const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
@@ -396,7 +395,7 @@ void logTask(const Task* const task);
 void logProcessStart(const QProcess* process, ProcessType type);
 void logProcessEnd(const QProcess* process, ProcessType type);
 void logError(Qx::GenericError error);
-int printLogAndExit(int exitCode);
+int logFinish(int exitCode);
 
 int main(int argc, char *argv[])
 {
@@ -450,7 +449,8 @@ int main(int argc, char *argv[])
         interpCL = LOG_NO_PARAMS;
 
     // Logger instance
-    gLogger = std::make_unique<Logger>(CLIFP_DIR_PATH + '/' + LOG_FILE_NAME, rawCL, interpCL, LOG_HEADER, LOG_MAX_ENTRIES);
+    QFile logFile(CLIFP_DIR_PATH + '/' + LOG_FILE_NAME);
+    gLogger = std::make_unique<Logger>(&logFile, rawCL, interpCL, LOG_HEADER, LOG_MAX_ENTRIES);
 
     //-Determine Operation Mode------------------------------------------------------------
     OperationMode operationMode;
@@ -478,13 +478,13 @@ int main(int argc, char *argv[])
             QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
             logEvent(LOG_EVENT_HELP_SHOWN);
         }
-        return printLogAndExit(NO_ERR);
+        return logFinish(NO_ERR);
     }
     else if(operationMode == OperationMode::Invalid)
     {
         QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE);
         logError(Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM));
-        return printLogAndExit(INVALID_ARGS);
+        return logFinish(INVALID_ARGS);
     }
 
     logEvent(LOG_EVENT_INIT);
@@ -493,14 +493,14 @@ int main(int argc, char *argv[])
     if(!Qx::enforceSingleInstance())
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        return printLogAndExit(ALREADY_OPEN);
+        return logFinish(ALREADY_OPEN);
     }
 
     // Ensure Flashpoint Launcher isn't running
     if(Qx::processIsRunning(QFileInfo(FP::Install::LAUNCHER_PATH).fileName()))
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        return printLogAndExit(LAUNCHER_OPEN);
+        return logFinish(LAUNCHER_OPEN);
     }
 
     //-Find and link to Flashpoint Install----------------------------------------------------------
@@ -510,7 +510,7 @@ int main(int argc, char *argv[])
     if((fpRoot = findFlashpointRoot()).isNull())
     {
         postError(Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        return printLogAndExit(INSTALL_INVALID);
+        return logFinish(INSTALL_INVALID);
     }
 
     FP::Install flashpointInstall(fpRoot, CLIFP_DIR_PATH.remove(fpRoot).remove(1, 1));
@@ -525,13 +525,13 @@ int main(int argc, char *argv[])
     if((settingsReadError = flashpointInstall.getConfig(flashpointConfig)).isValid())
     {
         postError(settingsReadError);
-        return printLogAndExit(CANT_PARSE_CONFIG);
+        return logFinish(CANT_PARSE_CONFIG);
     }
 
     if((settingsReadError = flashpointInstall.getServices(flashpointServices)).isValid())
     {
         postError(settingsReadError);
-        return printLogAndExit(CANT_PARSE_SERVICES);
+        return logFinish(CANT_PARSE_SERVICES);
     }
 
     //-Proccess Tracking-------------------------------------------------------------------
@@ -557,7 +557,7 @@ int main(int argc, char *argv[])
 
         case OperationMode::Direct:
             if((enqueueError = enqueueStartupTasks(taskQueue, fpRoot, flashpointConfig, flashpointServices)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             inputInfo = QFileInfo(fpRoot + '/' + clParser.value(CL_OPTION_APP));
 
@@ -574,7 +574,7 @@ int main(int argc, char *argv[])
 
             // Add wait task if required
             if((enqueueError = enqueueConditionalWaitTask(taskQueue, inputInfo)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
             break;
         case OperationMode::Random:
             rawRandFilter = clParser.value(CL_OPTION_RAND);
@@ -589,26 +589,26 @@ int main(int argc, char *argv[])
             else
             {
                 postError(Qx::GenericError(Qx::GenericError::Critical, ERR_RAND_FILTER_INVALID));
-                return printLogAndExit(ErrorCode::RAND_FILTER_NOT_VALID);
+                return logFinish(ErrorCode::RAND_FILTER_NOT_VALID);
             }
 
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             if((enqueueError = randomlySelectID(autoID, secondaryID, flashpointInstall, randFilter)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             if((enqueueError = enqueueStartupTasks(taskQueue, fpRoot, flashpointConfig, flashpointServices)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             if((enqueueError = enqueueAutomaticTasks(taskQueue, secondaryID.isNull() ? autoID : secondaryID, flashpointInstall)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             // Get selection info if not suppressed
             if(gNotificationVerbosity == NotificationVerbosity::Full)
             {
                 if((enqueueError = getRandomSelectionInfo(selectionInfo, flashpointInstall, autoID, secondaryID)))
-                    return printLogAndExit(enqueueError);
+                    return logFinish(enqueueError);
 
                 // Display selection info
                 QMessageBox::information(nullptr, QApplication::applicationName(), selectionInfo);
@@ -619,52 +619,52 @@ int main(int argc, char *argv[])
             if((autoID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
             {
                 postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
-                return printLogAndExit(ID_NOT_VALID);
+                return logFinish(ID_NOT_VALID);
             }
 
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             if((enqueueError = enqueueStartupTasks(taskQueue, fpRoot, flashpointConfig, flashpointServices)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             if((enqueueError = enqueueAutomaticTasks(taskQueue, autoID, flashpointInstall)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
             break;
 
         case OperationMode::Prepare:
             if((secondaryID = QUuid(clParser.value(CL_OPTION_AUTO))).isNull())
             {
                 postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
-                return printLogAndExit(ID_NOT_VALID);
+                return logFinish(ID_NOT_VALID);
             }
 
             if((enqueueError = openAndVerifyProperDatabase(flashpointInstall)))
-                return printLogAndExit(enqueueError);
+                return logFinish(enqueueError);
 
             bool titleUsesDataPack;
             if((sqlError = flashpointInstall.entryUsesDataPack(titleUsesDataPack, secondaryID)).isValid())
             {
                 postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, sqlError.text()));
-                return printLogAndExit(SQL_ERROR);
+                return logFinish(SQL_ERROR);
             }
 
             if(titleUsesDataPack)
             {
                 if((enqueueError = enqueueDataPackTasks(taskQueue, secondaryID, flashpointInstall)))
-                    return printLogAndExit(enqueueError);
+                    return logFinish(enqueueError);
             }
             else
             {
                 logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(secondaryID.toString(QUuid::WithoutBraces))));
-                return printLogAndExit(NO_ERR);
+                return logFinish(NO_ERR);
             }
             break;
 
         case OperationMode::Message:
             QMessageBox::information(nullptr, QCoreApplication::applicationName(), clParser.value(CL_OPTION_MSG));
             logEvent(LOG_EVENT_SHOW_MESSAGE);
-            return printLogAndExit(NO_ERR);
+            return logFinish(NO_ERR);
 
         case OperationMode::Extra:
             // Ensure extra exists
@@ -672,13 +672,13 @@ int main(int argc, char *argv[])
             if(!inputInfo.exists() || !inputInfo.isDir())
             {
                 postError(Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(inputInfo.fileName())));
-                return printLogAndExit(EXTRA_NOT_FOUND);
+                return logFinish(EXTRA_NOT_FOUND);
             }
 
             // Open extra
             QDesktopServices::openUrl(QUrl::fromLocalFile(inputInfo.absoluteFilePath()));
             logEvent(LOG_EVENT_SHOW_EXTRA.arg(inputInfo.fileName()));
-            return printLogAndExit(NO_ERR);
+            return logFinish(NO_ERR);
 
         case OperationMode::Information:
             // Already handled
@@ -701,8 +701,7 @@ int main(int argc, char *argv[])
     logEvent(LOG_EVENT_CLEANUP_FINISH);
 
     // Return error status
-    logEvent(LOG_EVENT_ALL_FINISH);
-    return printLogAndExit(executionError);
+    return logFinish(executionError);
 }
 
 //-Processing Functions-------------------------------------------------------------
@@ -1760,7 +1759,12 @@ int postError(Qx::GenericError error, bool log, QMessageBox::StandardButtons bs,
         return def;
 }
 
-void logEvent(QString event) { gLogger->recordGeneralEvent(event); }
+void logEvent(QString event)
+{
+    Qx::IOOpReport logReport = gLogger->recordGeneralEvent(event);
+    if(!logReport.wasSuccessful())
+        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
+}
 
 void logTask(const Task* const task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name()).arg(task->members().join(", "))); }
 
@@ -1782,20 +1786,23 @@ void logProcessEnd(const QProcess* process, ProcessType type)
 
 void logError(Qx::GenericError error)
 {
-    gLogger->recordErrorEvent(error);
+    Qx::IOOpReport logReport = gLogger->recordErrorEvent(error);
+
+    if(!logReport.wasSuccessful())
+        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 
     if(error.errorLevel() == Qx::GenericError::Critical)
         gCritErrOccurred = true;
 }
 
-int printLogAndExit(int exitCode)
+int logFinish(int exitCode)
 {
     if(gCritErrOccurred)
         logEvent(LOG_ERR_CRITICAL);
 
-    Qx::IOOpReport logPrintReport = gLogger->finish(exitCode);
-    if(!logPrintReport.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logPrintReport.getOutcome(), logPrintReport.getOutcomeInfo()), false);
+    Qx::IOOpReport logReport = gLogger->finish(exitCode);
+    if(!logReport.wasSuccessful())
+        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 
     // Return exit code so main function can return with this one
     return exitCode;

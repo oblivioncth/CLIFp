@@ -763,7 +763,7 @@ QSqlError Install::queryGamesByPlatform(QList<DBQueryBuffer>& resultBuffer, QStr
 
         if(!idFilter.isEmpty())
         {
-            QString idCSV = Qx::String::join(idFilter, "','", [](QUuid id){return id.toString(QUuid::WithoutBraces);});
+            QString idCSV = Qx::String::join(idFilter, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
             filteredQueryCommand += " AND " + DBTable_Game::COL_ID + " IN('" + idCSV + "')";
         }
 
@@ -925,7 +925,7 @@ QSqlError Install::queryPlaylistGameIDs(DBQueryBuffer& resultBuffer, const QList
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 
     // Create playlist ID query string
-    QString idCSV = Qx::String::join(playlistIDs, "','", [](QUuid id){return id.toString(QUuid::WithoutBraces);});
+    QString idCSV = Qx::String::join(playlistIDs, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
 
     // Query all game IDs that fall under given the playlists
     QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Playlist_Game::NAME + " WHERE " +

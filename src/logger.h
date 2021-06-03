@@ -15,8 +15,10 @@ private:
     static inline const QString EVENT_TEMPLATE = "<%1> %2";
     static inline const QString RAW_CL_LABEL = "Raw Parameters:";
     static inline const QString INTERP_CL_LABEL = "Interpreted Parameters:";
-    static inline const QString EXIT_CODE_LABEL = "Exit Code:";
     static inline const QString EVENTS_LABEL = "Events:";
+    static inline const QString FINISH_TEMPLATE = "---------- Execution finished %1 (Code %2) ----------";
+    static inline const QString FINISH_SUCCESS = "successfully";
+    static inline const QString FINISH_ERR = "prematurely";
 
     static inline const QHash<Qx::GenericError::ErrorLevel, QString> ERROR_LEVEL_STR_MAP = {
         {Qx::GenericError::Undefined, "UNDEF_LEVEL"},
@@ -28,7 +30,7 @@ private:
 //-Instance Variables-------------------------------------------------------------------------------------------------
 private:
     // From constructor
-    QFile const* mLogFile;
+    QFile* const mLogFile;
     QString mRawCommandLine;
     QString mInterpretedCommandLine;
     QString mEntryHeader;
@@ -37,6 +39,7 @@ private:
 
     // Working var
     std::unique_ptr<Qx::TextStreamWriter> mTextStreamWriter;
+    Qx::IOOpReport mErrorStatus = Qx::IOOpReport();
 
 //-Constructor--------------------------------------------------------------------------------------------------------
 public:
@@ -45,9 +48,12 @@ public:
 //-Instance Functions-------------------------------------------------------------------------------------------------
 public:
     Qx::IOOpReport openLog();
-    void recordErrorEvent(Qx::GenericError error);
-    void recordGeneralEvent(QString event);
-    Qx::IOOpReport closeLog(int returnCode);
+    Qx::IOOpReport recordErrorEvent(Qx::GenericError error);
+    Qx::IOOpReport recordGeneralEvent(QString event);
+    Qx::IOOpReport finish(int returnCode);
+
+    Qx::IOOpReport error();
+    bool hasError();
 };
 
 #endif // LOGGER_H
