@@ -857,9 +857,10 @@ ErrorCode enqueueAutomaticTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QU
         // Clear queue if this entry is a message or extra
         QString appPath = searchResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
         if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE || appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
+        {
             taskQueue = {};
-
-        logEvent(LOG_EVENT_QUEUE_CLEARED);
+            logEvent(LOG_EVENT_QUEUE_CLEARED);
+        }
 
         // Check if parent entry uses a data pack
         QSqlError packCheckError;
