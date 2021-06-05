@@ -339,7 +339,7 @@ const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
 const QString LOG_EVENT_ENQ_DATA_PACK = "Enqueuing Data Pack tasks...";
 const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
 const QString LOG_EVENT_ID_MATCH_TITLE = "Auto ID matches main title: %1";
-const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1";
+const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1 (Child of %2)";
 const QString LOG_EVENT_QUEUE_CLEARED = "Previous queue entries cleared due to auto task being a Message/Extra";
 const QString LOG_EVENT_FOUND_AUTORUN = "Found autorun-before additional app: %1";
 const QString LOG_EVENT_DATA_PACK_MISS = "Title Data Pack is not available locally";
@@ -852,7 +852,8 @@ ErrorCode enqueueAutomaticTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QU
     // Enqueue if result is additional app
     if(searchResult.source == FP::Install::DBTable_Add_App::NAME)
     {
-        logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString()));
+        logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString(),
+                                               searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toString()));
 
         // Clear queue if this entry is a message or extra
         QString appPath = searchResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
