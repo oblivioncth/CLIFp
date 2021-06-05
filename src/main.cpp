@@ -853,7 +853,7 @@ ErrorCode enqueueAutomaticTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QU
     if(searchResult.source == FP::Install::DBTable_Add_App::NAME)
     {
         logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString(),
-                                               searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toString()));
+                                               searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toUuid().toString(QUuid::WithoutBraces)));
 
         // Clear queue if this entry is a message or extra
         QString appPath = searchResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
