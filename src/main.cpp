@@ -1126,7 +1126,7 @@ ErrorCode enqueueDataPackTasks(std::queue<std::shared_ptr<Task>>& taskQueue, QUu
     if(!packFile.exists() || !checksumMatches)
     {
         // Get Data Pack source info
-        searchError = fpInstall.queryEntrySource(searchResult);
+        searchError = fpInstall.queryDataPackSource(searchResult);
         if(searchError.isValid())
         {
             postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));

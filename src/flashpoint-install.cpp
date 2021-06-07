@@ -27,6 +27,14 @@ uint qHash(const Install::StartStop& key, uint seed) noexcept
 }
 
 //===============================================================================================================
+// INSTALL::TagCategory
+//===============================================================================================================
+
+//-Opperators----------------------------------------------------------------------------------------------------
+//Public:
+bool operator< (const Install::TagCategory& lhs, const Install::TagCategory& rhs) noexcept { return lhs.name < rhs.name; }
+
+//===============================================================================================================
 // INSTALL::JsonConfigReader
 //===============================================================================================================
 
@@ -366,6 +374,8 @@ QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString 
         return APP_ARG.arg(originalAppPath) + " " + PARAM_ARG.arg(originalAppParams) + " -q";
 }
 
+QString Install::CLIFp::parametersFromStandard(QUuid titleID) { return AUTO_ARG.arg(titleID.toString(QUuid::WithoutBraces)) + " -q"; }
+
 //===============================================================================================================
 // INSTALL
 //===============================================================================================================
@@ -519,11 +529,10 @@ QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* d
 bool Install::matchesTargetVersion() const
 {    
     // Check exe checksum
-    mLauncherFile->open(QFile::ReadOnly);
-    QByteArray mainEXEFileData = mLauncherFile->readAll();
-    mLauncherFile->close();
+    QString launcherHash;
+    Qx::calculateFileChecksum(launcherHash, *mLauncherFile, QCryptographicHash::Sha256);
 
-    if(Qx::Integrity::generateChecksum(mainEXEFileData, QCryptographicHash::Sha256) != TARGET_EXE_SHA256)
+    if(launcherHash != TARGET_EXE_SHA256)
         return false;
 
     // Check version file
@@ -672,16 +681,16 @@ QSqlError Install::populateAvailableItems()
     // Get database
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 
+    // Ensure lists are reset
+    mPlatformList.clear();
+    mPlaylistList.clear();
+
     // Make platform query
     QSqlQuery platformQuery("SELECT DISTINCT " + DBTable_Game::COL_PLATFORM + " FROM " + DBTable_Game::NAME, fpDB);
 
     // Return if error occurs
     if(platformQuery.lastError().isValid())
         return platformQuery.lastError();
-
-    // Ensure lists are reset
-    mPlatformList.clear();
-    mPlaylistList.clear();
 
     // Parse query
     while(platformQuery.next())
@@ -708,7 +717,67 @@ QSqlError Install::populateAvailableItems()
     return QSqlError();
 }
 
-bool Install::deployCLIFp(QString& errorMessage)
+QSqlError Install::populateTags()
+{
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Ensure list is reset
+    mTagMap.clear();
+
+    // Temporary id map
+    QHash<int, QString> primaryAliases;
+
+    // Make tag category query
+    QSqlQuery categoryQuery("SELECT `" + DBTable_Tag_Category::COLUMN_LIST.join("`,`") + "` FROM " + DBTable_Tag_Category::NAME, fpDB);
+
+    // Return if error occurs
+    if(categoryQuery.lastError().isValid())
+        return categoryQuery.lastError();
+
+    // Parse query
+    while(categoryQuery.next())
+    {
+        TagCategory tc;
+        tc.name = categoryQuery.value(DBTable_Tag_Category::COL_NAME).toString();
+        tc.color = QColor(categoryQuery.value(DBTable_Tag_Category::COL_COLOR).toString());
+
+        mTagMap[categoryQuery.value(DBTable_Tag_Category::COL_ID).toInt()] = tc;
+    }
+
+    // Make tag alias query
+    QSqlQuery aliasQuery("SELECT `" + DBTable_Tag_Alias::COLUMN_LIST.join("`,`") + "` FROM " + DBTable_Tag_Alias::NAME, fpDB);
+
+    // Return if error occurs
+    if(aliasQuery.lastError().isValid())
+        return aliasQuery.lastError();
+
+    // Parse query
+    while(aliasQuery.next())
+        primaryAliases[aliasQuery.value(DBTable_Tag_Alias::COL_ID).toInt()] = aliasQuery.value(DBTable_Tag_Alias::COL_NAME).toString();
+
+    // Make tag query
+    QSqlQuery tagQuery("SELECT `" + DBTable_Tag::COLUMN_LIST.join("`,`") + "` FROM " + DBTable_Tag::NAME, fpDB);
+
+    // Return if error occurs
+    if(tagQuery.lastError().isValid())
+        return tagQuery.lastError();
+
+    // Parse query
+    while(tagQuery.next())
+    {
+        Tag tag;
+        tag.id = tagQuery.value(DBTable_Tag::COL_ID).toInt();
+        tag.primaryAlias = primaryAliases.value(tagQuery.value(DBTable_Tag::COL_PRIMARY_ALIAS_ID).toInt());
+
+        mTagMap[tagQuery.value(DBTable_Tag::COL_CATEGORY_ID).toInt()].tags[tag.id] = tag;
+    }
+
+    // Return invalid SqlError
+    return QSqlError();
+}
+
+bool Install::deployCLIFp(QString& errorMessage, QString sourcePath)
 {
     // Ensure error message is null
     errorMessage = QString();
@@ -724,7 +793,7 @@ bool Install::deployCLIFp(QString& errorMessage)
     }
 
     // Deploy new
-    QFile internalCLIFp(":/res/file/" + FP::Install::CLIFp::EXE_NAME);
+    QFile internalCLIFp(sourcePath);
     if(!internalCLIFp.copy(mCLIFpFile->fileName()))
     {
         errorMessage = internalCLIFp.errorString();
@@ -740,7 +809,7 @@ bool Install::deployCLIFp(QString& errorMessage)
 }
 
 QSqlError Install::queryGamesByPlatform(QList<DBQueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
-                                        const QList<QUuid>& idFilter) const
+                                        const QList<QUuid>& idInclusionFilter) const
 {
     // Ensure return buffer is reset
     resultBuffer.clear();
@@ -748,25 +817,47 @@ QSqlError Install::queryGamesByPlatform(QList<DBQueryBuffer>& resultBuffer, QStr
     // Get database
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 
+    // Determine game exclusion filter from tag exclusions if applicable
+    QSet<QUuid> idExclusionFilter;
+    if(!inclusionOptions.excludedTagIds.isEmpty())
+    {
+        // Make game tag sets query
+        QString tagIdCSV = Qx::String::join(inclusionOptions.excludedTagIds, [](int tagId){return QString::number(tagId);}, "','");
+        QSqlQuery tagQuery("SELECT `" + DBTable_Game_Tags_Tag::COL_GAME_ID + "` FROM " + DBTable_Game_Tags_Tag::NAME +
+                           " WHERE " + DBTable_Game_Tags_Tag::COL_TAG_ID + " IN('" + tagIdCSV + "')", fpDB);
+
+        QSqlError tagQueryError = tagQuery.lastError();
+        if(tagQueryError.isValid())
+            return tagQueryError;
+
+        // Populate exclusion filter
+        while(tagQuery.next())
+            idExclusionFilter.insert(tagQuery.value(DBTable_Game_Tags_Tag::COL_GAME_ID).toUuid());
+    }
+
     for(const QString& platform : platforms) // Naturally returns empty list if no platforms are selected
     {
         // Create platform query string
         QString placeholder = ":platform";
         QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game::NAME + " WHERE " +
-                DBTable_Game::COL_PLATFORM + " = " + placeholder + " AND ";
+                                   DBTable_Game::COL_PLATFORM + " = " + placeholder + " AND ";
 
         // Handle filtering
         QString filteredQueryCommand = baseQueryCommand.append(inclusionOptions.includeAnimations ? GAME_AND_ANIM_FILTER : GAME_ONLY_FILTER);
 
-        if(!inclusionOptions.includeExtreme)
-            filteredQueryCommand += " AND " + DBTable_Game::COL_EXTREME + " = '0'";
-
-        if(!idFilter.isEmpty())
+        if(!idExclusionFilter.isEmpty())
         {
-            QString idCSV = Qx::String::join(idFilter, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
-            filteredQueryCommand += " AND " + DBTable_Game::COL_ID + " IN('" + idCSV + "')";
+            QString gameIdCSV = Qx::String::join(idExclusionFilter, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
+            filteredQueryCommand += " AND " + DBTable_Game::COL_ID + " NOT IN('" + gameIdCSV + "')";
         }
 
+        if(!idInclusionFilter.isEmpty())
+        {
+            QString gameIdCSV = Qx::String::join(idInclusionFilter, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
+            filteredQueryCommand += " AND " + DBTable_Game::COL_ID + " IN('" + gameIdCSV + "')";
+        }
+
+        // Create final command strings
         QString mainQueryCommand = filteredQueryCommand.arg("`" + DBTable_Game::COLUMN_LIST.join("`,`") + "`");
         QString sizeQueryCommand = filteredQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
@@ -945,6 +1036,30 @@ QSqlError Install::queryPlaylistGameIDs(DBQueryBuffer& resultBuffer, const QList
 
 }
 
+QSqlError Install::queryAllEntryTags(DBQueryBuffer& resultBuffer) const
+{
+    // Ensure return buffer is empty
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Query all tags tied to game IDs
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game_Tags_Tag::NAME;
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game_Tags_Tag::COL_GAME_ID + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query
+    QSqlError queryError;
+    resultBuffer.source = DBTable_Playlist_Game::NAME;
+
+    if((queryError = makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
+        return queryError;
+
+    // Return invalid SqlError
+    return QSqlError();
+}
+
 QSqlError Install::queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const
 {
     // Ensure return buffer is effectively null
@@ -1024,7 +1139,7 @@ QSqlError Install::queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, b
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError Install::queryEntrySource(DBQueryBuffer& resultBuffer) const
+QSqlError Install::queryDataPackSource(DBQueryBuffer& resultBuffer) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = DBQueryBuffer();
@@ -1065,7 +1180,7 @@ QSqlError Install::queryEntrySourceData(DBQueryBuffer& resultBuffer, QString app
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter filter) const
+QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter includeFilter) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = DBQueryBuffer();
@@ -1076,7 +1191,7 @@ QSqlError Install::queryAllGameIDs(DBQueryBuffer& resultBuffer, LibraryFilter fi
     // Make query
     QString baseQueryCommand = "SELECT %2 FROM " + DBTable_Game::NAME + " WHERE " +
                                DBTable_Game::COL_STATUS + " != '" + DBTable_Game::ENTRY_NOT_WORK + "'%1";
-    baseQueryCommand = baseQueryCommand.arg(filter == LibraryFilter::Game ? " AND " + GAME_ONLY_FILTER : (filter == LibraryFilter::Anim ? " AND " + ANIM_ONLY_FILTER : ""));
+    baseQueryCommand = baseQueryCommand.arg(includeFilter == LibraryFilter::Game ? " AND " + GAME_ONLY_FILTER : (includeFilter == LibraryFilter::Anim ? " AND " + ANIM_ONLY_FILTER : ""));
     QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game::COL_ID + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
@@ -1120,5 +1235,6 @@ QDir Install::getScrenshootsDirectory() const { return mScreenshotsDirectory; }
 QDir Install::getExtrasDirectory() const { return mExtrasDirectory; }
 QString Install::getCLIFpPath() const { return mCLIFpFile->fileName(); }
 QString Install::getDataPackMounterPath() const { return mDataPackMounterFile->fileName(); }
+QMap<int, Install::TagCategory> Install::getTags() const { return mTagMap; }
 
 }
