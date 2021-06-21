@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
         return coreCLI.logFinish(NAME, Core::INSTALL_INVALID);
     }
 
-    std::unique_ptr<FP::Install> flashpointInstall = std::make_unique<FP::Install>(fpRoot, CLIFP_DIR_PATH.remove(fpRoot).remove(1, 1));
+    std::unique_ptr<FP::Install> flashpointInstall = std::make_unique<FP::Install>(fpRoot);
     coreCLI.logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(fpRoot));
 
     // Insert into core

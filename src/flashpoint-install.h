@@ -441,11 +441,6 @@ public:
     static inline const QString LOGOS_FOLDER_NAME = "Logos";
     static inline const QString SCREENSHOTS_FOLDER_NAME = "Screenshots";
 
-    // Version check
-    static inline const QString TARGET_EXE_SHA256 = "4be65e6d17bfb1ad7299644f58fc6ad639e6b07c8493139447010aa301b47ba6";
-    static inline const QString TARGET_ULT_VER_STRING = R"(Flashpoint 10 Ultimate - "Absence")";
-    static inline const QString TARGET_INF_VER_STRING = R"(Flashpoint 10 Infinity - "Absence")";
-
     // Database
     static inline const QString DATABASE_CONNECTION_NAME = "Flashpoint Database";
     static inline const QList<DBTableSpecs> DATABASE_SPECS_LIST = {{DBTable_Game::NAME, DBTable_Game::COLUMN_LIST},
@@ -466,7 +461,6 @@ private:
     QDir mScreenshotsDirectory;
     QDir mExtrasDirectory;
     std::unique_ptr<QFile> mLauncherFile;
-    std::unique_ptr<QFile> mCLIFpFile;
     std::unique_ptr<QFile> mDatabaseFile;
     std::shared_ptr<QFile> mConfigJsonFile;
     std::shared_ptr<QFile> mPreferencesJsonFile;
@@ -481,7 +475,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    Install(QString installPath, QString clifpSubPath = QString());
+    Install(QString installPath);
 
 //-Desctructor-------------------------------------------------------------------------------------------------
 public:
@@ -498,10 +492,9 @@ private:
     QSqlError makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const;
 
 public:
-    // General Information
-    bool matchesTargetVersion() const;
-    bool hasCLIFp() const;
-    Qx::MMRB currentCLIFpVersion() const;
+    // General information
+    QString versionString() const;
+    QString launcherChecksum() const;
 
     // Connection
     QSqlError openThreadDatabaseConnection();
@@ -520,7 +513,6 @@ public:
     // Commands
     QSqlError populateAvailableItems();
     QSqlError populateTags();
-    bool deployCLIFp(QString &errorMessage, QString sourcePath);
 
     // Queries - OFLIb
     QSqlError queryGamesByPlatform(QList<DBQueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
@@ -549,7 +541,6 @@ public:
     QDir getLogosDirectory() const;
     QDir getScrenshootsDirectory() const;
     QDir getExtrasDirectory() const;
-    QString getCLIFpPath() const;
     QString getDataPackMounterPath() const;
     QMap<int, TagCategory> getTags() const;
 };

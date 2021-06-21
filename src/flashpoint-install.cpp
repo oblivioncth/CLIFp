@@ -1,7 +1,6 @@
 #include "flashpoint-install.h"
 #include "qx-io.h"
 #include "qx-windows.h"
-#include "clifp.h"
 
 namespace FP
 {
@@ -365,7 +364,7 @@ Qx::GenericError Install::JsonServicesReader::readInto()
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::Install(QString installPath, QString clifpSubPath)
+Install::Install(QString installPath)
 {
     // Ensure instance will be at least minimally compatible
     if(!checkInstallValidity(installPath, CompatLevel::Execution).installValid)
@@ -380,9 +379,6 @@ Install::Install(QString installPath, QString clifpSubPath)
     mDataPackMounterFile = std::make_shared<QFile>(installPath + "/" + DATA_PACK_MOUNTER_PATH);
     mVersionFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
     mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
-
-    // Initialize flexible files and directories
-    mCLIFpFile = std::make_unique<QFile>(installPath + "/" + (clifpSubPath.isNull() ? "" : clifpSubPath + "/") + CLIFp::EXE_NAME); // Defaults to root
 
     // Get preferences
     Preferences installPreferences;
@@ -536,42 +532,22 @@ QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* d
 }
 
 //Public:
-bool Install::matchesTargetVersion() const
-{    
-    // Check exe checksum
+QString Install::versionString() const
+{
+    // Check version file
+    QString readVersion = QString();
+    if(mVersionFile->exists())
+        Qx::readTextFromFile(readVersion, *mVersionFile, Qx::TextPos::START).wasSuccessful();
+
+    return readVersion;
+}
+
+QString Install::launcherChecksum() const
+{
     QString launcherHash;
     Qx::calculateFileChecksum(launcherHash, *mLauncherFile, QCryptographicHash::Sha256);
 
-    if(launcherHash != TARGET_EXE_SHA256)
-        return false;
-
-    // Check version file
-    QString readVersion;
-    if(!mVersionFile->exists())
-        return false;
-
-    if(!Qx::readTextFromFile(readVersion, *mVersionFile, Qx::TextPos::START).wasSuccessful())
-        return false;
-
-    if(readVersion != TARGET_ULT_VER_STRING && readVersion != TARGET_INF_VER_STRING)
-        return false;
-
-    // Return true if all passes
-    return true;
-}
-
-bool Install::hasCLIFp() const
-{
-    QFileInfo presentInfo(*mCLIFpFile);
-    return presentInfo.exists() && presentInfo.isFile();
-}
-
-Qx::MMRB Install::currentCLIFpVersion() const
-{
-    if(!hasCLIFp())
-        return Qx::MMRB();
-    else
-        return Qx::getFileDetails(mCLIFpFile->fileName()).getFileVersion();
+    return launcherHash;
 }
 
 QSqlError Install::openThreadDatabaseConnection()
@@ -785,37 +761,6 @@ QSqlError Install::populateTags()
 
     // Return invalid SqlError
     return QSqlError();
-}
-
-bool Install::deployCLIFp(QString& errorMessage, QString sourcePath)
-{
-    // Ensure error message is null
-    errorMessage = QString();
-
-    // Delete existing if present
-    if(QFile::exists(mCLIFpFile->fileName()) && QFileInfo(mCLIFpFile->fileName()).isFile())
-    {
-        if(!mCLIFpFile->remove())
-        {
-            errorMessage = mCLIFpFile->errorString();
-            return false;
-        }
-    }
-
-    // Deploy new
-    QFile internalCLIFp(sourcePath);
-    if(!internalCLIFp.copy(mCLIFpFile->fileName()))
-    {
-        errorMessage = internalCLIFp.errorString();
-        return false;
-    }
-
-    // Remove default read-only state
-    mCLIFpFile->setPermissions(QFile::ReadOther | QFile::WriteOther);
-
-    // Return true on
-    return true;
-
 }
 
 QSqlError Install::queryGamesByPlatform(QList<DBQueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
@@ -1243,7 +1188,6 @@ QStringList Install::getPlaylistList() const { return mPlaylistList; }
 QDir Install::getLogosDirectory() const { return mLogosDirectory; }
 QDir Install::getScrenshootsDirectory() const { return mScreenshotsDirectory; }
 QDir Install::getExtrasDirectory() const { return mExtrasDirectory; }
-QString Install::getCLIFpPath() const { return mCLIFpFile->fileName(); }
 QString Install::getDataPackMounterPath() const { return mDataPackMounterFile->fileName(); }
 QMap<int, Install::TagCategory> Install::getTags() const { return mTagMap; }
 
