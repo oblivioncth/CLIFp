@@ -14,9 +14,9 @@ const QList<const QCommandLineOption*> CRun::options() { return CL_OPTIONS_SPECI
 const QString CRun::name() { return NAME; }
 
 //Public:
-Core::ErrorCode CRun::process(const QStringList& commandLine)
+ErrorCode CRun::process(const QStringList& commandLine)
 {
-    Core::ErrorCode errorStatus;
+    ErrorCode errorStatus;
 
     // Parse and check for valid arguments
     if((errorStatus = parse(commandLine)))
@@ -24,13 +24,13 @@ Core::ErrorCode CRun::process(const QStringList& commandLine)
 
     // Handle standard options
     if(checkStandardOptions())
-        return Core::NO_ERR;
+        return Core::ErrorCodes::NO_ERR;
 
     // Make sure that at least an app was provided
     if(!mParser.isSet(CL_OPTION_PARAM))
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_APP));
-        return Core::INVALID_ARGS;
+        return Core::ErrorCodes::INVALID_ARGS;
     }
 
     // Enqueue startup tasks
@@ -54,5 +54,5 @@ Core::ErrorCode CRun::process(const QStringList& commandLine)
         return errorStatus;
 
     // Return success
-    return Core::NO_ERR;
+    return Core::ErrorCodes::NO_ERR;
 }

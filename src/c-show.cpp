@@ -14,9 +14,9 @@ const QList<const QCommandLineOption*> CShow::options() { return CL_OPTIONS_SPEC
 const QString CShow::name() { return NAME; }
 
 //Public:
-Core::ErrorCode CShow::process(const QStringList& commandLine)
+ErrorCode CShow::process(const QStringList& commandLine)
 {
-    Core::ErrorCode errorStatus;
+    ErrorCode errorStatus;
 
     // Parse and check for valid arguments
     if((errorStatus = parse(commandLine)))
@@ -24,7 +24,7 @@ Core::ErrorCode CShow::process(const QStringList& commandLine)
 
     // Handle standard options
     if(checkStandardOptions())
-        return Core::NO_ERR;
+        return Core::ErrorCodes::NO_ERR;
 
     // Enqueue show task
     if(mParser.isSet(CL_OPTION_MSG))
@@ -47,9 +47,11 @@ Core::ErrorCode CShow::process(const QStringList& commandLine)
     else
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_SHOW));
-        return Core::INVALID_ARGS;
+        return Core::ErrorCodes::INVALID_ARGS;
     }
 
     // Return success
-    return Core::NO_ERR;
+    return Core::ErrorCodes::NO_ERR;
 }
+
+REGISTER_COMMAND(CShow::NAME, CShow, CShow::DESCRIPTION)

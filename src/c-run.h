@@ -43,7 +43,7 @@ protected:
     const QString name();
 
 public:
-    Core::ErrorCode process(const QStringList& commandLine);
+    ErrorCode process(const QStringList& commandLine);
 };
 
 REGISTER_COMMAND(CRun::NAME, CRun, CRun::DESCRIPTION);

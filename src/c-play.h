@@ -5,6 +5,16 @@
 
 class CPlay : public Command
 {
+//-Inner Classes--------------------------------------------------------------------------------------------------------
+private:
+    class ErrorCodes
+    {
+    //-Class Variables--------------------------------------------------------------------------------------------------
+    public:
+        static const ErrorCode RAND_FILTER_NOT_VALID = 101;
+        static const ErrorCode PARENT_INVALID = 102;
+    };
+
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Error Messages - Prep
@@ -76,17 +86,17 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
      //TODO: Eventually rework to return via ref arg a list of tasks and a bool if app is message/extra so that startup tasks can be enq afterwords and queue clearing is unneccesary
-    Core::ErrorCode enqueueAutomaticTasks(bool&wasStandalone, QUuid targetID);
-    Core::ErrorCode enqueueAdditionalApp(FP::Install::DBQueryBuffer addAppResult, Core::TaskStage taskStage);
-    Core::ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install::LibraryFilter lbFilter);
-    Core::ErrorCode getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid subID);
+    ErrorCode enqueueAutomaticTasks(bool&wasStandalone, QUuid targetID);
+    ErrorCode enqueueAdditionalApp(FP::Install::DBQueryBuffer addAppResult, Core::TaskStage taskStage);
+    ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install::LibraryFilter lbFilter);
+    ErrorCode getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid subID);
 
 protected:
     const QList<const QCommandLineOption*> options();
     const QString name();
 
 public:
-    Core::ErrorCode process(const QStringList& commandLine);
+    ErrorCode process(const QStringList& commandLine);
 };
 
 REGISTER_COMMAND(CPlay::NAME, CPlay, CPlay::DESCRIPTION);

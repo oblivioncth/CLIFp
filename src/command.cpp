@@ -24,7 +24,7 @@ std::unique_ptr<Command> Command::acquire(const QString& name, Core& coreRef) { 
 //Protected:
 const QList<const QCommandLineOption*> Command::options() { return CL_OPTIONS_STANDARD; }
 
-Core::ErrorCode Command::parse(const QStringList& commandLine)
+ErrorCode Command::parse(const QStringList& commandLine)
 {
     // Add command options
     for(const QCommandLineOption* clOption : options())
@@ -58,11 +58,11 @@ Core::ErrorCode Command::parse(const QStringList& commandLine)
     mCore.logCommandOptions(NAME, optionsStr);
 
     if(validArgs)
-        return Core::NO_ERR;
+        return Core::ErrorCodes::NO_ERR;
     else
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, mParser.errorText()));
-        return Core::INVALID_ARGS;
+        return Core::ErrorCodes::INVALID_ARGS;
     }
 }
 

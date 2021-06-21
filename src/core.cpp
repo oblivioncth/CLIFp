@@ -68,7 +68,7 @@ void Core::showHelp() const
 void Core::showVersion() const { QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE); }
 
 //Public:
-Core::ErrorCode Core::initialize(QStringList& commandLine)
+ErrorCode Core::initialize(QStringList& commandLine)
 {
     // Setup CLI Parser
     QCommandLineParser clParser;
@@ -138,19 +138,19 @@ Core::ErrorCode Core::initialize(QStringList& commandLine)
             commandLine = clParser.positionalArguments(); // Remove core options from command line list
 
         // Return success
-        return NO_ERR;
+        return ErrorCodes::NO_ERR;
     }
     else
     {
         commandLine.clear(); // Clear remaining options since they are now irrelavent
         showHelp();
         logError(NAME, Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
-        return INVALID_ARGS;
+        return ErrorCodes::INVALID_ARGS;
     }
 
 }
 
-Core::ErrorCode Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall)
+ErrorCode Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall)
 {
     // Capture install
     mFlashpointInstall = std::move(flashpointInstall);
@@ -161,26 +161,26 @@ Core::ErrorCode Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointIn
     if((settingsReadError = mFlashpointInstall->getPreferences(mFlashpointPreferences)).isValid())
     {
         postError(NAME, settingsReadError);
-        return ErrorCode::CANT_PARSE_PREF;
+        return ErrorCodes::CANT_PARSE_PREF;
     }
 
     if((settingsReadError = mFlashpointInstall->getConfig(mFlashpointConfig)).isValid())
     {
         postError(NAME, settingsReadError);
-        return ErrorCode::CANT_PARSE_CONFIG;
+        return ErrorCodes::CANT_PARSE_CONFIG;
     }
 
     if((settingsReadError = mFlashpointInstall->getServices(mFlashpointServices)).isValid())
     {
         postError(NAME, settingsReadError);
-        return ErrorCode::CANT_PARSE_SERVICES;
+        return ErrorCodes::CANT_PARSE_SERVICES;
     }
 
     // Return success
-    return Core::NO_ERR;
+    return ErrorCodes::NO_ERR;
 }
 
-Core::ErrorCode Core::openAndVerifyProperDatabase()
+ErrorCode Core::openAndVerifyProperDatabase()
 {
     if(!mFlashpointInstall->databaseConnectionOpenInThisThread())
     {
@@ -189,7 +189,7 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         if(databaseError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
-            return SQL_ERROR;
+            return ErrorCodes::SQL_ERROR;
         }
 
         // Ensure required database tables are present
@@ -197,7 +197,7 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         if((databaseError = mFlashpointInstall->checkDatabaseForRequiredTables(missingTables)).isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
-            return SQL_ERROR;
+            return ErrorCodes::SQL_ERROR;
         }
 
         // Check if tables are missing
@@ -205,7 +205,7 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DB_MISSING_TABLE, QString(),
                              QStringList(missingTables.begin(), missingTables.end()).join("\n")));
-            return DB_MISSING_TABLES;
+            return ErrorCodes::DB_MISSING_TABLES;
         }
 
         // Ensure the database contains the required columns
@@ -213,7 +213,7 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         if((databaseError = mFlashpointInstall->checkDatabaseForRequiredColumns(missingColumns)).isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
-            return SQL_ERROR;
+            return ErrorCodes::SQL_ERROR;
         }
 
         // Check if columns are missing
@@ -221,15 +221,15 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DB_TABLE_MISSING_COLUMN, QString(),
                              QStringList(missingColumns.begin(), missingColumns.end()).join("\n")));
-            return DB_MISSING_COLUMNS;
+            return ErrorCodes::DB_MISSING_COLUMNS;
         }
     }
 
     // Return success
-    return NO_ERR;
+    return ErrorCodes::NO_ERR;
 }
 
-Core::ErrorCode Core::enqueueStartupTasks()
+ErrorCode Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
     // Add Start entries from services
@@ -253,7 +253,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
         if(!mFlashpointServices.servers.contains(mFlashpointConfig.server))
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
-            return CONFIG_SERVER_MISSING;
+            return ErrorCodes::CONFIG_SERVER_MISSING;
         }
 
         FP::Install::ServerDaemon configuredServer = mFlashpointServices.servers.value(mFlashpointConfig.server);
@@ -287,7 +287,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
     }
 
     // Return success
-    return NO_ERR;
+    return ErrorCodes::NO_ERR;
 }
 
 void Core::enqueueShutdownTasks()
@@ -309,7 +309,7 @@ void Core::enqueueShutdownTasks()
     }
 }
 
-Core::ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
+ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 {
     // Add wait for apps that involve secure player
     bool involvesSecurePlayer;
@@ -317,7 +317,7 @@ Core::ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     if(securePlayerCheckError.isValid())
     {
         postError(NAME, securePlayerCheckError);
-        return CANT_READ_BAT_FILE;
+        return ErrorCodes::CANT_READ_BAT_FILE;
     }
 
     if(involvesSecurePlayer)
@@ -331,12 +331,12 @@ Core::ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     }
 
     // Return success
-    return NO_ERR;
+    return ErrorCodes::NO_ERR;
 
     // Possible future waits...
 }
 
-Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
+ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
@@ -347,7 +347,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     if((searchError = mFlashpointInstall->queryEntryDataByID(searchResult, targetID)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return SQL_ERROR;
+        return ErrorCodes::SQL_ERROR;
     }
 
     // Advance result to only record
@@ -384,7 +384,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return SQL_ERROR;
+            return ErrorCodes::SQL_ERROR;
         }
 
         // Advance result to only record (or first if there are more than one in future versions)
@@ -398,7 +398,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return SQL_ERROR;
+            return ErrorCodes::SQL_ERROR;
         }
 
         // Advance result to only record
@@ -433,7 +433,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     logTask(NAME, mountTask.get());
 
     // Return success
-    return NO_ERR;
+    return ErrorCodes::NO_ERR;
 }
 
 void Core::enqueueSingleTask(std::shared_ptr<Task> task) { mTaskQueue.push(task); logTask(NAME, task.get()); }

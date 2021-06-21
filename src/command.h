@@ -75,12 +75,12 @@ public:
 protected:
     virtual const QList<const QCommandLineOption*> options() = 0;
     virtual const QString name() = 0;
-    Core::ErrorCode parse(const QStringList& commandLine);
+    ErrorCode parse(const QStringList& commandLine);
     bool checkStandardOptions();
     void showHelp();
 
 public:
-    virtual Core::ErrorCode process(const QStringList& commandLine) = 0;
+    virtual ErrorCode process(const QStringList& commandLine) = 0;
 };
 
 class CommandFactory

@@ -16,7 +16,6 @@
 #include "flashpoint-install.h"
 #include "logger.h"
 
-
 // Error Messages - Prep
 const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
 const QString ERR_LAUNCHER_RUNNING_P = "The CLI cannot be used while the Flashpoint Launcher is running.";
@@ -34,7 +33,6 @@ const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = "Could not get a wait handle to 
 const QString WRN_WAIT_PROCESS_NOT_HANDLED_S = "The title may not work correctly";
 const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting.";
 const QString WRN_WAIT_PROCESS_NOT_HOOKED_S = "The title may not work correctly";
-
 
 // Suffixes
 const QString BAT_SUFX = "bat";
@@ -80,10 +78,10 @@ const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
 const QString NAME = "main";
 
 // Prototypes - Process
-Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses);
-void handleExecutionError(Core& core, int taskNum, Core::ErrorCode& currentError, Core::ErrorCode newError);
+ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses);
+void handleExecutionError(Core& core, int taskNum, ErrorCode& currentError, ErrorCode newError);
 bool cleanStartProcess(Core& core, QProcess* process, QFileInfo exeInfo);
-Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs);
+ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs);
 void cleanup(Core& core, QList<QProcess*>& childProcesses);
 
 // Prototypes - Helper
@@ -92,7 +90,7 @@ QString escapeNativeArgsForCMD(Core& core, QString nativeArgs);
 void logProcessStart(Core& core, const QProcess* process, Core::ProcessType type);
 void logProcessEnd(Core& core, const QProcess* process, Core::ProcessType type);
 
-int main(int argc, char *argv[])
+ErrorCode main(int argc, char *argv[])
 {
     //-Basic Application Setup-------------------------------------------------------------
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -105,7 +103,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
 
     // Error status tracker
-    Core::ErrorCode errorStatus = Core::NO_ERR;
+    ErrorCode errorStatus = Core::ErrorCodes::NO_ERR;
 
     // Create Core instance
     Core coreCLI;
@@ -119,14 +117,14 @@ int main(int argc, char *argv[])
     if(!Qx::enforceSingleInstance())
     {
         coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        return coreCLI.logFinish(NAME, Core::ALREADY_OPEN);
+        return coreCLI.logFinish(NAME, Core::ErrorCodes::ALREADY_OPEN);
     }
 
     // Ensure Flashpoint Launcher isn't running
     if(Qx::processIsRunning(QFileInfo(FP::Install::LAUNCHER_PATH).fileName()))
     {
         coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        return coreCLI.logFinish(NAME, Core::LAUNCHER_OPEN);
+        return coreCLI.logFinish(NAME, Core::ErrorCodes::LAUNCHER_OPEN);
     }
 
     //-Find and link to Flashpoint Install----------------------------------------------------------
@@ -136,7 +134,7 @@ int main(int argc, char *argv[])
     if((fpRoot = findFlashpointRoot(coreCLI)).isNull())
     {
         coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        return coreCLI.logFinish(NAME, Core::INSTALL_INVALID);
+        return coreCLI.logFinish(NAME, Core::ErrorCodes::INSTALL_INVALID);
     }
 
     std::unique_ptr<FP::Install> flashpointInstall = std::make_unique<FP::Install>(fpRoot);
@@ -155,7 +153,7 @@ int main(int argc, char *argv[])
     if(!Command::isRegistered(commandStr))
     {
         coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
-        return coreCLI.logFinish(NAME, Core::INVALID_ARGS);
+        return coreCLI.logFinish(NAME, Core::ErrorCodes::INVALID_ARGS);
     }
 
     // Create command instance
@@ -172,7 +170,7 @@ int main(int argc, char *argv[])
         QList<QProcess*> activeChildProcesses;
 
         // Process app task queue
-        Core::ErrorCode executionError = processTaskQueue(coreCLI, activeChildProcesses);
+        ErrorCode executionError = processTaskQueue(coreCLI, activeChildProcesses);
         coreCLI.logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
 
         // Cleanup
@@ -183,14 +181,14 @@ int main(int argc, char *argv[])
         return coreCLI.logFinish(NAME, executionError);
     }
     else
-        return coreCLI.logFinish(NAME, Core::NO_ERR);
+        return coreCLI.logFinish(NAME, Core::ErrorCodes::NO_ERR);
 }
 
-Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
+ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 {
     core.logEvent(NAME, LOG_EVENT_QUEUE_START);
     // Error tracker
-    Core::ErrorCode executionError = Core::NO_ERR;
+    ErrorCode executionError = Core::ErrorCodes::NO_ERR;
 
     // Exhaust queue
     int taskNum = -1;
@@ -220,7 +218,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 if(!extraTask->dir.exists())
                 {
                     core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraTask->dir.path())));
-                    handleExecutionError(core, taskNum, executionError, Core::EXTRA_NOT_FOUND);
+                    handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::EXTRA_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
@@ -232,7 +230,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
             {
                 std::shared_ptr<Core::WaitTask> waitTask = std::static_pointer_cast<Core::WaitTask>(currentTask);
 
-                Core::ErrorCode waitError = waitOnProcess(core, waitTask->processName, SECURE_PLAYER_GRACE);
+                ErrorCode waitError = waitOnProcess(core, waitTask->processName, SECURE_PLAYER_GRACE);
                 if(waitError)
                 {
                     handleExecutionError(core, taskNum, executionError, waitError);
@@ -292,7 +290,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 {
                     downloadError.setErrorLevel(Qx::GenericError::Critical);
                     core.postError(NAME, downloadError);
-                    handleExecutionError(core, taskNum, executionError, Core::CANT_OBTAIN_DATA_PACK);
+                    handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
                 }
 
                 // Confirm checksum
@@ -301,7 +299,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 if(!checksumResult.wasSuccessful() || !checksumMatch)
                 {
                     core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
-                    handleExecutionError(core, taskNum, executionError, Core::DATA_PACK_INVALID);
+                    handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::DATA_PACK_INVALID);
                 }
 
                 core.logEvent(NAME, LOG_EVENT_DOWNLOAD_SUCC);
@@ -316,7 +314,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 {
                     core.postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                     ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(core, taskNum, executionError, Core::EXECUTABLE_NOT_FOUND);
+                    handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
@@ -325,7 +323,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 {
                     core.postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                     ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(core, taskNum, executionError, Core::EXECUTABLE_NOT_VALID);
+                    handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::EXECUTABLE_NOT_VALID);
                     continue; // Continue to next task
                 }
 
@@ -352,7 +350,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                         taskProcess->setParent(QApplication::instance());
                         if(!cleanStartProcess(core,taskProcess, executableInfo))
                         {
-                            handleExecutionError(core, taskNum, executionError, Core::PROCESS_START_FAIL);
+                            handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(core, taskProcess, Core::ProcessType::Blocking);
@@ -366,7 +364,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                         taskProcess->setParent(QApplication::instance());
                         if(!cleanStartProcess(core, taskProcess, executableInfo))
                         {
-                            handleExecutionError(core, taskNum, executionError, Core::PROCESS_START_FAIL);
+                            handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(core, taskProcess, Core::ProcessType::Deferred);
@@ -377,7 +375,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                     case Core::ProcessType::Detached:
                         if(!taskProcess->startDetached())
                         {
-                            handleExecutionError(core, taskNum, executionError, Core::PROCESS_START_FAIL);
+                            handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(core, taskProcess, Core::ProcessType::Detached);
@@ -398,7 +396,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
     return executionError;
 }
 
-void handleExecutionError(Core& core, int taskNum, Core::ErrorCode& currentError, Core::ErrorCode newError)
+void handleExecutionError(Core& core, int taskNum, ErrorCode& currentError, ErrorCode newError)
 {
     if(!currentError) // Only record first error
         currentError = newError;
@@ -422,7 +420,7 @@ bool cleanStartProcess(Core& core, QProcess* process, QFileInfo exeInfo)
     return true;
 }
 
-Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
+ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
 {
     // Wait until secure player has stopped running for grace period
     DWORD spProcessID;
@@ -447,7 +445,7 @@ Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
             {
                 core.postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(processName),
                                            WRN_WAIT_PROCESS_NOT_HANDLED_S));
-                return Core::WAIT_PROCESS_NOT_HANDLED;
+                return Core::ErrorCodes::WAIT_PROCESS_NOT_HANDLED;
             }
 
             // Attempt to wait on process to terminate
@@ -461,7 +459,7 @@ Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
             {
                 core.postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(processName),
                                            WRN_WAIT_PROCESS_NOT_HOOKED_S));
-                return Core::WAIT_PROCESS_NOT_HOOKED;
+                return Core::ErrorCodes::WAIT_PROCESS_NOT_HOOKED;
             }
             core.logEvent(NAME, LOG_EVENT_WAIT_QUIT.arg(processName));
         }
@@ -470,7 +468,7 @@ Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
 
     // Return success
     core.logEvent(NAME, LOG_EVENT_WAIT_FINISHED.arg(processName));
-    return Core::NO_ERR;
+    return Core::ErrorCodes::NO_ERR;
 }
 
 
