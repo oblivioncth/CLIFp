@@ -1,6 +1,7 @@
 #include "flashpoint-install.h"
 #include "qx-io.h"
 #include "qx-windows.h"
+#include "clifp.h"
 
 namespace FP
 {
@@ -357,24 +358,6 @@ Qx::GenericError Install::JsonServicesReader::readInto()
     else
         return parseServicesDocument(servicesDocument);
 }
-
-//===============================================================================================================
-// INSTALL::CLIFp
-//===============================================================================================================
-
-//-Class Functions--------------------------------------------------------------------------------------------
-//Public:
-QString Install::CLIFp::parametersFromStandard(QString originalAppPath, QString originalAppParams)
-{
-    if(originalAppPath == DBTable_Add_App::ENTRY_MESSAGE)
-        return MSG_ARG.arg(originalAppParams) + " -q";
-    else if(originalAppPath == DBTable_Add_App::ENTRY_EXTRAS)
-        return EXTRA_ARG.arg(originalAppParams) + " -q";
-    else
-        return APP_ARG.arg(originalAppPath) + " " + PARAM_ARG.arg(originalAppParams) + " -q";
-}
-
-QString Install::CLIFp::parametersFromStandard(QUuid titleID) { return AUTO_ARG.arg(titleID.toString(QUuid::WithoutBraces)) + " -q"; }
 
 //===============================================================================================================
 // INSTALL
