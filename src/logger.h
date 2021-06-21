@@ -12,9 +12,9 @@ class Logger
 private:
     static inline const QString HEADER_TEMPLATE = "[ %1 ]";
     static inline const QString ENTRY_START_TEMPLATE = "%1 : %2";
-    static inline const QString EVENT_TEMPLATE = " - <%1> %2";
-    static inline const QString RAW_CL_LABEL = "Raw Parameters:";
-    static inline const QString INTERP_CL_LABEL = "Interpreted Parameters:";
+    static inline const QString EVENT_TEMPLATE = " - <%1> %2"; //TODO - Add argument to loggining functions for "Section" name (i.e. Main, Core, Play, Run, etc.) to be logged
+    static inline const QString COMMANDLINE_LABEL = "Raw Parameters:";
+    static inline const QString GLOBAL_OPT_LABEL = "Global Options:";
     static inline const QString EVENTS_LABEL = "Events:";
     static inline const QString FINISH_TEMPLATE = "---------- Execution finished %1 (Code %2) ----------";
     static inline const QString FINISH_SUCCESS = "successfully";
@@ -31,8 +31,8 @@ private:
 private:
     // From constructor
     QFile* const mLogFile;
-    QString mRawCommandLine;
-    QString mInterpretedCommandLine;
+    QString mCommandLine;
+    QString mGlobalOptions;
     QString mEntryHeader;
     QDateTime mTimeStamp;
     int mMaxEntries;
@@ -43,11 +43,12 @@ private:
 
 //-Constructor--------------------------------------------------------------------------------------------------------
 public:
-    Logger(QFile* const logFile, QString rawCL, QString interpCL, QString header, int maxEntries);
+    Logger(QFile* const logFile, QString commandLine, QString globalOptions, QString header, int maxEntries);
 
 //-Instance Functions-------------------------------------------------------------------------------------------------
 public:
     Qx::IOOpReport openLog();
+    Qx::IOOpReport recordVerbatim(QString text);
     Qx::IOOpReport recordErrorEvent(Qx::GenericError error);
     Qx::IOOpReport recordGeneralEvent(QString event);
     Qx::IOOpReport finish(int returnCode);

@@ -444,6 +444,9 @@ public:
     static inline const QString DATA_PACK_MOUNTER_PATH = "FPSoftware/fpmount/fpmount.exe";
     static inline const QString VER_TXT_PATH = "version.txt";
 
+    // File Info
+    static inline const QFileInfo SECURE_PLAYER_INFO = QFileInfo("FlashpointSecurePlayer.exe");
+
     // Dynamic path file names
     static inline const QString SERVICES_JSON_NAME = "services.json";
 
@@ -503,6 +506,7 @@ public:
 //-Class Functions------------------------------------------------------------------------------------------------------
 public:
     static ValidityReport checkInstallValidity(QString installPath, CompatLevel compatLevel);
+    static Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

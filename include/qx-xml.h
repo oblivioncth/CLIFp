@@ -38,6 +38,10 @@ public:
     QString getText();
 };
 
+//-Functions-------------------------------------------------------------------------------------------------------------
+//Public:
+QString xmlSanitized(QString string);
+
 }
 
 #endif // QXXML_H

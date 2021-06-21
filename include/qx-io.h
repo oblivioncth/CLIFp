@@ -32,14 +32,43 @@ public:
     static const inline QStringList TARGET_TYPES  = {"file", "directory"};
     static const inline QString SUCCESS_TEMPLATE = R"(Succesfully %1 %2 "%3")";
     static const inline QString ERROR_TEMPLATE = R"(Error while %1 %2 "%3")";
-    static const inline QStringList SUCCESS_VERBS = {"read", "wrote", "enumerated", "inspected"};
-    static const inline QStringList ERROR_VERBS = {"reading", "writing", "enumerating", "inspecting"};
-    static const inline QStringList ERROR_INFO = {"An unknown error has occured.", "Access denied.", "Target is not a file.", "Target is not a directory.", "Out of resources.",
-                                                  "General read error.", "General write error.", "A fatal error has occured.", "Could not open file.", "The opperation was aborted.",
-                                                  "Request timed out.", "The file could not be removed.", "The file could not be renamed.", "The file could not be moved.",
-                                                  "The file could not be resized.", "The file could not be copied.", "File does not exist.", "Directory does not exist.",
-                                                  "The file already exists.", "The directory could not be created.", "File size mismatch.", "File data cursor has gone out of bounds.",
-                                                  "The file is not open."};
+    static const inline QHash<IOOpType, QString> SUCCESS_VERBS = {
+        {IO_OP_READ, "read"},
+        {IO_OP_WRITE, "wrote"},
+        {IO_OP_ENUMERATE, "enumerated"},
+        {IO_OP_INSPECT, "inspected"}
+    };
+    static const inline QHash<IOOpType, QString> ERROR_VERBS = {
+        {IO_OP_READ, "reading"},
+        {IO_OP_WRITE, "writing"},
+        {IO_OP_ENUMERATE, "enumerating"},
+        {IO_OP_INSPECT, "inspecting"}
+    };
+    static const inline QHash<IOOpResultType, QString> ERROR_INFO = {
+        {IO_ERR_UNKNOWN, "An unknown error has occured."},
+        {IO_ERR_ACCESS_DENIED, "Access denied."},
+        {IO_ERR_NOT_A_FILE, "Target is not a file."},
+        {IO_ERR_NOT_A_DIR, "Target is not a directory."},
+        {IO_ERR_OUT_OF_RES, "Out of resources."},
+        {IO_ERR_READ, "General read error."},
+        {IO_ERR_WRITE, "General write error."},
+        {IO_ERR_FATAL, "A fatal error has occured."},
+        {IO_ERR_OPEN, "Could not open file."},
+        {IO_ERR_ABORT, "The opperation was aborted."},
+        {IO_ERR_TIMEOUT, "Request timed out."},
+        {IO_ERR_REMOVE, "The file could not be removed."},
+        {IO_ERR_RENAME, "The file could not be renamed."},
+        {IO_ERR_REPOSITION, "The file could not be moved."},
+        {IO_ERR_RESIZE, "The file could not be resized."},
+        {IO_ERR_COPY, "The file could not be copied."},
+        {IO_ERR_FILE_DNE, "File does not exist."},
+        {IO_ERR_DIR_DNE, "Directory does not exist."},
+        {IO_ERR_FILE_EXISTS, "The file already exists."},
+        {IO_ERR_CANT_MAKE_DIR, "The directory could not be created."},
+        {IO_ERR_FILE_SIZE_MISMATCH, "File size mismatch."},
+        {IO_ERR_CURSOR_OOB, "File data cursor has gone out of bounds."},
+        {IO_ERR_FILE_NOT_OPEN, "The file is not open."}
+    };
 
 //-Instance Members-------------------------------------------------------------------------------------------------
 private:

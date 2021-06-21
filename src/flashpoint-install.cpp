@@ -476,6 +476,33 @@ Install::ValidityReport Install::checkInstallValidity(QString installPath, Compa
     return ValidityReport{true, QString()};
 }
 
+Qx::GenericError FP::Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
+{
+    // Reset buffer
+    involvesBuffer = false;
+
+    if(appInfo.fileName().contains(SECURE_PLAYER_INFO.baseName()))
+    {
+        involvesBuffer = true;
+        return Qx::GenericError();
+    }
+
+    else if(appInfo.suffix().compare(".bat", Qt::CaseInsensitive) == 0)
+    {
+        // Check if bat uses secure player
+        QFile batFile(appInfo.absoluteFilePath());
+        Qx::IOOpReport readReport = Qx::fileContainsString(involvesBuffer, batFile, SECURE_PLAYER_INFO.baseName());
+
+        // Check for read errors
+        if(!readReport.wasSuccessful())
+            return Qx::GenericError(Qx::GenericError::Critical, readReport.getOutcome(), readReport.getOutcomeInfo());
+        else
+            return Qx::GenericError();
+    }
+    else
+        return Qx::GenericError();
+}
+
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
 QSqlDatabase Install::getThreadedDatabaseConnection() const

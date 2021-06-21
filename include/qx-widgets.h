@@ -25,6 +25,10 @@ private:
 public:
     explicit TreeInputDialog(QWidget *parent = nullptr);
 
+//-Instance Functions----------------------------------------------------------------------------------------------
+public:
+    void setModel(QAbstractItemModel *model);
+
 //-Signals---------------------------------------------------------------------------------------------------------
 signals:
     void selectAllClicked();

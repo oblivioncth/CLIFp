@@ -6,8 +6,8 @@
 
 //-Constructor---------------------------------------------------------------------------------------------------
 //Public:
-Logger::Logger(QFile* const logFile, QString rawCL, QString interpCL, QString header, int maxEntries)
-    : mLogFile(logFile), mRawCommandLine(rawCL), mInterpretedCommandLine(interpCL),
+Logger::Logger(QFile* const logFile, QString commandLine, QString globalOptions, QString header, int maxEntries)
+    : mLogFile(logFile), mCommandLine(commandLine), mGlobalOptions(globalOptions),
       mEntryHeader(HEADER_TEMPLATE.arg(header)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
 {
     // Initializer stream writer
@@ -66,12 +66,23 @@ Qx::IOOpReport Logger::openLog()
     entryStart += ENTRY_START_TEMPLATE.arg(mEntryHeader, mTimeStamp.toString()) + "\n";
 
     // Start parameters
-    entryStart += RAW_CL_LABEL + " " + mRawCommandLine + "\n";
-    entryStart += INTERP_CL_LABEL + " " + mInterpretedCommandLine + "\n";
+    entryStart += COMMANDLINE_LABEL + " " + mCommandLine + "\n";
+    entryStart += GLOBAL_OPT_LABEL + " " + mGlobalOptions + "\n";
 
     // Write start of entry
     logFileOpReport = mTextStreamWriter->writeText(entryStart);
     return logFileOpReport;
+}
+
+Qx::IOOpReport Logger::recordVerbatim(QString text)
+{
+    if(mErrorStatus.wasSuccessful())
+    {
+        mErrorStatus = mTextStreamWriter->writeLine(text);
+        return mErrorStatus;
+    }
+
+    return Qx::IOOpReport();
 }
 
 Qx::IOOpReport Logger::recordErrorEvent(Qx::GenericError error)
