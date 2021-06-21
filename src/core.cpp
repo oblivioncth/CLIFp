@@ -109,10 +109,10 @@ Core::ErrorCode Core::initialize(QStringList& commandLine)
     // Open log
     Qx::IOOpReport logOpen = mLogger->openLog();
     if(!logOpen.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logOpen.getOutcome(), logOpen.getOutcomeInfo()), false);
+        postError(NAME, Qx::GenericError(Qx::GenericError::Warning, logOpen.getOutcome(), logOpen.getOutcomeInfo()), false);
 
     // Log initialization step
-    logEvent(LOG_EVENT_INIT);
+    logEvent(NAME, LOG_EVENT_INIT);
 
     // Check for valid arguments
     if(validArgs)
@@ -125,14 +125,14 @@ Core::ErrorCode Core::initialize(QStringList& commandLine)
         {
             showVersion();
             commandLine.clear(); // Clear args so application terminates after Core setup
-            logEvent(LOG_EVENT_HELP_SHOWN);
+            logEvent(NAME, LOG_EVENT_HELP_SHOWN);
         }
 
         if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) == 0 && clParser.positionalArguments().count() == 0)) // Also when no parameters
         {
             showHelp();
             commandLine.clear(); // Clear args so application terminates after Core setup
-            logEvent(LOG_EVENT_HELP_SHOWN);
+            logEvent(NAME, LOG_EVENT_HELP_SHOWN);
         }
         else
             commandLine = clParser.positionalArguments(); // Remove core options from command line list
@@ -144,7 +144,7 @@ Core::ErrorCode Core::initialize(QStringList& commandLine)
     {
         commandLine.clear(); // Clear remaining options since they are now irrelavent
         showHelp();
-        logError(Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
+        logError(NAME, Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
         return INVALID_ARGS;
     }
 
@@ -160,19 +160,19 @@ Core::ErrorCode Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointIn
 
     if((settingsReadError = mFlashpointInstall->getPreferences(mFlashpointPreferences)).isValid())
     {
-        postError(settingsReadError);
+        postError(NAME, settingsReadError);
         return ErrorCode::CANT_PARSE_PREF;
     }
 
     if((settingsReadError = mFlashpointInstall->getConfig(mFlashpointConfig)).isValid())
     {
-        postError(settingsReadError);
+        postError(NAME, settingsReadError);
         return ErrorCode::CANT_PARSE_CONFIG;
     }
 
     if((settingsReadError = mFlashpointInstall->getServices(mFlashpointServices)).isValid())
     {
-        postError(settingsReadError);
+        postError(NAME, settingsReadError);
         return ErrorCode::CANT_PARSE_SERVICES;
     }
 
@@ -188,7 +188,7 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         QSqlError databaseError = mFlashpointInstall->openThreadDatabaseConnection();
         if(databaseError.isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
             return SQL_ERROR;
         }
 
@@ -196,14 +196,14 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         QSet<QString> missingTables;
         if((databaseError = mFlashpointInstall->checkDatabaseForRequiredTables(missingTables)).isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
             return SQL_ERROR;
         }
 
         // Check if tables are missing
         if(!missingTables.isEmpty())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_DB_MISSING_TABLE, QString(),
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DB_MISSING_TABLE, QString(),
                              QStringList(missingTables.begin(), missingTables.end()).join("\n")));
             return DB_MISSING_TABLES;
         }
@@ -212,14 +212,14 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
         QSet<QString> missingColumns;
         if((databaseError = mFlashpointInstall->checkDatabaseForRequiredColumns(missingColumns)).isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
             return SQL_ERROR;
         }
 
         // Check if columns are missing
         if(!missingColumns.isEmpty())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_DB_TABLE_MISSING_COLUMN, QString(),
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DB_TABLE_MISSING_COLUMN, QString(),
                              QStringList(missingColumns.begin(), missingColumns.end()).join("\n")));
             return DB_MISSING_COLUMNS;
         }
@@ -231,7 +231,7 @@ Core::ErrorCode Core::openAndVerifyProperDatabase()
 
 Core::ErrorCode Core::enqueueStartupTasks()
 {
-    logEvent(LOG_EVENT_ENQ_START);
+    logEvent(NAME, LOG_EVENT_ENQ_START);
     // Add Start entries from services
     for(const FP::Install::StartStop& startEntry : mFlashpointServices.starts)
     {
@@ -244,7 +244,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
         currentTask->processType = ProcessType::Blocking;
 
         mTaskQueue.push(currentTask);
-        logTask(currentTask.get());
+        logTask(NAME, currentTask.get());
     }
 
     // Add Server entry from services if applicable
@@ -252,7 +252,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
     {
         if(!mFlashpointServices.servers.contains(mFlashpointConfig.server))
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
             return CONFIG_SERVER_MISSING;
         }
 
@@ -267,7 +267,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
         serverTask->processType = configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached;
 
         mTaskQueue.push(serverTask);
-        logTask(serverTask.get());
+        logTask(NAME, serverTask.get());
     }
 
     // Add Daemon entry from services
@@ -283,7 +283,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
         currentTask->processType = daemonIt.value().kill ? ProcessType::Deferred : ProcessType::Detached;
 
         mTaskQueue.push(currentTask);
-        logTask(currentTask.get());
+        logTask(NAME, currentTask.get());
     }
 
     // Return success
@@ -292,7 +292,7 @@ Core::ErrorCode Core::enqueueStartupTasks()
 
 void Core::enqueueShutdownTasks()
 {
-    logEvent(LOG_EVENT_ENQ_STOP);
+    logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
     for(const FP::Install::StartStop& stopEntry : mFlashpointServices.stops)
     {
@@ -305,7 +305,7 @@ void Core::enqueueShutdownTasks()
         shutdownTask->processType = ProcessType::Blocking;
 
         mTaskQueue.push(shutdownTask);
-        logTask(shutdownTask.get());
+        logTask(NAME, shutdownTask.get());
     }
 }
 
@@ -316,7 +316,7 @@ Core::ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     Qx::GenericError securePlayerCheckError = FP::Install::appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
     if(securePlayerCheckError.isValid())
     {
-        postError(securePlayerCheckError);
+        postError(NAME, securePlayerCheckError);
         return CANT_READ_BAT_FILE;
     }
 
@@ -327,7 +327,7 @@ Core::ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
         waitTask->processName = FP::Install::SECURE_PLAYER_INFO.fileName();
 
         mTaskQueue.push(waitTask);
-        logTask(waitTask.get());
+        logTask(NAME, waitTask.get());
     }
 
     // Return success
@@ -338,7 +338,7 @@ Core::ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 
 Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
 {
-    logEvent(LOG_EVENT_ENQ_DATA_PACK);
+    logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
     // Get entry data
     QSqlError searchError;
@@ -346,7 +346,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
 
     if((searchError = mFlashpointInstall->queryEntryDataByID(searchResult, targetID)).isValid())
     {
-        postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
         return SQL_ERROR;
     }
 
@@ -366,15 +366,15 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     {
         Qx::IOOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, packSha256, QCryptographicHash::Sha256);
         if(!checksumReport.wasSuccessful())
-            logError(Qx::GenericError(Qx::GenericError::Error, checksumReport.getOutcome(), checksumReport.getOutcomeInfo()));
+            logError(NAME, Qx::GenericError(Qx::GenericError::Error, checksumReport.getOutcome(), checksumReport.getOutcomeInfo()));
 
         if(!checksumMatches)
-            postError(Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
 
-        logEvent(LOG_EVENT_DATA_PACK_FOUND);
+        logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
     }
     else
-        logEvent(LOG_EVENT_DATA_PACK_MISS);
+        logEvent(NAME, LOG_EVENT_DATA_PACK_MISS);
 
     // Enqueue pack download if it doesn't exist or is different than expected
     if(!packFile.exists() || !checksumMatches)
@@ -383,7 +383,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         searchError = mFlashpointInstall->queryDataPackSource(searchResult);
         if(searchError.isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
             return SQL_ERROR;
         }
 
@@ -397,7 +397,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         searchError = mFlashpointInstall->queryEntrySourceData(searchResult, packSha256);
         if(searchError.isValid())
         {
-            postError(Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
             return SQL_ERROR;
         }
 
@@ -415,7 +415,7 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         downloadTask->sha256 = packSha256;
 
         mTaskQueue.push(downloadTask);
-        logTask(downloadTask.get());
+        logTask(NAME, downloadTask.get());
     }
 
     // Enqeue pack mount
@@ -430,67 +430,67 @@ Core::ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     mountTask->processType = ProcessType::Blocking;
 
     mTaskQueue.push(mountTask);
-    logTask(mountTask.get());
+    logTask(NAME, mountTask.get());
 
     // Return success
     return NO_ERR;
 }
 
-void Core::enqueueSingleTask(std::shared_ptr<Task> task) { mTaskQueue.push(task); logTask(task.get()); }
+void Core::enqueueSingleTask(std::shared_ptr<Task> task) { mTaskQueue.push(task); logTask(NAME, task.get()); }
 void Core::clearTaskQueue() { mTaskQueue = {}; }
 
-void Core::logCommand(QString commandName)
+void Core::logCommand(QString src, QString commandName)
 {
-    Qx::IOOpReport logReport = mLogger->recordGeneralEvent(COMMAND_LABEL.arg(commandName));
+    Qx::IOOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_LABEL.arg(commandName));
     if(!logReport.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
+        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 }
 
-void Core::logCommandOptions(QString commandOptions)
+void Core::logCommandOptions(QString src, QString commandOptions)
 {
-    Qx::IOOpReport logReport = mLogger->recordGeneralEvent(COMMAND_OPT_LABEL.arg(commandOptions));
+    Qx::IOOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_OPT_LABEL.arg(commandOptions));
     if(!logReport.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
+        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 }
 
-void Core::logError(Qx::GenericError error)
+void Core::logError(QString src, Qx::GenericError error)
 {
-    Qx::IOOpReport logReport = mLogger->recordErrorEvent(error);
+    Qx::IOOpReport logReport = mLogger->recordErrorEvent(src, error);
 
     if(!logReport.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
+        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 
     if(error.errorLevel() == Qx::GenericError::Critical)
         mCriticalErrorOccured = true;
 }
 
-void Core::logEvent(QString event)
+void Core::logEvent(QString src, QString event)
 {
-    Qx::IOOpReport logReport = mLogger->recordGeneralEvent(event);
+    Qx::IOOpReport logReport = mLogger->recordGeneralEvent(src, event);
     if(!logReport.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
+        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 }
 
-void Core::logTask(const Task* const task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name()).arg(task->members().join(", "))); }
+void Core::logTask(QString src, const Task* const task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name()).arg(task->members().join(", "))); }
 
-int Core::logFinish(int exitCode)
+int Core::logFinish(QString src, int exitCode)
 {
     if(mCriticalErrorOccured)
-        logEvent(LOG_ERR_CRITICAL);
+        logEvent(src, LOG_ERR_CRITICAL);
 
     Qx::IOOpReport logReport = mLogger->finish(exitCode);
     if(!logReport.wasSuccessful())
-        postError(Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
+        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 
     // Return exit code so main function can return with this one
     return exitCode;
 }
 
-int Core::postError(Qx::GenericError error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
+int Core::postError(QString src, Qx::GenericError error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
 {
     // Logging
     if(log)
-        logError(error);
+        logError(src, error);
 
     // Show error if applicable
     if(mNotificationVerbosity == NotificationVerbosity::Full ||

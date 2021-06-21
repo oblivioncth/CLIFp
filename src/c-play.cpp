@@ -17,7 +17,7 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
     // Clear standalone check
     wasStandalone = false;
 
-    mCore.logEvent(LOG_EVENT_ENQ_AUTO);
+    mCore.logEvent(NAME, LOG_EVENT_ENQ_AUTO);
     // Search FP database for entry via ID
     QSqlError searchError;
     FP::Install::DBQueryBuffer searchResult;
@@ -26,19 +26,19 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
     searchError = mCore.getFlashpointInstall().queryEntryByID(searchResult, targetID);
     if(searchError.isValid())
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
         return Core::SQL_ERROR;
     }
 
     // Check if ID was found and that only one instance was found
     if(searchResult.size == 0)
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
         return Core::ID_NOT_FOUND;
     }
     else if(searchResult.size > 1)
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
         return Core::MORE_THAN_ONE_AUTO;
     }
 
@@ -48,7 +48,7 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
     // Enqueue if result is additional app
     if(searchResult.source == FP::Install::DBTable_Add_App::NAME)
     {
-        mCore.logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString(),
+        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString(),
                                                      searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toUuid().toString(QUuid::WithoutBraces)));
 
         // Clear queue if this entry is a message or extra
@@ -56,7 +56,7 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
         if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE || appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
         {
             mCore.clearTaskQueue();
-            mCore.logEvent(LOG_EVENT_QUEUE_CLEARED);
+            mCore.logEvent(NAME, LOG_EVENT_QUEUE_CLEARED);
             wasStandalone = true;
         }
 
@@ -67,19 +67,19 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
 
         if(parentID.isNull())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_PARENT_INVALID, searchResult.result.value(FP::Install::DBTable_Add_App::COL_ID).toString()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PARENT_INVALID, searchResult.result.value(FP::Install::DBTable_Add_App::COL_ID).toString()));
             return Core::PARENT_INVALID;
         }
 
         if((packCheckError = mCore.getFlashpointInstall().entryUsesDataPack(parentUsesDataPack, parentID)).isValid())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
             return Core::SQL_ERROR;
         }
 
         if(parentUsesDataPack)
         {
-            mCore.logEvent(LOG_EVENT_DATA_PACK_TITLE);
+            mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
             enqueueError = mCore.enqueueDataPackTasks(parentID);
 
             if(enqueueError)
@@ -93,7 +93,7 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
     }
     else if(searchResult.source == FP::Install::DBTable_Game::NAME) // Get autorun additional apps if result is game
     {
-        mCore.logEvent(LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString()));
+        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString()));
 
         // Check if entry uses a data pack
         QSqlError packCheckError;
@@ -102,13 +102,13 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
 
         if((packCheckError = mCore.getFlashpointInstall().entryUsesDataPack(entryUsesDataPack, entryId)).isValid())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
             return Core::SQL_ERROR;
         }
 
         if(entryUsesDataPack)
         {
-            mCore.logEvent(LOG_EVENT_DATA_PACK_TITLE);
+            mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
             enqueueError = mCore.enqueueDataPackTasks(entryId);
 
             if(enqueueError)
@@ -122,7 +122,7 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
         addAppSearchError = mCore.getFlashpointInstall().queryEntryAddApps(addAppSearchResult, targetID);
         if(addAppSearchError.isValid())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, addAppSearchError.text()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, addAppSearchError.text()));
             return Core::SQL_ERROR;
         }
 
@@ -135,7 +135,7 @@ Core::ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID
             // Enqueue if autorun before
             if(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_AUTORUN).toInt() != 0)
             {
-                mCore.logEvent(LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString()));
+                mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString()));
                 enqueueError = enqueueAdditionalApp(addAppSearchResult, Core::TaskStage::Auxiliary);
                 if(enqueueError)
                     return enqueueError;
@@ -220,7 +220,7 @@ Core::ErrorCode CPlay::enqueueAdditionalApp(FP::Install::DBQueryBuffer addAppRes
 
 Core::ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install::LibraryFilter lbFilter)
 {
-    mCore.logEvent(LOG_EVENT_SEL_RAND);
+    mCore.logEvent(NAME, LOG_EVENT_SEL_RAND);
 
     // Reset buffers
     mainIDBuffer = QUuid();
@@ -234,7 +234,7 @@ Core::ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer,
     searchError = mCore.getFlashpointInstall().queryAllGameIDs(mainGameIDQuery, lbFilter);
     if(searchError.isValid())
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
         return Core::SQL_ERROR;
     }
 
@@ -252,23 +252,23 @@ Core::ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer,
         if(!gameID.isNull())
             playableIDs.append(gameID);
         else
-            mCore.logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
+            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
     }
-    mCore.logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
+    mCore.logEvent(NAME, LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
 
     // Select main game
     mainIDBuffer = playableIDs.value(QRandomGenerator::global()->bounded(playableIDs.size()));
-    mCore.logEvent(LOG_EVENT_INIT_RAND_ID.arg(mainIDBuffer.toString(QUuid::WithoutBraces)));
+    mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_ID.arg(mainIDBuffer.toString(QUuid::WithoutBraces)));
 
     // Get entry's playable additional apps
     FP::Install::DBQueryBuffer addAppQuery;
     searchError = mCore.getFlashpointInstall().queryEntryAddApps(addAppQuery, mainIDBuffer, true);
     if(searchError.isValid())
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
         return Core::SQL_ERROR;
     }
-    mCore.logEvent(LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
+    mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
 
     QList<QUuid> playableSubIDs;
 
@@ -284,18 +284,18 @@ Core::ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer,
         if(!addAppID.isNull())
             playableSubIDs.append(addAppID);
         else
-            mCore.logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(addAppIDString)));
+            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(addAppIDString)));
     }
 
     // Select final ID
     int randIndex = QRandomGenerator::global()->bounded(playableSubIDs.size() + 1);
 
     if(randIndex == 0)
-        mCore.logEvent(LOG_EVENT_RAND_DET_PRIM);
+        mCore.logEvent(NAME, LOG_EVENT_RAND_DET_PRIM);
     else
     {
         subIDBuffer = playableSubIDs.value(randIndex - 1);
-        mCore.logEvent(LOG_EVENT_RAND_DET_ADD_APP.arg(subIDBuffer.toString(QUuid::WithoutBraces)));
+        mCore.logEvent(NAME, LOG_EVENT_RAND_DET_ADD_APP.arg(subIDBuffer.toString(QUuid::WithoutBraces)));
     }
 
     // Return success
@@ -304,7 +304,7 @@ Core::ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer,
 
 Core::ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid subID)
 {
-    mCore.logEvent(LOG_EVENT_RAND_GET_INFO);
+    mCore.logEvent(NAME, LOG_EVENT_RAND_GET_INFO);
 
     // Reset buffer
     infoBuffer = QString();
@@ -320,26 +320,26 @@ Core::ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID,
     searchError = mCore.getFlashpointInstall().queryEntryByID(mainGameQuery, mainID);
     if(searchError.isValid())
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
         return Core::SQL_ERROR;
     }
 
     // Check if ID was found and that only one instance was found
     if(mainGameQuery.size == 0)
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
         return Core::ID_NOT_FOUND;
     }
     else if(mainGameQuery.size > 1)
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
         return Core::MORE_THAN_ONE_AUTO;
     }
 
     // Ensure selection is primary app
     if(mainGameQuery.source != FP::Install::DBTable_Game::NAME)
     {
-        mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
         return Core::SQL_MISMATCH;
     }
 
@@ -362,26 +362,26 @@ Core::ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID,
         searchError = mCore.getFlashpointInstall().queryEntryByID(addAppQuerry, subID);
         if(searchError.isValid())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
             return Core::SQL_ERROR;
         }
 
         // Check if ID was found and that only one instance was found
         if(addAppQuerry.size == 0)
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
             return Core::ID_NOT_FOUND;
         }
         else if(addAppQuerry.size > 1)
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_MORE_THAN_ONE_AUTO_P, ERR_MORE_THAN_ONE_AUTO_S));
             return Core::MORE_THAN_ONE_AUTO;
         }
 
         // Ensure selection is additional app
         if(addAppQuerry.source != FP::Install::DBTable_Add_App::NAME)
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
             return Core::SQL_MISMATCH;
         }
 
@@ -428,7 +428,7 @@ Core::ErrorCode CPlay::process(const QStringList& commandLine)
     {
         if((titleID = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
             return Core::ID_NOT_VALID;
         }
     }
@@ -446,7 +446,7 @@ Core::ErrorCode CPlay::process(const QStringList& commandLine)
             randFilter = FP::Install::LibraryFilter::Anim;
         else
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_RAND_FILTER_INVALID));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_RAND_FILTER_INVALID));
             return Core::RAND_FILTER_NOT_VALID;
         }
 
@@ -467,7 +467,7 @@ Core::ErrorCode CPlay::process(const QStringList& commandLine)
     }
     else
     {
-        mCore.logError(Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
         return Core::INVALID_ARGS;
     }
 

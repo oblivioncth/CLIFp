@@ -65,6 +65,7 @@ private:
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_RAND};
 
 public:
+    // Meta
     static inline const QString NAME = "play";
     static inline const QString DESCRIPTION = "Launch a title and all of it's support applications, in the same manner as using the GUI";
 

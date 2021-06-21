@@ -46,7 +46,7 @@ Core::ErrorCode CShow::process(const QStringList& commandLine)
     }
     else
     {
-        mCore.logError(Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_SHOW));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_SHOW));
         return Core::INVALID_ARGS;
     }
 

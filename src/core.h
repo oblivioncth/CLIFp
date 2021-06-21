@@ -224,7 +224,10 @@ public:
     // Command line messages
     static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_FILEVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
 
-    //-Instance Variables------------------------------------------------------------------------------------------------------
+    // Meta
+    static inline const QString NAME = "core";
+
+//-Instance Variables------------------------------------------------------------------------------------------------------
 private:
     // TODO: MAKE VAR CATEGORIES
     std::unique_ptr<FP::Install> mFlashpointInstall;
@@ -264,13 +267,13 @@ public:
     void enqueueSingleTask(std::shared_ptr<Task> task);
     void clearTaskQueue();
 
-    void logCommand(QString commandName); //TODO - May become enum
-    void logCommandOptions(QString commandOptions);
-    void logError(Qx::GenericError error);
-    void logEvent(QString event);
-    void logTask(const Task* const task);
-    int logFinish(int exitCode);
-    int postError(Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    void logCommand(QString src, QString commandName);
+    void logCommandOptions(QString src, QString commandOptions);
+    void logError(QString src, Qx::GenericError error);
+    void logEvent(QString src, QString event);
+    void logTask(QString src, const Task* const task);
+    int logFinish(QString src, int exitCode);
+    int postError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
 
     const FP::Install& getFlashpointInstall() const;
     NotificationVerbosity notifcationVerbosity() const;

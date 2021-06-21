@@ -29,6 +29,7 @@ private:
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_APP, &CL_OPTION_PARAM};
 
 public:
+    // Meta
     static inline const QString NAME = "run";
     static inline const QString DESCRIPTION = "Start Flashpoint's webserver and then execute the provided application";
 

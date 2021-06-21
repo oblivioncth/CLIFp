@@ -76,6 +76,9 @@ const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
 // Error Messages - Prep
 const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
 
+// Meta
+const QString NAME = "main";
+
 // Prototypes - Process
 Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses);
 void handleExecutionError(Core& core, int taskNum, Core::ErrorCode& currentError, Core::ErrorCode newError);
@@ -110,38 +113,38 @@ int main(int argc, char *argv[])
     //-Setup Core--------------------------------------------------------------------------
     QStringList clArgs = app.arguments();
     if((errorStatus = coreCLI.initialize(clArgs)) || clArgs.empty()) // Terminate if error or no command
-        return coreCLI.logFinish(errorStatus);
+        return coreCLI.logFinish(NAME, errorStatus);
 
     //-Restrict app to only one instance---------------------------------------------------
     if(!Qx::enforceSingleInstance())
     {
-        coreCLI.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        return coreCLI.logFinish(Core::ALREADY_OPEN);
+        coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
+        return coreCLI.logFinish(NAME, Core::ALREADY_OPEN);
     }
 
     // Ensure Flashpoint Launcher isn't running
     if(Qx::processIsRunning(QFileInfo(FP::Install::LAUNCHER_PATH).fileName()))
     {
-        coreCLI.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        return coreCLI.logFinish(Core::LAUNCHER_OPEN);
+        coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
+        return coreCLI.logFinish(NAME, Core::LAUNCHER_OPEN);
     }
 
     //-Find and link to Flashpoint Install----------------------------------------------------------
     QString fpRoot;
-    coreCLI.logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
+    coreCLI.logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
 
     if((fpRoot = findFlashpointRoot(coreCLI)).isNull())
     {
-        coreCLI.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        return coreCLI.logFinish(Core::INSTALL_INVALID);
+        coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
+        return coreCLI.logFinish(NAME, Core::INSTALL_INVALID);
     }
 
     std::unique_ptr<FP::Install> flashpointInstall = std::make_unique<FP::Install>(fpRoot, CLIFP_DIR_PATH.remove(fpRoot).remove(1, 1));
-    coreCLI.logEvent(LOG_EVENT_FLASHPOINT_LINK.arg(fpRoot));
+    coreCLI.logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(fpRoot));
 
     // Insert into core
     if((errorStatus = coreCLI.attachFlashpoint(std::move(flashpointInstall))))
-        return coreCLI.logFinish(errorStatus);
+        return coreCLI.logFinish(NAME, errorStatus);
 
     // Open database connection
 
@@ -151,8 +154,8 @@ int main(int argc, char *argv[])
     // Check for valid command
     if(!Command::isRegistered(commandStr))
     {
-        coreCLI.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
-        return coreCLI.logFinish(Core::INVALID_ARGS);
+        coreCLI.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
+        return coreCLI.logFinish(NAME, Core::INVALID_ARGS);
     }
 
     // Create command instance
@@ -160,7 +163,7 @@ int main(int argc, char *argv[])
 
     // Process command
     if((errorStatus = commandProcessor->process(clArgs)))
-        return coreCLI.logFinish(errorStatus);
+        return coreCLI.logFinish(NAME, errorStatus);
 
     //-Handle Tasks-----------------------------------------------------------------------
     if(coreCLI.hasTasks())
@@ -170,22 +173,22 @@ int main(int argc, char *argv[])
 
         // Process app task queue
         Core::ErrorCode executionError = processTaskQueue(coreCLI, activeChildProcesses);
-        coreCLI.logEvent(LOG_EVENT_QUEUE_FINISH);
+        coreCLI.logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
 
         // Cleanup
         cleanup(coreCLI, activeChildProcesses);
-        coreCLI.logEvent(LOG_EVENT_CLEANUP_FINISH);
+        coreCLI.logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
 
         // Return error status
-        return coreCLI.logFinish(executionError);
+        return coreCLI.logFinish(NAME, executionError);
     }
     else
-        return coreCLI.logFinish(Core::NO_ERR);
+        return coreCLI.logFinish(NAME, Core::NO_ERR);
 }
 
 Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 {
-    core.logEvent(LOG_EVENT_QUEUE_START);
+    core.logEvent(NAME, LOG_EVENT_QUEUE_START);
     // Error tracker
     Core::ErrorCode executionError = Core::NO_ERR;
 
@@ -196,7 +199,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
         // Handle task at front of queue
         ++taskNum;
         std::shared_ptr<Core::Task> currentTask = core.takeFrontTask();
-        core.logEvent(LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask->stage)));
+        core.logEvent(NAME, LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask->stage)));
 
         // Only execute task after an error if it is a Shutdown task
         if(!executionError || currentTask->stage == Core::TaskStage::Shutdown)
@@ -207,7 +210,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 std::shared_ptr<Core::MessageTask> messageTask = std::static_pointer_cast<Core::MessageTask>(currentTask);
 
                 QMessageBox::information(nullptr, QCoreApplication::applicationName(), messageTask->message);
-                core.logEvent(LOG_EVENT_SHOW_MESSAGE);
+                core.logEvent(NAME, LOG_EVENT_SHOW_MESSAGE);
             }
             else if(std::dynamic_pointer_cast<Core::ExtraTask>(currentTask)) // Extra
             {
@@ -216,14 +219,14 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 // Ensure extra exists
                 if(!extraTask->dir.exists())
                 {
-                    core.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraTask->dir.path())));
+                    core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraTask->dir.path())));
                     handleExecutionError(core, taskNum, executionError, Core::EXTRA_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
                 // Open extra
                 QDesktopServices::openUrl(QUrl::fromLocalFile(extraTask->dir.absolutePath()));
-                core.logEvent(LOG_EVENT_SHOW_EXTRA.arg(extraTask->dir.path()));
+                core.logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(extraTask->dir.path()));
             }
             else if(std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
             {
@@ -248,12 +251,12 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 
                 // Download event handlers
                 QObject::connect(&dm, &Qx::SyncDownloadManager::sslErrors, [&core](Qx::GenericError errorMsg, bool* abort) {
-                    int choice = core.postError(errorMsg, true, QMessageBox::Yes | QMessageBox::Abort, QMessageBox::Abort);
+                    int choice = core.postError(NAME, errorMsg, true, QMessageBox::Yes | QMessageBox::Abort, QMessageBox::Abort);
                     *abort = choice == QMessageBox::Abort;
                 });
 
                 QObject::connect(&dm, &Qx::SyncDownloadManager::authenticationRequired, [&core](QString prompt, QString* username, QString* password, bool* abort) {
-                    core.logEvent(LOG_EVENT_DOWNLOAD_AUTH);
+                    core.logEvent(NAME, LOG_EVENT_DOWNLOAD_AUTH);
                     Qx::LoginDialog ld;
                     ld.setPrompt(prompt);
 
@@ -270,7 +273,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 
                 // Log/label string
                 QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(QFileInfo(packFile).fileName());
-                core.logEvent(label);
+                core.logEvent(NAME, label);
 
                 // Prepare progress bar
                 QProgressDialog pd(label, QString("Cancel"), 0, 0);
@@ -288,7 +291,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 if(downloadError.isValid())
                 {
                     downloadError.setErrorLevel(Qx::GenericError::Critical);
-                    core.postError(downloadError);
+                    core.postError(NAME, downloadError);
                     handleExecutionError(core, taskNum, executionError, Core::CANT_OBTAIN_DATA_PACK);
                 }
 
@@ -297,11 +300,11 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 Qx::IOOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
                 if(!checksumResult.wasSuccessful() || !checksumMatch)
                 {
-                    core.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
+                    core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
                     handleExecutionError(core, taskNum, executionError, Core::DATA_PACK_INVALID);
                 }
 
-                core.logEvent(LOG_EVENT_DOWNLOAD_SUCC);
+                core.logEvent(NAME, LOG_EVENT_DOWNLOAD_SUCC);
             }
             else if(std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
             {
@@ -311,7 +314,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 QFileInfo executableInfo(execTask->path + "/" + execTask->filename);
                 if(!executableInfo.exists() || !executableInfo.isFile())
                 {
-                    core.postError(Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                    core.postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                     ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
                     handleExecutionError(core, taskNum, executionError, Core::EXECUTABLE_NOT_FOUND);
                     continue; // Continue to next task
@@ -320,7 +323,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 // Ensure executable is valid
                 if(!executableInfo.isExecutable())
                 {
-                    core.postError(Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                    core.postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                     ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
                     handleExecutionError(core, taskNum, executionError, Core::EXECUTABLE_NOT_VALID);
                     continue; // Continue to next task
@@ -328,7 +331,7 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 
                 // Move to executable directory
                 QDir::setCurrent(execTask->path);
-                core.logEvent(LOG_EVENT_CD.arg(execTask->path));
+                core.logEvent(NAME, LOG_EVENT_CD.arg(execTask->path));
 
                 // Check if task is a batch file
                 bool batchTask = QFileInfo(execTask->filename).suffix() == BAT_SUFX;
@@ -385,10 +388,10 @@ Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 throw new std::runtime_error("Unhandled Task child was present in task queue");
         }
         else
-            core.logEvent(LOG_EVENT_TASK_SKIP);
+            core.logEvent(NAME, LOG_EVENT_TASK_SKIP);
 
         // Remove handled task
-        core.logEvent(LOG_EVENT_TASK_FINISH.arg(taskNum));
+        core.logEvent(NAME, LOG_EVENT_TASK_FINISH.arg(taskNum));
     }
 
     // Return error status
@@ -400,7 +403,7 @@ void handleExecutionError(Core& core, int taskNum, Core::ErrorCode& currentError
     if(!currentError) // Only record first error
         currentError = newError;
 
-    core.logEvent(LOG_EVENT_TASK_FINISH_ERR.arg(taskNum)); // Record early end of task
+    core.logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(taskNum)); // Record early end of task
 }
 
 bool cleanStartProcess(Core& core, QProcess* process, QFileInfo exeInfo)
@@ -409,7 +412,7 @@ bool cleanStartProcess(Core& core, QProcess* process, QFileInfo exeInfo)
     process->start();
     if(!process->waitForStarted())
     {
-        core.postError(Qx::GenericError(Qx::GenericError::Critical,
+        core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical,
                                    ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(exeInfo.absoluteFilePath()))));
         delete process; // Clear finished process handle from heap
         return false;
@@ -426,7 +429,7 @@ Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
     do
     {
         // Yield for grace period
-        core.logEvent(LOG_EVENT_WAIT_GRACE.arg(processName));
+        core.logEvent(NAME, LOG_EVENT_WAIT_GRACE.arg(processName));
         if(graceSecs > 0)
             QThread::sleep(graceSecs);
 
@@ -436,19 +439,19 @@ Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
         // Check that process was found (is running)
         if(spProcessID)
         {
-            core.logEvent(LOG_EVENT_WAIT_RUNNING.arg(processName));
+            core.logEvent(NAME, LOG_EVENT_WAIT_RUNNING.arg(processName));
 
             // Get process handle and see if it is valid
             HANDLE batchProcessHandle;
             if((batchProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, spProcessID)) == NULL)
             {
-                core.postError(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(processName),
+                core.postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(processName),
                                            WRN_WAIT_PROCESS_NOT_HANDLED_S));
                 return Core::WAIT_PROCESS_NOT_HANDLED;
             }
 
             // Attempt to wait on process to terminate
-            core.logEvent(LOG_EVENT_WAIT_ON.arg(processName));
+            core.logEvent(NAME, LOG_EVENT_WAIT_ON.arg(processName));
             DWORD waitError = WaitForSingleObject(batchProcessHandle, INFINITE);
 
             // Close handle to process
@@ -456,17 +459,17 @@ Core::ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs)
 
             if(waitError != WAIT_OBJECT_0)
             {
-                core.postError(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(processName),
+                core.postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(processName),
                                            WRN_WAIT_PROCESS_NOT_HOOKED_S));
                 return Core::WAIT_PROCESS_NOT_HOOKED;
             }
-            core.logEvent(LOG_EVENT_WAIT_QUIT.arg(processName));
+            core.logEvent(NAME, LOG_EVENT_WAIT_QUIT.arg(processName));
         }
     }
     while(spProcessID);
 
     // Return success
-    core.logEvent(LOG_EVENT_WAIT_FINISHED.arg(processName));
+    core.logEvent(NAME, LOG_EVENT_WAIT_FINISHED.arg(processName));
     return Core::NO_ERR;
 }
 
@@ -489,7 +492,7 @@ QString findFlashpointRoot(Core& core)
 
     do
     {
-        core.logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(currentDir.absolutePath()));
+        core.logEvent(NAME, LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(currentDir.absolutePath()));
         if(FP::Install::checkInstallValidity(currentDir.absolutePath(), FP::Install::CompatLevel::Execution).installValid)
             return currentDir.absolutePath();
     }
@@ -515,7 +518,7 @@ QString escapeNativeArgsForCMD(Core& core, QString nativeArgs)
     }
 
     if(nativeArgs != escapedNativeArgs)
-        core.logEvent(LOG_EVENT_ARGS_ESCAPED.arg(nativeArgs, escapedNativeArgs));
+        core.logEvent(NAME, LOG_EVENT_ARGS_ESCAPED.arg(nativeArgs, escapedNativeArgs));
 
     return escapedNativeArgs;
 }
@@ -529,12 +532,12 @@ void logProcessStart(Core& core, const QProcess* process, Core::ProcessType type
     if(!process->nativeArguments().isEmpty())
         eventStr += " " + process->nativeArguments();
 
-    core.logEvent(LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), eventStr));
+    core.logEvent(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), eventStr));
 }
 
 void logProcessEnd(Core& core, const QProcess* process, Core::ProcessType type)
 {
-    core.logEvent(LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), process->program()));
+    core.logEvent(NAME, LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), process->program()));
 }
 
 

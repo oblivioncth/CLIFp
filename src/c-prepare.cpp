@@ -37,7 +37,7 @@ Core::ErrorCode CPrepare::process(const QStringList& commandLine)
 
         if((id = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
             return Core::ID_NOT_VALID;
         }
 
@@ -48,7 +48,7 @@ Core::ErrorCode CPrepare::process(const QStringList& commandLine)
         bool titleUsesDataPack;
         if((sqlError = mCore.getFlashpointInstall().entryUsesDataPack(titleUsesDataPack, id)).isValid())
         {
-            mCore.postError(Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
             return Core::SQL_ERROR;
         }
 
@@ -58,11 +58,11 @@ Core::ErrorCode CPrepare::process(const QStringList& commandLine)
                 return errorStatus;
         }
         else
-            mCore.logError(Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
+            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
     }
     else
     {
-        mCore.logError(Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_ID));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_ID));
         return Core::INVALID_ARGS;
     }
 

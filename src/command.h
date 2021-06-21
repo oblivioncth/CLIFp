@@ -45,6 +45,9 @@ protected:
     static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC}; // Boolean option
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_STANDARD{&CL_OPTION_HELP};
 
+    // Meta
+    static inline const QString NAME = "command";
+
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
     QString mHelpString;

@@ -29,6 +29,7 @@ private:
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_MSG, &CL_OPTION_EXTRA};
 
 public:
+    // Meta
     static inline const QString NAME = "show";
     static inline const QString DESCRIPTION = "Display a message or extra folder";
 

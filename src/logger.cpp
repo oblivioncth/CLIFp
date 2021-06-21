@@ -85,11 +85,11 @@ Qx::IOOpReport Logger::recordVerbatim(QString text)
     return Qx::IOOpReport();
 }
 
-Qx::IOOpReport Logger::recordErrorEvent(Qx::GenericError error)
+Qx::IOOpReport Logger::recordErrorEvent(QString src, Qx::GenericError error)
 {
     if(mErrorStatus.wasSuccessful())
     {
-        QString errorString = EVENT_TEMPLATE.arg(QTime::currentTime().toString(), "[" + ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + "] " + error.primaryInfo());
+        QString errorString = EVENT_TEMPLATE.arg(QTime::currentTime().toString(), src, ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + ") " + error.primaryInfo());
         if(!error.secondaryInfo().isNull())
             errorString + " " + error.secondaryInfo();
         if(!error.detailedInfo().isNull())
@@ -102,11 +102,11 @@ Qx::IOOpReport Logger::recordErrorEvent(Qx::GenericError error)
     return Qx::IOOpReport();
 }
 
-Qx::IOOpReport Logger::recordGeneralEvent(QString event)
+Qx::IOOpReport Logger::recordGeneralEvent(QString src, QString event)
 {
     if(mErrorStatus.wasSuccessful())
     {
-        mErrorStatus = mTextStreamWriter->writeLine(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), event));
+        mErrorStatus = mTextStreamWriter->writeLine(EVENT_TEMPLATE.arg(QTime::currentTime().toString(), src, event));
         return mErrorStatus;
     }
 

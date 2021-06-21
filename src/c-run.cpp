@@ -29,7 +29,7 @@ Core::ErrorCode CRun::process(const QStringList& commandLine)
     // Make sure that at least an app was provided
     if(!mParser.isSet(CL_OPTION_PARAM))
     {
-        mCore.logError(Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_APP));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_APP));
         return Core::INVALID_ARGS;
     }
 

@@ -12,7 +12,7 @@ class Logger
 private:
     static inline const QString HEADER_TEMPLATE = "[ %1 ]";
     static inline const QString ENTRY_START_TEMPLATE = "%1 : %2";
-    static inline const QString EVENT_TEMPLATE = " - <%1> %2"; //TODO - Add argument to loggining functions for "Section" name (i.e. Main, Core, Play, Run, etc.) to be logged
+    static inline const QString EVENT_TEMPLATE = " - <%1> [%2] %3";
     static inline const QString COMMANDLINE_LABEL = "Raw Parameters:";
     static inline const QString GLOBAL_OPT_LABEL = "Global Options:";
     static inline const QString EVENTS_LABEL = "Events:";
@@ -49,8 +49,8 @@ public:
 public:
     Qx::IOOpReport openLog();
     Qx::IOOpReport recordVerbatim(QString text);
-    Qx::IOOpReport recordErrorEvent(Qx::GenericError error);
-    Qx::IOOpReport recordGeneralEvent(QString event);
+    Qx::IOOpReport recordErrorEvent(QString src, Qx::GenericError error);
+    Qx::IOOpReport recordGeneralEvent(QString src, QString event);
     Qx::IOOpReport finish(int returnCode);
 
     Qx::IOOpReport error();

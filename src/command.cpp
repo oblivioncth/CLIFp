@@ -54,14 +54,14 @@ Core::ErrorCode Command::parse(const QStringList& commandLine)
         optionsStr = Core::LOG_NO_PARAMS;
 
     // Log command
-    mCore.logCommand(commandLine.first());
-    mCore.logCommandOptions(optionsStr);
+    mCore.logCommand(NAME, commandLine.first());
+    mCore.logCommandOptions(NAME, optionsStr);
 
     if(validArgs)
         return Core::NO_ERR;
     else
     {
-        mCore.logError(Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, mParser.errorText()));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, mParser.errorText()));
         return Core::INVALID_ARGS;
     }
 }
