@@ -169,7 +169,6 @@ public:
     static inline const QString LOG_NO_PARAMS = "*None*";
     static inline const int LOG_MAX_ENTRIES = 50;
 
-
     // Logging - Errors
     static inline const QString LOG_ERR_INVALID_PARAM = "Invalid parameters provided";
     static inline const QString LOG_ERR_CRITICAL = "Aborting execution due to previous critical errors";
@@ -209,28 +208,18 @@ public:
     static inline const QCommandLineOption CL_OPTION_QUIET{{CL_OPT_QUIET_S_NAME, CL_OPT_QUIET_L_NAME}, CL_OPT_QUIET_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_SILENT{{CL_OPT_SILENT_S_NAME, CL_OPT_SILENT_L_NAME}, CL_OPT_SILENT_DESC}; // Boolean option
 
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_QUIET, &CL_OPTION_SILENT};
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_ALL{&CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_QUIET, &CL_OPTION_SILENT};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_ACTIONABLE{&CL_OPTION_HELP, &CL_OPTION_VERSION};
 
-    static inline const QString CL_HELP_MESSAGE =
-//            "CLIFp Usage:<br>"
-//            "<br>"
-//            "<b>-" + CL_OPT_HELP_S_NAME + " | --" + CL_OPT_HELP_L_NAME + " | -" + CL_OPT_HELP_E_NAME + ":</b> &nbsp;" + CL_OPT_HELP_DESC + "<br>"
-//            "<b>-" + CL_OPT_VERSION_S_NAME + " | --" + CL_OPT_VERSION_L_NAME + ":</b> &nbsp;" + CL_OPT_VERSION_DESC + "<br>"
-//            "<b>-" + CL_OPT_APP_S_NAME + " | --" + CL_OPT_APP_L_NAME + ":</b> &nbsp;" + CL_OPT_APP_DESC + "<br>"
-//            "<b>-" + CL_OPT_PARAM_S_NAME + " | --" + CL_OPT_PARAM_L_NAME + ":</b> &nbsp;" + CL_OPT_PARAM_DESC + "<br>"
-//            "<b>-" + CL_OPT_AUTO_S_NAME + " | --" + CL_OPT_AUTO_L_NAME + ":</b> &nbsp;" + CL_OPT_AUTO_DESC + "<br>"
-//            "<b>-" + CL_OPT_RAND_S_NAME + " | --" + CL_OPT_RAND_L_NAME + ":</b> &nbsp;" + CL_OPT_RAND_DESC + "<br>"
-//            "<b>-" + CL_OPT_PREP_S_NAME + " | --" + CL_OPT_PREP_L_NAME + ":</b> &nbsp;" + CL_OPT_PREP_DESC + "<br>"
-//            "<b>-" + CL_OPT_MSG_S_NAME + " | --" + CL_OPT_MSG_L_NAME + ":</b> &nbsp;" + CL_OPT_MSG_DESC + "<br>"
-//            "<b>-" + CL_OPT_EXTRA_S_NAME + " | --" + CL_OPT_EXTRA_L_NAME + ":</b> &nbsp;" + CL_OPT_EXTRA_DESC + "<br>"
-//            "<b>-" + CL_OPT_QUIET_S_NAME + " | --" + CL_OPT_QUIET_L_NAME + ":</b> &nbsp;" + CL_OPT_QUIET_DESC + "<br>"
-//            "<b>-" + CL_OPT_SILENT_S_NAME + " | --" + CL_OPT_SILENT_L_NAME + ":</b> &nbsp;" + CL_OPT_SILENT_DESC + "<br>"
-//            "Use <b>'" + CL_OPT_APP_L_NAME + "'</b> and <b>'" + CL_OPT_PARAM_L_NAME + "'</b> for direct operation, use <b>'" + CL_OPT_AUTO_L_NAME +
-//            "'</b> by itself for automatic operation, use <b>'" + CL_OPT_MSG_L_NAME  + "'</b> by itself for random operation,  use <b>'" + CL_OPT_MSG_L_NAME  +
-//            "'</b> to display a popup message, use <b>'" + CL_OPT_EXTRA_L_NAME + "'</b> to view an extra, use <b>'" + CL_OPT_PREP_L_NAME +
-//            "'</b> to prepare a Data Pack game, or use <b>'" + CL_OPT_HELP_L_NAME + "'</b> and/or <b>'" + CL_OPT_VERSION_L_NAME + "'</b> for information.";
-            "PLACEHOLDER MESSAGE";
+    // Help template
+    static inline const QString HELP_TEMPL = "<u>Usage:</u><br>"
+                                             "%CLIFp &lt;global options&gt <i>command</i> <command options>;<br>"
+                                             "<br>"
+                                             "<u>Global Options:</u>%1<br>"
+                                             "<br>"
+                                             "<u>Commands:</u>%2";
+    static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
+    static inline const QString HELP_COMMAND_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 
     // Command line messages
     static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_FILEVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
@@ -288,7 +277,6 @@ public:
     int taskCount() const;
     bool hasTasks() const;
     std::shared_ptr<Task> takeFrontTask();
-
 };
 
 #endif // CORE_H

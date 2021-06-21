@@ -86,11 +86,9 @@ void Command::showHelp()
 
     // One time setup
     if(helpStr.isNull())
-    {
-        // Help header
-        helpStr = HELP_TEMPL.arg(name());
-
+    {        
         // Help options
+        QString optStr;
         for(const QCommandLineOption* clOption : options())
         {
             // Handle names
@@ -99,8 +97,11 @@ void Command::showHelp()
                 dashedNames << (name.length() > 1 ? "--" : "-" + name);
 
             // Add option
-            helpStr += HELP_OPT_TEMPL.arg(dashedNames.join(" | "), clOption->description());
+            optStr += HELP_OPT_TEMPL.arg(dashedNames.join(" | "), clOption->description());
         }
+
+        // Complete string
+        helpStr = HELP_TEMPL.arg(name(), optStr);
     }
 
     // Show help

@@ -32,9 +32,8 @@ protected:
     static inline const QString HELP_TEMPL = "<u>Usage:</u><br>"
                                              "%1 &lt;options&gt;<br>"
                                              "<br>"
-                                             "<u>Options:</u>";
+                                             "<u>Options:</u>&2";
     static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
-
 
     // Standard command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";

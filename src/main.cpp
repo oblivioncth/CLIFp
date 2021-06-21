@@ -16,20 +16,6 @@
 #include "flashpoint-install.h"
 #include "logger.h"
 
-//-Enums-----------------------------------------------------------------------
-
-//-Constants-------------------------------------------------------------------
-
-// Command line strings
-
-
-
-
-
-// Command line messages
-
-
-
 
 // Error Messages - Prep
 const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
@@ -37,13 +23,6 @@ const QString ERR_LAUNCHER_RUNNING_P = "The CLI cannot be used while the Flashpo
 const QString ERR_LAUNCHER_RUNNING_S = "Please close the Launcher first.";
 const QString ERR_INSTALL_INVALID_P = "CLIFp does not appear to be deployed in a valid Flashpoint install";
 const QString ERR_INSTALL_INVALID_S = "Check its location and compatability with your Flashpoint version.";
-
-const QString ERR_CANT_PARSE_FILE = "Failed to parse %1 ! It may be corrupted or not compatible with this version of CLIFp.";
-
-
-
-
-
 
 // Error Messages - Execution
 const QString ERR_EXTRA_NOT_FOUND = "The extra %1 does not exist!";
@@ -68,25 +47,12 @@ const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
 // Wait timing
 const int SECURE_PLAYER_GRACE = 2; // Seconds to allow the secure player to restart in cases it does
 
-// Logging - General
-
-
-
-
 // Logging - Messages
-
-
-
 const QString LOG_EVENT_FLASHPOINT_SEARCH = "Searching for Flashpoint root...";
 const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = "Checking if \"%1\" is flashpoint root";
 const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
-const QString LOG_EVENT_OP_MODE = "Operation Mode: %1";
 const QString LOG_EVENT_SHOW_MESSAGE = "Displayed message";
 const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
-
-const QString LOG_EVENT_GET_SET = "Reading Flashpoint configuration...";
-
-
 const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
 const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
 const QString LOG_EVENT_TASK_FINISH = "End of task %1";
@@ -107,22 +73,8 @@ const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
 const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
 const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
 
-
-
-
 // Error Messages - Prep
 const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
-
-// Logging - Main info
-
-// Logging - Errors
-
-
-
-
-
-
-
 
 // Prototypes - Process
 Core::ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses);
@@ -134,10 +86,8 @@ void cleanup(Core& core, QList<QProcess*>& childProcesses);
 // Prototypes - Helper
 QString findFlashpointRoot(Core& core);
 QString escapeNativeArgsForCMD(Core& core, QString nativeArgs);
-
 void logProcessStart(Core& core, const QProcess* process, Core::ProcessType type);
 void logProcessEnd(Core& core, const QProcess* process, Core::ProcessType type);
-
 
 int main(int argc, char *argv[])
 {
@@ -211,8 +161,6 @@ int main(int argc, char *argv[])
     // Process command
     if((errorStatus = commandProcessor->process(clArgs)))
         return coreCLI.logFinish(errorStatus);
-
-    // ...?
 
     //-Handle Tasks-----------------------------------------------------------------------
     if(coreCLI.hasTasks())

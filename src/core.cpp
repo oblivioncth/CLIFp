@@ -1,4 +1,7 @@
 #include "core.h"
+#include "command.h"
+
+# include <QApplication>
 
 //===============================================================================================================
 // CORE
@@ -27,7 +30,41 @@ bool Core::isActionableOptionSet(const QCommandLineParser& clParser) const
     return false;
 }
 
-void Core::showHelp() const { QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_HELP_MESSAGE); }
+void Core::showHelp() const
+{
+    // Help string
+    static QString helpStr;
+
+    // One time setup
+    if(helpStr.isNull())
+    {
+        // Help options
+        QString optStr;
+        for(const QCommandLineOption* clOption : CL_OPTIONS_ALL)
+        {
+            // Handle names
+            QStringList dashedNames;
+            for(const QString& name : clOption->names())
+                dashedNames << (name.length() > 1 ? "--" : "-" + name);
+
+            // Add option
+            optStr += HELP_OPT_TEMPL.arg(dashedNames.join(" | "), clOption->description());
+        }
+
+        // Help commands
+        QString commandStr;
+        for(const QString& command : Command::registered())
+            commandStr += HELP_COMMAND_TEMPL.arg(command, Command::describe(command));
+
+        // Complete string
+        helpStr = HELP_TEMPL.arg(optStr, commandStr);
+    }
+
+    // Show help
+    QMessageBox::information(nullptr, QApplication::applicationName(), helpStr);
+}
+
+
 void Core::showVersion() const { QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE); }
 
 //Public:
@@ -36,7 +73,7 @@ Core::ErrorCode Core::initialize(QStringList& commandLine)
     // Setup CLI Parser
     QCommandLineParser clParser;
     clParser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
-    for(const QCommandLineOption* clOption : CL_OPTIONS_SPECIFIC)
+    for(const QCommandLineOption* clOption : CL_OPTIONS_ALL)
         clParser.addOption(*clOption);
 
     // Parse
@@ -44,7 +81,7 @@ Core::ErrorCode Core::initialize(QStringList& commandLine)
 
     // Create global options string
     QString globalOptions;
-    for(const QCommandLineOption* clOption : CL_OPTIONS_SPECIFIC)
+    for(const QCommandLineOption* clOption : CL_OPTIONS_ALL)
     {
         if(clParser.isSet(*clOption))
         {
