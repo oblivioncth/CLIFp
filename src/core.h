@@ -26,38 +26,6 @@ class Core
 {
 //-Class Enums-----------------------------------------------------------------------
 public:
-
-//    enum ErrorCode // TODO: Potentially pass these around as int only so that each command can have its own range of errors (i.e. 0-99 for main, 100-199 for Core, 200-299 for Play, etc)
-//    {
-//        NO_ERR = 0x00,
-//        ALREADY_OPEN = 0x01,
-//        INVALID_ARGS = 0x02,
-//        LAUNCHER_OPEN = 0x03,
-//        INSTALL_INVALID = 0x04,
-//        CANT_PARSE_CONFIG = 0x05,
-//        CANT_PARSE_PREF = 0x06,
-//        CANT_PARSE_SERVICES = 0x07,
-//        CONFIG_SERVER_MISSING = 0x08,
-//        ID_NOT_VALID = 0x09,
-//        RAND_FILTER_NOT_VALID = 0x0A,
-//        SQL_ERROR = 0x0B,
-//        SQL_MISMATCH = 0x0C,
-//        DB_MISSING_TABLES = 0x0D,
-//        DB_MISSING_COLUMNS = 0x0E,
-//        ID_NOT_FOUND = 0x0F,
-//        MORE_THAN_ONE_AUTO = 0x10,
-//        EXTRA_NOT_FOUND = 0x11,
-//        EXECUTABLE_NOT_FOUND = 0x12,
-//        EXECUTABLE_NOT_VALID = 0x13,
-//        PROCESS_START_FAIL = 0x14,
-//        WAIT_PROCESS_NOT_HANDLED = 0x15,
-//        WAIT_PROCESS_NOT_HOOKED = 0x16,
-//        CANT_READ_BAT_FILE = 0x17,
-//        PARENT_INVALID = 0x18,
-//        CANT_OBTAIN_DATA_PACK = 0x19,
-//        DATA_PACK_INVALID = 0x20
-//    };
-
     enum class NotificationVerbosity { Full, Quiet, Silent };
     enum class TaskStage { Startup, Primary, Auxiliary, Shutdown };
     enum class ProcessType { Blocking, Deferred, Detached };

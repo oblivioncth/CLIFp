@@ -22,14 +22,14 @@ private:
     static inline const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
     static inline const QString ERR_RAND_FILTER_INVALID = "The provided string for random operation was not a valid filter.";
     static inline const QString ERR_ID_NOT_FOUND = "An entry matching the specified ID could not be found in the Flashpoint database.";
-    static inline const QString ERR_MORE_THAN_ONE_AUTO_P = "Multiple entries with the specified auto ID were found.";
-    static inline const QString ERR_MORE_THAN_ONE_AUTO_S = "This should not be possible and may indicate an error within the Flashpoint database";
+    static inline const QString ERR_ID_DUPLICATE_ENTRY_P = "Multiple entries with the specified ID were found.";
+    static inline const QString ERR_ID_DUPLICATE_ENTRY_S = "This should not be possible and may indicate an error within the Flashpoint database";
     static inline const QString ERR_PARENT_INVALID = "The parent ID of the target additional app was not valid.";
 
     // Logging - Messages
     static inline const QString LOG_EVENT_ENQ_AUTO = "Enqueuing automatic tasks...";
-    static inline const QString LOG_EVENT_ID_MATCH_TITLE = "Auto ID matches main title: %1";
-    static inline const QString LOG_EVENT_ID_MATCH_ADDAPP = "Auto ID matches additional app: %1 (Child of %2)";
+    static inline const QString LOG_EVENT_ID_MATCH_TITLE = "ID matches main title: %1";
+    static inline const QString LOG_EVENT_ID_MATCH_ADDAPP = "ID matches additional app: %1 (Child of %2)";
     static inline const QString LOG_EVENT_QUEUE_CLEARED = "Previous queue entries cleared due to auto task being a Message/Extra";
     static inline const QString LOG_EVENT_FOUND_AUTORUN = "Found autorun-before additional app: %1";
     static inline const QString LOG_EVENT_DATA_PACK_TITLE = "Selected title uses a data pack";
