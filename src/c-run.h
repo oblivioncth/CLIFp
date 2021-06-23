@@ -15,8 +15,8 @@ private:
     // Logging - Errors
 
     // Command line option strings
-    static inline const QString CL_OPT_APP_S_NAME = "x";
-    static inline const QString CL_OPT_APP_L_NAME = "exe";
+    static inline const QString CL_OPT_APP_S_NAME = "a";
+    static inline const QString CL_OPT_APP_L_NAME = "app";
     static inline const QString CL_OPT_APP_DESC = "Relative (to Flashpoint directory) path of application to launch.";
 
     static inline const QString CL_OPT_PARAM_S_NAME = "p";

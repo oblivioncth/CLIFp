@@ -19,9 +19,7 @@ private:
 private:
     // Error Messages - Prep
     static inline const QString ERR_NO_TITLE = "No title to start was specified.";
-    static inline const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
     static inline const QString ERR_RAND_FILTER_INVALID = "The provided string for random operation was not a valid filter.";
-    static inline const QString ERR_ID_NOT_FOUND = "An entry matching the specified ID could not be found in the Flashpoint database.";
     static inline const QString ERR_ID_DUPLICATE_ENTRY_P = "Multiple entries with the specified ID were found.";
     static inline const QString ERR_ID_DUPLICATE_ENTRY_S = "This should not be possible and may indicate an error within the Flashpoint database";
     static inline const QString ERR_PARENT_INVALID = "The parent ID of the target additional app was not valid.";
@@ -59,6 +57,7 @@ private:
     static inline const QStringList RAND_GAME_FILTER_NAMES{"game", "arcade"};
     static inline const QStringList RAND_ANIM_FILTER_NAMES{"animation", "theatre"};
 
+public:
     // Command line option strings
     static inline const QString CL_OPT_ID_S_NAME = "i";
     static inline const QString CL_OPT_ID_L_NAME = "id";
@@ -68,7 +67,7 @@ private:
     static inline const QString CL_OPT_RAND_L_NAME = "random";
     static inline const QString CL_OPT_RAND_DESC = "Select a random title from the database to start. Must be followed by a library filter: " +
                                                    RAND_ALL_FILTER_NAMES.join("/") + ", " + RAND_GAME_FILTER_NAMES.join("/") + " or " + RAND_ANIM_FILTER_NAMES.join("/");
-
+private:
     // Command line options
     static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, "id"}; // Takes value
     static inline const QCommandLineOption CL_OPTION_RAND{{CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, "random"}; // Takes value

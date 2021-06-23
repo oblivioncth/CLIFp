@@ -9,7 +9,6 @@ class CPrepare : public Command
 private:
     // Error Messages - Prep
     static inline const QString ERR_NO_ID = "No title to prepare was specified.";
-    static inline const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
 
     // Logging - Messages
 

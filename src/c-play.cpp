@@ -33,7 +33,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     // Check if ID was found and that only one instance was found
     if(searchResult.size == 0)
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND));
         return Core::ErrorCodes::ID_NOT_FOUND;
     }
     else if(searchResult.size > 1)
@@ -327,7 +327,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     // Check if ID was found and that only one instance was found
     if(mainGameQuery.size == 0)
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND));
         return Core::ErrorCodes::ID_NOT_FOUND;
     }
     else if(mainGameQuery.size > 1)
@@ -369,7 +369,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
         // Check if ID was found and that only one instance was found
         if(addAppQuerry.size == 0)
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_NOT_FOUND));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND));
             return Core::ErrorCodes::ID_NOT_FOUND;
         }
         else if(addAppQuerry.size > 1)
@@ -428,7 +428,7 @@ ErrorCode CPlay::process(const QStringList& commandLine)
     {
         if((titleID = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
             return Core::ErrorCodes::ID_NOT_VALID;
         }
     }

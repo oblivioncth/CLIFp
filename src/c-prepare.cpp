@@ -1,7 +1,5 @@
 #include "c-prepare.h"
 
-
-
 //===============================================================================================================
 // CPREPARE
 //===============================================================================================================
@@ -31,13 +29,12 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     // Enqueue prepare task
     if(mParser.isSet(CL_OPTION_ID))
     {
-        ErrorCode errorStatus;
         QSqlError sqlError;
         QUuid id;
 
         if((id = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_INVALID));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
             return Core::ErrorCodes::ID_NOT_VALID;
         }
 

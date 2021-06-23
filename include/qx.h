@@ -12,6 +12,7 @@
 #include <QSet>
 #include <QDateTime>
 #include <QMessageBox>
+#include <QBitArray>
 #include "assert.h"
 
 namespace Qx
@@ -260,6 +261,48 @@ public:
     static QByteArray RAWFromStringHex(QString str);
 };
 
+class BitArrayX : public QBitArray
+{
+//-Constructor--------------------------------------------------------------------------------------------------
+public:
+    BitArrayX();
+    BitArrayX(int size, bool value = false);
+
+//-Class Functions----------------------------------------------------------------------------------------------
+public:
+    template<typename T, ENABLE_IF(std::is_integral<T>)>
+    static BitArrayX fromInteger(T integer, Endian::Endianness endianness = Endian::LE)
+    {
+        //QByteArray byteRep = ByteArray::RAWFromPrimitive(integer, endianness);
+        int bitCount = sizeof(T)*8;
+
+        BitArrayX bitRep(bitCount);
+
+        for(int i = 0; i < bitCount; ++i)
+            if(integer & 0b1 << i)
+                bitRep.setBit(endianness == Endian::LE ? bitCount - (8*(i/8 + 1)) + i % 8 : i);
+
+        return bitRep;
+    }
+
+//-Instance Functions-------------------------------------------------------------------------------------------
+public:
+    template<typename T, ENABLE_IF(std::is_integral<T>)>
+    T toInteger(Endian::Endianness endianness = Endian::LE, int lsbIndex = 0)
+    {
+        if(lsbIndex < 0 || lsbIndex >= count())
+            throw std::out_of_range("Least significant bit index was outside BitArrayX contents");
+
+        int bitCount = sizeof(T)*8;
+        T integer = 0;
+
+        for(int i = 0; i < bitCount && i + lsbIndex < count(); ++i)
+            integer |= (testBit(lsbIndex + (endianness == Endian::LE ? bitCount - (8*(i/8 + 1)) + i % 8 : i)) ? 0b1 : 0b0) << i;
+
+        return integer;
+    }
+};
+
 class Char
 {
 //-Class Functions----------------------------------------------------------------------------------------------
@@ -440,6 +483,10 @@ class GenericError //TODO - Have Qx functions that use this class return "defaul
 //-Class Enums-----------------------------------------------------------------------------------------------
 public:
     enum ErrorLevel { Undefined, Warning, Error, Critical };
+
+//-Class Members---------------------------------------------------------------------------------------------
+public:
+    static const GenericError UNKNOWN_ERROR;
 
 //-Instance Members------------------------------------------------------------------------------------------
 private:

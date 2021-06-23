@@ -1,0 +1,67 @@
+#ifndef CSHORTCUT_H
+#define CSHORTCUT_H
+
+#include "command.h"
+
+class CShortcut : public Command
+{
+//-Inner Classes--------------------------------------------------------------------------------------------------------
+private:
+    class ErrorCodes
+    {
+    //-Class Variables--------------------------------------------------------------------------------------------------
+    public:
+        static const ErrorCode INVALID_SHORTCUT_PARAM = 201;
+    };
+
+//-Class Variables------------------------------------------------------------------------------------------------------
+private:
+    // General
+    static inline const QString LNK_EXT = "lnk";
+    static inline const QString DIAG_CAPTION = "Select a shortcut destination...";
+
+    // Error Messages - Prep
+    static inline const QString ERR_NO_ID = "No title to prepare was specified.";
+    static inline const QString ERR_CREATE_FAILED = "Failed to create shortcut.";
+    static inline const QString ERR_INVALID_PATH = "The provided shortcut path is not valid or a location where you do not have permissions to create a shortcut.";
+
+    // Logging - Messages
+    static inline const QString LOG_EVENT_DIAG_CANCEL = "Shortcut path selection canceled.";
+
+    // Logging - Errors
+
+    // Command line option strings
+    static inline const QString CL_OPT_ID_S_NAME = "i";
+    static inline const QString CL_OPT_ID_L_NAME = "id";
+    static inline const QString CL_OPT_ID_DESC = "UUID of title to make a shortcut for";
+
+    static inline const QString CL_OPT_PATH_S_NAME = "p";
+    static inline const QString CL_OPT_PATH_L_NAME = "path";
+    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with a '\' will be interpreted as a directory and "
+                                                   "the title will be used as the file name. For file paths the .lnk extension will be "
+                                                   "appended automatically if missing";
+
+    // Command line options
+    static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, "id"}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_PATH{{CL_OPT_PATH_S_NAME, CL_OPT_PATH_L_NAME}, CL_OPT_PATH_DESC, "path"}; // Takes value
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_PATH};
+
+public:
+    // Meta
+    static inline const QString NAME = "shortcut";
+    static inline const QString DESCRIPTION = "Creates a shortcut to a Flashpoint title.";
+
+//-Constructor----------------------------------------------------------------------------------------------------------
+public:
+    CShortcut(Core& coreRef);
+
+//-Instance Functions------------------------------------------------------------------------------------------------------
+protected:
+    const QList<const QCommandLineOption*> options();
+    const QString name();
+
+public:
+    ErrorCode process(const QStringList& commandLine);
+};
+
+#endif // CSHORTCUT_H

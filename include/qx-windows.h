@@ -7,6 +7,24 @@
 namespace Qx
 {
 
+//-Structs---------------------------------------------------------------------------------------------------------------
+struct ShortcutProperties
+{
+    enum ShowMode {
+        NORMAL = SW_SHOWNORMAL,
+        MAXIMIZED = SW_SHOWMAXIMIZED,
+        MINIMIZED = SW_SHOWMINIMIZED
+    };
+
+    QString target;
+    QString targetArgs;
+    QString startIn;
+    QString comment;
+    QString iconFilePath;
+    int iconIndex = 0;
+    ShowMode showMode = NORMAL;
+};
+
 //-Classes---------------------------------------------------------------------------------------------------------------
 class FileDetails
 {
@@ -197,14 +215,24 @@ public:
 };
 
 //-Functions-------------------------------------------------------------------------------------------------------------
+
+// Files
 FileDetails getFileDetails(QString filePath);
 
+// Processes
 DWORD getProcessIDByName(QString processName);
 QString getProcessNameByID(DWORD processID);
 bool processIsRunning(QString processName);
 bool processIsRunning(DWORD processID);
-
 bool enforceSingleInstance();
+
+// Error codes
+Qx::GenericError translateHresult(HRESULT res);
+Qx::GenericError translateNtstatus(NTSTATUS stat);
+
+// Filesystem
+Qx::GenericError createShortcut(QString shortcutPath, ShortcutProperties sp);
+
 }
 
 //-Qt Flag Operators-----------------------------------------------------------------------------------------------------

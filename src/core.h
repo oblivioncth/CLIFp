@@ -140,18 +140,18 @@ public:
         static const ErrorCode DB_MISSING_COLUMNS = 10;
         static const ErrorCode SQL_ERROR = 11;
         static const ErrorCode SQL_MISMATCH = 12;
-        static const ErrorCode EXTRA_NOT_FOUND = 13;
-        static const ErrorCode EXECUTABLE_NOT_FOUND = 14;
-        static const ErrorCode EXECUTABLE_NOT_VALID = 15;
-        static const ErrorCode PROCESS_START_FAIL = 16;
-        static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 17;
-        static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 18;
-        static const ErrorCode CANT_READ_BAT_FILE = 19;
-        static const ErrorCode ID_NOT_VALID = 20;
-        static const ErrorCode ID_NOT_FOUND = 21;
-        static const ErrorCode ID_DUPLICATE = 22;
-        static const ErrorCode CANT_OBTAIN_DATA_PACK = 23;
-        static const ErrorCode DATA_PACK_INVALID = 24;
+        static const ErrorCode EXECUTABLE_NOT_FOUND = 13;
+        static const ErrorCode EXECUTABLE_NOT_VALID = 14;
+        static const ErrorCode PROCESS_START_FAIL = 15;
+        static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 16;
+        static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 17;
+        static const ErrorCode CANT_READ_BAT_FILE = 18;
+        static const ErrorCode ID_NOT_VALID = 19;
+        static const ErrorCode ID_NOT_FOUND = 20;
+        static const ErrorCode ID_DUPLICATE = 21;
+        static const ErrorCode CANT_OBTAIN_DATA_PACK = 22;
+        static const ErrorCode DATA_PACK_INVALID = 23;
+        static const ErrorCode EXTRA_NOT_FOUND = 24;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -162,6 +162,8 @@ public:
     static inline const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
     static inline const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
     static inline const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
+    static inline const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
+    static inline const QString ERR_ID_NOT_FOUND = "An entry matching the specified ID could not be found in the Flashpoint database.";
     static inline const QString WRN_EXIST_PACK_SUM_MISMATCH = "The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.";
 
     // Logging - Primary Labels
@@ -222,7 +224,9 @@ public:
                                              "<br>"
                                              "<u>Global Options:</u>%1<br>"
                                              "<br>"
-                                             "<u>Commands:</u>%2";
+                                             "<u>Commands:</u>%2<br>"
+                                             "<br>"
+                                             "Use the <b>-h></b> switch after a command to it's specific usage notes";
     static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
     static inline const QString HELP_COMMAND_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 
