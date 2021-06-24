@@ -184,7 +184,7 @@ public:
 
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = "Initializing CLIFp...";
-    static inline const QString LOG_EVENT_HELP_SHOWN = "Displayed help information";
+    static inline const QString LOG_EVENT_G_HELP_SHOWN = "Displayed general help information";
     static inline const QString LOG_EVENT_VER_SHOWN = "Displayed version information";
     static inline const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
     static inline const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";

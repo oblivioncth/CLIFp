@@ -35,6 +35,9 @@ protected:
                                              "<u>Options:</u>&2";
     static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 
+    // Logging - Messages
+    static inline const QString LOG_EVENT_C_HELP_SHOWN = "Displayed help infomration for: %1";
+
     // Standard command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";
     static inline const QString CL_OPT_HELP_L_NAME = "help";

@@ -81,6 +81,7 @@ bool Command::checkStandardOptions()
 
 void Command::showHelp()
 {
+    mCore.logEvent(name(), LOG_EVENT_C_HELP_SHOWN.arg(name()));
     // Help string
     static QString helpStr;
 
