@@ -16,7 +16,7 @@ private:
 
     // Command line option strings
     static inline const QString CL_OPT_MSG_S_NAME = "m";
-    static inline const QString CL_OPT_MSG_L_NAME = "msg";
+    static inline const QString CL_OPT_MSG_L_NAME = "message";
     static inline const QString CL_OPT_MSG_DESC = "Displays an pop-up dialog with the supplied message. Used primarily for some additional apps.";
 
     static inline const QString CL_OPT_EXTRA_S_NAME = "e";
