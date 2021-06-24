@@ -149,9 +149,10 @@ public:
         static const ErrorCode ID_NOT_VALID = 19;
         static const ErrorCode ID_NOT_FOUND = 20;
         static const ErrorCode ID_DUPLICATE = 21;
-        static const ErrorCode CANT_OBTAIN_DATA_PACK = 22;
-        static const ErrorCode DATA_PACK_INVALID = 23;
-        static const ErrorCode EXTRA_NOT_FOUND = 24;
+        static const ErrorCode TITLE_NOT_FOUND = 22;
+        static const ErrorCode CANT_OBTAIN_DATA_PACK = 23;
+        static const ErrorCode DATA_PACK_INVALID = 24;
+        static const ErrorCode EXTRA_NOT_FOUND = 25;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -164,6 +165,7 @@ public:
     static inline const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
     static inline const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
     static inline const QString ERR_ID_NOT_FOUND = "An entry matching the specified ID could not be found in the Flashpoint database.";
+    static inline const QString ERR_TITLE_NOT_FOUND = "The provided title was not found in the Flashpoint database.";
     static inline const QString WRN_EXIST_PACK_SUM_MISMATCH = "The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.";
 
     // Logging - Primary Labels
@@ -190,6 +192,9 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_MISS = "Title Data Pack is not available locally";
     static inline const QString LOG_EVENT_DATA_PACK_FOUND = "Title Data Pack with correct hash is already present, no need to download";
     static inline const QString LOG_EVENT_TASK_ENQ = "Enqueued %1: {%2}";
+    static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
+    static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
+    static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of tile %1 determined to be %2";
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";
@@ -233,6 +238,11 @@ public:
     // Command line messages
     static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_FILEVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
 
+    // Input strings
+    static inline const QString MULTI_TITLE_SEL_CAP = "Title Disambiguation";
+    static inline const QString MULTI_TITLE_SEL_LABEL = "Title to start:";
+    static inline const QString MULTI_TITLE_SEL_TEMP = "[%1] %2 (%3) {%4}";
+
     // Meta
     static inline const QString NAME = "core";
 
@@ -268,6 +278,8 @@ public:
     ErrorCode initialize(QStringList& commandLine);
     ErrorCode attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall);
     ErrorCode openAndVerifyProperDatabase();
+
+    ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 
     ErrorCode enqueueStartupTasks();
     void enqueueShutdownTasks();

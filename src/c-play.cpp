@@ -432,6 +432,11 @@ ErrorCode CPlay::process(const QStringList& commandLine)
             return Core::ErrorCodes::ID_NOT_VALID;
         }
     }
+    else if(mParser.isSet(CL_OPTION_TITLE))
+    {
+        if((errorStatus = mCore.getGameIDFromTitle(titleID, mParser.value(CL_OPTION_TITLE))))
+            return errorStatus;
+    }
     else if(mParser.isSet(CL_OPTION_RAND))
     {
         QString rawRandFilter = mParser.value(CL_OPTION_RAND);

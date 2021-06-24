@@ -45,9 +45,14 @@ ErrorCode CShortcut::process(const QStringList& commandLine)
             return Core::ErrorCodes::ID_NOT_VALID;
         }
     }
+    else if(mParser.isSet(CL_OPTION_TITLE))
+    {
+        if((errorStatus = mCore.getGameIDFromTitle(shortcutID, mParser.value(CL_OPTION_TITLE))))
+            return errorStatus;
+    }
     else
     {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_ID));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
         return Core::ErrorCodes::INVALID_ARGS;
     }
 
@@ -79,9 +84,13 @@ ErrorCode CShortcut::process(const QStringList& commandLine)
     {
         QString inputPath = mParser.value(CL_OPTION_PATH);
         if(inputPath.back() == '\\' || inputPath.back() == '/')
+        {
+            mCore.logEvent(NAME, LOG_EVENT_DIR_PATH);
             shortcutDir = QDir(inputPath);
+        }
         else
         {
+            mCore.logEvent(NAME, LOG_EVENT_FILE_PATH);
             QFileInfo pathInfo(inputPath);
             shortcutDir = pathInfo.absoluteDir();
             shortcutName = pathInfo.suffix() == LNK_EXT ? pathInfo.baseName() : pathInfo.fileName();
@@ -89,6 +98,7 @@ ErrorCode CShortcut::process(const QStringList& commandLine)
     }
     else
     {
+        mCore.logEvent(NAME, LOG_EVENT_NO_PATH);
         QString selectedPath = QFileDialog::getSaveFileName(nullptr, DIAG_CAPTION, QDir::homePath(), "Shortcuts (*. " + LNK_EXT + ")");
         if(selectedPath.isEmpty())
         {
@@ -97,17 +107,22 @@ ErrorCode CShortcut::process(const QStringList& commandLine)
         }
         else
         {
+            mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(selectedPath));
             QFileInfo pathInfo(selectedPath);
             shortcutDir = pathInfo.absoluteDir();
             shortcutName = pathInfo.baseName();
         }
     }
 
-    // Create shortcut folder
-    if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
+    // Create shortcut folder if needed
+    if(!shortcutDir.exists())
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, ERR_INVALID_PATH));
-        return ErrorCodes::INVALID_SHORTCUT_PARAM;
+        if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
+        {
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, ERR_INVALID_PATH));
+            return ErrorCodes::INVALID_SHORTCUT_PARAM;
+        }
+        mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(shortcutDir.absolutePath()));
     }
 
     // Create shortcut properties
@@ -117,7 +132,8 @@ ErrorCode CShortcut::process(const QStringList& commandLine)
     sp.comment = shortcutName;
 
     // Create shortcut
-    Qx::GenericError shortcutError = Qx::createShortcut(shortcutDir.absolutePath() + "/" + shortcutName + LNK_EXT, sp);
+    QString fullShortcutPath = shortcutDir.absolutePath() + "/" + shortcutName + LNK_EXT;
+    Qx::GenericError shortcutError = Qx::createShortcut(fullShortcutPath, sp);
 
     // Check for creation failure
     if(shortcutError.isValid())
@@ -125,6 +141,8 @@ ErrorCode CShortcut::process(const QStringList& commandLine)
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, shortcutError.primaryInfo()));
         return ErrorCodes::INVALID_SHORTCUT_PARAM;
     }
+    else
+        mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(shortcutID.toString(QUuid::WithoutBraces), fullShortcutPath));
 
     // Return success
     return Core::ErrorCodes::NO_ERR;

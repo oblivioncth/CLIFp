@@ -1008,11 +1008,8 @@ QSqlError Install::queryAllEntryTags(DBQueryBuffer& resultBuffer) const
     QSqlError queryError;
     resultBuffer.source = DBTable_Playlist_Game::NAME;
 
-    if((queryError = makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
-        return queryError;
-
     // Return invalid SqlError
-    return QSqlError();
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
 QSqlError Install::queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const
@@ -1048,6 +1045,27 @@ QSqlError Install::queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) cons
 
     // Make query and return result regardless of outcome
     resultBuffer.source = DBTable_Add_App::NAME;
+    return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
+}
+
+QSqlError Install::queryEntriesByTitle(DBQueryBuffer& resultBuffer, QString title) const
+{
+    // Ensure return buffer is effectively null
+    resultBuffer = DBQueryBuffer();
+
+    // Get database
+    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+
+    // Check for entry as a game first
+    QString baseQueryCommand = "SELECT %1 FROM " + DBTable_Game::NAME + " WHERE " +
+            DBTable_Game::COL_TITLE + " == '" + title + "'";
+    QString mainQueryCommand = baseQueryCommand.arg("`" + DBTable_Game::COLUMN_LIST.join("`,`") + "`");
+    QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
+
+    // Make query
+    QSqlError queryError;
+    resultBuffer.source = DBTable_Game::NAME;
+
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 

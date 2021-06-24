@@ -1,7 +1,8 @@
 #include "core.h"
 #include "command.h"
 
-# include <QApplication>
+#include <QApplication>
+#include <QInputDialog>
 
 //===============================================================================================================
 // CORE
@@ -228,6 +229,77 @@ ErrorCode Core::openAndVerifyProperDatabase()
     // Return success
     return ErrorCodes::NO_ERR;
 }
+
+ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
+{
+    // Clear return buffer
+    returnBuffer = QUuid();
+
+    // Search database for title
+    QSqlError searchError;
+    FP::Install::DBQueryBuffer searchResult;
+
+    if((searchError = mFlashpointInstall->queryEntriesByTitle(searchResult, title)).isValid())
+    {
+        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return ErrorCodes::SQL_ERROR;
+    }
+
+    logEvent(NAME, LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(title));
+
+    if(searchResult.size < 1)
+    {
+        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_TITLE_NOT_FOUND));
+        return ErrorCodes::TITLE_NOT_FOUND;
+    }
+    else if(searchResult.size == 1)
+    {
+        // Advance result to only record
+        searchResult.result.next();
+
+        // Get ID
+        returnBuffer = QUuid(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString());
+
+        return ErrorCodes::NO_ERR;
+    }
+    else
+    {
+        logEvent(NAME, LOG_EVENT_TITLE_SEL_PROMNPT);
+        QHash<QString, QUuid> idMap;
+        QStringList idChoices;
+
+        for(int i = 0; i < searchResult.size; ++i)
+        {
+            // Advance result to next record
+            searchResult.result.next();
+
+            // Get ID
+            QUuid id = QUuid(searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString());
+
+            // Create choice string
+            QString choice = MULTI_TITLE_SEL_TEMP.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_PLATFORM).toString(),
+                                                      title,
+                                                      searchResult.result.value(FP::Install::DBTable_Game::COL_DEVELOPER).toString(),
+                                                      id.toString(QUuid::WithoutBraces));
+
+            // Add to map and choice list
+            idMap[choice] = id;
+            idChoices.append(choice);
+        }
+
+        // Get user choice
+        QString userChoice = QInputDialog::getItem(nullptr, MULTI_TITLE_SEL_CAP, MULTI_TITLE_SEL_LABEL, idChoices);
+
+        // Set return buffer
+        returnBuffer = idMap.value(userChoice);
+        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
+
+        return ErrorCodes::NO_ERR;
+    }
+}
+
+
+
 
 ErrorCode Core::enqueueStartupTasks()
 {

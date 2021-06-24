@@ -26,42 +26,49 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     if(checkStandardOptions())
         return Core::ErrorCodes::NO_ERR;
 
-    // Enqueue prepare task
+    // Get ID to prpare
+    QUuid id;
+
     if(mParser.isSet(CL_OPTION_ID))
     {
-        QSqlError sqlError;
-        QUuid id;
-
         if((id = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
             return Core::ErrorCodes::ID_NOT_VALID;
-        }
-
-        // Open database
-        if((errorStatus = mCore.openAndVerifyProperDatabase()))
+        }    
+    }
+    else if(mParser.isSet(CL_OPTION_TITLE))
+    {
+        if((errorStatus = mCore.getGameIDFromTitle(id, mParser.value(CL_OPTION_TITLE))))
             return errorStatus;
-
-        bool titleUsesDataPack;
-        if((sqlError = mCore.getFlashpointInstall().entryUsesDataPack(titleUsesDataPack, id)).isValid())
-        {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
-            return Core::ErrorCodes::SQL_ERROR;
-        }
-
-        if(titleUsesDataPack)
-        {
-            if((errorStatus = mCore.enqueueDataPackTasks(id)))
-                return errorStatus;
-        }
-        else
-            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
     }
     else
     {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_ID));
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
         return Core::ErrorCodes::INVALID_ARGS;
     }
+
+    // Enqueue prepare task
+    QSqlError sqlError;
+
+    // Open database
+    if((errorStatus = mCore.openAndVerifyProperDatabase()))
+        return errorStatus;
+
+    bool titleUsesDataPack;
+    if((sqlError = mCore.getFlashpointInstall().entryUsesDataPack(titleUsesDataPack, id)).isValid())
+    {
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
+        return Core::ErrorCodes::SQL_ERROR;
+    }
+
+    if(titleUsesDataPack)
+    {
+        if((errorStatus = mCore.enqueueDataPackTasks(id)))
+            return errorStatus;
+    }
+    else
+        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
 
     // Return success
     return Core::ErrorCodes::NO_ERR;

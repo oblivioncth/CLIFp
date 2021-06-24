@@ -525,6 +525,7 @@ public:
 
     // Queries - CLIFp
     QSqlError queryEntryByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntriesByTitle(DBQueryBuffer& resultBuffer, QString title) const;
     QSqlError queryEntryDataByID(DBQueryBuffer& resultBuffer, QUuid appID) const;
     QSqlError queryEntryAddApps(DBQueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
     QSqlError queryDataPackSource(DBQueryBuffer& resultBuffer) const;
