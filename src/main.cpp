@@ -51,6 +51,7 @@ const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = "Checking if \"%1\" is flashpoin
 const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
 const QString LOG_EVENT_SHOW_MESSAGE = "Displayed message";
 const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
+const QString LOG_EVENT_TASK_COUNT = "%1 task(s) to perform";
 const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
 const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
 const QString LOG_EVENT_TASK_FINISH = "End of task %1";
@@ -164,6 +165,7 @@ ErrorCode main(int argc, char *argv[])
         return coreCLI.logFinish(NAME, errorStatus);
 
     //-Handle Tasks-----------------------------------------------------------------------
+    coreCLI.logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(coreCLI.taskCount()));
     if(coreCLI.hasTasks())
     {
         // Process tracking

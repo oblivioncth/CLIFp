@@ -248,16 +248,17 @@ public:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
-    // TODO: MAKE VAR CATEGORIES
+    // Handles
     std::unique_ptr<FP::Install> mFlashpointInstall;
     FP::Install::Services mFlashpointServices;
     FP::Install::Config mFlashpointConfig;
     FP::Install::Preferences mFlashpointPreferences;
     std::unique_ptr<QFile> mLogFile;
     std::unique_ptr<Logger> mLogger;
-    NotificationVerbosity mNotificationVerbosity;
 
-    bool mCriticalErrorOccured;
+    // Processing
+    bool mCriticalErrorOccured = false;
+    NotificationVerbosity mNotificationVerbosity;
     std::queue<std::shared_ptr<Task>> mTaskQueue;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
