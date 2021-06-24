@@ -132,7 +132,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     sp.comment = shortcutName;
 
     // Create shortcut
-    QString fullShortcutPath = shortcutDir.absolutePath() + "/" + shortcutName + LNK_EXT;
+    QString fullShortcutPath = shortcutDir.absolutePath() + "/" + shortcutName + "." + LNK_EXT;
     Qx::GenericError shortcutError = Qx::createShortcut(fullShortcutPath, sp);
 
     // Check for creation failure
