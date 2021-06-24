@@ -107,6 +107,9 @@ ErrorCode CLink::process(const QStringList& commandLine)
         }
         else
         {
+            if(!selectedPath.endsWith("." + LNK_EXT, Qt::CaseInsensitive))
+                selectedPath += "." + LNK_EXT;
+
             mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(selectedPath));
             QFileInfo pathInfo(selectedPath);
             shortcutDir = pathInfo.absoluteDir();
