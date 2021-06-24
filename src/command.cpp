@@ -93,7 +93,7 @@ void Command::showHelp()
         {
             // Handle names
             QStringList dashedNames;
-            for(const QString& name : clOption->names())
+            for(const QString& name :  clOption->names())
                 dashedNames << (name.length() > 1 ? "--" : "-" + name);
 
             // Add option

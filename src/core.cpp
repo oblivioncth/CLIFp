@@ -15,7 +15,7 @@ Core::Core() {}
 Core::~Core()
 {
     // Close database connection if open
-    if(mFlashpointInstall->databaseConnectionOpenInThisThread())
+    if(mFlashpointInstall && mFlashpointInstall->databaseConnectionOpenInThisThread())
         mFlashpointInstall->closeThreadedDatabaseConnection();
 }
 
@@ -45,7 +45,7 @@ void Core::showHelp() const
         {
             // Handle names
             QStringList dashedNames;
-            for(const QString& name : clOption->names())
+            for(const QString& name : qAsConstR(clOption->names()))
                 dashedNames << (name.length() > 1 ? "--" : "-" + name);
 
             // Add option
@@ -54,7 +54,7 @@ void Core::showHelp() const
 
         // Help commands
         QString commandStr;
-        for(const QString& command : Command::registered())
+        for(const QString& command : qAsConstR(Command::registered()))
             commandStr += HELP_COMMAND_TEMPL.arg(command, Command::describe(command));
 
         // Complete string
@@ -129,7 +129,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
             logEvent(NAME, LOG_EVENT_HELP_SHOWN);
         }
 
-        if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) == 0 && clParser.positionalArguments().count() == 0)) // Also when no parameters
+        if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) && clParser.positionalArguments().count() == 0)) // Also when no parameters
         {
             showHelp();
             commandLine.clear(); // Clear args so application terminates after Core setup
@@ -298,14 +298,11 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
     }
 }
 
-
-
-
 ErrorCode Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
     // Add Start entries from services
-    for(const FP::Install::StartStop& startEntry : mFlashpointServices.starts)
+    for(const FP::Install::StartStop& startEntry : qAsConst(mFlashpointServices.starts))
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
         currentTask->stage = TaskStage::Startup;
@@ -366,7 +363,7 @@ void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
-    for(const FP::Install::StartStop& stopEntry : mFlashpointServices.stops)
+    for(const FP::Install::StartStop& stopEntry : qAsConst(mFlashpointServices.stops))
     {
         std::shared_ptr<ExecTask> shutdownTask = std::make_shared<ExecTask>();
         shutdownTask->stage = TaskStage::Shutdown;
@@ -543,7 +540,7 @@ void Core::logEvent(QString src, QString event)
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.getOutcome(), logReport.getOutcomeInfo()), false);
 }
 
-void Core::logTask(QString src, const Task* const task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name()).arg(task->members().join(", "))); }
+void Core::logTask(QString src, const Task* const task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
 
 int Core::logFinish(QString src, int exitCode)
 {

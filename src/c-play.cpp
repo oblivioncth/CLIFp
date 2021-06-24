@@ -238,7 +238,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
         return Core::ErrorCodes::SQL_ERROR;
     }
 
-    QList<QUuid> playableIDs;
+    QVector<QUuid> playableIDs;
 
     // Enumerate main game IDs
     for(int i = 0; i < mainGameIDQuery.size; i++)
@@ -270,7 +270,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
     }
     mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
 
-    QList<QUuid> playableSubIDs;
+    QVector<QUuid> playableSubIDs;
 
     // Enumerate entry's playable additional apps
     for(int i = 0; i < addAppQuery.size; i++)
@@ -347,10 +347,10 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     mainGameQuery.result.next();
 
     // Populate buffer with primary info
-    infoFillTemplate = infoFillTemplate.arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_TITLE).toString())
-                               .arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_DEVELOPER).toString())
-                               .arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_PUBLISHER).toString())
-                               .arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_LIBRARY).toString());
+    infoFillTemplate = infoFillTemplate.arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_TITLE).toString(),
+                               mainGameQuery.result.value(FP::Install::DBTable_Game::COL_DEVELOPER).toString(),
+                               mainGameQuery.result.value(FP::Install::DBTable_Game::COL_PUBLISHER).toString(),
+                               mainGameQuery.result.value(FP::Install::DBTable_Game::COL_LIBRARY).toString());
 
     // Determine variant
     if(subID.isNull())

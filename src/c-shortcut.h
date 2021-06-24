@@ -75,4 +75,6 @@ public:
     ErrorCode process(const QStringList& commandLine);
 };
 
+REGISTER_COMMAND(CShortcut::NAME, CShortcut, CShortcut::DESCRIPTION);
+
 #endif // CSHORTCUT_H

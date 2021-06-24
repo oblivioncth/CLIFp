@@ -15,6 +15,10 @@
 #include <QBitArray>
 #include "assert.h"
 
+//-Non-namspace Functions-------------------------------------------------------------------------------------------------
+template <typename T>
+const T qAsConstR(T &&t) { return std::move(t); }
+
 namespace Qx
 {
 //-Class Forward Declarations---------------------------------------------------------------------------------------------
