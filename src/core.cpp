@@ -128,6 +128,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
             showVersion();
             commandLine.clear(); // Clear args so application terminates after Core setup
             logEvent(NAME, LOG_EVENT_VER_SHOWN);
+            return ErrorCodes::NO_ERR;
         }
 
         if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) && clParser.positionalArguments().count() == 0)) // Also when no parameters
@@ -135,6 +136,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
             showHelp();
             commandLine.clear(); // Clear args so application terminates after Core setup
             logEvent(NAME, LOG_EVENT_G_HELP_SHOWN);
+            return ErrorCodes::NO_ERR;
         }
         else
             commandLine = clParser.positionalArguments(); // Remove core options from command line list
