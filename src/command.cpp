@@ -61,7 +61,7 @@ ErrorCode Command::parse(const QStringList& commandLine)
         return Core::ErrorCodes::NO_ERR;
     else
     {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, mParser.errorText()));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, mParser.errorText()));
         return Core::ErrorCodes::INVALID_ARGS;
     }
 }
