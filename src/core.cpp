@@ -258,7 +258,8 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         searchResult.result.next();
 
         // Get ID
-        returnBuffer = QUuid(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString());
+        returnBuffer = QUuid(searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString());
+        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
 
         return ErrorCodes::NO_ERR;
     }

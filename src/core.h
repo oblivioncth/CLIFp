@@ -194,7 +194,7 @@ public:
     static inline const QString LOG_EVENT_TASK_ENQ = "Enqueued %1: {%2}";
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
-    static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of tile %1 determined to be %2";
+    static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of title %1 determined to be %2";
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";
