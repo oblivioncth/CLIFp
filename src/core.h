@@ -52,11 +52,11 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml << ".path = \"" << path << "\"";
-            ml << ".filename = \"" << filename << "\"";
-            ml << ".param = {\"" << param.join(R"(", ")") << "\"}";
-            ml << ".nativeParam = \"" << nativeParam << "\"";
-            ml << ".processType = " << ENUM_NAME(processType);
+            ml.append(".path = \"" + path + "\"");
+            ml.append(".filename = \"" + filename + "\"");
+            ml.append(".param = {\"" + param.join(R"(", ")") + "\"}");
+            ml.append(".nativeParam = \"" + nativeParam + "\"");
+            ml.append(".processType = " + ENUM_NAME(processType));
             return ml;
         }
     };
@@ -70,8 +70,8 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml << ".message = \"" << message << "\"";
-            ml << ".modal = \"" << (modal ? "true" : "false");
+            ml.append(".message = \"" + message + "\"");
+            ml.append(".modal = \"" + QString(modal ? "true" : "false"));
             return ml;
         }
     };
@@ -84,7 +84,7 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml << ".extraDir = \"" << dir.path() << "\"";
+            ml.append(".extraDir = \"" + dir.path() + "\"");
             return ml;
         }
     };
@@ -97,7 +97,7 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml << ".processName = \"" << processName << "\"";
+            ml.append(".processName = \"" + processName + "\"");
             return ml;
         }
     };
@@ -113,10 +113,10 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml << ".destPath = \"" << destPath << "\"";
-            ml << ".destFileName = \"" << destFileName << "\"";
-            ml << ".targetFile = \"" << targetFile.toString() << "\"";
-            ml << ".sha256 = " << sha256;
+            ml.append(".destPath = \"" + destPath + "\"");
+            ml.append(".destFileName = \"" + destFileName + "\"");
+            ml.append(".targetFile = \"" + targetFile.toString() + "\"");
+            ml.append(".sha256 = " + sha256);
             return ml;
         }
     };
@@ -299,7 +299,7 @@ public:
 
     const FP::Install& getFlashpointInstall() const;
     NotificationVerbosity notifcationVerbosity() const;
-    int taskCount() const;
+    size_t taskCount() const;
     bool hasTasks() const;
     std::shared_ptr<Task> takeFrontTask();
 };

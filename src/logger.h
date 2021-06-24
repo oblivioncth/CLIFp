@@ -5,12 +5,13 @@
 #include <QStringList>
 #include "qx.h"
 #include "qx-io.h"
+#include "version.h"
 
 class Logger
 {
 //-Class Variables----------------------------------------------------------------------------------------------------
 private:
-    static inline const QString HEADER_TEMPLATE = "[ %1 ]";
+    static inline const QString HEADER_TEMPLATE = "[ %1 ] (%2)";
     static inline const QString ENTRY_START_TEMPLATE = "%1 : %2";
     static inline const QString EVENT_TEMPLATE = " - <%1> [%2] %3";
     static inline const QString COMMANDLINE_LABEL = "Raw Parameters:";

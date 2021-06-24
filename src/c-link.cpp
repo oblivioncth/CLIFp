@@ -1,4 +1,4 @@
-#include "c-linkh"
+#include "c-link.h"
 #include "c-play.h"
 
 #include "qfiledialog.h"

@@ -30,7 +30,7 @@ SOURCES += \
     src/main.cpp
 
 HEADERS += \
-    src/c-linkh \
+    src/c-link.h \
     src/c-play.h \
     src/c-prepare.h \
     src/c-run.h \

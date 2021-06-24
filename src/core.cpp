@@ -571,7 +571,7 @@ int Core::postError(QString src, Qx::GenericError error, bool log, QMessageBox::
 
 const FP::Install& Core::getFlashpointInstall() const { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
-int Core::taskCount() const { return mTaskQueue.size(); }
+size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
 
 std::shared_ptr<Core::Task> Core::takeFrontTask()

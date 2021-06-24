@@ -8,7 +8,7 @@
 //Public:
 Logger::Logger(QFile* const logFile, QString commandLine, QString globalOptions, QString header, int maxEntries)
     : mLogFile(logFile), mCommandLine(commandLine), mGlobalOptions(globalOptions),
-      mEntryHeader(HEADER_TEMPLATE.arg(header)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
+      mEntryHeader(HEADER_TEMPLATE.arg(header, VER_FILEVERSION_STR)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
 {
     // Initializer stream writer
     mTextStreamWriter = std::make_unique<Qx::TextStreamWriter>(*mLogFile, Qx::Append, true, false);
