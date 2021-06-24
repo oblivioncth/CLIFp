@@ -3,7 +3,7 @@
 
 #include "command.h"
 
-class CShortcut : public Command
+class CLink : public Command
 {
 //-Inner Classes--------------------------------------------------------------------------------------------------------
 private:
@@ -59,12 +59,12 @@ private:
 
 public:
     // Meta
-    static inline const QString NAME = "shortcut";
+    static inline const QString NAME = "link";
     static inline const QString DESCRIPTION = "Creates a shortcut to a Flashpoint title.";
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CShortcut(Core& coreRef);
+    CLink(Core& coreRef);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
@@ -74,7 +74,6 @@ protected:
 public:
     ErrorCode process(const QStringList& commandLine);
 };
-
-REGISTER_COMMAND(CShortcut::NAME, CShortcut, CShortcut::DESCRIPTION);
+REGISTER_COMMAND(CLink::NAME, CLink, CLink::DESCRIPTION);
 
 #endif // CSHORTCUT_H

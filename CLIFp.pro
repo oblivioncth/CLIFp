@@ -18,10 +18,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    src/c-link.cpp \
     src/c-play.cpp \
     src/c-prepare.cpp \
     src/c-run.cpp \
-    src/c-shortcut.cpp \
     src/c-show.cpp \
     src/command.cpp \
     src/core.cpp \
@@ -30,10 +30,10 @@ SOURCES += \
     src/main.cpp
 
 HEADERS += \
+    src/c-linkh \
     src/c-play.h \
     src/c-prepare.h \
     src/c-run.h \
-    src/c-shortcut.h \
     src/c-show.h \
     src/command.h \
     src/core.h \

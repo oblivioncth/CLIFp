@@ -53,5 +53,3 @@ ErrorCode CShow::process(const QStringList& commandLine)
     // Return success
     return Core::ErrorCodes::NO_ERR;
 }
-
-REGISTER_COMMAND(CShow::NAME, CShow, CShow::DESCRIPTION)

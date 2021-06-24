@@ -45,7 +45,6 @@ protected:
 public:
     ErrorCode process(const QStringList& commandLine);
 };
-
 REGISTER_COMMAND(CRun::NAME, CRun, CRun::DESCRIPTION);
 
 #endif // CRUN_H

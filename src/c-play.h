@@ -102,7 +102,6 @@ protected:
 public:
     ErrorCode process(const QStringList& commandLine);
 };
-
 REGISTER_COMMAND(CPlay::NAME, CPlay, CPlay::DESCRIPTION);
 
 #endif // CPLAY_H

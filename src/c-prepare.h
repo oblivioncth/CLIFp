@@ -46,7 +46,6 @@ protected:
 public:
     ErrorCode process(const QStringList& commandLine);
 };
-
 REGISTER_COMMAND(CPrepare::NAME, CPrepare, CPrepare::DESCRIPTION);
 
 #endif // CPREPARE_H

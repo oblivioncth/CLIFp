@@ -1,4 +1,4 @@
-#include "c-shortcut.h"
+#include "c-linkh"
 #include "c-play.h"
 
 #include "qfiledialog.h"
@@ -11,15 +11,15 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CShortcut::CShortcut(Core& coreRef) : Command(coreRef) {}
+CLink::CLink(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-const QList<const QCommandLineOption*> CShortcut::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-const QString CShortcut::name() { return NAME; }
+const QList<const QCommandLineOption*> CLink::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
+const QString CLink::name() { return NAME; }
 
 //Public:
-ErrorCode CShortcut::process(const QStringList& commandLine)
+ErrorCode CLink::process(const QStringList& commandLine)
 {
     ErrorCode errorStatus;
 

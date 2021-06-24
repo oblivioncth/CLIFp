@@ -225,13 +225,13 @@ public:
 
     // Help template
     static inline const QString HELP_TEMPL = "<u>Usage:</u><br>"
-                                             "%CLIFp &lt;global options&gt <i>command</i> <command options>;<br>"
+                                             VER_INTERNALNAME_STR "&lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
                                              "<br>"
                                              "<u>Global Options:</u>%1<br>"
                                              "<br>"
                                              "<u>Commands:</u>%2<br>"
                                              "<br>"
-                                             "Use the <b>-h></b> switch after a command to it's specific usage notes";
+                                             "Use the <b>-h</b> switch after a command to it's specific usage notes";
     static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
     static inline const QString HELP_COMMAND_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 

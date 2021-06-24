@@ -45,5 +45,6 @@ protected:
 public:
     ErrorCode process(const QStringList& commandLine);
 };
+REGISTER_COMMAND(CShow::NAME, CShow, CShow::DESCRIPTION);
 
 #endif // CSHOW_H
