@@ -121,6 +121,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
         // Handle each global option
         mNotificationVerbosity = clParser.isSet(CL_OPTION_SILENT) ? NotificationVerbosity::Silent :
                                  clParser.isSet(CL_OPTION_QUIET) ? NotificationVerbosity::Quiet : NotificationVerbosity::Full;
+        logEvent(NAME, LOG_EVENT_NOTIFCATION_LEVEL.arg(ENUM_NAME(mNotificationVerbosity)));
 
         if(clParser.isSet(CL_OPTION_VERSION))
         {
