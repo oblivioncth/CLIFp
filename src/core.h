@@ -52,7 +52,7 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml.append(".path = \"" + path + "\"");
+            ml.append(".path = \"" + QDir::toNativeSeparators(path) + "\"");
             ml.append(".filename = \"" + filename + "\"");
             ml.append(".param = {\"" + param.join(R"(", ")") + "\"}");
             ml.append(".nativeParam = \"" + nativeParam + "\"");
@@ -84,7 +84,7 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml.append(".extraDir = \"" + dir.path() + "\"");
+            ml.append(".extraDir = \"" + QDir::toNativeSeparators(dir.path()) + "\"");
             return ml;
         }
     };
@@ -113,7 +113,7 @@ public:
         QStringList members() const
         {
             QStringList ml = Task::members();
-            ml.append(".destPath = \"" + destPath + "\"");
+            ml.append(".destPath = \"" + QDir::toNativeSeparators(destPath) + "\"");
             ml.append(".destFileName = \"" + destFileName + "\"");
             ml.append(".targetFile = \"" + targetFile.toString() + "\"");
             ml.append(".sha256 = " + sha256);

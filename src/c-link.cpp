@@ -110,7 +110,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
             if(!selectedPath.endsWith("." + LNK_EXT, Qt::CaseInsensitive))
                 selectedPath += "." + LNK_EXT;
 
-            mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(selectedPath));
+            mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(QDir::toNativeSeparators(selectedPath)));
             QFileInfo pathInfo(selectedPath);
             shortcutDir = pathInfo.absoluteDir();
             shortcutName = pathInfo.baseName();
@@ -125,7 +125,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, ERR_INVALID_PATH));
             return ErrorCodes::INVALID_SHORTCUT_PARAM;
         }
-        mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(shortcutDir.absolutePath()));
+        mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));
     }
 
     // Create shortcut properties
@@ -145,7 +145,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
         return ErrorCodes::INVALID_SHORTCUT_PARAM;
     }
     else
-        mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(shortcutID.toString(QUuid::WithoutBraces), fullShortcutPath));
+        mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(shortcutID.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullShortcutPath)));
 
     // Return success
     return Core::ErrorCodes::NO_ERR;

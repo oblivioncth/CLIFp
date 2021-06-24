@@ -139,7 +139,7 @@ ErrorCode main(int argc, char *argv[])
     }
 
     std::unique_ptr<FP::Install> flashpointInstall = std::make_unique<FP::Install>(fpRoot);
-    coreCLI.logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(fpRoot));
+    coreCLI.logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(fpRoot)));
 
     // Insert into core
     if((errorStatus = coreCLI.attachFlashpoint(std::move(flashpointInstall))))
@@ -226,7 +226,7 @@ ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 
                 // Open extra
                 QDesktopServices::openUrl(QUrl::fromLocalFile(extraTask->dir.absolutePath()));
-                core.logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(extraTask->dir.path()));
+                core.logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(extraTask->dir.path())));
             }
             else if(std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
             {
@@ -331,7 +331,7 @@ ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
 
                 // Move to executable directory
                 QDir::setCurrent(execTask->path);
-                core.logEvent(NAME, LOG_EVENT_CD.arg(execTask->path));
+                core.logEvent(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(execTask->path)));
 
                 // Check if task is a batch file
                 bool batchTask = QFileInfo(execTask->filename).suffix() == BAT_SUFX;
@@ -492,7 +492,7 @@ QString findFlashpointRoot(Core& core)
 
     do
     {
-        core.logEvent(NAME, LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(currentDir.absolutePath()));
+        core.logEvent(NAME, LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
         if(FP::Install::checkInstallValidity(currentDir.absolutePath(), FP::Install::CompatLevel::Execution).installValid)
             return currentDir.absolutePath();
     }
