@@ -219,7 +219,7 @@ ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
                 // Ensure extra exists
                 if(!extraTask->dir.exists())
                 {
-                    core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(extraTask->dir.path())));
+                    core.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(extraTask->dir.path()))));
                     handleExecutionError(core, taskNum, executionError, Core::ErrorCodes::EXTRA_NOT_FOUND);
                     continue; // Continue to next task
                 }
