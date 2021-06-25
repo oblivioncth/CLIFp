@@ -4,6 +4,7 @@
 #include <QDesktopServices>
 #include <QProgressDialog>
 #include <queue>
+#include <QDebug> // TODO: remove me
 
 #include "qx-windows.h"
 #include "qx-io.h"
@@ -86,6 +87,7 @@ ErrorCode waitOnProcess(Core& core, QString processName, int graceSecs);
 void cleanup(Core& core, QList<QProcess*>& childProcesses);
 
 // Prototypes - Helper
+QString getRawCommandLineParams();
 QString findFlashpointRoot(Core& core);
 QString escapeNativeArgsForCMD(Core& core, QString nativeArgs);
 void logProcessStart(Core& core, const QProcess* process, Core::ProcessType type);
@@ -99,6 +101,10 @@ ErrorCode main(int argc, char *argv[])
     // QApplication Object
     QApplication app(argc, argv);
 
+    // TEST
+    QString nativeCMD = getRawCommandLineParams();
+    QStringList qtCMD = app.arguments();
+
     // Set application name
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
     QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
@@ -107,7 +113,7 @@ ErrorCode main(int argc, char *argv[])
     ErrorCode errorStatus = Core::ErrorCodes::NO_ERR;
 
     // Create Core instance
-    Core coreCLI;
+    Core coreCLI(getRawCommandLineParams());
 
     //-Setup Core--------------------------------------------------------------------------
     QStringList clArgs = app.arguments();
@@ -486,6 +492,30 @@ void cleanup(Core& core, QList<QProcess*>& childProcesses)
 }
 
 //-Helper Functions-----------------------------------------------------------------
+QString getRawCommandLineParams()
+{
+    // Remove application path, based on WINE
+    // https://github.com/wine-mirror/wine/blob/a10267172046fc16aaa1cd1237701f6867b92fc0/dlls/shcore/main.c#L259
+    const wchar_t *rawCL = GetCommandLineW();
+    if (*rawCL == '"')
+    {
+        ++rawCL;
+        while (*rawCL)
+            if (*rawCL++ == '"')
+                break;
+    }
+    else
+        while (*rawCL && *rawCL != ' ' && *rawCL != '\t')
+            ++rawCL;
+
+    // Remove spaces before first arg
+    while (*rawCL == ' ' || *rawCL == '\t')
+        ++rawCL;
+
+    // Return cropped string
+    return QString::fromStdWString(std::wstring(rawCL));
+}
+
 QString findFlashpointRoot(Core& core)
 {
     QDir currentDir(CLIFP_DIR_PATH);

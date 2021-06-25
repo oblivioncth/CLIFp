@@ -249,6 +249,9 @@ public:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
+    // For log
+    QString mRawCommandLine;
+
     // Handles
     std::unique_ptr<FP::Install> mFlashpointInstall;
     FP::Install::Services mFlashpointServices;
@@ -264,7 +267,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    Core();
+    Core(QString rawCommandLine);
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:

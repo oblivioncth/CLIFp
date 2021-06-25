@@ -9,7 +9,7 @@
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
-Core::Core() {}
+Core::Core(QString rawCommandLine) : mRawCommandLine(rawCommandLine) {}
 
 //-Desctructor-------------------------------------------------------------
 Core::~Core()
@@ -105,7 +105,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
 
     // Create logger instance
     mLogFile = std::make_unique<QFile>(CLIFP_DIR_PATH + '/' + LOG_FILE_NAME);
-    mLogger = std::make_unique<Logger>(mLogFile.get(), commandLine.isEmpty() ? LOG_NO_PARAMS : commandLine.join(" "), globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
+    mLogger = std::make_unique<Logger>(mLogFile.get(), mRawCommandLine.isEmpty() ? LOG_NO_PARAMS : mRawCommandLine, globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
 
     // Open log
     Qx::IOOpReport logOpen = mLogger->openLog();
