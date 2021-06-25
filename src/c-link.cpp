@@ -105,18 +105,17 @@ ErrorCode CLink::process(const QStringList& commandLine)
     // Get shortcut path
     if(mParser.isSet(CL_OPTION_PATH))
     {
-        QString inputPath = mParser.value(CL_OPTION_PATH);
-        if(inputPath.back() == '\\' || inputPath.back() == '/')
-        {
-            mCore.logEvent(NAME, LOG_EVENT_DIR_PATH);
-            shortcutDir = QDir(inputPath);
-        }
-        else
+        QFileInfo inputPathInfo(mParser.value(CL_OPTION_PATH));
+        if(inputPathInfo.suffix() == LNK_EXT) // Path is file
         {
             mCore.logEvent(NAME, LOG_EVENT_FILE_PATH);
-            QFileInfo pathInfo(inputPath);
-            shortcutDir = pathInfo.absoluteDir();
-            shortcutName = pathInfo.suffix() == LNK_EXT ? pathInfo.baseName() : pathInfo.fileName();
+            shortcutDir = inputPathInfo.absoluteDir();
+            shortcutName = inputPathInfo.baseName();
+        }
+        else // Path is directory
+        {
+            mCore.logEvent(NAME, LOG_EVENT_DIR_PATH);
+            shortcutDir = QDir(inputPathInfo.absoluteFilePath());
         }
     }
     else

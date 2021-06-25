@@ -94,7 +94,7 @@ though this isn't required as long as quotation and space use is carefully emplo
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
  -  **-t | --title:** Title  to  make a shortcut for
- -  **-p | --path:** Path to new shortcut. Path's ending with  a  '\' will be interpreted as a directory and the title will be used as the file name. For file paths the .lnk extension will be appended automatically if missing
+ -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
 
 Requires:
 **-i** or **-t** 

@@ -48,9 +48,9 @@ private:
 
     static inline const QString CL_OPT_PATH_S_NAME = "p";
     static inline const QString CL_OPT_PATH_L_NAME = "path";
-    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with a '\' will be interpreted as a directory and "
-                                                   "the title will be used as the file name. For file paths the .lnk extension will be "
-                                                   "appended automatically if missing";
+    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with "".lnk"" will be interpreted as a named shortcut file. "
+                                                   "Any other path will be interpreted as a directory and the title will automatically be used "
+                                                   "as the filename";
 
     // Command line options
     static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, "id"}; // Takes value
