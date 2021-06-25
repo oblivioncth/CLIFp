@@ -122,7 +122,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     else
     {
         mCore.logEvent(NAME, LOG_EVENT_NO_PATH);
-        QString selectedPath = QFileDialog::getSaveFileName(nullptr, DIAG_CAPTION, QDir::homePath() + "/" + shortcutName, "Shortcuts (*. " + LNK_EXT + ")");
+        QString selectedPath = QFileDialog::getSaveFileName(nullptr, DIAG_CAPTION, QDir::homePath() + "/Desktop/" + shortcutName, "Shortcuts (*. " + LNK_EXT + ")");
         if(selectedPath.isEmpty())
         {
             mCore.logEvent(NAME, LOG_EVENT_DIAG_CANCEL);
