@@ -24,6 +24,7 @@ private:
     static inline const QString ERR_NO_TITLE = "No title to create a shortcut for was specified.";
     static inline const QString ERR_CREATE_FAILED = "Failed to create shortcut.";
     static inline const QString ERR_INVALID_PATH = "The provided shortcut path is not valid or a location where you do not have permissions to create a shortcut.";
+    static inline const QString ERR_DIFFERENT_TITLE_SRC = "The shortcut title source was expected expected to be %1 but instead was %2";
 
     // Logging - Messages
     static inline const QString LOG_EVENT_FILE_PATH = "Shortcut path provided is for a file";
