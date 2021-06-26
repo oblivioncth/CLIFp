@@ -64,7 +64,7 @@ Alternatively, you can use the **-r** switch, followed by a library filter to se
 See the full command/options list for more information.
 
 **Direct Execution:**
-The more legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoints webserver and then start the application specified with the provided parameters:
+The more legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's webserver and then start the application specified with the provided parameters:
 
     CLIFp run --app="FPSoftware\Flash\flashplayer_32_sa.exe" --param="http://www.mowa.org/work/buttons/buttons_art/basic.swf"
 
