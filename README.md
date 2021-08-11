@@ -57,7 +57,11 @@ This is the most straightforward and hassle free approach, as it will start that
 
 A title's ID can be found by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". This command also supports starting additional apps, though getting their UUID is more tricky as I currently know of no other way than opening [FP Install Dir]\Data\flashpoint.sqlite in a database browser and searching for the ID manually. I will look into if an easier way to obtain their IDs can be implemented.
 
-Alternatively, you can use the **-r** switch, followed by a library filter to select a title randomly:
+Alternatively, the **-t** switch can be used, followed by the exact title of an entry:
+
+    CLIFp play -t "Interactive Buddy"
+
+Or if feeling spontanious, use the **-r** switch, followed by a library filter to select a title randomly:
 
     CLIFp play -r game
 
@@ -93,7 +97,7 @@ though this isn't required as long as quotation and space use is carefully emplo
 
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
- -  **-t | --title:** Title  to  make a shortcut for
+ -  **-t | --title:** Title to  make a shortcut for
  -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
 
 Requires:
@@ -162,6 +166,9 @@ Options:
 
 Requires:
 **-m** or **-e** 
+
+### Remarks
+With any use of the **--title** option for the commands that support it the title must be entered verbatim as it appears within Flashpoint, as close matches are not checked (due to technical limitations). If two entries happen to share the title specified, a dialog window with more information will be displayed so that the intended title can be selected.
 
 ## Exit Codes
 Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
