@@ -101,10 +101,6 @@ ErrorCode main(int argc, char *argv[])
     // QApplication Object
     QApplication app(argc, argv);
 
-    // TEST
-    QString nativeCMD = getRawCommandLineParams();
-    QStringList qtCMD = app.arguments();
-
     // Set application name
     QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
     QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
