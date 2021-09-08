@@ -87,6 +87,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         }
 
         enqueueError = enqueueAdditionalApp(searchResult, Core::TaskStage::Primary);
+        mCore.setStatus(STATUS_PLAY, searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString());
 
         if(enqueueError)
             return enqueueError;
@@ -156,6 +157,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         gameTask->processType = Core::ProcessType::Blocking;
 
         mCore.enqueueSingleTask(gameTask);
+        mCore.setStatus(STATUS_PLAY, searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString());
 
         // Add wait task if required
         if((enqueueError = mCore.enqueueConditionalWaitTask(gameInfo)))

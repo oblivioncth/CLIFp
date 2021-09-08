@@ -7,6 +7,9 @@ class CPrepare : public Command
 {
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Status
+    static inline const QString STATUS_PREPARE = "Preparing";
+
     // Error Messages - Prep
     static inline const QString ERR_NO_TITLE = "No title to prepare was specified.";
 

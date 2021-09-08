@@ -7,6 +7,9 @@ class CRun : public Command
 {
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Status
+    static inline const QString STATUS_RUN = "Running";
+
     // Error Messages - Prep
     static inline const QString ERR_NO_APP = "No application to run was provided.";
 

@@ -66,6 +66,8 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     {
         if((errorStatus = mCore.enqueueDataPackTasks(id)))
             return errorStatus;
+
+        mCore.setStatus(STATUS_PREPARE, id.toString(QUuid::WithoutBraces));
     }
     else
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));

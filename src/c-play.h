@@ -17,6 +17,9 @@ private:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Status
+    static inline const QString STATUS_PLAY = "Playing";
+
     // Error Messages - Prep
     static inline const QString ERR_NO_TITLE = "No title to start was specified.";
     static inline const QString ERR_RAND_FILTER_INVALID = "The provided string for random operation was not a valid filter.";

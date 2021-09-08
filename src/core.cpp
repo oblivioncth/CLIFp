@@ -9,7 +9,7 @@
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
-Core::Core(QString rawCommandLine) : mRawCommandLine(rawCommandLine) {}
+Core::Core(QString rawCommandLine) : mRawCommandLine(rawCommandLine), mStatusHeading("Initializing"), mStatusMessage("...") {}
 
 //-Desctructor-------------------------------------------------------------
 Core::~Core()
@@ -31,10 +31,13 @@ bool Core::isActionableOptionSet(const QCommandLineParser& clParser) const
     return false;
 }
 
-void Core::showHelp() const
+void Core::showHelp()
 {
     // Help string
     static QString helpStr;
+
+    // Update status
+    setStatus(STATUS_DISPLAY, STATUS_DISPLAY_HELP);
 
     // One time setup
     if(helpStr.isNull())
@@ -66,7 +69,11 @@ void Core::showHelp() const
 }
 
 
-void Core::showVersion() const { QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE); }
+void Core::showVersion()
+{
+    setStatus(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
+    QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
+}
 
 //Public:
 ErrorCode Core::initialize(QStringList& commandLine)
@@ -581,3 +588,7 @@ std::shared_ptr<Core::Task> Core::takeFrontTask()
     mTaskQueue.pop();
     return frontTask;
 }
+
+QString Core::statusHeading() { return mStatusHeading; }
+QString Core::statusMessage() { return mStatusMessage;}
+void Core::setStatus(QString heading, QString message) { mStatusHeading = heading; mStatusMessage = message; }

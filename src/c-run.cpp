@@ -48,6 +48,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
     runTask->processType = Core::ProcessType::Blocking;
 
     mCore.enqueueSingleTask(runTask);
+    mCore.setStatus(STATUS_RUN, runTask->filename);
 
     // Add wait task if required
     if((errorStatus = mCore.enqueueConditionalWaitTask(inputInfo)))

@@ -35,6 +35,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
         messageTask->modal = true;
 
         mCore.enqueueSingleTask(messageTask);
+        mCore.setStatus(STATUS_SHOW_MSG, messageTask->message);
     }
     else if(mParser.isSet(CL_OPTION_EXTRA))
     {
@@ -43,6 +44,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
         extraTask->dir = QDir(mCore.getFlashpointInstall().getExtrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA));
 
         mCore.enqueueSingleTask(extraTask);
+        mCore.setStatus(STATUS_SHOW_EXTRA, extraTask->dir.dirName());
     }
     else
     {

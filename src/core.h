@@ -157,6 +157,11 @@ public:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
+    // Status
+    static inline const QString STATUS_DISPLAY = "Displaying";
+    static inline const QString STATUS_DISPLAY_HELP = "Help";
+    static inline const QString STATUS_DISPLAY_VERSION = "Version";
+
     // Error Messages - Prep
     static inline const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flashpoint database:";
     static inline const QString ERR_SQL_MISMATCH = "Received a different form of result from an SQL query than expected.";
@@ -265,6 +270,10 @@ private:
     NotificationVerbosity mNotificationVerbosity;
     std::queue<std::shared_ptr<Task>> mTaskQueue;
 
+    // Info
+    QString mStatusHeading;
+    QString mStatusMessage;
+
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
     Core(QString rawCommandLine);
@@ -276,8 +285,8 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;
-    void showHelp() const;
-    void showVersion() const;
+    void showHelp();
+    void showVersion();
 
 public:
     ErrorCode initialize(QStringList& commandLine);
@@ -306,6 +315,10 @@ public:
     size_t taskCount() const;
     bool hasTasks() const;
     std::shared_ptr<Task> takeFrontTask();
+
+    QString statusHeading();
+    QString statusMessage();
+    void setStatus(QString heading, QString message);
 };
 
 #endif // CORE_H

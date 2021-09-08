@@ -3,8 +3,8 @@
 #include <QCommandLineParser>
 #include <QDesktopServices>
 #include <QProgressDialog>
+#include <QSystemTrayIcon>
 #include <queue>
-#include <QDebug> // TODO: remove me
 
 #include "qx-windows.h"
 #include "qx-io.h"
@@ -16,6 +16,9 @@
 #include "command.h"
 #include "flashpoint-install.h"
 #include "logger.h"
+
+// System Messages
+const QString SYS_TRAY_STATUS = "CLIFp is running";
 
 // Error Messages - Prep
 const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
@@ -110,6 +113,14 @@ ErrorCode main(int argc, char *argv[])
 
     // Create Core instance
     Core coreCLI(getRawCommandLineParams());
+
+    // Create tray icon
+    QSystemTrayIcon trayIcon(QIcon(":/res/icon/CLIFp.ico"));
+    trayIcon.setToolTip(SYS_TRAY_STATUS);
+    QApplication::connect(&trayIcon, &QSystemTrayIcon::activated, [&coreCLI, &trayIcon](){
+        trayIcon.showMessage(coreCLI.statusHeading(), coreCLI.statusMessage());
+    });
+    trayIcon.show();
 
     //-Setup Core--------------------------------------------------------------------------
     QStringList clArgs = app.arguments();

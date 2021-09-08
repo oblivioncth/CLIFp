@@ -16,6 +16,9 @@ private:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Status
+    static inline const QString STATUS_LINK = "Linking";
+
     // General
     static inline const QString LNK_EXT = "lnk";
     static inline const QString DIAG_CAPTION = "Select a shortcut destination...";

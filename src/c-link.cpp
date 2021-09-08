@@ -56,6 +56,8 @@ ErrorCode CLink::process(const QStringList& commandLine)
         return Core::ErrorCodes::INVALID_ARGS;
     }
 
+    mCore.setStatus(STATUS_LINK, shortcutID.toString(QUuid::WithoutBraces));
+
     // Open database
     if((errorStatus = mCore.openAndVerifyProperDatabase()))
         return errorStatus;

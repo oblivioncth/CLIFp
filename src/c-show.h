@@ -7,6 +7,10 @@ class CShow : public Command
 {
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Status
+    static inline const QString STATUS_SHOW_MSG = "Displaying message";
+    static inline const QString STATUS_SHOW_EXTRA = "Displaying extra";
+
     // Error Messages - Prep
     static inline const QString ERR_NO_SHOW = "No message or extra to show was provided.";
 
