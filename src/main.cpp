@@ -193,11 +193,9 @@ ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
     ErrorCode executionError = Core::ErrorCodes::NO_ERR;
 
     // Exhaust queue
-    int taskNum = -1;
-    while(core.hasTasks())
+    for(int taskNum = 0; core.hasTasks(); taskNum++)
     {
         // Handle task at front of queue
-        ++taskNum;
         std::shared_ptr<Core::Task> currentTask = core.takeFrontTask();
         core.logEvent(NAME, LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask->stage)));
 
