@@ -118,7 +118,7 @@ ErrorCode main(int argc, char *argv[])
     QSystemTrayIcon trayIcon(QIcon(":/res/icon/CLIFp.ico"));
     trayIcon.setToolTip(SYS_TRAY_STATUS);
     QApplication::connect(&trayIcon, &QSystemTrayIcon::activated, [&coreCLI, &trayIcon](){
-        trayIcon.showMessage(coreCLI.statusHeading(), coreCLI.statusMessage());
+        trayIcon.showMessage(coreCLI.statusHeading(), coreCLI.statusMessage()); // TODO:  This currentnly doesn't work when the UI thread is blocked while running an app
     });
     trayIcon.show();
 

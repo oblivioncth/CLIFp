@@ -1053,6 +1053,9 @@ QSqlError Install::queryEntriesByTitle(DBQueryBuffer& resultBuffer, QString titl
     // Ensure return buffer is effectively null
     resultBuffer = DBQueryBuffer();
 
+    // Escape title
+    title.replace(R"(')", R"('')");
+
     // Get database
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 
