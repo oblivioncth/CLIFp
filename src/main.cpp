@@ -147,8 +147,6 @@ ErrorCode main(int argc, char *argv[])
     if((errorStatus = coreCLI.attachFlashpoint(std::move(flashpointInstall))))
         return coreCLI.logFinish(NAME, errorStatus);
 
-    // Open database connection
-
     //-Handle Command and Command Options----------------------------------------------------------
     QString commandStr = clArgs.first().toLower();
 
