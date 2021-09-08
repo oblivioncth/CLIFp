@@ -170,6 +170,11 @@ Requires:
 ### Remarks
 With any use of the **--title** option for the commands that support it the title must be entered verbatim as it appears within Flashpoint, as close matches are not checked (due to technical limitations). If two entries happen to share the title specified, a dialog window with more information will be displayed so that the intended title can be selected.
 
+## Other Features
+CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messaged when clicked on, though it doesn't always work due to currently incomplete implementation.
+
+The functionality of the tray icon will be expanded upon in future releases.
+
 ## Exit Codes
 Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
 
