@@ -203,7 +203,7 @@ ErrorCode processTaskQueue(Core& core, QList<QProcess*>& childProcesses)
         if(!executionError || currentTask->stage == Core::TaskStage::Shutdown)
         {
             // Cover each task type
-            if(std::dynamic_pointer_cast<Core::MessageTask>(currentTask)) // Message (currently ignores process type)
+            if(std::dynamic_pointer_cast<Core::MessageTask>(currentTask))
             {
                 std::shared_ptr<Core::MessageTask> messageTask = std::static_pointer_cast<Core::MessageTask>(currentTask);
 
