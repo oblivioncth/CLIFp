@@ -22,6 +22,7 @@ const QString SYS_TRAY_STATUS = "CLIFp is running";
 
 // Error Messages - Prep
 const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
+const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
 const QString ERR_LAUNCHER_RUNNING_P = "The CLI cannot be used while the Flashpoint Launcher is running.";
 const QString ERR_LAUNCHER_RUNNING_S = "Please close the Launcher first.";
 const QString ERR_INSTALL_INVALID_P = "CLIFp does not appear to be deployed in a valid Flashpoint install";
@@ -75,9 +76,6 @@ const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running afte
 const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
 const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
 const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
-
-// Error Messages - Prep
-const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
 
 // Meta
 const QString NAME = "main";
