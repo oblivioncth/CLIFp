@@ -95,7 +95,7 @@ void Command::showHelp()
             // Handle names
             QStringList dashedNames;
             for(const QString& name :  qAsConstR(clOption->names()))
-                dashedNames << (name.length() > 1 ? "--" : "-" + name);
+                dashedNames << ((name.length() > 1 ? "--" : "-") + name);
 
             // Add option
             optStr += HELP_OPT_TEMPL.arg(dashedNames.join(" | "), clOption->description());
