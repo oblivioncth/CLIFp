@@ -237,7 +237,7 @@ public:
                                              "<br>"
                                              "<u>Commands:</u>%2<br>"
                                              "<br>"
-                                             "Use the <b>-h</b> switch after a command to it's specific usage notes";
+                                             "Use the <b>-h</b> switch after a command to see it's specific usage notes";
     static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
     static inline const QString HELP_COMMAND_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 
