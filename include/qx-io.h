@@ -1,6 +1,8 @@
 #ifndef QXIO_H
 #define QXIO_H
 
+#include "qx.h"
+
 #include <QString>
 #include <QList>
 #include <QFile>
@@ -135,7 +137,7 @@ public:
     bool operator<= (const TextPos &otherTextPos);
 };
 
-class FileStreamWriter
+class FileStreamWriter // Specialized wrapper for QDataStream
 {
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -150,8 +152,52 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 public:
+    // Stock functions
+    QDataStream::ByteOrder byteOrder() const;
+    QDataStream::FloatingPointPrecision floatingPointPrecision() const;
+    void resetStatus();
+    void setByteOrder(QDataStream::ByteOrder bo);
+    void setFloatingPointPrecision(QDataStream::FloatingPointPrecision precision);
+    IOOpReport status();
+    FileStreamWriter& writeRawData(const QByteArray& data);
+
+    template<typename T, ENABLE_IF(defines_left_shift<QDataStream, T>)>
+    FileStreamWriter& operator<<(T d) { mStreamWriter << d; return *this; }
+
+    // New functions
     IOOpReport openFile();
-    IOOpReport writeData(QByteArray data);
+    void closeFile();
+};
+
+class FileStreamReader // Specialized wrapper for QDataStream
+{
+//-Instance Variables------------------------------------------------------------------------------------------------
+private:
+    QDataStream mStreamReader;
+    QFile& mSourceFile;
+
+//-Constructor-------------------------------------------------------------------------------------------------------
+public:
+    FileStreamReader(QFile& file);
+
+//-Instance Functions------------------------------------------------------------------------------------------------
+public:
+    // Stock functions
+    bool atEnd() const;
+    QDataStream::ByteOrder byteOrder() const;
+    QDataStream::FloatingPointPrecision floatingPointPrecision() const;
+    FileStreamReader& readRawData(QByteArray& data, int len);
+    void resetStatus();
+    void setByteOrder(QDataStream::ByteOrder bo);
+    void setFloatingPointPrecision(QDataStream::FloatingPointPrecision precision);
+    void skipRawData(int len);
+    IOOpReport status();
+
+    template<typename T, ENABLE_IF(defines_right_shift<QDataStream, T&>)>
+    FileStreamReader& operator>>(T& d) { mStreamReader >> d; return *this; }
+
+    // New functions
+    IOOpReport openFile();
     void closeFile();
 };
 

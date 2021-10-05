@@ -4,15 +4,23 @@
 #define ENABLE_IF(...) std::enable_if_t<__VA_ARGS__::value, int> = 0 // enable_if Macro; allows ENABLE_IF(std::is_arithmetic<T>) for example
 #define ENABLE_IF2(...) std::enable_if_t<__VA_ARGS__::value, int> // enable_if Macro with no default argument, use if template was already forward declared
 
+#ifdef QT_WIDGETS_LIB // Only enabled for Widget applications
+#include <QWidget>
+#include <QMessageBox>
+#endif
+
 #include <QHash>
 #include <QCryptographicHash>
 #include <QRegularExpression>
 #include <QtEndian>
-#include <QWidget>
+#include <QJsonObject>
+#include <QJsonArray>
+
 #include <QSet>
 #include <QDateTime>
-#include <QMessageBox>
+
 #include <QBitArray>
+#include <stdexcept>
 #include "assert.h"
 
 //-Non-namspace Functions-------------------------------------------------------------------------------------------------
@@ -21,30 +29,77 @@ const T qAsConstR(T &&t) { return std::move(t); }
 
 namespace Qx
 {
-//-Class Forward Declarations---------------------------------------------------------------------------------------------
-template <typename T, ENABLE_IF(std::is_arithmetic<T>)>
-class NII;
+//-std::functional Extensions-----------------------------------------------------------------------------------
+struct left_shift {
+
+    template <typename L, typename R>
+    constexpr auto operator()(L&& l, R&& r) const
+    noexcept(noexcept(std::forward<L>(l) << std::forward<R>(r)))
+    -> decltype(std::forward<L>(l) << std::forward<R>(r))
+    {
+        return std::forward<L>(l) << std::forward<R>(r);
+    }
+};
+
+struct right_shift {
+
+    template <typename L, typename R>
+    constexpr auto operator()(L&& l, R&& r) const
+    noexcept(noexcept(std::forward<L>(l) >> std::forward<R>(r)))
+    -> decltype(std::forward<L>(l) >> std::forward<R>(r))
+    {
+        return std::forward<L>(l) >> std::forward<R>(r);
+    }
+};
 
 //-Traits-------------------------------------------------------------------------------------------------------
 // TODO: Get these working where they make sense
-template <class T, template <class...> class Template>
-struct is_specialization : std::false_type {};
+//template <class T, template <class...> class Template>
+//struct is_specialization : std::false_type {};
 
-template <template <class...> class Template, class... Args>
-struct is_specialization<Template<Args...>, Template> : std::true_type {};
+//template <template <class...> class Template, class... Args>
+//struct is_specialization<Template<Args...>, Template> : std::true_type {};
 
 template<typename T, typename... Others>
 struct is_any : std::disjunction<std::is_same<T, Others>...>
 {};
 
-template<typename T, typename... Others>
-bool is_any_v = is_any<T, Others...>::value;
+template<typename X, typename Y, typename Op>
+struct defines_op_impl
+{
+    template<typename U, typename L, typename R>
+    static auto test(int) -> decltype(std::declval<U>()(std::declval<L>(), std::declval<R>()),
+                                      void(), std::true_type());
+
+    template<typename U, typename L, typename R>
+    static auto test(...) -> std::false_type;
+
+    using type = decltype(test<Op, X, Y>(0));
+
+};
+
+template<typename X, typename Y, typename Op> using defines_op = typename defines_op_impl<X, Y, Op>::type;
+
+template<class X, class Y> using defines_equality = defines_op<X, Y, std::equal_to<>>;
+template<class X, class Y> using defines_inequality = defines_op<X, Y, std::not_equal_to<>>;
+template<class X, class Y> using defines_less_than = defines_op<X, Y, std::less<>>;
+template<class X, class Y> using defines_less_equal = defines_op<X, Y, std::less_equal<>>;
+template<class X, class Y> using defines_greater_than = defines_op<X, Y, std::greater<>>;
+template<class X, class Y> using defines_greater_equal = defines_op<X, Y, std::greater_equal<>>;
+template<class X, class Y> using defines_bit_xor = defines_op<X, Y, std::bit_xor<>>;
+template<class X, class Y> using defines_bit_or = defines_op<X, Y, std::bit_or<>>;
+template<class X, class Y> using defines_left_shift = defines_op<X, Y, left_shift>;
+template<class X, class Y> using defines_right_shift = defines_op<X, Y, right_shift>;
 
 template<typename T>
 using is_json_type = std::bool_constant<is_any<T, bool, double, QString, QJsonArray, QJsonObject>::value>;
 
 template<typename T>
-bool is_json_type_v = is_json_type<T>::value;
+using is_datastream_type = std::bool_constant<is_any<T, bool, double, QString, QJsonArray, QJsonObject>::value>;
+
+//-Class Forward Declarations---------------------------------------------------------------------------------------------
+template <typename T, ENABLE_IF(std::is_arithmetic<T>)>
+class NII;
 
 //-Functions----------------------------------------------------------------------------------------------------
 template <typename T>
@@ -260,31 +315,27 @@ public:
             return(*out);
         }
     }
-
-    static QByteArray RAWFromString(QString str);
-    static QByteArray RAWFromStringHex(QString str);
 };
 
-class BitArrayX : public QBitArray
+class BitArray : public QBitArray
 {
 //-Constructor--------------------------------------------------------------------------------------------------
 public:
-    BitArrayX();
-    BitArrayX(int size, bool value = false);
+    BitArray();
+    BitArray(int size, bool value = false);
 
 //-Class Functions----------------------------------------------------------------------------------------------
 public:
     template<typename T, ENABLE_IF(std::is_integral<T>)>
-    static BitArrayX fromInteger(T integer, Endian::Endianness endianness = Endian::LE)
+    static BitArray fromInteger(const T& integer)
     {
-        //QByteArray byteRep = ByteArray::RAWFromPrimitive(integer, endianness);
         int bitCount = sizeof(T)*8;
 
-        BitArrayX bitRep(bitCount);
+        BitArray bitRep(bitCount);
 
         for(int i = 0; i < bitCount; ++i)
             if(integer & 0b1 << i)
-                bitRep.setBit(endianness == Endian::LE ? bitCount - (8*(i/8 + 1)) + i % 8 : i);
+                bitRep.setBit(i);
 
         return bitRep;
     }
@@ -292,19 +343,37 @@ public:
 //-Instance Functions-------------------------------------------------------------------------------------------
 public:
     template<typename T, ENABLE_IF(std::is_integral<T>)>
-    T toInteger(Endian::Endianness endianness = Endian::LE, int lsbIndex = 0)
+    T toInteger()
     {
-        if(lsbIndex < 0 || lsbIndex >= count())
-            throw std::out_of_range("Least significant bit index was outside BitArrayX contents");
-
         int bitCount = sizeof(T)*8;
         T integer = 0;
 
-        for(int i = 0; i < bitCount && i + lsbIndex < count(); ++i)
-            integer |= (testBit(lsbIndex + (endianness == Endian::LE ? bitCount - (8*(i/8 + 1)) + i % 8 : i)) ? 0b1 : 0b0) << i;
+        for(int i = 0; i < bitCount && i < count(); ++i)
+            integer |= (testBit(i) ? 0b1 : 0b0) << i;
 
         return integer;
     }
+
+    QByteArray toByteArray(Endian::Endianness endianness = Endian::BE);
+
+    void append(bool bit = false);
+    void replace(const BitArray& bits, int start = 0, int length = -1);
+
+    template<typename T, ENABLE_IF(std::is_integral<T>)>
+    void replace(T integer, int start = 0, int length = -1)
+    {
+        BitArray converted = BitArray::fromInteger(integer);
+        replace(converted, start, length);
+    }
+
+    BitArray extract(int start, int length = -1);
+
+    BitArray operator<<(int n);
+    void operator<<=(int n);
+    BitArray operator>>(int n);
+    void operator>>=(int n);
+    BitArray operator+(BitArray rhs);
+    void operator+=(const BitArray& rhs);
 };
 
 class Char
@@ -314,12 +383,14 @@ public:
     static bool isHexNumber(QChar hexNum);
 };
 
+#ifdef QT_GUI_LIB // Only enabled for GUI applications
 class Color
 {
 //-Class Functions----------------------------------------------------------------------------------------------
 public:
     static QColor textColorFromBackgroundColor(QColor bgColor);
 };
+#endif
 
 class DateTime
 {
@@ -489,6 +560,14 @@ public:
     enum ErrorLevel { Undefined, Warning, Error, Critical };
 
 //-Class Members---------------------------------------------------------------------------------------------
+private:
+    static inline const QHash<ErrorLevel, QString> ERR_LVL_STRING_MAP = {
+        {ErrorLevel::Undefined, "Undefined Severity"},
+        {ErrorLevel::Warning, "Warning"},
+        {ErrorLevel::Error, "Error"},
+        {ErrorLevel::Critical, "Critical"},
+    };
+
 public:
     static const GenericError UNKNOWN_ERROR;
 
@@ -508,16 +587,19 @@ public:
 
 //-Instance Functions----------------------------------------------------------------------------------------------
 public:
-    bool isValid();
-    ErrorLevel errorLevel();
-    QString caption();
-    QString primaryInfo();
-    QString secondaryInfo();
-    QString detailedInfo();
+    bool isValid() const;
+    ErrorLevel errorLevel() const;
+    QString errorLevelString(bool caps = true) const;
+    QString caption() const;
+    QString primaryInfo() const;
+    QString secondaryInfo() const;
+    QString detailedInfo() const;
 
     Qx::GenericError& setErrorLevel(ErrorLevel errorLevel);
 
-    int exec(QMessageBox::StandardButtons choices, QMessageBox::StandardButton defChoice = QMessageBox::NoButton);
+#ifdef QT_WIDGETS_LIB // Only enabled for Widget applications
+    int exec(QMessageBox::StandardButtons choices, QMessageBox::StandardButton defChoice = QMessageBox::NoButton) const;
+#endif
 };
 
 class Integrity
@@ -681,8 +763,9 @@ public:
         return differenceList;
     }
 
+#ifdef QT_WIDGETS_LIB // Only enabled for Widget applications
     static QWidgetList objectListToWidgetList(QObjectList list);
-
+#endif
 };
 
 class MMRB
@@ -690,7 +773,6 @@ class MMRB
 //-Class Variables---------------------------------------------------------------------------------------------
 public:
     enum class StringFormat { Full, NoTrailZero, NoTrailRBZero };
-
 
 //-Member Variables--------------------------------------------------------------------------------------------
 private:
@@ -713,12 +795,24 @@ public:
     bool operator< (const MMRB &otherMMRB);
     bool operator<= (const MMRB &otherMMRB);
 
+    bool isNull();
     QString toString(StringFormat format = StringFormat::Full);
+
     int getMajorVer();
     int getMinorVer();
     int getRevisionVer();
     int getBuildVer();
-    bool isNull();
+
+    void setMajorVer(int major);
+    void setMinorVer(int minor);
+    void setRevisionVer(int revision);
+    void setBuildVer(int build);
+
+    void incrementMajorVer();
+    void incrementMinorVer();
+    void incrementRevisionVer();
+    void incrementBuildVer();
+
 private:
 
 //-Class Functions---------------------------------------------------------------------------------------------
@@ -768,6 +862,46 @@ public:
         // Return of closest the two directions
         return (abs(num) - abs(towardsZero) >= abs(awayFromZero) - abs(num))? awayFromZero : towardsZero;
     }
+
+    template <typename T, ENABLE_IF(std::is_integral<T>)>
+    static T ceilPowOfTwo(T num)
+    {
+        // Return if num already is power of 2
+        if (num && !(num & (num - 1)))
+            return num;
+
+        T powOfTwo = 1;
+
+        while(powOfTwo < num)
+            powOfTwo <<= 1;
+
+        return powOfTwo;
+    }
+
+    template <typename T, ENABLE_IF(std::is_integral<T>)>
+    static T floorPowOfTwo(T num)
+    {
+        // Return if num already is power of 2
+        if (num && !(num & (num - 1)))
+            return num;
+
+        // Start with largest possible power of T type can hold
+        T powOfTwo = (std::numeric_limits<T>::max() >> 1) + 1;
+
+        while(powOfTwo > num)
+            powOfTwo >>= 1;
+
+        return powOfTwo;
+    }
+
+    template <typename T, ENABLE_IF(std::is_integral<T>)>
+    static T roundPowOfTwo(T num)
+    {
+       T above = ceilPowOfTwo(num);
+       T below = floorPowOfTwo(num);
+
+       return above - num <= num - below ? above : below;
+    }
 };
 
 class RegEx
@@ -775,8 +909,8 @@ class RegEx
 //-Class Variables---------------------------------------------------------------------------------------------
 public:
     static inline const QRegularExpression hexOnly =  QRegularExpression("^[0-9A-F]+$", QRegularExpression::CaseInsensitiveOption);
-    static inline const QRegularExpression nonHexOnly = QRegularExpression("[^a-fA-F0-9 -]", QRegularExpression::CaseInsensitiveOption);
-    static inline const QRegularExpression numbersOnly = QRegularExpression("\\d*", QRegularExpression::CaseInsensitiveOption); // a digit (\d)
+    static inline const QRegularExpression anyNonHex = QRegularExpression("[^a-fA-F0-9 -]", QRegularExpression::CaseInsensitiveOption);
+    static inline const QRegularExpression numbersOnly = QRegularExpression("^[0-9]*$", QRegularExpression::CaseInsensitiveOption); // a digit (\d)
     static inline const QRegularExpression alphanumericOnly = QRegularExpression("^[a-zA-Z0-9]*$", QRegularExpression::CaseInsensitiveOption);
     static inline const QRegularExpression lettersOnly = QRegularExpression("^[a-zA-Z]+$", QRegularExpression::CaseInsensitiveOption);
 };
@@ -790,8 +924,7 @@ public:
     static bool isHexNumber(QString hexNum);
     static bool isValidChecksum(QString checksum, QCryptographicHash::Algorithm hashAlgorithm);
     static QString fromByteArrayDirectly(QByteArray data);
-    static QString fromByteArrayHex(QByteArray data);
-    static QString fromByteArrayHex(QByteArray data, QChar separator, Endian::Endianness endianness);
+    static QString formattedHex(QByteArray data, QChar separator, Endian::Endianness endianness);
     static QString stripToHexOnly(QString string);
 
     template<typename T, typename F>
@@ -817,7 +950,7 @@ public:
     {
         QString conjuction;
 
-        QSet<T>::const_iterator i = set.constBegin(); // With some compilers this shows as a syntax error, but will still compile
+        typename QSet<T>::const_iterator i = set.constBegin();
         while(i != set.constEnd())
         {
             conjuction += prefix;
@@ -830,6 +963,28 @@ public:
     }
 
     static QString join(QSet<QString> set, QString separator = "", QString prefix = ""); // Overload for T = QString
+};
+
+class StringTraverser
+{
+//-Instance Members----------------------------------------------------------------------------------------------------
+private:
+    int mIndex;
+    QString::const_iterator mIterator;
+    QString::const_iterator mEnd;
+
+//-Constructor-------------------------------------------------------------------------------------------------------
+public:
+    StringTraverser(const QString& string);
+
+//-Instance Functions--------------------------------------------------------------------------------------------------
+public:
+    void advance(int count = 1);
+
+    QChar currentChar();
+    QChar currentIndex();
+    QChar lookAhead(int posOffset = 1);
+    bool atEnd();
 };
 
 }

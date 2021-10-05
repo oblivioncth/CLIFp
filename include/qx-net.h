@@ -38,14 +38,38 @@ public:
     QString getText();
 };
 
+//TODO: Add AsyncDownloadManager using a finished signal instead and a dynamically managed progress output
+//TODO: Potentially implement a full DownloadOpReport class similar to IOOpReport that is good for info on
+//      success and fail
 class SyncDownloadManager: public QObject
 {
 //-QObject Macro (Required for all QObject Derived Classes)-----------------------------------------------------------
     Q_OBJECT
 
 //-Class Enums--------------------------------------------------------------------------------------------------------
-private:
-    enum class FinishStatus {SUCCESS, USER_ABORT, AUTO_ABORT, OTHER};
+public:
+    enum class FinishStatus {Success, UserAbort, AutoAbort, Error};
+
+//-Inner Classes------------------------------------------------------------------------------------------------------
+public:
+    class Report
+    {
+    //-Instance Variables---------------------------------------------------------------------------------------------
+    private:
+        FinishStatus mFinishStatus;
+        GenericError mErrorInfo;
+
+    //-Constructor-------------------------------------------------------------------------------------------------------
+    public:
+        Report();
+        Report(FinishStatus finishStatus, GenericError errorInfo);
+
+    //-Instance Functions----------------------------------------------------------------------------------------------
+    public:
+        FinishStatus finishStatus() const;
+        GenericError errorInfo() const;
+        bool wasSuccessful() const;
+    };
 
 //-Class Members------------------------------------------------------------------------------------------------------
 private:
@@ -98,7 +122,7 @@ private:
     QStringList mErrorList;
 
     // Status tracking
-    FinishStatus mFinishStatus = FinishStatus::SUCCESS;
+    FinishStatus mFinishStatus = FinishStatus::Success;
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
@@ -117,7 +141,7 @@ public:
     void setRedirectPolicy(QNetworkRequest::RedirectPolicy redirectPolicy);
     void setOverwrite(bool overwrite);
     void setAutoAbort(bool autoAbort);
-    GenericError processQueue();
+    Report processQueue();
 
 //-Slots------------------------------------------------------------------------------------------------------------
 private slots:
