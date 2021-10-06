@@ -1,7 +1,7 @@
 #ifndef CRUN_H
 #define CRUN_H
 
-#include "command.h"
+#include "../command.h"
 
 class CRun : public Command
 {

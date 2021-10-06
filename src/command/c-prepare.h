@@ -1,7 +1,7 @@
 #ifndef CPREPARE_H
 #define CPREPARE_H
 
-#include "command.h"
+#include "../command.h"
 
 class CPrepare : public Command
 {

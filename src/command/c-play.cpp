@@ -469,7 +469,7 @@ ErrorCode CPlay::process(const QStringList& commandLine)
                 return errorStatus;
 
             // Display selection info
-            QMessageBox::information(nullptr, QApplication::applicationName(), selInfo);
+            mCore.postMessage(selInfo);
         }
     }
     else

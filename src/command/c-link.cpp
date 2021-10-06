@@ -3,7 +3,7 @@
 
 #include "qfiledialog.h"
 #include "qx-windows.h"
-#include "version.h"
+#include "../version.h"
 
 //===============================================================================================================
 // CSHORTCUT

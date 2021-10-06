@@ -1,7 +1,7 @@
 #ifndef CSHOW_H
 #define CSHOW_H
 
-#include "command.h"
+#include "../command.h"
 
 class CShow : public Command
 {

@@ -106,5 +106,5 @@ void Command::showHelp()
     }
 
     // Show help
-    QMessageBox::information(nullptr, QApplication::applicationName(), helpStr);
+    mCore.postMessage(helpStr);
 }

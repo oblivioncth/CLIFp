@@ -9,7 +9,12 @@
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
-Core::Core(QString rawCommandLine) : mRawCommandLine(rawCommandLine), mStatusHeading("Initializing"), mStatusMessage("...") {}
+Core::Core(QObject* parent, QString rawCommandLineParam) :
+    QObject(parent),
+    mRawCommandLine(rawCommandLineParam),
+    mStatusHeading("Initializing"),
+    mStatusMessage("...")
+{}
 
 //-Desctructor-------------------------------------------------------------
 Core::~Core()
@@ -65,14 +70,14 @@ void Core::showHelp()
     }
 
     // Show help
-    QMessageBox::information(nullptr, QApplication::applicationName(), helpStr);
+    postMessage(helpStr);
 }
 
 
 void Core::showVersion()
 {
     setStatus(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
-    QMessageBox::information(nullptr, QCoreApplication::applicationName(), CL_VERSION_MESSAGE);
+    postMessage(CL_VERSION_MESSAGE);
 }
 
 //Public:
@@ -563,7 +568,7 @@ int Core::logFinish(QString src, int exitCode)
     return exitCode;
 }
 
-int Core::postError(QString src, Qx::GenericError error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
+void Core::postError(QString src, Qx::GenericError error, bool log)
 {
     // Logging
     if(log)
@@ -572,10 +577,48 @@ int Core::postError(QString src, Qx::GenericError error, bool log, QMessageBox::
     // Show error if applicable
     if(mNotificationVerbosity == NotificationVerbosity::Full ||
        (mNotificationVerbosity == NotificationVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
-        return error.exec(bs, def);
+    {
+        // Box error
+        Error e;
+        e.source = src;
+        e.errorInfo = error;
+
+        // Emit
+        emit errorOccured(e);
+    }
+}
+
+int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
+{
+    // Logging
+    if(log)
+        logError(src, error);
+
+    // Show error if applicable
+    if(mNotificationVerbosity == NotificationVerbosity::Full ||
+       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
+    {
+        // Box error
+        BlockingError be;
+        be.source = src;
+        be.errorInfo = error;
+        be.choices = bs;
+        be.defaultChoice = def;
+
+        // Response holder
+        QSharedPointer<int> response = QSharedPointer<int>::create(def);
+
+        // Emit and get response
+        emit blockingErrorOccured(response, be);
+
+        // Return response
+        return *response;
+    }
     else
         return def;
 }
+
+void Core::postMessage(QString msg) { emit message(msg); }
 
 const FP::Install& Core::getFlashpointInstall() const { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
@@ -591,4 +634,9 @@ std::shared_ptr<Core::Task> Core::takeFrontTask()
 
 QString Core::statusHeading() { return mStatusHeading; }
 QString Core::statusMessage() { return mStatusMessage;}
-void Core::setStatus(QString heading, QString message) { mStatusHeading = heading; mStatusMessage = message; }
+void Core::setStatus(QString heading, QString message)
+{
+    mStatusHeading = heading;
+    mStatusMessage = message;
+    emit statusChanged(heading, message);
+}

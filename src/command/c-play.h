@@ -1,7 +1,7 @@
 #ifndef CPLAY_H
 #define CPLAY_H
 
-#include "command.h"
+#include "../command.h"
 
 class CPlay : public Command
 {

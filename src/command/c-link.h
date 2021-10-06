@@ -1,7 +1,7 @@
 #ifndef CSHORTCUT_H
 #define CSHORTCUT_H
 
-#include "command.h"
+#include "../command.h"
 
 class CLink : public Command
 {

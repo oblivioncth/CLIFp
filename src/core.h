@@ -22,8 +22,9 @@
 //-Typedef---------------------------------------------------------------------
 typedef int ErrorCode;
 
-class Core
+class Core : public QObject
 {
+    Q_OBJECT;
 //-Class Enums-----------------------------------------------------------------------
 public:
     enum class NotificationVerbosity { Full, Quiet, Silent };
@@ -32,6 +33,20 @@ public:
 
 //-Class Structs---------------------------------------------------------------------
 public:
+    struct Error
+    {
+        QString source;
+        Qx::GenericError errorInfo;
+    };
+
+    struct BlockingError
+    {
+        QString source;
+        Qx::GenericError errorInfo;
+        QMessageBox::StandardButtons choices;
+        QMessageBox::StandardButton defaultChoice;
+    };
+
     struct Task
     {
         TaskStage stage;
@@ -276,7 +291,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    Core(QString rawCommandLine);
+    explicit Core(QObject* parent, QString rawCommandLineParam);
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:
@@ -308,7 +323,9 @@ public:
     void logEvent(QString src, QString event);
     void logTask(QString src, const Task* const task);
     int logFinish(QString src, int exitCode);
-    int postError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    void postError(QString src, Qx::GenericError error, bool log = true);
+    int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    void postMessage(QString msg);
 
     const FP::Install& getFlashpointInstall() const;
     NotificationVerbosity notifcationVerbosity() const;
@@ -319,6 +336,17 @@ public:
     QString statusHeading();
     QString statusMessage();
     void setStatus(QString heading, QString message);
+
+//-Signals & Slots------------------------------------------------------------------------------------------------------------
+signals:
+    void statusChanged(const QString& statusHeading, const QString& statusMessage);
+    void errorOccured(const Core::Error& error);
+    void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
+    void message(const QString& message);
 };
+
+//-Metatype Declarations-----------------------------------------------------------------------------------------
+Q_DECLARE_METATYPE(Core::Error);
+Q_DECLARE_METATYPE(Core::BlockingError);
 
 #endif // CORE_H
