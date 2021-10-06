@@ -14,6 +14,9 @@ struct DownloadTask
 {
     QUrl target;
     QFile* dest;
+
+    friend bool operator== (const DownloadTask& lhs, const DownloadTask& rhs) noexcept;
+    friend size_t qHash(const DownloadTask& key, size_t seed) noexcept;
 };
 
 //-Classes------------------------------------------------------------------------------------------------------------
@@ -108,14 +111,17 @@ private:
     bool mOverwrite = false;
     bool mAutoAbort = false;
 
+    // Task tracking
+    QHash<QNetworkReply*, DownloadTask> mReplyTaskMap;
+
     // Downloads
     QList<DownloadTask> mPendingDownloads;
     QHash<QNetworkReply*, std::shared_ptr<FileStreamWriter>> mActiveDownloads;
 
     // Progress
-    quint64 mTotalBytes = 0;
-    quint64 mCurrentBytes = 0;
-    QHash<QNetworkReply*, quint64> mInvididualBytes;
+    bool mDownloading = false;
+    Cumulation<DownloadTask, quint64> mTotalBytes;
+    Cumulation<QNetworkReply*, quint64> mCurrentBytes;
 
     // Synchronus elements
     QEventLoop mDownloadWait;
@@ -126,7 +132,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
-    SyncDownloadManager();
+    SyncDownloadManager(QObject* parent = nullptr);
 
 //-Instance Functions----------------------------------------------------------------------------------------------
 private:
@@ -134,6 +140,7 @@ private:
     NetworkReplyError getFileSize(quint64& returnBuffer, QUrl target);
     IOOpReport startDownload(DownloadTask task);
     void cancelAll();
+    void reset();
 
 public:
     void appendTask(DownloadTask task);
