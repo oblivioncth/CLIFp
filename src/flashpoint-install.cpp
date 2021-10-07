@@ -465,8 +465,7 @@ Qx::GenericError FP::Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFil
         involvesBuffer = true;
         return Qx::GenericError();
     }
-
-    else if(appInfo.suffix().compare(".bat", Qt::CaseInsensitive) == 0)
+    else if(appInfo.suffix().compare("bat", Qt::CaseInsensitive) == 0)
     {
         // Check if bat uses secure player
         QFile batFile(appInfo.absoluteFilePath());
