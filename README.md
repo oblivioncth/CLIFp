@@ -1,4 +1,6 @@
 # CLIFp (Command-line Interface for Flashpoint)
+<img align="left" src="https://i.imgur.com/U6aDFSt.png" width=20%>
+
 CLIFp (pronounced "Cliff-P") is a command-line interface for [BlueMaxima's Flashpoint](https://bluemaxima.org/flashpoint/) project that allows starting games/animations from within the collection via a system's command parser and contextual arguments. While it is a separate application, CLIFp functions closely to that of a native CLI by parsing the configuration of the Flashpoint install it is deployed into and therefore launches games/animation in the same manner as the standard GUI launcher.
 
 Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completely in the background so that the only windows seen during use are the same ones present while running standard Flashpoint. It automatically terminates once the target application has exited, requiring no manual tasks or clean-up by the user. 
@@ -26,6 +28,7 @@ Each release of this application targets a specific version or versions of BlueM
 | 0.2 - 0.3.1.1   | 8.1 - 8.2                       |
 | 0.3.2 - 0.4.0.1 | 9.0 ("Glorious Sunset")         |
 | 0.4.1 - 0.7.0.1 | 10.0 ("Absence")                |
+| 0.8             | 10.1 ("Absence II")
 
 Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however since 0.2 compatibility with newer versions is quite likely even if they aren't explicit listed yet** (usually because I haven't had time to check if an update is needed).
 
@@ -171,7 +174,7 @@ Requires:
 With any use of the **--title** option for the commands that support it the title must be entered verbatim as it appears within Flashpoint, as close matches are not checked (due to technical limitations). If two entries happen to share the title specified, a dialog window with more information will be displayed so that the intended title can be selected.
 
 ## Other Features
-CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messaged when clicked on, though it doesn't always work due to currently incomplete implementation.
+CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on.
 
 The functionality of the tray icon will be expanded upon in future releases.
 
@@ -219,7 +222,7 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
  - Although general compatibility is quite high, compatibility with every single title cannot be assured. Issues with a title or group of titles will be fixed as they are discovered
 
 ## Source
-This tool was written in C++ 17 along with Qt 5 and currently only targets Windows Vista and above; however, this tool can easily be ported to Linux with minimal changes, though to what end I am not sure since this is for a Windows application. The source includes an easy-to-use .pro file if you wish to build the application in Qt Creator and the available latest release was compiled in Qt Creator using MSVC 2019 and a static compilation of Qt 5.15.2. Other than a C++ 17 capable compiler and Qt 5.15.x+ (compiled with some form of SSL support) all files required to compile this software are included, with the exception of a standard make file.
+This tool was written in C++ 17 along with Qt 5 and currently only targets Windows Vista and above; however, this tool can easily be ported to Linux with minimal changes, though to what end I am not sure since this is for a Windows application. The source includes an easy-to-use .pro file if you wish to build the application in Qt Creator (or qmake via the command-line) and the available latest release was compiled in Qt Creator using MSVC 2019 and a static compilation of Qt 5.15.2. Other than a C++ 17 capable compiler and Qt 5.15.x+ (compiled with some form of SSL support) all files required to compile this software are included.
 
 All functions/variables under the "Qx" (QExtended) namespace belong to a small, personal library I maintain to always have access to frequently used functionality in my projects. A pre-compiled static version of this library is provided with the source for this tool. If anyone truly needs it, I can provide the source for this library as well.
 
