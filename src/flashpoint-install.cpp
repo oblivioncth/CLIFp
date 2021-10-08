@@ -179,7 +179,7 @@ Qx::GenericError Install::JsonServicesReader::parseServicesDocument(const QJsonD
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse servers
-    for(const QJsonValue& jvServer : jaServers)
+    for(const QJsonValue& jvServer : qAsConst(jaServers))
     {
         ServerDaemon serverBuffer;
         if((valueError = parseServerDaemon(serverBuffer, jvServer)).isValid())
@@ -194,7 +194,7 @@ Qx::GenericError Install::JsonServicesReader::parseServicesDocument(const QJsonD
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse daemons
-    for(const QJsonValue& jvDaemon : jaDaemons)
+    for(const QJsonValue& jvDaemon : qAsConst(jaDaemons))
     {
         ServerDaemon daemonBuffer;
         if((valueError = parseServerDaemon(daemonBuffer, jvDaemon)).isValid())
@@ -209,7 +209,7 @@ Qx::GenericError Install::JsonServicesReader::parseServicesDocument(const QJsonD
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse starts
-    for(const QJsonValue& jvStart : jaStarts)
+    for(const QJsonValue& jvStart : qAsConst(jaStarts))
     {
         StartStop startStopBuffer;
         if((valueError = parseStartStop(startStopBuffer, jvStart)).isValid())
@@ -224,7 +224,7 @@ Qx::GenericError Install::JsonServicesReader::parseServicesDocument(const QJsonD
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse starts
-    for(const QJsonValue& jvStop : jaStops)
+    for(const QJsonValue& jvStop : qAsConst(jaStops))
     {
         StartStop startStopBuffer;
         if((valueError = parseStartStop(startStopBuffer, jvStop)).isValid())
@@ -267,7 +267,7 @@ Qx::GenericError Install::JsonServicesReader::parseServerDaemon(ServerDaemon& se
     if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joServer, JsonObject_Server::KEY_ARGUMENTS)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    for(const QJsonValue& jvArg : jaArgs)
+    for(const QJsonValue& jvArg : qAsConst(jaArgs))
     {
         // Ensure array element is String
         if(!jvArg.isString())
@@ -316,7 +316,7 @@ Qx::GenericError Install::JsonServicesReader::parseStartStop(StartStop& startSto
     if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joStartStop, JsonObject_StartStop::KEY_ARGUMENTS)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    for(const QJsonValue& jvArg : jaArgs)
+    for(const QJsonValue& jvArg : qAsConst(jaArgs))
     {
         // Ensure array element is String
         if(!jvArg.isString())
@@ -604,7 +604,7 @@ QSqlError Install::checkDatabaseForRequiredTables(QSet<QString>& missingTablesRe
     // Prep return buffer
     missingTablesReturnBuffer.clear();
 
-    for(DBTableSpecs tableAndColumns : DATABASE_SPECS_LIST)
+    for(const DBTableSpecs& tableAndColumns : DATABASE_SPECS_LIST)
         missingTablesReturnBuffer.insert(tableAndColumns.name);
 
     // Get tables from DB
@@ -615,7 +615,7 @@ QSqlError Install::checkDatabaseForRequiredTables(QSet<QString>& missingTablesRe
     if(fpDB.lastError().isValid())
         return fpDB.lastError();
 
-    for(QString table : existingTables)
+    for(const QString& table : existingTables)
         missingTablesReturnBuffer.remove(table);
 
     // Return an invalid error
