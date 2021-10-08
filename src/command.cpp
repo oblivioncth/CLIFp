@@ -85,6 +85,9 @@ void Command::showHelp()
     // Help string
     static QString helpStr;
 
+    // Update status
+    mCore.setStatus(Core::STATUS_DISPLAY, Core::STATUS_DISPLAY_HELP);
+
     // One time setup
     if(helpStr.isNull())
     {        
