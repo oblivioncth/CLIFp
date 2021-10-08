@@ -106,7 +106,7 @@ private:
     void cleanup();
 
     // Helper
-    QString findFlashpointRoot();
+    std::unique_ptr<FP::Install> findFlashpointInstall();
     QString escapeNativeArgsForCMD(QString nativeArgs);
     void logProcessStart(const QProcess* process, Core::ProcessType type);
     void logProcessEnd(const QProcess* process, Core::ProcessType type);

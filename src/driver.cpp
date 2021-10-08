@@ -345,20 +345,26 @@ void Driver::cleanup()
 }
 
 // Helper functions
-QString Driver::findFlashpointRoot()
+std::unique_ptr<FP::Install> Driver::findFlashpointInstall()
 {
     QDir currentDir(CLIFP_DIR_PATH);
+    std::unique_ptr<FP::Install> fpInstall;
 
     do
     {
         mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
-        if(FP::Install::checkInstallValidity(currentDir.absolutePath(), FP::Install::CompatLevel::Execution).installValid)
-            return currentDir.absolutePath();
+
+        // Attempt to instantiate
+        fpInstall = std::make_unique<FP::Install>(currentDir.absolutePath());
+        if(fpInstall->isValid())
+            break;
+        else
+            fpInstall.reset();
     }
     while(currentDir.cdUp());
 
-    // Return null string on failure to find root
-    return QString();
+    // Return instance, null or not
+    return std::move(fpInstall);
 }
 
 QString Driver::escapeNativeArgsForCMD(QString nativeArgs)
@@ -433,18 +439,16 @@ void Driver::drive()
     }
 
     //-Find and link to Flashpoint Install----------------------------------------------------------
-    QString fpRoot;
+    std::unique_ptr<FP::Install> flashpointInstall;
     mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
 
-    if((fpRoot = findFlashpointRoot()).isNull())
+    if(!(flashpointInstall = findFlashpointInstall()))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
         emit finished(mCore->logFinish(NAME, Core::ErrorCodes::INSTALL_INVALID));
         return;
     }
-
-    std::unique_ptr<FP::Install> flashpointInstall = std::make_unique<FP::Install>(fpRoot);
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(fpRoot)));
+    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->getPath())));
 
     // Insert into core
     if((errorStatus = mCore->attachFlashpoint(std::move(flashpointInstall))))

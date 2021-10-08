@@ -333,11 +333,15 @@ Qx::GenericError Install::ServicesReader::parseStartStop(StartStop& startStopBuf
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-Install::Install(QString installPath)
+Install::Install(QString installPath) :
+    mValid(false) // Install is invalid until proven otherwise
 {
-    // Ensure instance will be at least minimally compatible
-    if(!checkInstallValidity(installPath, CompatLevel::Execution).installValid)
-        assert("Cannot create a Install instance with an invalid installPath. Check first with Install::checkInstallValidity(QString, CompatLevel).");
+    QScopeGuard validityGuard([this](){ nullify(); }); // Automatically nullify on fail
+
+    // VALIDITY CHECKES/////////////////////////////
+    //TODO: Try to disolve this function by simply attempting these steps in the constructor and check afterwards if the instance is valid via
+    // something like isNull(). There may be a catch to this as if recalled correctly this was considered before and abandonded because of a conflict
+    // with the approach, but otherwise this method would be much more preferable and less redundant
 
     // Initialize static files and directories
     mRootDirectory = QDir(installPath);
@@ -349,15 +353,58 @@ Install::Install(QString installPath)
     mVersionFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
     mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
 
-    // Get preferences
-    Preferences installPreferences;
-    getPreferences(installPreferences); // Assume that prefernces can be read since this is checked in checkInstallValidity()
+    //-Check install validity--------------------------------------------
 
-    // Initialize config based files and directories
-    mServicesJsonFile = std::make_shared<QFile>(installPath + "/" + installPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
-    mLogosDirectory = QDir(installPath + "/" + installPreferences.imageFolderPath + '/' + LOGOS_FOLDER_NAME);
-    mScreenshotsDirectory = QDir(installPath + "/" + installPreferences.imageFolderPath + '/' + SCREENSHOTS_FOLDER_NAME);
+    // Check for file existance
+    const QList<const QFile* const> filesToCheck{
+        mDatabaseFile.get(),
+        mConfigJsonFile.get(),
+        mPreferencesJsonFile.get(),
+        mLauncherFile.get(),
+        mVersionFile.get(),
+        mDataPackMounterFile.get()
+    };
 
+    for(const QFile* const file : filesToCheck)
+    {
+        QFileInfo fileInfo(*file);
+        if(!fileInfo.exists() || !fileInfo.isFile())
+        {
+            mErrorString = FILE_DNE.arg(fileInfo.filePath());
+            return;
+        }
+    }
+
+    // Get settings
+    Qx::GenericError readReport;
+
+    ConfigReader configReader(&mConfig, mConfigJsonFile);
+    if((readReport = configReader.readInto()).isValid())
+    {
+        mErrorString = readReport.primaryInfo() + " [" + readReport.secondaryInfo() + "]";
+        return;
+    }
+
+    PreferencesReader prefReader(&mPreferences, mPreferencesJsonFile);
+    if((readReport = prefReader.readInto()).isValid())
+    {
+        mErrorString = readReport.primaryInfo() + " [" + readReport.secondaryInfo() + "]";
+        return;
+    }
+    mServicesJsonFile = std::make_shared<QFile>(installPath + "/" + mPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
+    mLogosDirectory = QDir(installPath + "/" + mPreferences.imageFolderPath + '/' + LOGOS_FOLDER_NAME);
+    mScreenshotsDirectory = QDir(installPath + "/" + mPreferences.imageFolderPath + '/' + SCREENSHOTS_FOLDER_NAME);
+
+    ServicesReader servicesReader(&mServices, mServicesJsonFile, *this);
+    if((readReport = servicesReader.readInto()).isValid())
+    {
+        mErrorString = readReport.primaryInfo() + " [" + readReport.secondaryInfo() + "]";
+        return;
+    }
+
+    // Give the OK
+    mValid = true;
+    validityGuard.dismiss();
 }
 
 //-Destructor------------------------------------------------------------------------------------------------
@@ -369,61 +416,6 @@ Install::~Install()
 
 //-Class Functions------------------------------------------------------------------------------------------------
 //Public:
-Install::ValidityReport Install::checkInstallValidity(QString installPath, CompatLevel compatLevel)
-{
-    //TODO: Try to disolve this function by simply attempting these steps in the constructor and check afterwards if the instance is valid via
-    // something like isNull(). There may be a catch to this as if recalled correctly this was considered before and abandonded because of a conflict
-    // with the approach, but otherwise this method would be much more preferable and less redundant
-
-    QFileInfo mainEXE(installPath + "/" + LAUNCHER_PATH);
-    QFileInfo database(installPath + "/" + DATABASE_PATH);
-    QFileInfo config(installPath + "/" + CONFIG_JSON_PATH);
-    QFileInfo preferences(installPath + "/" + PREFERENCES_JSON_PATH);
-    QFileInfo version(installPath + "/" + VER_TXT_PATH);
-
-    // Check common requirements
-    if(!database.exists() || !database.isFile())
-        return ValidityReport{false, FILE_DNE.arg(database.filePath())};
-    if(!config.exists() || !config.isFile())
-        return ValidityReport{false, FILE_DNE.arg(config.filePath())};
-
-    Config testConfig; // Check that config can be read
-    std::shared_ptr<QFile> configFile = std::make_shared<QFile>(config.filePath());
-    JsonConfigReader jsConfigReader(&testConfig, configFile);
-    Qx::GenericError configReadReport = jsConfigReader.readInto();
-
-    if(configReadReport.isValid())
-        return ValidityReport{false, configReadReport.primaryInfo() + " [" + configReadReport.secondaryInfo() + "]"};
-
-    Preferences testPreferences; // Check that preferences can be read
-    std::shared_ptr<QFile> preferencesFile = std::make_shared<QFile>(preferences.filePath());
-    JsonPreferencesReader jsPrefReader(&testPreferences, preferencesFile);
-    Qx::GenericError prefReadReport = jsPrefReader.readInto();
-
-    if(prefReadReport.isValid())
-        return ValidityReport{false, prefReadReport.primaryInfo() + " [" + prefReadReport.secondaryInfo() + "]"};
-
-    Services testServices; // Test that services can be read
-    std::shared_ptr<QFile> servicesFile = std::make_shared<QFile>(installPath + "/" + testPreferences.jsonFolderPath + "/" + SERVICES_JSON_NAME);
-    JsonServicesReader jsServicesReader(installPath, &testServices, servicesFile);
-    Qx::GenericError servicesReadReport = jsServicesReader.readInto();
-
-    if(servicesReadReport.isValid())
-        return ValidityReport{false, servicesReadReport.primaryInfo() + " [" + servicesReadReport.secondaryInfo() + "]"};
-
-    // Check full compat level requirements
-    if(compatLevel == CompatLevel::Full)
-    {
-        if(!mainEXE.exists() || !mainEXE.isFile())
-            return ValidityReport{false, FILE_DNE.arg(config.filePath())};
-        if(!version.exists() || !version.isFile())
-            return ValidityReport{false, FILE_DNE.arg(version.filePath())};
-    }
-
-    // Return valid pass
-    return ValidityReport{true, QString()};
-}
-
 Qx::GenericError FP::Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
 {
     // Reset buffer
@@ -452,12 +444,25 @@ Qx::GenericError FP::Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFil
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
-QString Install::resolveFlashpointMacros(QString macroString) const
+void Install::nullify()
 {
-    // Resolve all known macros
-    macroString.replace(MACRO_FP_PATH, getPath());
+    // Files and directories
+    mRootDirectory = QDir();
+    mLogosDirectory = QDir();
+    mScreenshotsDirectory = QDir();
+    mExtrasDirectory = QDir();
+    mLauncherFile.reset();
+    mDatabaseFile.reset();
+    mConfigJsonFile.reset();
+    mPreferencesJsonFile.reset();
+    mServicesJsonFile.reset();
+    mDataPackMounterFile.reset();
+    mVersionFile.reset();
 
-    return macroString;
+    // Settings
+    Config mConfig = {};
+    Preferences mPreferences = {};
+    Services mServices = {};
 }
 
 QSqlDatabase Install::getThreadedDatabaseConnection() const
@@ -508,6 +513,17 @@ QSqlError Install::makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* d
 }
 
 //Public:
+bool Install::isValid() const { return mValid; }
+QString Install::errorString() const { return mErrorString; }
+
+QString Install::resolveFlashpointMacros(QString macroString) const
+{
+    // Resolve all known macros
+    macroString.replace(MACRO_FP_PATH, getPath());
+
+    return macroString;
+}
+
 QString Install::versionString() const
 {
     // Check version file
@@ -537,44 +553,11 @@ QSqlError Install::openThreadDatabaseConnection()
 }
 
 void Install::closeThreadedDatabaseConnection() { getThreadedDatabaseConnection().close(); }
-
 bool Install::databaseConnectionOpenInThisThread() { return getThreadedDatabaseConnection().isOpen(); }
 
-Qx::GenericError Install::getConfig(Config& configBuffer) const
-{
-    // Ensure return services is null
-    configBuffer = Config();
-
-    // Create reader instance
-    ConfigReader configReader(&configBuffer, mConfigJsonFile);
-
-    // Read services file
-    return configReader.readInto();
-}
-
-Qx::GenericError Install::getPreferences(Preferences& preferencesBuffer) const
-{
-    // Ensure return services is null
-    preferencesBuffer = Preferences();
-
-    // Create reader instance
-    PreferencesReader prefReader(&preferencesBuffer, mPreferencesJsonFile);
-
-    // Read services file
-    return prefReader.readInto();
-}
-
-Qx::GenericError Install::getServices(Services &servicesBuffer) const
-{
-    // Ensure return services is null
-    servicesBuffer = Services();
-
-    // Create reader instance
-    ServicesReader servicesReader(&servicesBuffer, mServicesJsonFile, *this);
-
-    // Read services file
-    return servicesReader.readInto();
-}
+Install::Config Install::getConfig() const { return mConfig; }
+Install::Preferences Install::getPreferences() const { return mPreferences; }
+Install::Services Install::getServices() const { return mServices; }
 
 QSqlError Install::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnBuffer) const
 {

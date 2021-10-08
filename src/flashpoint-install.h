@@ -14,7 +14,6 @@ class Install
 {
 //-Class Enums---------------------------------------------------------------------------------------------------
 public:
-    enum class CompatLevel{ Execution, Full };
     enum class LibraryFilter{ Game, Anim, Either };
 
 //-Class Structs-------------------------------------------------------------------------------------------------
@@ -450,6 +449,10 @@ public:
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
+    // Validity
+    bool mValid;
+    QString mErrorString;
+
     // Files and directories
     QDir mRootDirectory;
     QDir mLogosDirectory;
@@ -462,6 +465,11 @@ private:
     std::shared_ptr<QFile> mServicesJsonFile;
     std::shared_ptr<QFile> mDataPackMounterFile;
     std::unique_ptr<QFile> mVersionFile;
+
+    // Settings
+    Config mConfig;
+    Preferences mPreferences;
+    Services mServices;
 
     // Database information
     QStringList mPlatformList;
@@ -478,16 +486,18 @@ public:
 
 //-Class Functions------------------------------------------------------------------------------------------------------
 public:
-    static ValidityReport checkInstallValidity(QString installPath, CompatLevel compatLevel);
     static Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
+    void nullify();
     QSqlDatabase getThreadedDatabaseConnection() const;
     QSqlError makeNonBindQuery(DBQueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const;
 
 public:
     // General information
+    bool isValid() const;
+    QString errorString() const;
     QString resolveFlashpointMacros(QString macroString) const;
     QString versionString() const;
     QString launcherChecksum() const;
@@ -498,9 +508,9 @@ public:
     bool databaseConnectionOpenInThisThread();
 
     // Support Application Checks
-    Qx::GenericError getConfig(Config& configBuffer) const;
-    Qx::GenericError getPreferences(Preferences& preferencesBuffer) const;
-    Qx::GenericError getServices(Services& servicesBuffer) const;
+    Config getConfig() const;
+    Preferences getPreferences() const;
+    Services getServices() const;
 
     // Requirement Checking
     QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
