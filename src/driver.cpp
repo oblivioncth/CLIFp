@@ -451,11 +451,7 @@ void Driver::drive()
     mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->getPath())));
 
     // Insert into core
-    if((errorStatus = mCore->attachFlashpoint(std::move(flashpointInstall))))
-    {
-        emit finished(mCore->logFinish(NAME, errorStatus));
-        return;
-    }
+    mCore->attachFlashpoint(std::move(flashpointInstall));
 
     //-Handle Command and Command Options----------------------------------------------------------
     QString commandStr = mArguments.first().toLower();

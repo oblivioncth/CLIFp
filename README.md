@@ -191,10 +191,7 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 1     | ALREADY_OPEN             | Another instance of CLIFp is already running                                                              |
 | 2     | INVALID_ARGS             | The arguments provided were not recognized or were formatted incorrectly                                  |
 | 3     | LAUNCHER_OPEN            | The application could not start because the Flashpoint Launcher is currently open                         |
-| 4     | INSTALL_INVALID          | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |
-| 5     | CANT_PARSE_CONFIG        | Failed to parse config.json                                                                               |
-| 6     | CANT_PARSE_PREF          | Failed to parse preferences.json                                                                          |
-| 7     | CANT_PARSE_SERVICES      | Failed to parse services.json                                                                             |
+| 4     | INSTALL_INVALID          | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |                                                                         |
 | 8     | CONFIG_SERVER_MISSING    | The server entry specified in config.json was not found in services.json                                  |
 | 9     | DB_MISSING_TABLES        | flashpoint.sqlite is missing expected tables                                                              |
 | 10    | DB_MISSING_COLUMNS       | One or more tables in flashpoint.sqlite are missing expected columns                                      |

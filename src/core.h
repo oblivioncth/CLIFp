@@ -147,9 +147,6 @@ public:
         static const ErrorCode INVALID_ARGS = 2;
         static const ErrorCode LAUNCHER_OPEN = 3;
         static const ErrorCode INSTALL_INVALID = 4;
-        static const ErrorCode CANT_PARSE_CONFIG = 5;
-        static const ErrorCode CANT_PARSE_PREF = 6;
-        static const ErrorCode CANT_PARSE_SERVICES = 7;
         static const ErrorCode CONFIG_SERVER_MISSING = 8;
         static const ErrorCode DB_MISSING_TABLES = 9;
         static const ErrorCode DB_MISSING_COLUMNS = 10;
@@ -274,9 +271,6 @@ private:
 
     // Handles
     std::unique_ptr<FP::Install> mFlashpointInstall;
-    FP::Install::Services mFlashpointServices;
-    FP::Install::Config mFlashpointConfig;
-    FP::Install::Preferences mFlashpointPreferences;
     std::unique_ptr<QFile> mLogFile;
     std::unique_ptr<Logger> mLogger;
 
@@ -305,7 +299,7 @@ private:
 
 public:
     ErrorCode initialize(QStringList& commandLine);
-    ErrorCode attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall);
+    void attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall);
     ErrorCode openAndVerifyProperDatabase();
 
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);

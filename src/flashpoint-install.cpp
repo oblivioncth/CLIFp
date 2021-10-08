@@ -41,6 +41,7 @@ bool operator< (const Install::TagCategory& lhs, const Install::TagCategory& rhs
 //-Constructor--------------------------------------------------------------------------------------------------------
 //Public:
 Install::SettingsReader::SettingsReader(Settings* targetSettings, std::shared_ptr<QFile> sourceJsonFile) :
+    mTargetSettings(targetSettings),
     mSourceJsonFile(sourceJsonFile)
 {}
 
@@ -356,7 +357,7 @@ Install::Install(QString installPath) :
     //-Check install validity--------------------------------------------
 
     // Check for file existance
-    const QList<const QFile* const> filesToCheck{
+    const QList<const QFile*> filesToCheck{
         mDatabaseFile.get(),
         mConfigJsonFile.get(),
         mPreferencesJsonFile.get(),
@@ -365,7 +366,7 @@ Install::Install(QString installPath) :
         mDataPackMounterFile.get()
     };
 
-    for(const QFile* const file : filesToCheck)
+    for(const QFile* file : filesToCheck)
     {
         QFileInfo fileInfo(*file);
         if(!fileInfo.exists() || !fileInfo.isFile())

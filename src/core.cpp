@@ -163,34 +163,10 @@ ErrorCode Core::initialize(QStringList& commandLine)
 
 }
 
-ErrorCode Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall)
+void Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall)
 {
     // Capture install
     mFlashpointInstall = std::move(flashpointInstall);
-
-    // Get "read-once" components
-    Qx::GenericError settingsReadError;
-
-    if((settingsReadError = mFlashpointInstall->getPreferences(mFlashpointPreferences)).isValid())
-    {
-        postError(NAME, settingsReadError);
-        return ErrorCodes::CANT_PARSE_PREF;
-    }
-
-    if((settingsReadError = mFlashpointInstall->getConfig(mFlashpointConfig)).isValid())
-    {
-        postError(NAME, settingsReadError);
-        return ErrorCodes::CANT_PARSE_CONFIG;
-    }
-
-    if((settingsReadError = mFlashpointInstall->getServices(mFlashpointServices)).isValid())
-    {
-        postError(NAME, settingsReadError);
-        return ErrorCodes::CANT_PARSE_SERVICES;
-    }
-
-    // Return success
-    return ErrorCodes::NO_ERR;
 }
 
 ErrorCode Core::openAndVerifyProperDatabase()
@@ -314,8 +290,13 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
 ErrorCode Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
+
+    // Get settings
+    FP::Install::Services fpServices = mFlashpointInstall->getServices();
+    FP::Install::Config fpConfig = mFlashpointInstall->getConfig();
+
     // Add Start entries from services
-    for(const FP::Install::StartStop& startEntry : qAsConst(mFlashpointServices.starts))
+    for(const FP::Install::StartStop& startEntry : qAsConst(fpServices.starts))
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
         currentTask->stage = TaskStage::Startup;
@@ -330,15 +311,15 @@ ErrorCode Core::enqueueStartupTasks()
     }
 
     // Add Server entry from services if applicable
-    if(mFlashpointConfig.startServer)
+    if(fpConfig.startServer)
     {
-        if(!mFlashpointServices.servers.contains(mFlashpointConfig.server))
+        if(!fpServices.servers.contains(fpConfig.server))
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
             return ErrorCodes::CONFIG_SERVER_MISSING;
         }
 
-        FP::Install::ServerDaemon configuredServer = mFlashpointServices.servers.value(mFlashpointConfig.server);
+        FP::Install::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
         std::shared_ptr<ExecTask> serverTask = std::make_shared<ExecTask>();
         serverTask->stage = TaskStage::Startup;
@@ -354,7 +335,7 @@ ErrorCode Core::enqueueStartupTasks()
 
     // Add Daemon entry from services
     QHash<QString, FP::Install::ServerDaemon>::const_iterator daemonIt;
-    for (daemonIt = mFlashpointServices.daemons.constBegin(); daemonIt != mFlashpointServices.daemons.constEnd(); ++daemonIt)
+    for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
         currentTask->stage = TaskStage::Startup;
@@ -376,7 +357,7 @@ void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
-    for(const FP::Install::StartStop& stopEntry : qAsConst(mFlashpointServices.stops))
+    for(const FP::Install::StartStop& stopEntry : qAsConstR(mFlashpointInstall->getServices().stops))
     {
         std::shared_ptr<ExecTask> shutdownTask = std::make_shared<ExecTask>();
         shutdownTask->stage = TaskStage::Shutdown;
@@ -436,7 +417,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     searchResult.result.next();
 
     // Extract relavent data
-    QString packDestFolderPath = mFlashpointInstall->getPath() + "/" + mFlashpointPreferences.dataPacksFolderPath;
+    QString packDestFolderPath = mFlashpointInstall->getPath() + "/" + mFlashpointInstall->getPreferences().dataPacksFolderPath;
     QString packFileName = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_PATH).toString();
     QString packSha256 = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_SHA256).toString();
     QFile packFile(packDestFolderPath + "/" + packFileName);

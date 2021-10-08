@@ -350,8 +350,8 @@ public:
 
     //-Instance Variables--------------------------------------------------------------------------------------------------
     protected:
-        std::shared_ptr<QFile> mSourceJsonFile;
         Settings* mTargetSettings;
+        std::shared_ptr<QFile> mSourceJsonFile;
 
     //-Constructor--------------------------------------------------------------------------------------------------------
     public:
