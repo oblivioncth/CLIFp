@@ -20,7 +20,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     mCore.logEvent(NAME, LOG_EVENT_ENQ_AUTO);
     // Search FP database for entry via ID
     QSqlError searchError;
-    FP::Install::DBQueryBuffer searchResult;
+    FP::DB::QueryBuffer searchResult;
     ErrorCode enqueueError;
 
     searchError = mCore.getFlashpointInstall().queryEntryByID(searchResult, targetID);
@@ -46,14 +46,14 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     searchResult.result.next();
 
     // Enqueue if result is additional app
-    if(searchResult.source == FP::Install::DBTable_Add_App::NAME)
+    if(searchResult.source == FP::DB::Table_Add_App::NAME)
     {
-        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString(),
-                                                     searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toUuid().toString(QUuid::WithoutBraces)));
+        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(searchResult.result.value(FP::DB::Table_Add_App::COL_NAME).toString(),
+                                                     searchResult.result.value(FP::DB::Table_Add_App::COL_PARENT_ID).toUuid().toString(QUuid::WithoutBraces)));
 
         // Clear queue if this entry is a message or extra
-        QString appPath = searchResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
-        if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE || appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
+        QString appPath = searchResult.result.value(FP::DB::Table_Add_App::COL_APP_PATH).toString();
+        if(appPath == FP::DB::Table_Add_App::ENTRY_MESSAGE || appPath == FP::DB::Table_Add_App::ENTRY_EXTRAS)
         {
             mCore.clearTaskQueue();
             mCore.logEvent(NAME, LOG_EVENT_QUEUE_CLEARED);
@@ -63,11 +63,11 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         // Check if parent entry uses a data pack
         QSqlError packCheckError;
         bool parentUsesDataPack;
-        QUuid parentID = searchResult.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toString();
+        QUuid parentID = searchResult.result.value(FP::DB::Table_Add_App::COL_PARENT_ID).toString();
 
         if(parentID.isNull())
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PARENT_INVALID, searchResult.result.value(FP::Install::DBTable_Add_App::COL_ID).toString()));
+            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PARENT_INVALID, searchResult.result.value(FP::DB::Table_Add_App::COL_ID).toString()));
             return ErrorCodes::PARENT_INVALID;
         }
 
@@ -87,19 +87,19 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         }
 
         enqueueError = enqueueAdditionalApp(searchResult, Core::TaskStage::Primary);
-        mCore.setStatus(STATUS_PLAY, searchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString());
+        mCore.setStatus(STATUS_PLAY, searchResult.result.value(FP::DB::Table_Add_App::COL_NAME).toString());
 
         if(enqueueError)
             return enqueueError;
     }
-    else if(searchResult.source == FP::Install::DBTable_Game::NAME) // Get autorun additional apps if result is game
+    else if(searchResult.source == FP::DB::Table_Game::NAME) // Get autorun additional apps if result is game
     {
-        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString()));
+        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(searchResult.result.value(FP::DB::Table_Game::COL_TITLE).toString()));
 
         // Check if entry uses a data pack
         QSqlError packCheckError;
         bool entryUsesDataPack;
-        QUuid entryId = searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString();
+        QUuid entryId = searchResult.result.value(FP::DB::Table_Game::COL_ID).toString();
 
         if((packCheckError = mCore.getFlashpointInstall().entryUsesDataPack(entryUsesDataPack, entryId)).isValid())
         {
@@ -118,7 +118,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
 
         // Get game's additional apps
         QSqlError addAppSearchError;
-        FP::Install::DBQueryBuffer addAppSearchResult;
+        FP::DB::QueryBuffer addAppSearchResult;
 
         addAppSearchError = mCore.getFlashpointInstall().queryEntryAddApps(addAppSearchResult, targetID);
         if(addAppSearchError.isValid())
@@ -134,9 +134,9 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
             addAppSearchResult.result.next();
 
             // Enqueue if autorun before
-            if(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_AUTORUN).toInt() != 0)
+            if(addAppSearchResult.result.value(FP::DB::Table_Add_App::COL_AUTORUN).toInt() != 0)
             {
-                mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString()));
+                mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(FP::DB::Table_Add_App::COL_NAME).toString()));
                 enqueueError = enqueueAdditionalApp(addAppSearchResult, Core::TaskStage::Auxiliary);
                 if(enqueueError)
                     return enqueueError;
@@ -144,8 +144,8 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         }
 
         // Enqueue game
-        QString gamePath = searchResult.result.value(FP::Install::DBTable_Game::COL_APP_PATH).toString();
-        QString gameArgs = searchResult.result.value(FP::Install::DBTable_Game::COL_LAUNCH_COMMAND).toString();
+        QString gamePath = searchResult.result.value(FP::DB::Table_Game::COL_APP_PATH).toString();
+        QString gameArgs = searchResult.result.value(FP::DB::Table_Game::COL_LAUNCH_COMMAND).toString();
         QFileInfo gameInfo(mCore.getFlashpointInstall().getPath() + '/' + gamePath);
 
         std::shared_ptr<Core::ExecTask> gameTask = std::make_shared<Core::ExecTask>();
@@ -157,7 +157,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         gameTask->processType = Core::ProcessType::Blocking;
 
         mCore.enqueueSingleTask(gameTask);
-        mCore.setStatus(STATUS_PLAY, searchResult.result.value(FP::Install::DBTable_Game::COL_TITLE).toString());
+        mCore.setStatus(STATUS_PLAY, searchResult.result.value(FP::DB::Table_Game::COL_TITLE).toString());
 
         // Add wait task if required
         if((enqueueError = mCore.enqueueConditionalWaitTask(gameInfo)))
@@ -170,16 +170,16 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     return Core::ErrorCodes::NO_ERR;
 }
 
-ErrorCode CPlay::enqueueAdditionalApp(FP::Install::DBQueryBuffer addAppResult, Core::TaskStage taskStage)
+ErrorCode CPlay::enqueueAdditionalApp(FP::DB::QueryBuffer addAppResult, Core::TaskStage taskStage)
 {
     // Ensure query result is additional app
-    assert(addAppResult.source == FP::Install::DBTable_Add_App::NAME);
+    assert(addAppResult.source == FP::DB::Table_Add_App::NAME);
 
-    QString appPath = addAppResult.result.value(FP::Install::DBTable_Add_App::COL_APP_PATH).toString();
-    QString appArgs = addAppResult.result.value(FP::Install::DBTable_Add_App::COL_LAUNCH_COMMAND).toString();
-    bool waitForExit = addAppResult.result.value(FP::Install::DBTable_Add_App::COL_WAIT_EXIT).toInt() != 0;
+    QString appPath = addAppResult.result.value(FP::DB::Table_Add_App::COL_APP_PATH).toString();
+    QString appArgs = addAppResult.result.value(FP::DB::Table_Add_App::COL_LAUNCH_COMMAND).toString();
+    bool waitForExit = addAppResult.result.value(FP::DB::Table_Add_App::COL_WAIT_EXIT).toInt() != 0;
 
-    if(appPath == FP::Install::DBTable_Add_App::ENTRY_MESSAGE)
+    if(appPath == FP::DB::Table_Add_App::ENTRY_MESSAGE)
     {
         std::shared_ptr<Core::MessageTask> messageTask = std::make_shared<Core::MessageTask>();
         messageTask->stage = taskStage;
@@ -188,7 +188,7 @@ ErrorCode CPlay::enqueueAdditionalApp(FP::Install::DBQueryBuffer addAppResult, C
 
         mCore.enqueueSingleTask(messageTask);
     }
-    else if(appPath == FP::Install::DBTable_Add_App::ENTRY_EXTRAS)
+    else if(appPath == FP::DB::Table_Add_App::ENTRY_EXTRAS)
     {
         std::shared_ptr<Core::ExtraTask> extraTask = std::make_shared<Core::ExtraTask>();
         extraTask->stage = taskStage;
@@ -232,7 +232,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
     QSqlError searchError;
 
     // Query all main games
-    FP::Install::DBQueryBuffer mainGameIDQuery;
+    FP::DB::QueryBuffer mainGameIDQuery;
     searchError = mCore.getFlashpointInstall().queryAllGameIDs(mainGameIDQuery, lbFilter);
     if(searchError.isValid())
     {
@@ -249,7 +249,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
         mainGameIDQuery.result.next();
 
         // Add ID to list
-        QString gameIDString = mainGameIDQuery.result.value(FP::Install::DBTable_Game::COL_ID).toString();
+        QString gameIDString = mainGameIDQuery.result.value(FP::DB::Table_Game::COL_ID).toString();
         QUuid gameID = QUuid(gameIDString);
         if(!gameID.isNull())
             playableIDs.append(gameID);
@@ -263,7 +263,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
     mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_ID.arg(mainIDBuffer.toString(QUuid::WithoutBraces)));
 
     // Get entry's playable additional apps
-    FP::Install::DBQueryBuffer addAppQuery;
+    FP::DB::QueryBuffer addAppQuery;
     searchError = mCore.getFlashpointInstall().queryEntryAddApps(addAppQuery, mainIDBuffer, true);
     if(searchError.isValid())
     {
@@ -281,7 +281,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
         addAppQuery.result.next();
 
         // Add ID to list
-        QString addAppIDString = addAppQuery.result.value(FP::Install::DBTable_Game::COL_ID).toString();
+        QString addAppIDString = addAppQuery.result.value(FP::DB::Table_Game::COL_ID).toString();
         QUuid addAppID = QUuid(addAppIDString);
         if(!addAppID.isNull())
             playableSubIDs.append(addAppID);
@@ -318,7 +318,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     QSqlError searchError;
 
     // Get main entry info
-    FP::Install::DBQueryBuffer mainGameQuery;
+    FP::DB::QueryBuffer mainGameQuery;
     searchError = mCore.getFlashpointInstall().queryEntryByID(mainGameQuery, mainID);
     if(searchError.isValid())
     {
@@ -339,7 +339,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     }
 
     // Ensure selection is primary app
-    if(mainGameQuery.source != FP::Install::DBTable_Game::NAME)
+    if(mainGameQuery.source != FP::DB::Table_Game::NAME)
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
         return Core::ErrorCodes::SQL_MISMATCH;
@@ -349,10 +349,10 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     mainGameQuery.result.next();
 
     // Populate buffer with primary info
-    infoFillTemplate = infoFillTemplate.arg(mainGameQuery.result.value(FP::Install::DBTable_Game::COL_TITLE).toString(),
-                               mainGameQuery.result.value(FP::Install::DBTable_Game::COL_DEVELOPER).toString(),
-                               mainGameQuery.result.value(FP::Install::DBTable_Game::COL_PUBLISHER).toString(),
-                               mainGameQuery.result.value(FP::Install::DBTable_Game::COL_LIBRARY).toString());
+    infoFillTemplate = infoFillTemplate.arg(mainGameQuery.result.value(FP::DB::Table_Game::COL_TITLE).toString(),
+                               mainGameQuery.result.value(FP::DB::Table_Game::COL_DEVELOPER).toString(),
+                               mainGameQuery.result.value(FP::DB::Table_Game::COL_PUBLISHER).toString(),
+                               mainGameQuery.result.value(FP::DB::Table_Game::COL_LIBRARY).toString());
 
     // Determine variant
     if(subID.isNull())
@@ -360,7 +360,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     else
     {
         // Get sub entry info
-        FP::Install::DBQueryBuffer addAppQuerry;
+        FP::DB::QueryBuffer addAppQuerry;
         searchError = mCore.getFlashpointInstall().queryEntryByID(addAppQuerry, subID);
         if(searchError.isValid())
         {
@@ -381,7 +381,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
         }
 
         // Ensure selection is additional app
-        if(addAppQuerry.source != FP::Install::DBTable_Add_App::NAME)
+        if(addAppQuerry.source != FP::DB::Table_Add_App::NAME)
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
             return Core::ErrorCodes::SQL_MISMATCH;
@@ -391,7 +391,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
         addAppQuerry.result.next();
 
         // Populate buffer with variant info
-        infoFillTemplate = infoFillTemplate.arg(addAppQuerry.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString());
+        infoFillTemplate = infoFillTemplate.arg(addAppQuerry.result.value(FP::DB::Table_Add_App::COL_NAME).toString());
     }
 
     // Set filled template to buffer

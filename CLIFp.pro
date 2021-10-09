@@ -21,6 +21,7 @@ SOURCES += \
     src/controller.cpp \
     src/core.cpp \
     src/driver.cpp \
+    src/flashpoint-db.cpp \
     src/flashpoint-install.cpp \
     src/flashpoint-json.cpp \
     src/flashpoint-macro.cpp \
@@ -38,6 +39,7 @@ HEADERS += \
     src/controller.h \
     src/core.h \
     src/driver.h \
+    src/flashpoint-db.h \
     src/flashpoint-install.h \
     src/flashpoint-json.h \
     src/flashpoint-macro.h \

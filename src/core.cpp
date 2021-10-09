@@ -225,7 +225,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
 
     // Search database for title
     QSqlError searchError;
-    FP::Install::DBQueryBuffer searchResult;
+    FP::DB::QueryBuffer searchResult;
 
     if((searchError = mFlashpointInstall->queryEntriesByTitle(searchResult, title)).isValid())
     {
@@ -246,7 +246,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         searchResult.result.next();
 
         // Get ID
-        returnBuffer = QUuid(searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString());
+        returnBuffer = QUuid(searchResult.result.value(FP::DB::Table_Game::COL_ID).toString());
         logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
 
         return ErrorCodes::NO_ERR;
@@ -263,12 +263,12 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
             searchResult.result.next();
 
             // Get ID
-            QUuid id = QUuid(searchResult.result.value(FP::Install::DBTable_Game::COL_ID).toString());
+            QUuid id = QUuid(searchResult.result.value(FP::DB::Table_Game::COL_ID).toString());
 
             // Create choice string
-            QString choice = MULTI_TITLE_SEL_TEMP.arg(searchResult.result.value(FP::Install::DBTable_Game::COL_PLATFORM).toString(),
+            QString choice = MULTI_TITLE_SEL_TEMP.arg(searchResult.result.value(FP::DB::Table_Game::COL_PLATFORM).toString(),
                                                       title,
-                                                      searchResult.result.value(FP::Install::DBTable_Game::COL_DEVELOPER).toString(),
+                                                      searchResult.result.value(FP::DB::Table_Game::COL_DEVELOPER).toString(),
                                                       id.toString(QUuid::WithoutBraces));
 
             // Add to map and choice list
@@ -405,7 +405,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
 
     // Get entry data
     QSqlError searchError;
-    FP::Install::DBQueryBuffer searchResult;
+    FP::DB::QueryBuffer searchResult;
 
     if((searchError = mFlashpointInstall->queryEntryDataByID(searchResult, targetID)).isValid())
     {
@@ -418,8 +418,8 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
 
     // Extract relavent data
     QString packDestFolderPath = mFlashpointInstall->getPath() + "/" + mFlashpointInstall->getPreferences().dataPacksFolderPath;
-    QString packFileName = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_PATH).toString();
-    QString packSha256 = searchResult.result.value(FP::Install::DBTable_Game_Data::COL_SHA256).toString();
+    QString packFileName = searchResult.result.value(FP::DB::Table_Game_Data::COL_PATH).toString();
+    QString packSha256 = searchResult.result.value(FP::DB::Table_Game_Data::COL_SHA256).toString();
     QFile packFile(packDestFolderPath + "/" + packFileName);
 
     // Get current file checksum if it exists
@@ -454,7 +454,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         searchResult.result.next();
 
         // Get Data Pack source base URL
-        QString sourceBaseUrl = searchResult.result.value(FP::Install::DBTable_Source::COL_BASE_URL).toString();
+        QString sourceBaseUrl = searchResult.result.value(FP::DB::Table_Source::COL_BASE_URL).toString();
 
         // Get title specific Data Pack source info
         searchError = mFlashpointInstall->queryEntrySourceData(searchResult, packSha256);
@@ -468,7 +468,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         searchResult.result.next();
 
         // Get title's Data Pack sub-URL
-        QString packSubUrl = searchResult.result.value(FP::Install::DBTable_Source_Data::COL_URL_PATH).toString().replace('\\','/');
+        QString packSubUrl = searchResult.result.value(FP::DB::Table_Source_Data::COL_URL_PATH).toString().replace('\\','/');
 
         std::shared_ptr<DownloadTask> downloadTask = std::make_shared<DownloadTask>();
         downloadTask->stage = TaskStage::Auxiliary;

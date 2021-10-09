@@ -64,7 +64,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
 
     // Get entry info (also confirms that ID is present in database)
     QSqlError sqlError;
-    FP::Install::DBQueryBuffer entryInfo;
+    FP::DB::QueryBuffer entryInfo;
 
     if((sqlError = mCore.getFlashpointInstall().queryEntryByID(entryInfo, shortcutID)).isValid())
     {
@@ -80,27 +80,27 @@ ErrorCode CLink::process(const QStringList& commandLine)
     // Get entry title
     entryInfo.result.next();
 
-    if(entryInfo.source == FP::Install::DBTable_Game::NAME)
-        shortcutName = Qx::kosherizeFileName(entryInfo.result.value(FP::Install::DBTable_Game::COL_TITLE).toString());
-    else if(entryInfo.source == FP::Install::DBTable_Add_App::NAME)
+    if(entryInfo.source == FP::DB::Table_Game::NAME)
+        shortcutName = Qx::kosherizeFileName(entryInfo.result.value(FP::DB::Table_Game::COL_TITLE).toString());
+    else if(entryInfo.source == FP::DB::Table_Add_App::NAME)
     {
         // Get parent info
-        FP::Install::DBQueryBuffer parentInfo;
+        FP::DB::QueryBuffer parentInfo;
         if((sqlError = mCore.getFlashpointInstall().queryEntryByID(parentInfo,
-            QUuid(entryInfo.result.value(FP::Install::DBTable_Add_App::COL_PARENT_ID).toString()))).isValid())
+            QUuid(entryInfo.result.value(FP::DB::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
             return Core::ErrorCodes::SQL_ERROR;
         }
         parentInfo.result.next();
 
-        QString parentName = parentInfo.result.value(FP::Install::DBTable_Game::COL_TITLE).toString();
-        shortcutName = Qx::kosherizeFileName(parentName + " (" + entryInfo.result.value(FP::Install::DBTable_Add_App::COL_NAME).toString() + ")");
+        QString parentName = parentInfo.result.value(FP::DB::Table_Game::COL_TITLE).toString();
+        shortcutName = Qx::kosherizeFileName(parentName + " (" + entryInfo.result.value(FP::DB::Table_Add_App::COL_NAME).toString() + ")");
     }
     else
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH,
-                                               ERR_DIFFERENT_TITLE_SRC.arg(FP::Install::DBTable_Game::NAME + "/" + FP::Install::DBTable_Add_App::NAME, entryInfo.source)));
+                                               ERR_DIFFERENT_TITLE_SRC.arg(FP::DB::Table_Game::NAME + "/" + FP::DB::Table_Add_App::NAME, entryInfo.source)));
         return Core::ErrorCodes::SQL_MISMATCH;
     }
 
