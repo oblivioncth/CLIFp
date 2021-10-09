@@ -7,6 +7,9 @@
 #include <QtSql>
 #include "qx.h"
 
+#include "flashpoint-json.h"
+#include "flashpoint-macro.h"
+
 namespace FP
 {
 
@@ -35,53 +38,6 @@ public:
         QString source;
         QSqlQuery result;
         int size = 0;
-    };
-
-    struct ServerDaemon
-    {
-        QString name;
-        QString path;
-        QString filename;
-        QStringList arguments;
-        bool kill;
-    };
-
-    struct StartStop
-    {
-        QString path;
-        QString filename;
-        QStringList arguments;
-
-        friend bool operator== (const StartStop& lhs, const StartStop& rhs) noexcept;
-        friend size_t qHash(const StartStop& key, size_t seed) noexcept;
-    };
-
-    struct Settings
-    {
-        friend class SettingsReader;
-    };
-
-    struct Config : public Settings
-    {
-        QString flashpointPath;
-        bool startServer;
-        QString server;
-    };
-
-    struct Preferences : public Settings
-    {
-        QString imageFolderPath;
-        QString jsonFolderPath;
-        QString dataPacksFolderPath;
-    };
-
-    struct Services : public Settings
-    {
-        //QSet<Watch> watches;
-        QHash<QString, ServerDaemon> servers;
-        QHash<QString, ServerDaemon> daemons;
-        QSet<StartStop> starts;
-        QSet<StartStop> stops;
     };
 
     struct ValidityReport
@@ -287,124 +243,6 @@ public:
 
     };
 
-    class JsonObject_Config
-    {
-    public:
-        static inline const QString KEY_FLASHPOINT_PATH = "flashpointPath"; // Reading this value is current redundant and unused, but this may change in the future
-        static inline const QString KEY_START_SERVER = "startServer";
-        static inline const QString KEY_SERVER = "server";
-    };
-
-    class JsonObject_Preferences
-    {
-    public:
-        static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
-        static inline const QString KEY_JSON_FOLDER_PATH = "jsonFolderPath";
-        static inline const QString KEY_DATA_PACKS_FOLDER_PATH = "dataPacksFolderPath";
-    };
-
-    class JsonObject_Server
-    {
-    public:
-        static inline const QString KEY_NAME = "name";
-        static inline const QString KEY_PATH = "path";
-        static inline const QString KEY_FILENAME = "filename";
-        static inline const QString KEY_ARGUMENTS = "arguments";
-        static inline const QString KEY_KILL = "kill";
-    };
-
-    class JsonObject_StartStop
-    {
-    public:
-        static inline const QString KEY_PATH = "path";
-        static inline const QString KEY_FILENAME = "filename";
-        static inline const QString KEY_ARGUMENTS = "arguments";
-    };
-
-    class JsonObject_Daemon
-    {
-    public:
-        static inline const QString KEY_NAME = "name";
-        static inline const QString KEY_PATH = "path";
-        static inline const QString KEY_FILENAME = "filename";
-        static inline const QString KEY_ARGUMENTS = "arguments";
-        static inline const QString KEY_KILL = "kill";
-    };
-
-    class JsonObject_Services
-    {
-    public:
-        static inline const QString KEY_WATCH = "watch";
-        static inline const QString KEY_SERVER = "server";
-        static inline const QString KEY_DAEMON = "daemon";
-        static inline const QString KEY_START = "start";
-        static inline const QString KEY_STOP = "stop";
-    };
-
-    class SettingsReader
-    {
-    //-Class variables-----------------------------------------------------------------------------------------------------
-    public:
-        static inline const QString ERR_PARSING_JSON_DOC = "Error parsing JSON Document: %1";
-        static inline const QString ERR_JSON_UNEXP_FORMAT = "Unexpected document format";
-
-    //-Instance Variables--------------------------------------------------------------------------------------------------
-    protected:
-        Settings* mTargetSettings;
-        std::shared_ptr<QFile> mSourceJsonFile;
-
-    //-Constructor--------------------------------------------------------------------------------------------------------
-    public:
-        SettingsReader(Settings* targetSettings, std::shared_ptr<QFile> sourceJsonFile);
-
-    //-Instance Functions-------------------------------------------------------------------------------------------------
-    private:
-        virtual Qx::GenericError parseDocument(const QJsonDocument& jsonDoc) = 0;
-
-    public:
-        Qx::GenericError readInto();
-
-    };
-
-    class ConfigReader : public SettingsReader
-    {
-    //-Constructor--------------------------------------------------------------------------------------------------------
-    public:
-        ConfigReader(Config* targetConfig, std::shared_ptr<QFile> sourceJsonFile);
-
-    //-Instance Functions-------------------------------------------------------------------------------------------------
-    private:
-        Qx::GenericError parseDocument(const QJsonDocument& configDoc);
-    };
-
-    class PreferencesReader : public SettingsReader
-    {
-    //-Constructor--------------------------------------------------------------------------------------------------------
-    public:
-        PreferencesReader(Preferences* targetPreferences, std::shared_ptr<QFile> sourceJsonFile);
-
-    //-Instance Functions-------------------------------------------------------------------------------------------------
-    private:
-        Qx::GenericError parseDocument(const QJsonDocument& prefDoc);
-    };
-
-    class ServicesReader : public SettingsReader
-    {
-    //-Instance Variables--------------------------------------------------------------------------------------------------
-    private:
-        const Install& mHostInstall;
-
-    //-Constructor--------------------------------------------------------------------------------------------------------
-    public:
-        ServicesReader(Services* targetServices, std::shared_ptr<QFile> sourceJsonFile, const Install& hostInstall);
-
-    //-Instance Functions-------------------------------------------------------------------------------------------------
-    private:
-        Qx::GenericError parseDocument(const QJsonDocument& servicesDoc);
-        Qx::GenericError parseServerDaemon(ServerDaemon& serverBuffer, const QJsonValue& jvServer);
-        Qx::GenericError parseStartStop(StartStop& startStopBuffer, const QJsonValue& jvStartStop);
-    };
-
 //-Class Variables-----------------------------------------------------------------------------------------------
 private:
     // Validity check fail reasons
@@ -467,14 +305,17 @@ private:
     std::unique_ptr<QFile> mVersionFile;
 
     // Settings
-    Config mConfig;
-    Preferences mPreferences;
-    Services mServices;
+    Json::Config mConfig;
+    Json::Preferences mPreferences;
+    Json::Services mServices;
 
     // Database information
     QStringList mPlatformList;
     QStringList mPlaylistList;
     QMap<int, TagCategory> mTagMap; // Order matters for display in tag selector
+
+    // Utilities
+    MacroResolver* mMacroResolver;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
@@ -498,7 +339,6 @@ public:
     // General information
     bool isValid() const;
     QString errorString() const;
-    QString resolveFlashpointMacros(QString macroString) const;
     QString versionString() const;
     QString launcherChecksum() const;
 
@@ -508,9 +348,9 @@ public:
     bool databaseConnectionOpenInThisThread();
 
     // Support Application Checks
-    Config getConfig() const;
-    Preferences getPreferences() const;
-    Services getServices() const;
+    Json::Config getConfig() const;
+    Json::Preferences getPreferences() const;
+    Json::Services getServices() const;
 
     // Requirement Checking
     QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
@@ -550,6 +390,7 @@ public:
     QDir getExtrasDirectory() const;
     QString getDataPackMounterPath() const;
     QMap<int, TagCategory> getTags() const;
+    const MacroResolver* getMacroResolver() const;
 };
 
 }

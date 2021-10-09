@@ -22,6 +22,8 @@ SOURCES += \
     src/core.cpp \
     src/driver.cpp \
     src/flashpoint-install.cpp \
+    src/flashpoint-json.cpp \
+    src/flashpoint-macro.cpp \
     src/logger.cpp \
     src/main.cpp \
     src/statusrelay.cpp
@@ -37,6 +39,8 @@ HEADERS += \
     src/core.h \
     src/driver.h \
     src/flashpoint-install.h \
+    src/flashpoint-json.h \
+    src/flashpoint-macro.h \
     src/logger.h \
     src/statusrelay.h \
     src/version.h

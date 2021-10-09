@@ -292,11 +292,11 @@ ErrorCode Core::enqueueStartupTasks()
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
     // Get settings
-    FP::Install::Services fpServices = mFlashpointInstall->getServices();
-    FP::Install::Config fpConfig = mFlashpointInstall->getConfig();
+    FP::Json::Services fpServices = mFlashpointInstall->getServices();
+    FP::Json::Config fpConfig = mFlashpointInstall->getConfig();
 
     // Add Start entries from services
-    for(const FP::Install::StartStop& startEntry : qAsConst(fpServices.starts))
+    for(const FP::Json::StartStop& startEntry : qAsConst(fpServices.starts))
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
         currentTask->stage = TaskStage::Startup;
@@ -319,7 +319,7 @@ ErrorCode Core::enqueueStartupTasks()
             return ErrorCodes::CONFIG_SERVER_MISSING;
         }
 
-        FP::Install::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
+        FP::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
         std::shared_ptr<ExecTask> serverTask = std::make_shared<ExecTask>();
         serverTask->stage = TaskStage::Startup;
@@ -334,7 +334,7 @@ ErrorCode Core::enqueueStartupTasks()
     }
 
     // Add Daemon entry from services
-    QHash<QString, FP::Install::ServerDaemon>::const_iterator daemonIt;
+    QHash<QString, FP::Json::ServerDaemon>::const_iterator daemonIt;
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
@@ -357,7 +357,7 @@ void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
-    for(const FP::Install::StartStop& stopEntry : qAsConstR(mFlashpointInstall->getServices().stops))
+    for(const FP::Json::StartStop& stopEntry : qAsConstR(mFlashpointInstall->getServices().stops))
     {
         std::shared_ptr<ExecTask> shutdownTask = std::make_shared<ExecTask>();
         shutdownTask->stage = TaskStage::Shutdown;
