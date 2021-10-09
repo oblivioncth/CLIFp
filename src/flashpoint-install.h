@@ -40,12 +40,6 @@ public:
         int size = 0;
     };
 
-    struct ValidityReport
-    {
-        bool installValid;
-        QString details;
-    };
-
     struct Tag
     {
         int id;
