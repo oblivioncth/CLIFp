@@ -1,5 +1,5 @@
-#ifndef FFF_H
-#define FFF_H
+#ifndef FLASHPOINT_MACRO_H
+#define FLASHPOINT_MACRO_H
 
 #include <QHash>
 
@@ -37,4 +37,4 @@ public:
 
 }
 
-#endif // FFF_H
+#endif // FLASHPOINT_MACRO_H

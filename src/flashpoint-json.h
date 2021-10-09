@@ -1,5 +1,5 @@
-#ifndef FLASHPOINT_H
-#define FLASHPOINT_H
+#ifndef FLASHPOINT_JSON_H
+#define FLASHPOINT_JSON_H
 
 #include <QString>
 #include <QFile>
@@ -178,4 +178,4 @@ public:
 };
 }
 
-#endif // FLASHPOINT_H
+#endif // FLASHPOINT_JSON_H
