@@ -218,7 +218,7 @@ QString Install::launcherChecksum() const
     return launcherHash;
 }
 
-QSqlError Install::openThreadDatabaseConnection()
+QSqlError Install::openThreadedDatabaseConnection()
 {
     QSqlDatabase fpDB = getThreadedDatabaseConnection();
 

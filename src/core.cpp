@@ -174,7 +174,7 @@ ErrorCode Core::openAndVerifyProperDatabase()
     if(!mFlashpointInstall->databaseConnectionOpenInThisThread())
     {
         // Open database connection
-        QSqlError databaseError = mFlashpointInstall->openThreadDatabaseConnection();
+        QSqlError databaseError = mFlashpointInstall->openThreadedDatabaseConnection();
         if(databaseError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));

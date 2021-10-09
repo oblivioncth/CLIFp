@@ -147,7 +147,7 @@ public:
     QString launcherChecksum() const;
 
     // Connection
-    QSqlError openThreadDatabaseConnection();
+    QSqlError openThreadedDatabaseConnection();
     void closeThreadedDatabaseConnection();
     bool databaseConnectionOpenInThisThread();
 
