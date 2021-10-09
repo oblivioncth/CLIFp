@@ -86,13 +86,13 @@ Qx::GenericError Json::ConfigReader::parseDocument(const QJsonDocument &configDo
     // Get values
     Qx::GenericError valueError;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(targetConfig->flashpointPath, configDoc.object(), JsonObject_Config::KEY_FLASHPOINT_PATH)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetConfig->flashpointPath, configDoc.object(), Object_Config::KEY_FLASHPOINT_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(targetConfig->startServer, configDoc.object(), JsonObject_Config::KEY_START_SERVER)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetConfig->startServer, configDoc.object(), Object_Config::KEY_START_SERVER)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(targetConfig->server, configDoc.object(), JsonObject_Config::KEY_SERVER)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetConfig->server, configDoc.object(), Object_Config::KEY_SERVER)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Return invalid error on success
@@ -120,13 +120,13 @@ Qx::GenericError Json::PreferencesReader::parseDocument(const QJsonDocument &pre
     // Get values
     Qx::GenericError valueError;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->imageFolderPath, prefDoc.object(), JsonObject_Preferences::KEY_IMAGE_FOLDER_PATH)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->imageFolderPath, prefDoc.object(), Object_Preferences::KEY_IMAGE_FOLDER_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->jsonFolderPath, prefDoc.object(), JsonObject_Preferences::KEY_JSON_FOLDER_PATH)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->jsonFolderPath, prefDoc.object(), Object_Preferences::KEY_JSON_FOLDER_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->dataPacksFolderPath, prefDoc.object(), JsonObject_Preferences::KEY_DATA_PACKS_FOLDER_PATH)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->dataPacksFolderPath, prefDoc.object(), Object_Preferences::KEY_DATA_PACKS_FOLDER_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Return invalid error on success
@@ -159,7 +159,7 @@ Qx::GenericError Json::ServicesReader::parseDocument(const QJsonDocument &servic
 
     // Get servers
     QJsonArray jaServers;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaServers, servicesDoc.object(), JsonObject_Services::KEY_SERVER)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaServers, servicesDoc.object(), Object_Services::KEY_SERVER)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse servers
@@ -174,7 +174,7 @@ Qx::GenericError Json::ServicesReader::parseDocument(const QJsonDocument &servic
 
     // Get daemons
     QJsonArray jaDaemons;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaDaemons, servicesDoc.object(), JsonObject_Services::KEY_DAEMON)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaDaemons, servicesDoc.object(), Object_Services::KEY_DAEMON)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse daemons
@@ -189,7 +189,7 @@ Qx::GenericError Json::ServicesReader::parseDocument(const QJsonDocument &servic
 
     // Get starts
     QJsonArray jaStarts;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaStarts, servicesDoc.object(), JsonObject_Services::KEY_START)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaStarts, servicesDoc.object(), Object_Services::KEY_START)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse starts
@@ -204,7 +204,7 @@ Qx::GenericError Json::ServicesReader::parseDocument(const QJsonDocument &servic
 
     // Get stops
     QJsonArray jaStops;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaStops, servicesDoc.object(), JsonObject_Services::KEY_STOP)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaStops, servicesDoc.object(), Object_Services::KEY_STOP)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Parse starts
@@ -234,21 +234,21 @@ Qx::GenericError Json::ServicesReader::parseServerDaemon(ServerDaemon& serverBuf
     Qx::GenericError valueError;
 
     // Get direct values
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.name, joServer, JsonObject_Server::KEY_NAME)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.name, joServer, Object_Server::KEY_NAME)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.path, joServer, JsonObject_Server::KEY_PATH)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.path, joServer, Object_Server::KEY_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.filename, joServer, JsonObject_Server::KEY_FILENAME)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.filename, joServer, Object_Server::KEY_FILENAME)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.kill, joServer, JsonObject_Server::KEY_KILL)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(serverBuffer.kill, joServer, Object_Server::KEY_KILL)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Get arguments
     QJsonArray jaArgs;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joServer, JsonObject_Server::KEY_ARGUMENTS)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joServer, Object_Server::KEY_ARGUMENTS)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     for(const QJsonValue& jvArg : qAsConst(jaArgs))
@@ -289,15 +289,15 @@ Qx::GenericError Json::ServicesReader::parseStartStop(StartStop& startStopBuffer
     Qx::GenericError valueError;
 
     // Get direct values
-    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.path, joStartStop , JsonObject_StartStop::KEY_PATH)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.path, joStartStop , Object_StartStop::KEY_PATH)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
-    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.filename, joStartStop, JsonObject_StartStop::KEY_FILENAME)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(startStopBuffer.filename, joStartStop, Object_StartStop::KEY_FILENAME)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     // Get arguments
     QJsonArray jaArgs;
-    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joStartStop, JsonObject_StartStop::KEY_ARGUMENTS)).isValid())
+    if((valueError = Qx::Json::checkedKeyRetrieval(jaArgs, joStartStop, Object_StartStop::KEY_ARGUMENTS)).isValid())
         return valueError.setErrorLevel(Qx::GenericError::Critical);;
 
     for(const QJsonValue& jvArg : qAsConst(jaArgs))

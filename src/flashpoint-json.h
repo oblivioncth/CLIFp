@@ -9,8 +9,6 @@
 
 namespace FP
 {
-//-Forward Declarations-------------------------------------------------------------------------------------------
-class Install;
 
 class Json
 {
