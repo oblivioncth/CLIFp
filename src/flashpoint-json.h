@@ -16,7 +16,7 @@ class Json
 {
 //-Inner Classes-------------------------------------------------------------------------------------------------
 public:
-    class JsonObject_Config
+    class Object_Config
     {
     public:
         static inline const QString KEY_FLASHPOINT_PATH = "flashpointPath"; // Reading this value is current redundant and unused, but this may change in the future
@@ -24,7 +24,7 @@ public:
         static inline const QString KEY_SERVER = "server";
     };
 
-    class JsonObject_Preferences
+    class Object_Preferences
     {
     public:
         static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
@@ -32,7 +32,7 @@ public:
         static inline const QString KEY_DATA_PACKS_FOLDER_PATH = "dataPacksFolderPath";
     };
 
-    class JsonObject_Server
+    class Object_Server
     {
     public:
         static inline const QString KEY_NAME = "name";
@@ -42,7 +42,7 @@ public:
         static inline const QString KEY_KILL = "kill";
     };
 
-    class JsonObject_StartStop
+    class Object_StartStop
     {
     public:
         static inline const QString KEY_PATH = "path";
@@ -50,7 +50,7 @@ public:
         static inline const QString KEY_ARGUMENTS = "arguments";
     };
 
-    class JsonObject_Daemon
+    class Object_Daemon
     {
     public:
         static inline const QString KEY_NAME = "name";
@@ -60,7 +60,7 @@ public:
         static inline const QString KEY_KILL = "kill";
     };
 
-    class JsonObject_Services
+    class Object_Services
     {
     public:
         static inline const QString KEY_WATCH = "watch";
