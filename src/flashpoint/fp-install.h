@@ -7,9 +7,9 @@
 #include <QtSql>
 #include "qx.h"
 
-#include "flashpoint-json.h"
-#include "flashpoint-macro.h"
-#include "flashpoint-db.h"
+#include "fp-json.h"
+#include "fp-macro.h"
+#include "fp-db.h"
 
 namespace FP
 {

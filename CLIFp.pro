@@ -21,10 +21,10 @@ SOURCES += \
     src/controller.cpp \
     src/core.cpp \
     src/driver.cpp \
-    src/flashpoint-db.cpp \
-    src/flashpoint-install.cpp \
-    src/flashpoint-json.cpp \
-    src/flashpoint-macro.cpp \
+    src/flashpoint/fp-db.cpp \
+    src/flashpoint/fp-install.cpp \
+    src/flashpoint/fp-json.cpp \
+    src/flashpoint/fp-macro.cpp \
     src/logger.cpp \
     src/main.cpp \
     src/statusrelay.cpp
@@ -39,10 +39,10 @@ HEADERS += \
     src/controller.h \
     src/core.h \
     src/driver.h \
-    src/flashpoint-db.h \
-    src/flashpoint-install.h \
-    src/flashpoint-json.h \
-    src/flashpoint-macro.h \
+    src/flashpoint/fp-db.h \
+    src/flashpoint/fp-install.h \
+    src/flashpoint/fp-json.h \
+    src/flashpoint/fp-macro.h \
     src/logger.h \
     src/statusrelay.h \
     src/version.h

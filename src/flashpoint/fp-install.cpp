@@ -1,4 +1,4 @@
-#include "flashpoint-install.h"
+#include "fp-install.h"
 #include "qx-io.h"
 #include "qx-windows.h"
 

@@ -1,4 +1,4 @@
-#include "flashpoint-db.h"
+#include "fp-db.h"
 #include "qx.h"
 
 namespace FP

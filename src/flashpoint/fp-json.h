@@ -5,7 +5,7 @@
 #include <QFile>
 #include "qx.h"
 
-#include "flashpoint-macro.h"
+#include "fp-macro.h"
 
 namespace FP
 {

@@ -11,7 +11,7 @@
 #include "magic_enum.hpp"
 #include "qx-io.h"
 
-#include "flashpoint-install.h"
+#include "flashpoint/fp-install.h"
 #include "logger.h"
 #include "version.h"
 

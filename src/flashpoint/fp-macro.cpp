@@ -1,4 +1,4 @@
-#include "flashpoint-macro.h"
+#include "fp-macro.h"
 
 namespace FP
 {
