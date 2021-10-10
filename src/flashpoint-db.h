@@ -274,8 +274,8 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    DB(const Key&);
-    DB(QString databaseName, const Key&);
+    explicit DB(const Key&);
+    explicit DB(QString databaseName, const Key&);
 
 //-Destructor-------------------------------------------------------------------------------------------------
 public:

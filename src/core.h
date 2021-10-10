@@ -284,10 +284,6 @@ private:
 public:
     explicit Core(QObject* parent, QString rawCommandLineParam);
 
-//-Destructor----------------------------------------------------------------------------------------------------------
-public:
-    ~Core();
-
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;

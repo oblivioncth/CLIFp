@@ -16,14 +16,6 @@ Core::Core(QObject* parent, QString rawCommandLineParam) :
     mStatusMessage("...")
 {}
 
-//-Desctructor-------------------------------------------------------------
-Core::~Core()
-{
-    // Close database connection if open
-    if(mFlashpointInstall && mFlashpointInstall->databaseConnectionOpenInThisThread())
-        mFlashpointInstall->closeThreadedDatabaseConnection();
-}
-
 //-Instance Functions-------------------------------------------------------------
 //Private:
 bool Core::isActionableOptionSet(const QCommandLineParser& clParser) const
