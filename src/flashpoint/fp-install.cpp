@@ -25,6 +25,9 @@ Install::Install(QString installPath) :
     mVersionFile = std::make_unique<QFile>(installPath + "/" + VER_TXT_PATH);
     mExtrasDirectory = QDir(installPath + "/" + EXTRAS_PATH);
 
+    // Create macro resolver
+    mMacroResolver = new MacroResolver(mRootDirectory.absolutePath(), {});
+
     //-Check install validity--------------------------------------------
 
     // Check for file existance
@@ -82,9 +85,6 @@ Install::Install(QString installPath) :
         mError = mDatabase->error();
         return;
     }
-
-    // Create macro resolver
-    mMacroResolver = new MacroResolver(mRootDirectory.absolutePath(), {});
 
     // Give the OK
     mValid = true;
