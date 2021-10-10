@@ -266,6 +266,7 @@ private:
     Qx::GenericError mError;
 
     // Database information
+    QSet<QString> mConnections;
     const QString mDatabaseName;
     QStringList mPlatformList;
     QStringList mPlaylistList;
@@ -276,13 +277,21 @@ public:
     DB(const Key&);
     DB(QString databaseName, const Key&);
 
+//-Destructor-------------------------------------------------------------------------------------------------
+public:
+    ~DB();
+
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    QSqlDatabase getThreadedDatabaseConnection() const;
+    // Validity
+    void nullify();
+
+    // Connection
+    void closeAllConnections();
+    QSqlDatabase getThreadConnection() const;
     QSqlError makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const;
 
-    // Validity/Init
-    void nullify();
+    // Init
     QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
     QSqlError checkDatabaseForRequiredColumns(QSet<QString>& missingColumsBuffer) const;
     QSqlError populateAvailableItems();

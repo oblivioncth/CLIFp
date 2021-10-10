@@ -82,6 +82,13 @@ DB::DB(QString databaseName, const Key&) :
     validityGuard.dismiss();
 }
 
+//-Desctructor------------------------------------------------------------------------------------------------
+//Public:
+DB::~DB()
+{
+    closeAllConnections();
+}
+
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
 void DB::nullify()
@@ -90,6 +97,84 @@ void DB::nullify()
     mPlaylistList.clear();
     mTagMap.clear();
 }
+
+void DB::closeAllConnections()
+{
+    QSet<QString>::const_iterator i;
+    for(i = mConnections.constBegin(); i != mConnections.constEnd(); i++)
+        QSqlDatabase::database(*i, false).close();
+}
+
+
+QSqlDatabase DB::getThreadConnection() const
+{
+    QString threadedName = DATABASE_CONNECTION_NAME + QString::number((quint64)QThread::currentThread(), 16);
+
+    if(QSqlDatabase::contains(threadedName))
+        return QSqlDatabase::database(threadedName, false);
+    else
+    {
+        QSqlDatabase fpDB = QSqlDatabase::addDatabase("QSQLITE", threadedName);
+        fpDB.setConnectOptions("QSQLITE_OPEN_READONLY");
+        fpDB.setDatabaseName(mDatabaseName);
+        return fpDB;
+    }
+}
+
+QSqlError DB::makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const
+{
+    // Create main query
+    QSqlQuery mainQuery(*database);
+    mainQuery.setForwardOnly(true);
+    mainQuery.prepare(queryCommand);
+
+    // Execute query and return if error occurs
+    if(!mainQuery.exec())
+        return mainQuery.lastError();
+
+    // Create size query
+    QSqlQuery sizeQuery(*database);
+    sizeQuery.setForwardOnly(true);
+    sizeQuery.prepare(sizeQueryCommand);
+
+    // Execute query and return if error occurs
+    if(!sizeQuery.exec())
+        return sizeQuery.lastError();
+
+    // Get query size
+    sizeQuery.next();
+    int querySize = sizeQuery.value(0).toInt();
+
+    // Set buffer instance to result
+    resultBuffer.result = mainQuery;
+    resultBuffer.size = querySize;
+
+    // Return invalid SqlError
+    return QSqlError();
+}
+
+//Public:
+QSqlError DB::openThreadConnection()
+{
+    QSqlDatabase fpDB = getThreadConnection();
+
+    if(fpDB.open())
+    {
+        mConnections.insert(fpDB.connectionName());
+        return QSqlError(); // Empty error on success
+    }
+    else
+        return fpDB.lastError(); // Open error on fail
+}
+
+void DB::closeThreadConnection()
+{
+    QSqlDatabase db = getThreadConnection();
+    mConnections.remove(db.connectionName());
+    db.close();
+}
+
+bool DB::connectionOpenInThisThread() { return getThreadConnection().isOpen(); }
 
 QSqlError DB::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnBuffer) const
 {
@@ -100,7 +185,7 @@ QSqlError DB::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnB
         missingTablesReturnBuffer.insert(tableAndColumns.name);
 
     // Get tables from DB
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
     QStringList existingTables = fpDB.tables();
 
     // Return if DB error occured
@@ -121,7 +206,7 @@ QSqlError DB::checkDatabaseForRequiredColumns(QSet<QString> &missingColumsReturn
     missingColumsReturnBuffer.clear();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Ensure each table has the required columns
     QSet<QString> existingColumns;
@@ -156,7 +241,7 @@ QSqlError DB::checkDatabaseForRequiredColumns(QSet<QString> &missingColumsReturn
 QSqlError DB::populateAvailableItems()
 {
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Ensure lists are reset
     mPlatformList.clear();
@@ -197,7 +282,7 @@ QSqlError DB::populateAvailableItems()
 QSqlError DB::populateTags()
 {
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Ensure list is reset
     mTagMap.clear();
@@ -254,67 +339,6 @@ QSqlError DB::populateTags()
     return QSqlError();
 }
 
-QSqlDatabase DB::getThreadedDatabaseConnection() const
-{
-    QString threadedName = DATABASE_CONNECTION_NAME + QString::number((quint64)QThread::currentThread(), 16);
-
-    if(QSqlDatabase::contains(threadedName))
-        return QSqlDatabase::database(threadedName, false);
-    else
-    {
-        QSqlDatabase fpDB = QSqlDatabase::addDatabase("QSQLITE", threadedName);
-        fpDB.setConnectOptions("QSQLITE_OPEN_READONLY");
-        fpDB.setDatabaseName(mDatabaseName);
-        return fpDB;
-    }
-}
-
-QSqlError DB::makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const
-{
-    // Create main query
-    QSqlQuery mainQuery(*database);
-    mainQuery.setForwardOnly(true);
-    mainQuery.prepare(queryCommand);
-
-    // Execute query and return if error occurs
-    if(!mainQuery.exec())
-        return mainQuery.lastError();
-
-    // Create size query
-    QSqlQuery sizeQuery(*database);
-    sizeQuery.setForwardOnly(true);
-    sizeQuery.prepare(sizeQueryCommand);
-
-    // Execute query and return if error occurs
-    if(!sizeQuery.exec())
-        return sizeQuery.lastError();
-
-    // Get query size
-    sizeQuery.next();
-    int querySize = sizeQuery.value(0).toInt();
-
-    // Set buffer instance to result
-    resultBuffer.result = mainQuery;
-    resultBuffer.size = querySize;
-
-    // Return invalid SqlError
-    return QSqlError();
-}
-
-//Public:
-QSqlError DB::openThreadConnection()
-{
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
-
-    if(fpDB.open())
-        return QSqlError(); // Empty error on success
-    else
-        return fpDB.lastError(); // Open error on fail
-}
-
-void DB::closeThreadConnection() { getThreadedDatabaseConnection().close(); }
-bool DB::connectionOpenInThisThread() { return getThreadedDatabaseConnection().isOpen(); }
-
 QSqlError DB::queryGamesByPlatform(QList<QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
                                         const QList<QUuid>& idInclusionFilter) const
 {
@@ -322,7 +346,7 @@ QSqlError DB::queryGamesByPlatform(QList<QueryBuffer>& resultBuffer, QStringList
     resultBuffer.clear();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Determine game exclusion filter from tag exclusions if applicable
     QSet<QUuid> idExclusionFilter;
@@ -406,7 +430,7 @@ QSqlError DB::queryAllAddApps(QueryBuffer& resultBuffer) const
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Make query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Add_App::NAME;
@@ -434,7 +458,7 @@ QSqlError DB::queryPlaylistsByName(QueryBuffer& resultBuffer, QStringList playli
         resultBuffer = QueryBuffer();
 
         // Get database
-        QSqlDatabase fpDB = getThreadedDatabaseConnection();
+        QSqlDatabase fpDB = getThreadConnection();
 
         // Create selected playlists query string
         QString placeHolders = QString("?,").repeated(playlists.size());
@@ -487,7 +511,7 @@ QSqlError DB::queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, con
     resultBuffer.clear();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     for(QUuid playlistID : playlistIDs) // Naturally returns empty list if no playlists are selected
     {
@@ -520,7 +544,7 @@ QSqlError DB::queryPlaylistGameIDs(QueryBuffer& resultBuffer, const QList<QUuid>
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Create playlist ID query string
     QString idCSV = Qx::String::join(playlistIDs, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
@@ -549,7 +573,7 @@ QSqlError DB::queryAllEntryTags(QueryBuffer& resultBuffer) const
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Query all tags tied to game IDs
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Game_Tags_Tag::NAME;
@@ -570,7 +594,7 @@ QSqlError DB::queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Check for entry as a game first
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Game::NAME + " WHERE " +
@@ -609,7 +633,7 @@ QSqlError DB::queryEntriesByTitle(QueryBuffer& resultBuffer, QString title) cons
     title.replace(R"(')", R"('')");
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Check for entry as a game first
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Game::NAME + " WHERE " +
@@ -630,7 +654,7 @@ QSqlError DB::queryEntryDataByID(QueryBuffer& resultBuffer, QUuid appID) const
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Setup ID query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Game_Data::NAME + " WHERE " +
@@ -651,7 +675,7 @@ QSqlError DB::queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appID, bool pla
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Make query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Add_App::NAME + " WHERE " +
@@ -673,7 +697,7 @@ QSqlError DB::queryDataPackSource(QueryBuffer& resultBuffer) const
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Setup ID query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Source::NAME;
@@ -693,7 +717,7 @@ QSqlError DB::queryEntrySourceData(QueryBuffer& resultBuffer, QString appSha256H
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Setup ID query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Source_Data::NAME + " WHERE " +
@@ -714,7 +738,7 @@ QSqlError DB::queryAllGameIDs(QueryBuffer& resultBuffer, LibraryFilter includeFi
     resultBuffer = QueryBuffer();
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Make query
     QString baseQueryCommand = "SELECT %2 FROM " + Table_Game::NAME + " WHERE " +
@@ -733,7 +757,7 @@ QSqlError DB::entryUsesDataPack(bool& resultBuffer, QUuid gameId) const
     resultBuffer = false;
 
     // Get database
-    QSqlDatabase fpDB = getThreadedDatabaseConnection();
+    QSqlDatabase fpDB = getThreadConnection();
 
     // Make query
     QString packCheckQueryCommand = "SELECT " + GENERAL_QUERY_SIZE_COMMAND + " FROM " + Table_Game_Data::NAME + " WHERE " +
