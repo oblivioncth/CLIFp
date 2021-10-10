@@ -3,6 +3,7 @@
 
 #include <QStringList>
 #include <QtSql>
+#include "qx.h"
 
 namespace FP
 {
@@ -191,6 +192,18 @@ public:
 
     };
 
+    class Key
+    {
+        friend class Install;
+    private:
+        Key() {};
+        Key(const Key&) = default;
+    };
+
+//-Class Enums---------------------------------------------------------------------------------------------------
+public:
+    enum class LibraryFilter{ Game, Anim, Either };
+
 //-Structs-----------------------------------------------------------------------------------------------------
 public:
     struct TableSpecs
@@ -205,6 +218,111 @@ public:
         QSqlQuery result;
         int size = 0;
     };
+
+    struct Tag
+    {
+        int id;
+        QString primaryAlias;
+    };
+
+    struct TagCategory
+    {
+        QString name;
+        QColor color;
+        QMap<int, Tag> tags;
+
+        friend bool operator< (const TagCategory& lhs, const TagCategory& rhs) noexcept;
+    };
+
+    struct InclusionOptions
+    {
+        QSet<int> excludedTagIds;
+        bool includeAnimations;
+    };
+
+//-Class Variables-----------------------------------------------------------------------------------------------
+private:
+    static inline const QString DATABASE_CONNECTION_NAME = "Flashpoint Database";
+
+    static inline const QList<DB::TableSpecs> DATABASE_SPECS_LIST = {{DB::Table_Game::NAME, DB::Table_Game::COLUMN_LIST},
+                                                                        {DB::Table_Add_App::NAME, DB::Table_Add_App::COLUMN_LIST},
+                                                                        {DB::Table_Playlist::NAME, DB::Table_Playlist::COLUMN_LIST},
+                                                                        {DB::Table_Playlist_Game::NAME, DB::Table_Playlist_Game::COLUMN_LIST}};
+    static inline const QString GENERAL_QUERY_SIZE_COMMAND = "COUNT(1)";
+
+    static inline const QString GAME_ONLY_FILTER = DB::Table_Game::COL_LIBRARY + " = '" + DB::Table_Game::ENTRY_GAME_LIBRARY + "'";
+    static inline const QString ANIM_ONLY_FILTER = DB::Table_Game::COL_LIBRARY + " = '" + DB::Table_Game::ENTRY_ANIM_LIBRARY + "'";
+    static inline const QString GAME_AND_ANIM_FILTER = "(" + GAME_ONLY_FILTER + " OR " + ANIM_ONLY_FILTER + ")";
+
+    // Error
+    static inline const QString ERR_DATABASE = "Flashpoint Database Error:";
+    static inline const QString ERR_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
+    static inline const QString ERR_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
+
+
+//-Instance Variables-----------------------------------------------------------------------------------------------
+private:
+    bool mValid;
+    Qx::GenericError mError;
+
+    // Database information
+    const QString mDatabaseName;
+    QStringList mPlatformList;
+    QStringList mPlaylistList;
+    QMap<int, TagCategory> mTagMap; // Order matters for display in tag selector
+
+//-Constructor-------------------------------------------------------------------------------------------------
+public:
+    DB(const Key&);
+    DB(QString databaseName, const Key&);
+
+//-Instance Functions------------------------------------------------------------------------------------------------------
+private:
+    QSqlDatabase getThreadedDatabaseConnection() const;
+    QSqlError makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const;
+
+    // Validity/Init
+    void nullify();
+    QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
+    QSqlError checkDatabaseForRequiredColumns(QSet<QString>& missingColumsBuffer) const;
+    QSqlError populateAvailableItems();
+    QSqlError populateTags();
+
+public:
+    // Validity
+    bool isValid();
+    Qx::GenericError error();
+
+    // Connection
+    QSqlError openThreadConnection();
+    void closeThreadConnection();
+    bool connectionOpenInThisThread();
+
+    // Queries - OFLIb
+    QSqlError queryGamesByPlatform(QList<DB::QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
+                                   const QList<QUuid>& idInclusionFilter = {}) const;
+    QSqlError queryAllAddApps(QueryBuffer& resultBuffer) const;
+    QSqlError queryPlaylistsByName(QueryBuffer& resultBuffer, QStringList playlists) const;
+    QSqlError queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, const QList<QUuid>& playlistIDs) const;
+    QSqlError queryPlaylistGameIDs(QueryBuffer& resultBuffer, const QList<QUuid>& playlistIDs) const;
+    QSqlError queryAllEntryTags(QueryBuffer& resultBuffer) const;
+
+    // Queries - CLIFp
+    QSqlError queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntriesByTitle(QueryBuffer& resultBuffer, QString title) const;
+    QSqlError queryEntryDataByID(QueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
+    QSqlError queryDataPackSource(QueryBuffer& resultBuffer) const;
+    QSqlError queryEntrySourceData(QueryBuffer& resultBuffer, QString appSha256Hex) const;
+    QSqlError queryAllGameIDs(QueryBuffer& resultBuffer, LibraryFilter filter) const;
+
+    // Info
+    QStringList platformList() const;
+    QStringList playlistList() const;
+    QMap<int, TagCategory> getTags() const;
+
+    // Checks
+    QSqlError entryUsesDataPack(bool& resultBuffer, QUuid gameId) const;
 };
 
 }

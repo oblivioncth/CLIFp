@@ -148,8 +148,7 @@ public:
         static const ErrorCode LAUNCHER_OPEN = 3;
         static const ErrorCode INSTALL_INVALID = 4;
         static const ErrorCode CONFIG_SERVER_MISSING = 8;
-        static const ErrorCode DB_MISSING_TABLES = 9;
-        static const ErrorCode DB_MISSING_COLUMNS = 10;
+        // TODO: ADD INVALID DB ERROR
         static const ErrorCode SQL_ERROR = 11;
         static const ErrorCode SQL_MISMATCH = 12;
         static const ErrorCode EXECUTABLE_NOT_FOUND = 13;
@@ -177,8 +176,6 @@ public:
     // Error Messages - Prep
     static inline const QString ERR_UNEXPECTED_SQL = "Unexpected SQL error while querying the Flashpoint database:";
     static inline const QString ERR_SQL_MISMATCH = "Received a different form of result from an SQL query than expected.";
-    static inline const QString ERR_DB_MISSING_TABLE = "The Flashpoint database is missing expected tables.";
-    static inline const QString ERR_DB_TABLE_MISSING_COLUMN = "The Flashpoint database tables are missing expected columns.";
     static inline const QString ERR_CONFIG_SERVER_MISSING = "The server specified in the Flashpoint config was not found within the Flashpoint services store.";
     static inline const QString ERR_ID_INVALID = "The provided string was not a valid GUID/UUID.";
     static inline const QString ERR_ID_NOT_FOUND = "An entry matching the specified ID could not be found in the Flashpoint database.";

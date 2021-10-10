@@ -16,37 +16,6 @@ namespace FP
 
 class Install
 {
-//-Class Enums---------------------------------------------------------------------------------------------------
-public:
-    enum class LibraryFilter{ Game, Anim, Either };
-
-//-Class Structs-------------------------------------------------------------------------------------------------
-public:
-    struct InclusionOptions
-    {
-        QSet<int> excludedTagIds;
-        bool includeAnimations;
-    };
-
-    struct Tag
-    {
-        int id;
-        QString primaryAlias;
-    };
-
-    struct TagCategory
-    {
-        QString name;
-        QColor color;
-        QMap<int, Tag> tags;
-
-        friend bool operator< (const TagCategory& lhs, const TagCategory& rhs) noexcept;
-    };
-
-//-Inner Classes-------------------------------------------------------------------------------------------------
-public:
-
-
 //-Class Variables-----------------------------------------------------------------------------------------------
 private:
     // Validity check fail reasons
@@ -74,26 +43,17 @@ public:
     static inline const QString LOGOS_FOLDER_NAME = "Logos";
     static inline const QString SCREENSHOTS_FOLDER_NAME = "Screenshots";
 
-    // Database
-    static inline const QString DATABASE_CONNECTION_NAME = "Flashpoint Database";
-    static inline const QList<DB::TableSpecs> DATABASE_SPECS_LIST = {{DB::Table_Game::NAME, DB::Table_Game::COLUMN_LIST},
-                                                                        {DB::Table_Add_App::NAME, DB::Table_Add_App::COLUMN_LIST},
-                                                                        {DB::Table_Playlist::NAME, DB::Table_Playlist::COLUMN_LIST},
-                                                                        {DB::Table_Playlist_Game::NAME, DB::Table_Playlist_Game::COLUMN_LIST}};
-    static inline const QString GENERAL_QUERY_SIZE_COMMAND = "COUNT(1)";
-
-    static inline const QString GAME_ONLY_FILTER = DB::Table_Game::COL_LIBRARY + " = '" + DB::Table_Game::ENTRY_GAME_LIBRARY + "'";
-    static inline const QString ANIM_ONLY_FILTER = DB::Table_Game::COL_LIBRARY + " = '" + DB::Table_Game::ENTRY_ANIM_LIBRARY + "'";
-    static inline const QString GAME_AND_ANIM_FILTER = "(" + GAME_ONLY_FILTER + " OR " + ANIM_ONLY_FILTER + ")";
-
     // Settings
     static inline const QString MACRO_FP_PATH = "<fpPath>";
+
+    // Error
+    static inline const QString ERR_INVALID = "Invalid Flashpoint Install:";
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
     // Validity
     bool mValid;
-    QString mErrorString;
+    Qx::GenericError mError;
 
     // Files and directories
     QDir mRootDirectory;
@@ -113,10 +73,8 @@ private:
     Json::Preferences mPreferences;
     Json::Services mServices;
 
-    // Database information
-    QStringList mPlatformList;
-    QStringList mPlaylistList;
-    QMap<int, TagCategory> mTagMap; // Order matters for display in tag selector
+    // Database
+    DB* mDatabase;
 
     // Utilities
     MacroResolver* mMacroResolver;
@@ -136,65 +94,31 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     void nullify();
-    QSqlDatabase getThreadedDatabaseConnection() const;
-    QSqlError makeNonBindQuery(DB::QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const;
 
 public:
-    // General information
+    // Validity
     bool isValid() const;
-    QString errorString() const;
+    Qx::GenericError error() const;
+
+    // General information
     QString versionString() const;
     QString launcherChecksum() const;
 
-    // Connection
-    QSqlError openThreadedDatabaseConnection();
-    void closeThreadedDatabaseConnection();
-    bool databaseConnectionOpenInThisThread();
+    // Database
+    DB* database(QSqlError* error);
 
     // Support Application Checks
-    Json::Config getConfig() const;
-    Json::Preferences getPreferences() const;
-    Json::Services getServices() const;
-
-    // Requirement Checking
-    QSqlError checkDatabaseForRequiredTables(QSet<QString>& missingTablesBuffer) const;
-    QSqlError checkDatabaseForRequiredColumns(QSet<QString>& missingColumsBuffer) const;
-
-    // Commands
-    QSqlError populateAvailableItems();
-    QSqlError populateTags();
-
-    // Queries - OFLIb
-    QSqlError queryGamesByPlatform(QList<DB::QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
-                                   const QList<QUuid>& idInclusionFilter = {}) const;
-    QSqlError queryAllAddApps(DB::QueryBuffer& resultBuffer) const;
-    QSqlError queryPlaylistsByName(DB::QueryBuffer& resultBuffer, QStringList playlists) const;
-    QSqlError queryPlaylistGamesByPlaylist(QList<DB::QueryBuffer>& resultBuffer, const QList<QUuid>& playlistIDs) const;
-    QSqlError queryPlaylistGameIDs(DB::QueryBuffer& resultBuffer, const QList<QUuid>& playlistIDs) const;
-    QSqlError queryAllEntryTags(DB::QueryBuffer& resultBuffer) const;
-
-    // Queries - CLIFp
-    QSqlError queryEntryByID(DB::QueryBuffer& resultBuffer, QUuid appID) const;
-    QSqlError queryEntriesByTitle(DB::QueryBuffer& resultBuffer, QString title) const;
-    QSqlError queryEntryDataByID(DB::QueryBuffer& resultBuffer, QUuid appID) const;
-    QSqlError queryEntryAddApps(DB::QueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
-    QSqlError queryDataPackSource(DB::QueryBuffer& resultBuffer) const;
-    QSqlError queryEntrySourceData(DB::QueryBuffer& resultBuffer, QString appSha256Hex) const;
-    QSqlError queryAllGameIDs(DB::QueryBuffer& resultBuffer, LibraryFilter filter) const;
-
-    // Checks
-    QSqlError entryUsesDataPack(bool& resultBuffer, QUuid gameId) const;
+    Json::Config config() const;
+    Json::Preferences preferences() const;
+    Json::Services services() const;
 
     // Data access
-    QString getPath() const;
-    QStringList getPlatformList() const;
-    QStringList getPlaylistList() const;
-    QDir getLogosDirectory() const;
-    QDir getScrenshootsDirectory() const;
-    QDir getExtrasDirectory() const;
-    QString getDataPackMounterPath() const;
-    QMap<int, TagCategory> getTags() const;
-    const MacroResolver* getMacroResolver() const;
+    QString fullPath() const;
+    QDir logosDirectory() const;
+    QDir screenshootsDirectory() const;
+    QDir extrasDirectory() const;
+    QString datapackMounterPath() const;
+    const MacroResolver* macroResolver() const;
 };
 
 }

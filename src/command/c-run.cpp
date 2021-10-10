@@ -37,7 +37,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
     if((errorStatus = mCore.enqueueStartupTasks()))
         return errorStatus;
 
-    QFileInfo inputInfo = QFileInfo(mCore.getFlashpointInstall().getPath() + '/' + mParser.value(CL_OPTION_APP));
+    QFileInfo inputInfo = QFileInfo(mCore.getFlashpointInstall().fullPath() + '/' + mParser.value(CL_OPTION_APP));
 
     std::shared_ptr<Core::ExecTask> runTask = std::make_shared<Core::ExecTask>();
     runTask->stage = Core::TaskStage::Primary;

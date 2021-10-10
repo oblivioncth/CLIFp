@@ -41,7 +41,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
     {
         std::shared_ptr<Core::ExtraTask> extraTask = std::make_shared<Core::ExtraTask>();
         extraTask->stage = Core::TaskStage::Primary;
-        extraTask->dir = QDir(mCore.getFlashpointInstall().getExtrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA));
+        extraTask->dir = QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA));
 
         mCore.enqueueSingleTask(extraTask);
         mCore.setStatus(STATUS_SHOW_EXTRA, extraTask->dir.dirName());

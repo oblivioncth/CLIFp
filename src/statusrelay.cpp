@@ -102,11 +102,11 @@ void StatusRelay::downloadFinishedHandler(bool canceled)
         mDownloadProgressDialog->deleteLater(); // May still have pending events from setValue, so can't delete immediately
         mDownloadProgressDialog = nullptr;
         /*
-         NOTE: It may have been from accidentally running the app without copying the new build into the FP directory,
-         and therefore deleteLater wasn't actually used on that run, but one time when testing this deleteLater still
-         deleted the progress dialog too early (before previous call to setValue finished (see stack), causing an access
-         violation crash. This only applies if mDownloadProgressDialog is set to be modal, which at this time is not the
-         case, but be aware of this if that is ever changed.
+         * NOTE: It may have been from accidentally running the app without copying the new build into the FP directory,
+         * and therefore deleteLater wasn't actually used on that run, but one time when testing this deleteLater still
+         * deleted the progress dialog too early (before previous call to setValue finished (see stack), causing an access
+         * violation crash. This only applies if mDownloadProgressDialog is set to be modal, which at this time is not the
+         * case, but be aware of this if that is ever changed.
         */
     }
 }

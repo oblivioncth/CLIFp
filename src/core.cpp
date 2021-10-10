@@ -292,15 +292,15 @@ ErrorCode Core::enqueueStartupTasks()
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
     // Get settings
-    FP::Json::Services fpServices = mFlashpointInstall->getServices();
-    FP::Json::Config fpConfig = mFlashpointInstall->getConfig();
+    FP::Json::Services fpServices = mFlashpointInstall->services();
+    FP::Json::Config fpConfig = mFlashpointInstall->config();
 
     // Add Start entries from services
     for(const FP::Json::StartStop& startEntry : qAsConst(fpServices.starts))
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
         currentTask->stage = TaskStage::Startup;
-        currentTask->path = mFlashpointInstall->getPath() + '/' + startEntry.path;
+        currentTask->path = mFlashpointInstall->fullPath() + '/' + startEntry.path;
         currentTask->filename = startEntry.filename;
         currentTask->param = startEntry.arguments;
         currentTask->nativeParam = QString();
@@ -323,7 +323,7 @@ ErrorCode Core::enqueueStartupTasks()
 
         std::shared_ptr<ExecTask> serverTask = std::make_shared<ExecTask>();
         serverTask->stage = TaskStage::Startup;
-        serverTask->path = mFlashpointInstall->getPath() + '/' + configuredServer.path;
+        serverTask->path = mFlashpointInstall->fullPath() + '/' + configuredServer.path;
         serverTask->filename = configuredServer.filename;
         serverTask->param = configuredServer.arguments;
         serverTask->nativeParam = QString();
@@ -339,7 +339,7 @@ ErrorCode Core::enqueueStartupTasks()
     {
         std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
         currentTask->stage = TaskStage::Startup;
-        currentTask->path = mFlashpointInstall->getPath() + '/' + daemonIt.value().path;
+        currentTask->path = mFlashpointInstall->fullPath() + '/' + daemonIt.value().path;
         currentTask->filename = daemonIt.value().filename;
         currentTask->param = daemonIt.value().arguments;
         currentTask->nativeParam = QString();
@@ -357,11 +357,11 @@ void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
-    for(const FP::Json::StartStop& stopEntry : qAsConstR(mFlashpointInstall->getServices().stops))
+    for(const FP::Json::StartStop& stopEntry : qAsConstR(mFlashpointInstall->services().stops))
     {
         std::shared_ptr<ExecTask> shutdownTask = std::make_shared<ExecTask>();
         shutdownTask->stage = TaskStage::Shutdown;
-        shutdownTask->path = mFlashpointInstall->getPath() + '/' + stopEntry.path;
+        shutdownTask->path = mFlashpointInstall->fullPath() + '/' + stopEntry.path;
         shutdownTask->filename = stopEntry.filename;
         shutdownTask->param = stopEntry.arguments;
         shutdownTask->nativeParam = QString();
@@ -417,7 +417,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     searchResult.result.next();
 
     // Extract relavent data
-    QString packDestFolderPath = mFlashpointInstall->getPath() + "/" + mFlashpointInstall->getPreferences().dataPacksFolderPath;
+    QString packDestFolderPath = mFlashpointInstall->fullPath() + "/" + mFlashpointInstall->preferences().dataPacksFolderPath;
     QString packFileName = searchResult.result.value(FP::DB::Table_Game_Data::COL_PATH).toString();
     QString packSha256 = searchResult.result.value(FP::DB::Table_Game_Data::COL_SHA256).toString();
     QFile packFile(packDestFolderPath + "/" + packFileName);
@@ -482,7 +482,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     }
 
     // Enqeue pack mount
-    QFileInfo mounterInfo(mFlashpointInstall->getDataPackMounterPath());
+    QFileInfo mounterInfo(mFlashpointInstall->datapackMounterPath());
 
     std::shared_ptr<ExecTask> mountTask = std::make_shared<ExecTask>();
     mountTask->stage = TaskStage::Auxiliary;

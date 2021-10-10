@@ -448,7 +448,7 @@ void Driver::drive()
         emit finished(mCore->logFinish(NAME, Core::ErrorCodes::INSTALL_INVALID));
         return;
     }
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->getPath())));
+    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
 
     // Insert into core
     mCore->attachFlashpoint(std::move(flashpointInstall));

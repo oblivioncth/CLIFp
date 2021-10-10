@@ -146,7 +146,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         // Enqueue game
         QString gamePath = searchResult.result.value(FP::DB::Table_Game::COL_APP_PATH).toString();
         QString gameArgs = searchResult.result.value(FP::DB::Table_Game::COL_LAUNCH_COMMAND).toString();
-        QFileInfo gameInfo(mCore.getFlashpointInstall().getPath() + '/' + gamePath);
+        QFileInfo gameInfo(mCore.getFlashpointInstall().fullPath() + '/' + gamePath);
 
         std::shared_ptr<Core::ExecTask> gameTask = std::make_shared<Core::ExecTask>();
         gameTask->stage = Core::TaskStage::Primary;
@@ -192,13 +192,13 @@ ErrorCode CPlay::enqueueAdditionalApp(FP::DB::QueryBuffer addAppResult, Core::Ta
     {
         std::shared_ptr<Core::ExtraTask> extraTask = std::make_shared<Core::ExtraTask>();
         extraTask->stage = taskStage;
-        extraTask->dir = QDir(mCore.getFlashpointInstall().getExtrasDirectory().absolutePath() + "/" + appArgs);
+        extraTask->dir = QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + appArgs);
 
         mCore.enqueueSingleTask(extraTask);
     }
     else
     {
-        QFileInfo addAppInfo(mCore.getFlashpointInstall().getPath() + '/' + appPath);
+        QFileInfo addAppInfo(mCore.getFlashpointInstall().fullPath() + '/' + appPath);
 
         std::shared_ptr<Core::ExecTask> addAppTask = std::make_shared<Core::ExecTask>();
         addAppTask->stage = taskStage;

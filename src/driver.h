@@ -79,10 +79,10 @@ private:
     QList<QProcess*> mActiveChildProcesses;
     Qx::SyncDownloadManager* mDownloadManager; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     /*
-     TODO: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
-     pointers instead for simplicity. If set as a child of this instance, they will be moved with the instance automatically when the instance is moved to a sperate
-     thread. Otherwise (and without using pointers and init during drive()), the connections they have will be invoked on the main thread since they are spawned when
-     Driver is constructed, which is done on the main thread before it is moved.
+     * TODO: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
+     * pointers instead for simplicity. If set as a child of this instance, they will be moved with the instance automatically when the instance is moved to a sperate
+     * thread. Otherwise (and without using pointers and init during drive()), the connections they have will be invoked on the main thread since they are spawned when
+     * Driver is constructed, which is done on the main thread before it is moved.
     */
 
 //-Constructor-------------------------------------------------------------------------------------------------
