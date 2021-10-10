@@ -147,23 +147,22 @@ public:
         static const ErrorCode INVALID_ARGS = 2;
         static const ErrorCode LAUNCHER_OPEN = 3;
         static const ErrorCode INSTALL_INVALID = 4;
-        static const ErrorCode CONFIG_SERVER_MISSING = 8;
-        // TODO: ADD INVALID DB ERROR
-        static const ErrorCode SQL_ERROR = 11;
-        static const ErrorCode SQL_MISMATCH = 12;
-        static const ErrorCode EXECUTABLE_NOT_FOUND = 13;
-        static const ErrorCode EXECUTABLE_NOT_VALID = 14;
-        static const ErrorCode PROCESS_START_FAIL = 15;
-        static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 16;
-        static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 17;
-        static const ErrorCode CANT_READ_BAT_FILE = 18;
-        static const ErrorCode ID_NOT_VALID = 19;
-        static const ErrorCode ID_NOT_FOUND = 20;
-        static const ErrorCode ID_DUPLICATE = 21;
-        static const ErrorCode TITLE_NOT_FOUND = 22;
-        static const ErrorCode CANT_OBTAIN_DATA_PACK = 23;
-        static const ErrorCode DATA_PACK_INVALID = 24;
-        static const ErrorCode EXTRA_NOT_FOUND = 25;
+        static const ErrorCode CONFIG_SERVER_MISSING = 5;
+        static const ErrorCode SQL_ERROR = 6;
+        static const ErrorCode SQL_MISMATCH = 7;
+        static const ErrorCode EXECUTABLE_NOT_FOUND = 8;
+        static const ErrorCode EXECUTABLE_NOT_VALID = 9;
+        static const ErrorCode PROCESS_START_FAIL = 10;
+        static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 11;
+        static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 12;
+        static const ErrorCode CANT_READ_BAT_FILE = 13;
+        static const ErrorCode ID_NOT_VALID = 14;
+        static const ErrorCode ID_NOT_FOUND = 15;
+        static const ErrorCode ID_DUPLICATE = 16;
+        static const ErrorCode TITLE_NOT_FOUND = 17;
+        static const ErrorCode CANT_OBTAIN_DATA_PACK = 18;
+        static const ErrorCode DATA_PACK_INVALID = 19;
+        static const ErrorCode EXTRA_NOT_FOUND = 20;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -293,7 +292,6 @@ private:
 public:
     ErrorCode initialize(QStringList& commandLine);
     void attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall);
-    ErrorCode openAndVerifyProperDatabase();
 
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 

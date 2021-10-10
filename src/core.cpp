@@ -161,55 +161,6 @@ void Core::attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall)
     mFlashpointInstall = std::move(flashpointInstall);
 }
 
-ErrorCode Core::openAndVerifyProperDatabase()
-{
-    if(!mFlashpointInstall->databaseConnectionOpenInThisThread())
-    {
-        // Open database connection
-        QSqlError databaseError = mFlashpointInstall->openThreadedDatabaseConnection();
-        if(databaseError.isValid())
-        {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
-            return ErrorCodes::SQL_ERROR;
-        }
-
-        // Ensure required database tables are present
-        QSet<QString> missingTables;
-        if((databaseError = mFlashpointInstall->checkDatabaseForRequiredTables(missingTables)).isValid())
-        {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
-            return ErrorCodes::SQL_ERROR;
-        }
-
-        // Check if tables are missing
-        if(!missingTables.isEmpty())
-        {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DB_MISSING_TABLE, QString(),
-                             QStringList(missingTables.begin(), missingTables.end()).join("\n")));
-            return ErrorCodes::DB_MISSING_TABLES;
-        }
-
-        // Ensure the database contains the required columns
-        QSet<QString> missingColumns;
-        if((databaseError = mFlashpointInstall->checkDatabaseForRequiredColumns(missingColumns)).isValid())
-        {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, databaseError.text()));
-            return ErrorCodes::SQL_ERROR;
-        }
-
-        // Check if columns are missing
-        if(!missingColumns.isEmpty())
-        {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DB_TABLE_MISSING_COLUMN, QString(),
-                             QStringList(missingColumns.begin(), missingColumns.end()).join("\n")));
-            return ErrorCodes::DB_MISSING_COLUMNS;
-        }
-    }
-
-    // Return success
-    return ErrorCodes::NO_ERR;
-}
-
 ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
 {
     // Clear return buffer
