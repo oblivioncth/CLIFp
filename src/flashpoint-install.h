@@ -105,7 +105,7 @@ public:
     QString launcherChecksum() const;
 
     // Database
-    DB* database(QSqlError* error);
+    DB* database(QSqlError* error = nullptr);
 
     // Support Application Checks
     Json::Config config() const;

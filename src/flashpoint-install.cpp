@@ -184,16 +184,23 @@ DB* Install::database(QSqlError* error)
      * isn't already open in the calling thread since an issue can only occur from opening a connection
     */
 
-    // Make sure error state is reset
-    *error = QSqlError();
+    QSqlError sqlError;
 
     if(!mDatabase->connectionOpenInThisThread())
-        *error = mDatabase->openThreadConnection();
+        sqlError = mDatabase->openThreadConnection();
 
-    if(error->isValid())
+    if(sqlError.isValid())
+    {
+        if(error)
+            *error = sqlError;
         return nullptr;
+    }
     else
+    {
+        if(error)
+            *error = QSqlError();
         return mDatabase;
+    }
 }
 
 Json::Config Install::config() const { return mConfig; }

@@ -154,6 +154,9 @@ QSqlError DB::makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database
 }
 
 //Public:
+bool DB::isValid() { return mValid; }
+Qx::GenericError DB::error() { return mError; }
+
 QSqlError DB::openThreadConnection()
 {
     QSqlDatabase fpDB = getThreadConnection();

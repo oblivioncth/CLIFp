@@ -170,7 +170,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
     QSqlError searchError;
     FP::DB::QueryBuffer searchResult;
 
-    if((searchError = mFlashpointInstall->queryEntriesByTitle(searchResult, title)).isValid())
+    if((searchError = mFlashpointInstall->database()->queryEntriesByTitle(searchResult, title)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
         return ErrorCodes::SQL_ERROR;
@@ -350,7 +350,10 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     QSqlError searchError;
     FP::DB::QueryBuffer searchResult;
 
-    if((searchError = mFlashpointInstall->queryEntryDataByID(searchResult, targetID)).isValid())
+    // Get database
+    FP::DB* database = mFlashpointInstall->database();
+
+    if((searchError = database->queryEntryDataByID(searchResult, targetID)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
         return ErrorCodes::SQL_ERROR;
@@ -386,7 +389,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     if(!packFile.exists() || !checksumMatches)
     {
         // Get Data Pack source info
-        searchError = mFlashpointInstall->queryDataPackSource(searchResult);
+        searchError = database->queryDataPackSource(searchResult);
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
@@ -400,7 +403,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         QString sourceBaseUrl = searchResult.result.value(FP::DB::Table_Source::COL_BASE_URL).toString();
 
         // Get title specific Data Pack source info
-        searchError = mFlashpointInstall->queryEntrySourceData(searchResult, packSha256);
+        searchError = database->queryEntrySourceData(searchResult, packSha256);
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
@@ -544,7 +547,7 @@ int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMess
 
 void Core::postMessage(QString msg) { emit message(msg); }
 
-const FP::Install& Core::getFlashpointInstall() const { return *mFlashpointInstall; }
+FP::Install& Core::getFlashpointInstall() { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }

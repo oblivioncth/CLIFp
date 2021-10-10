@@ -58,15 +58,14 @@ ErrorCode CLink::process(const QStringList& commandLine)
 
     mCore.setStatus(STATUS_LINK, shortcutID.toString(QUuid::WithoutBraces));
 
-    // Open database
-    if((errorStatus = mCore.openAndVerifyProperDatabase()))
-        return errorStatus;
+    // Get database
+    FP::DB* database = mCore.getFlashpointInstall().database();
 
     // Get entry info (also confirms that ID is present in database)
     QSqlError sqlError;
     FP::DB::QueryBuffer entryInfo;
 
-    if((sqlError = mCore.getFlashpointInstall().queryEntryByID(entryInfo, shortcutID)).isValid())
+    if((sqlError = database->queryEntryByID(entryInfo, shortcutID)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
         return Core::ErrorCodes::SQL_ERROR;
@@ -86,7 +85,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     {
         // Get parent info
         FP::DB::QueryBuffer parentInfo;
-        if((sqlError = mCore.getFlashpointInstall().queryEntryByID(parentInfo,
+        if((sqlError = database->queryEntryByID(parentInfo,
             QUuid(entryInfo.result.value(FP::DB::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));

@@ -23,7 +23,10 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     FP::DB::QueryBuffer searchResult;
     ErrorCode enqueueError;
 
-    searchError = mCore.getFlashpointInstall().queryEntryByID(searchResult, targetID);
+    // Get database
+    FP::DB* database = mCore.getFlashpointInstall().database();
+
+    searchError = database->queryEntryByID(searchResult, targetID);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -71,7 +74,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
             return ErrorCodes::PARENT_INVALID;
         }
 
-        if((packCheckError = mCore.getFlashpointInstall().entryUsesDataPack(parentUsesDataPack, parentID)).isValid())
+        if((packCheckError = database->entryUsesDataPack(parentUsesDataPack, parentID)).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
             return Core::ErrorCodes::SQL_ERROR;
@@ -101,7 +104,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         bool entryUsesDataPack;
         QUuid entryId = searchResult.result.value(FP::DB::Table_Game::COL_ID).toString();
 
-        if((packCheckError = mCore.getFlashpointInstall().entryUsesDataPack(entryUsesDataPack, entryId)).isValid())
+        if((packCheckError = database->entryUsesDataPack(entryUsesDataPack, entryId)).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
             return Core::ErrorCodes::SQL_ERROR;
@@ -120,7 +123,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         QSqlError addAppSearchError;
         FP::DB::QueryBuffer addAppSearchResult;
 
-        addAppSearchError = mCore.getFlashpointInstall().queryEntryAddApps(addAppSearchResult, targetID);
+        addAppSearchError = database->queryEntryAddApps(addAppSearchResult, targetID);
         if(addAppSearchError.isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, addAppSearchError.text()));
@@ -220,7 +223,7 @@ ErrorCode CPlay::enqueueAdditionalApp(FP::DB::QueryBuffer addAppResult, Core::Ta
     return Core::ErrorCodes::NO_ERR;
 }
 
-ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::Install::LibraryFilter lbFilter)
+ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::DB::LibraryFilter lbFilter)
 {
     mCore.logEvent(NAME, LOG_EVENT_SEL_RAND);
 
@@ -231,9 +234,12 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
     // SQL Error tracker
     QSqlError searchError;
 
+    // Get database
+    FP::DB* database = mCore.getFlashpointInstall().database();
+
     // Query all main games
     FP::DB::QueryBuffer mainGameIDQuery;
-    searchError = mCore.getFlashpointInstall().queryAllGameIDs(mainGameIDQuery, lbFilter);
+    searchError = database->queryAllGameIDs(mainGameIDQuery, lbFilter);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -264,7 +270,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::I
 
     // Get entry's playable additional apps
     FP::DB::QueryBuffer addAppQuery;
-    searchError = mCore.getFlashpointInstall().queryEntryAddApps(addAppQuery, mainIDBuffer, true);
+    searchError = database->queryEntryAddApps(addAppQuery, mainIDBuffer, true);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -317,9 +323,12 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     // SQL Error tracker
     QSqlError searchError;
 
+    // Get database
+    FP::DB* database = mCore.getFlashpointInstall().database();
+
     // Get main entry info
     FP::DB::QueryBuffer mainGameQuery;
-    searchError = mCore.getFlashpointInstall().queryEntryByID(mainGameQuery, mainID);
+    searchError = database->queryEntryByID(mainGameQuery, mainID);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -361,7 +370,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     {
         // Get sub entry info
         FP::DB::QueryBuffer addAppQuerry;
-        searchError = mCore.getFlashpointInstall().queryEntryByID(addAppQuerry, subID);
+        searchError = database->queryEntryByID(addAppQuerry, subID);
         if(searchError.isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -418,10 +427,6 @@ ErrorCode CPlay::process(const QStringList& commandLine)
     if(checkStandardOptions())
         return Core::ErrorCodes::NO_ERR;
 
-    // Open database
-    if((errorStatus = mCore.openAndVerifyProperDatabase()))
-        return errorStatus;
-
     // Get ID of title to start
     QUuid titleID;
     QUuid secondaryID;
@@ -442,15 +447,15 @@ ErrorCode CPlay::process(const QStringList& commandLine)
     else if(mParser.isSet(CL_OPTION_RAND))
     {
         QString rawRandFilter = mParser.value(CL_OPTION_RAND);
-        FP::Install::LibraryFilter randFilter;
+        FP::DB::LibraryFilter randFilter;
 
         // Check for valid filter
         if(RAND_ALL_FILTER_NAMES.contains(rawRandFilter))
-            randFilter = FP::Install::LibraryFilter::Either;
+            randFilter = FP::DB::LibraryFilter::Either;
         else if(RAND_GAME_FILTER_NAMES.contains(rawRandFilter))
-            randFilter = FP::Install::LibraryFilter::Game;
+            randFilter = FP::DB::LibraryFilter::Game;
         else if(RAND_ANIM_FILTER_NAMES.contains(rawRandFilter))
-            randFilter = FP::Install::LibraryFilter::Anim;
+            randFilter = FP::DB::LibraryFilter::Anim;
         else
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_RAND_FILTER_INVALID));

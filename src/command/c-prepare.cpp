@@ -51,12 +51,8 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     // Enqueue prepare task
     QSqlError sqlError;
 
-    // Open database
-    if((errorStatus = mCore.openAndVerifyProperDatabase()))
-        return errorStatus;
-
     bool titleUsesDataPack;
-    if((sqlError = mCore.getFlashpointInstall().entryUsesDataPack(titleUsesDataPack, id)).isValid())
+    if((sqlError = mCore.getFlashpointInstall().database()->entryUsesDataPack(titleUsesDataPack, id)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
         return Core::ErrorCodes::SQL_ERROR;
