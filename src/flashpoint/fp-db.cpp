@@ -784,6 +784,6 @@ QSqlError DB::entryUsesDataPack(bool& resultBuffer, QUuid gameId) const
 
 QStringList DB::platformList() const { return mPlatformList; }
 QStringList DB::playlistList() const { return mPlaylistList; }
-QMap<int, DB::TagCategory> DB::getTags() const { return mTagMap; }
+QMap<int, DB::TagCategory> DB::tags() const { return mTagMap; }
 
 }

@@ -328,7 +328,7 @@ public:
     // Info
     QStringList platformList() const;
     QStringList playlistList() const;
-    QMap<int, TagCategory> getTags() const;
+    QMap<int, TagCategory> tags() const;
 
     // Checks
     QSqlError entryUsesDataPack(bool& resultBuffer, QUuid gameId) const;
