@@ -192,24 +192,22 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 2     | INVALID_ARGS             | The arguments provided were not recognized or were formatted incorrectly                                  |
 | 3     | LAUNCHER_OPEN            | The application could not start because the Flashpoint Launcher is currently open                         |
 | 4     | INSTALL_INVALID          | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |                                                                         |
-| 8     | CONFIG_SERVER_MISSING    | The server entry specified in config.json was not found in services.json                                  |
-| 9     | DB_MISSING_TABLES        | flashpoint.sqlite is missing expected tables                                                              |
-| 10    | DB_MISSING_COLUMNS       | One or more tables in flashpoint.sqlite are missing expected columns                                      |
-| 11    | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
-| 12    | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
-| 13    | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
-| 14    | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
-| 15    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 16    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
-| 17    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
-| 18    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
-| 19    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
-| 20    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
-| 21    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
-| 22    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
-| 23    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
-| 24    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
-| 25    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
+| 5     | CONFIG_SERVER_MISSING    | The server entry specified in config.json was not found in services.json                                  |
+| 6     | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
+| 7     | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
+| 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
+| 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
+| 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
+| 11    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
+| 12    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
+| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
+| 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
+| 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
+| 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
+| 17    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
+| 18    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
+| 19    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
+| 20    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
 | 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |
