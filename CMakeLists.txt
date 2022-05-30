@@ -7,6 +7,10 @@ set(FORMAL_NAME "CLI for BlueMaxima's Flashpoint")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+# C++
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Build augmentation
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -125,4 +129,6 @@ target_link_libraries(${TARGET_NAME}
         Qt6::Widgets
         Qt6::Sql
         Qt6::Network
+        Qx::Core
+        Qx::Io
 )
