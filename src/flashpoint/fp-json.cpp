@@ -1,16 +1,23 @@
+// Unit Includes
 #include "fp-json.h"
-#include "qx-io.h"
 
+// Qt Includes
 #include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
-namespace FP
+// Qx Includes
+#include <qx/core/qx-json.h>
+#include <qx/io/qx-common-io.h>
+
+namespace Fp
 {
 
 //===============================================================================================================
 // JSON::START_STOP
 //===============================================================================================================
 
-//-Opperators----------------------------------------------------------------------------------------------------
+//-Operators----------------------------------------------------------------------------------------------------
 //Public:
 bool operator== (const Json::StartStop& lhs, const Json::StartStop& rhs) noexcept
 {
@@ -18,7 +25,7 @@ bool operator== (const Json::StartStop& lhs, const Json::StartStop& rhs) noexcep
 }
 
 //-Hashing------------------------------------------------------------------------------------------------------
-uint qHash(const Json::StartStop& key, uint seed) noexcept
+size_t qHash(const Json::StartStop& key, size_t seed) noexcept
 {
     QtPrivate::QHashCombine hash;
     seed = hash(seed, key.path);
@@ -45,10 +52,10 @@ Qx::GenericError Json::SettingsReader::readInto()
 {
     // Load original JSON file
     QByteArray settingsData;
-    Qx::IOOpReport settingsLoadReport = Qx::readAllBytesFromFile(settingsData, *mSourceJsonFile);
+    Qx::IoOpReport settingsLoadReport = Qx::readBytesFromFile(settingsData, *mSourceJsonFile);
 
     if(!settingsLoadReport.wasSuccessful())
-        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mSourceJsonFile->fileName()), settingsLoadReport.getOutcomeInfo());
+        return Qx::GenericError(Qx::GenericError::Critical, ERR_PARSING_JSON_DOC.arg(mSourceJsonFile->fileName()), settingsLoadReport.outcomeInfo());
 
     // Parse original JSON data
     QJsonParseError parseError;
@@ -78,7 +85,7 @@ Json::ConfigReader::ConfigReader(Config* targetConfig, std::shared_ptr<QFile> so
 
 //-Instance Functions-------------------------------------------------------------------------------------------------
 //Private:
-Qx::GenericError Json::ConfigReader::parseDocument(const QJsonDocument &configDoc)
+Qx::GenericError Json::ConfigReader::parseDocument(const QJsonDocument& configDoc)
 {
     // Get derivation specific target
     Config* targetConfig = static_cast<Config*>(mTargetSettings);
@@ -127,7 +134,13 @@ Qx::GenericError Json::PreferencesReader::parseDocument(const QJsonDocument &pre
         return valueError.setErrorLevel(Qx::GenericError::Critical);
 
     if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->dataPacksFolderPath, prefDoc.object(), Object_Preferences::KEY_DATA_PACKS_FOLDER_PATH)).isValid())
-        return valueError.setErrorLevel(Qx::GenericError::Critical);;
+        return valueError.setErrorLevel(Qx::GenericError::Critical);
+
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->onDemandImages, prefDoc.object(), Object_Preferences::KEY_ON_DEMAND_IMAGES)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);
+
+    if((valueError = Qx::Json::checkedKeyRetrieval(targetPreferences->onDemandBaseUrl, prefDoc.object(), Object_Preferences::KEY_ON_DEMAND_BASE_URL)).isValid())
+        return valueError.setErrorLevel(Qx::GenericError::Critical);
 
     // Return invalid error on success
     return Qx::GenericError();
@@ -264,7 +277,7 @@ Qx::GenericError Json::ServicesReader::parseServerDaemon(ServerDaemon& serverBuf
     if(QFileInfo(serverBuffer.filename).suffix().isEmpty())
         serverBuffer.filename += ".exe";
 
-    // Resolve macros for relavent variables
+    // Resolve macros for relevant variables
     serverBuffer.path = mHostMacroResolver->resolve(serverBuffer.path);
     for(QString& arg : serverBuffer.arguments)
         arg = mHostMacroResolver->resolve(arg);
@@ -313,7 +326,7 @@ Qx::GenericError Json::ServicesReader::parseStartStop(StartStop& startStopBuffer
     if(QFileInfo(startStopBuffer.filename).suffix().isEmpty())
         startStopBuffer.filename += ".exe";
 
-    // Resolve macros for relavent variables
+    // Resolve macros for relevant variables
     startStopBuffer.path = mHostMacroResolver->resolve(startStopBuffer.path);
     for(QString& arg : startStopBuffer.arguments)
         arg = mHostMacroResolver->resolve(arg);

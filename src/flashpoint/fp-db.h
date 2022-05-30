@@ -1,14 +1,17 @@
 #ifndef FLASHPOINT_DB_H
 #define FLASHPOINT_DB_H
 
+// Qt Includes
 #include <QStringList>
 #include <QtSql>
-#include "qx.h"
 
-namespace FP
+// Qx Includes
+#include <qx/core/qx-genericerror.h>
+
+namespace Fp
 {
 
-class DB
+class Db
 {
 //-Inner Classes-------------------------------------------------------------------------------------------------
 public:
@@ -244,14 +247,14 @@ public:
 private:
     static inline const QString DATABASE_CONNECTION_NAME = "Flashpoint Database";
 
-    static inline const QList<DB::TableSpecs> DATABASE_SPECS_LIST = {{DB::Table_Game::NAME, DB::Table_Game::COLUMN_LIST},
-                                                                        {DB::Table_Add_App::NAME, DB::Table_Add_App::COLUMN_LIST},
-                                                                        {DB::Table_Playlist::NAME, DB::Table_Playlist::COLUMN_LIST},
-                                                                        {DB::Table_Playlist_Game::NAME, DB::Table_Playlist_Game::COLUMN_LIST}};
+    static inline const QList<Db::TableSpecs> DATABASE_SPECS_LIST = {{Db::Table_Game::NAME, Db::Table_Game::COLUMN_LIST},
+                                                                        {Db::Table_Add_App::NAME, Db::Table_Add_App::COLUMN_LIST},
+                                                                        {Db::Table_Playlist::NAME, Db::Table_Playlist::COLUMN_LIST},
+                                                                        {Db::Table_Playlist_Game::NAME, Db::Table_Playlist_Game::COLUMN_LIST}};
     static inline const QString GENERAL_QUERY_SIZE_COMMAND = "COUNT(1)";
 
-    static inline const QString GAME_ONLY_FILTER = DB::Table_Game::COL_LIBRARY + " = '" + DB::Table_Game::ENTRY_GAME_LIBRARY + "'";
-    static inline const QString ANIM_ONLY_FILTER = DB::Table_Game::COL_LIBRARY + " = '" + DB::Table_Game::ENTRY_ANIM_LIBRARY + "'";
+    static inline const QString GAME_ONLY_FILTER = Db::Table_Game::COL_LIBRARY + " = '" + Db::Table_Game::ENTRY_GAME_LIBRARY + "'";
+    static inline const QString ANIM_ONLY_FILTER = Db::Table_Game::COL_LIBRARY + " = '" + Db::Table_Game::ENTRY_ANIM_LIBRARY + "'";
     static inline const QString GAME_AND_ANIM_FILTER = "(" + GAME_ONLY_FILTER + " OR " + ANIM_ONLY_FILTER + ")";
 
     // Error
@@ -274,12 +277,12 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit DB(const Key&);
-    explicit DB(QString databaseName, const Key&);
+    explicit Db(const Key&);
+    explicit Db(QString databaseName, const Key&);
 
 //-Destructor-------------------------------------------------------------------------------------------------
 public:
-    ~DB();
+    ~Db();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
@@ -308,22 +311,22 @@ public:
     bool connectionOpenInThisThread();
 
     // Queries - OFLIb
-    QSqlError queryGamesByPlatform(QList<DB::QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
+    QSqlError queryGamesByPlatform(QList<Db::QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
                                    const QList<QUuid>& idInclusionFilter = {}) const;
     QSqlError queryAllAddApps(QueryBuffer& resultBuffer) const;
     QSqlError queryPlaylistsByName(QueryBuffer& resultBuffer, QStringList playlists) const;
-    QSqlError queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, const QList<QUuid>& playlistIDs) const;
-    QSqlError queryPlaylistGameIDs(QueryBuffer& resultBuffer, const QList<QUuid>& playlistIDs) const;
+    QSqlError queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, const QList<QUuid>& playlistIds) const;
+    QSqlError queryPlaylistGameIds(QueryBuffer& resultBuffer, const QList<QUuid>& playlistIds) const;
     QSqlError queryAllEntryTags(QueryBuffer& resultBuffer) const;
 
     // Queries - CLIFp
-    QSqlError queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const;
+    QSqlError queryEntryById(QueryBuffer& resultBuffer, QUuid appId) const;
     QSqlError queryEntriesByTitle(QueryBuffer& resultBuffer, QString title) const;
-    QSqlError queryEntryDataByID(QueryBuffer& resultBuffer, QUuid appID) const;
-    QSqlError queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appID, bool playableOnly = false) const;
+    QSqlError queryEntryDataById(QueryBuffer& resultBuffer, QUuid appId) const;
+    QSqlError queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appId, bool playableOnly = false) const;
     QSqlError queryDataPackSource(QueryBuffer& resultBuffer) const;
     QSqlError queryEntrySourceData(QueryBuffer& resultBuffer, QString appSha256Hex) const;
-    QSqlError queryAllGameIDs(QueryBuffer& resultBuffer, LibraryFilter filter) const;
+    QSqlError queryAllGameIds(QueryBuffer& resultBuffer, LibraryFilter filter) const;
 
     // Info
     QStringList platformList() const;

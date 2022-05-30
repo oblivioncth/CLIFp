@@ -1,16 +1,19 @@
+// Unit Includes
 #include "fp-db.h"
-#include "qx.h"
 
-namespace FP
+// Qx Includes
+#include <qx/core/qx-string.h>
+
+namespace Fp
 {
 
 //===============================================================================================================
 // DB::TAG_CATEGORY
 //===============================================================================================================
 
-//-Opperators----------------------------------------------------------------------------------------------------
+//-Operators----------------------------------------------------------------------------------------------------
 //Public:
-bool operator< (const DB::TagCategory& lhs, const DB::TagCategory& rhs) noexcept { return lhs.name < rhs.name; }
+bool operator< (const Db::TagCategory& lhs, const Db::TagCategory& rhs) noexcept { return lhs.name < rhs.name; }
 
 //===============================================================================================================
 // DB
@@ -18,7 +21,7 @@ bool operator< (const DB::TagCategory& lhs, const DB::TagCategory& rhs) noexcept
 
 //-Constructor------------------------------------------------------------------------------------------------
 //Public:
-DB::DB(QString databaseName, const Key&) :
+Db::Db(QString databaseName, const Key&) :
     mValid(false), // Instance is invalid until proven otherwise
     mDatabaseName(databaseName)
 {
@@ -82,23 +85,23 @@ DB::DB(QString databaseName, const Key&) :
     validityGuard.dismiss();
 }
 
-//-Desctructor------------------------------------------------------------------------------------------------
+//-Destructor------------------------------------------------------------------------------------------------
 //Public:
-DB::~DB()
+Db::~Db()
 {
     closeAllConnections();
 }
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Private:
-void DB::nullify()
+void Db::nullify()
 {
     mPlatformList.clear();
     mPlaylistList.clear();
     mTagMap.clear();
 }
 
-void DB::closeAllConnections()
+void Db::closeAllConnections()
 {
     QSet<QString>::const_iterator i;
     for(i = mConnections.constBegin(); i != mConnections.constEnd(); i++)
@@ -106,7 +109,7 @@ void DB::closeAllConnections()
 }
 
 
-QSqlDatabase DB::getThreadConnection() const
+QSqlDatabase Db::getThreadConnection() const
 {
     QString threadedName = DATABASE_CONNECTION_NAME + QString::number((quint64)QThread::currentThread(), 16);
 
@@ -121,7 +124,7 @@ QSqlDatabase DB::getThreadConnection() const
     }
 }
 
-QSqlError DB::makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const
+QSqlError Db::makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database, QString queryCommand, QString sizeQueryCommand) const
 {
     // Create main query
     QSqlQuery mainQuery(*database);
@@ -154,10 +157,10 @@ QSqlError DB::makeNonBindQuery(QueryBuffer& resultBuffer, QSqlDatabase* database
 }
 
 //Public:
-bool DB::isValid() { return mValid; }
-Qx::GenericError DB::error() { return mError; }
+bool Db::isValid() { return mValid; }
+Qx::GenericError Db::error() { return mError; }
 
-QSqlError DB::openThreadConnection()
+QSqlError Db::openThreadConnection()
 {
     QSqlDatabase fpDB = getThreadConnection();
 
@@ -170,16 +173,16 @@ QSqlError DB::openThreadConnection()
         return fpDB.lastError(); // Open error on fail
 }
 
-void DB::closeThreadConnection()
+void Db::closeThreadConnection()
 {
     QSqlDatabase db = getThreadConnection();
     mConnections.remove(db.connectionName());
     db.close();
 }
 
-bool DB::connectionOpenInThisThread() { return getThreadConnection().isOpen(); }
+bool Db::connectionOpenInThisThread() { return getThreadConnection().isOpen(); }
 
-QSqlError DB::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnBuffer) const
+QSqlError Db::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnBuffer) const
 {
     // Prep return buffer
     missingTablesReturnBuffer.clear();
@@ -191,7 +194,7 @@ QSqlError DB::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnB
     QSqlDatabase fpDB = getThreadConnection();
     QStringList existingTables = fpDB.tables();
 
-    // Return if DB error occured
+    // Return if DB error occurred
     if(fpDB.lastError().isValid())
         return fpDB.lastError();
 
@@ -202,7 +205,7 @@ QSqlError DB::checkDatabaseForRequiredTables(QSet<QString>& missingTablesReturnB
     return  QSqlError();
 }
 
-QSqlError DB::checkDatabaseForRequiredColumns(QSet<QString> &missingColumsReturnBuffer) const
+QSqlError Db::checkDatabaseForRequiredColumns(QSet<QString> &missingColumsReturnBuffer) const
 {
 
     // Ensure return buffer starts empty
@@ -241,7 +244,7 @@ QSqlError DB::checkDatabaseForRequiredColumns(QSet<QString> &missingColumsReturn
     return QSqlError();
 }
 
-QSqlError DB::populateAvailableItems()
+QSqlError Db::populateAvailableItems()
 {
     // Get database
     QSqlDatabase fpDB = getThreadConnection();
@@ -273,7 +276,7 @@ QSqlError DB::populateAvailableItems()
 
     // Parse query
     while(playlistQuery.next())
-        mPlaylistList.append(playlistQuery.value(DB::Table_Playlist::COL_TITLE).toString());
+        mPlaylistList.append(playlistQuery.value(Db::Table_Playlist::COL_TITLE).toString());
 
     // Sort list
     mPlaylistList.sort();
@@ -282,7 +285,7 @@ QSqlError DB::populateAvailableItems()
     return QSqlError();
 }
 
-QSqlError DB::populateTags()
+QSqlError Db::populateTags()
 {
     // Get database
     QSqlDatabase fpDB = getThreadConnection();
@@ -342,7 +345,7 @@ QSqlError DB::populateTags()
     return QSqlError();
 }
 
-QSqlError DB::queryGamesByPlatform(QList<QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
+QSqlError Db::queryGamesByPlatform(QList<QueryBuffer>& resultBuffer, QStringList platforms, InclusionOptions inclusionOptions,
                                         const QList<QUuid>& idInclusionFilter) const
 {
     // Ensure return buffer is reset
@@ -427,7 +430,7 @@ QSqlError DB::queryGamesByPlatform(QList<QueryBuffer>& resultBuffer, QStringList
     return QSqlError();
 }
 
-QSqlError DB::queryAllAddApps(QueryBuffer& resultBuffer) const
+QSqlError Db::queryAllAddApps(QueryBuffer& resultBuffer) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -444,7 +447,7 @@ QSqlError DB::queryAllAddApps(QueryBuffer& resultBuffer) const
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryPlaylistsByName(QueryBuffer& resultBuffer, QStringList playlists) const
+QSqlError Db::queryPlaylistsByName(QueryBuffer& resultBuffer, QStringList playlists) const
 {
     // Return blank result if no playlists are selected
     if(playlists.isEmpty())
@@ -508,7 +511,7 @@ QSqlError DB::queryPlaylistsByName(QueryBuffer& resultBuffer, QStringList playli
     }
 }
 
-QSqlError DB::queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, const QList<QUuid>& playlistIDs) const
+QSqlError Db::queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, const QList<QUuid>& playlistIds) const
 {
     // Ensure return buffer is empty
     resultBuffer.clear();
@@ -516,18 +519,18 @@ QSqlError DB::queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, con
     // Get database
     QSqlDatabase fpDB = getThreadConnection();
 
-    for(QUuid playlistID : playlistIDs) // Naturally returns empty list if no playlists are selected
+    for(QUuid playlistId : playlistIds) // Naturally returns empty list if no playlists are selected
     {
         // Query all games for the current playlist
         QString baseQueryCommand = "SELECT %1 FROM " + Table_Playlist_Game::NAME + " WHERE " +
-                Table_Playlist_Game::COL_PLAYLIST_ID + " = '" + playlistID.toString(QUuid::WithoutBraces) + "'";
+                Table_Playlist_Game::COL_PLAYLIST_ID + " = '" + playlistId.toString(QUuid::WithoutBraces) + "'";
         QString mainQueryCommand = baseQueryCommand.arg("`" + Table_Playlist_Game::COLUMN_LIST.join("`,`") + "`");
         QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
         // Make query
         QSqlError queryError;
         QueryBuffer queryResult;
-        queryResult.source = playlistID.toString();
+        queryResult.source = playlistId.toString();
 
         if((queryError = makeNonBindQuery(queryResult, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
             return queryError;
@@ -541,7 +544,7 @@ QSqlError DB::queryPlaylistGamesByPlaylist(QList<QueryBuffer>& resultBuffer, con
     return QSqlError();
 }
 
-QSqlError DB::queryPlaylistGameIDs(QueryBuffer& resultBuffer, const QList<QUuid>& playlistIDs) const
+QSqlError Db::queryPlaylistGameIds(QueryBuffer& resultBuffer, const QList<QUuid>& playlistIds) const
 {
     // Ensure return buffer is empty
     resultBuffer = QueryBuffer();
@@ -550,7 +553,7 @@ QSqlError DB::queryPlaylistGameIDs(QueryBuffer& resultBuffer, const QList<QUuid>
     QSqlDatabase fpDB = getThreadConnection();
 
     // Create playlist ID query string
-    QString idCSV = Qx::String::join(playlistIDs, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
+    QString idCSV = Qx::String::join(playlistIds, [](QUuid id){return id.toString(QUuid::WithoutBraces);}, "','");
 
     // Query all game IDs that fall under given the playlists
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Playlist_Game::NAME + " WHERE " +
@@ -570,7 +573,7 @@ QSqlError DB::queryPlaylistGameIDs(QueryBuffer& resultBuffer, const QList<QUuid>
 
 }
 
-QSqlError DB::queryAllEntryTags(QueryBuffer& resultBuffer) const
+QSqlError Db::queryAllEntryTags(QueryBuffer& resultBuffer) const
 {
     // Ensure return buffer is empty
     resultBuffer = QueryBuffer();
@@ -591,7 +594,7 @@ QSqlError DB::queryAllEntryTags(QueryBuffer& resultBuffer) const
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const
+QSqlError Db::queryEntryById(QueryBuffer& resultBuffer, QUuid appId) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -601,7 +604,7 @@ QSqlError DB::queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const
 
     // Check for entry as a game first
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Game::NAME + " WHERE " +
-            Table_Game::COL_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+            Table_Game::COL_ID + " == '" + appId.toString(QUuid::WithoutBraces) + "'";
     QString mainQueryCommand = baseQueryCommand.arg("`" + Table_Game::COLUMN_LIST.join("`,`") + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
@@ -612,13 +615,13 @@ QSqlError DB::queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const
     if((queryError = makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand)).isValid())
         return queryError;
 
-    // Return result if one or more results were found (reciever handles situation in latter case)
+    // Return result if one or more results were found (receiver handles situation in latter case)
     if(resultBuffer.size >= 1)
         return QSqlError();
 
     // Check for entry as an additional app second
     baseQueryCommand = "SELECT %1 FROM " + Table_Add_App::NAME + " WHERE " +
-        Table_Add_App::COL_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+        Table_Add_App::COL_ID + " == '" + appId.toString(QUuid::WithoutBraces) + "'";
     mainQueryCommand = baseQueryCommand.arg("`" + Table_Add_App::COLUMN_LIST.join("`,`") + "`");
     sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
@@ -627,7 +630,7 @@ QSqlError DB::queryEntryByID(QueryBuffer& resultBuffer, QUuid appID) const
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryEntriesByTitle(QueryBuffer& resultBuffer, QString title) const
+QSqlError Db::queryEntriesByTitle(QueryBuffer& resultBuffer, QString title) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -651,7 +654,7 @@ QSqlError DB::queryEntriesByTitle(QueryBuffer& resultBuffer, QString title) cons
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryEntryDataByID(QueryBuffer& resultBuffer, QUuid appID) const
+QSqlError Db::queryEntryDataById(QueryBuffer& resultBuffer, QUuid appId) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -661,7 +664,7 @@ QSqlError DB::queryEntryDataByID(QueryBuffer& resultBuffer, QUuid appID) const
 
     // Setup ID query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Game_Data::NAME + " WHERE " +
-            Table_Game_Data::COL_GAME_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+            Table_Game_Data::COL_GAME_ID + " == '" + appId.toString(QUuid::WithoutBraces) + "'";
     QString mainQueryCommand = baseQueryCommand.arg("`" + Table_Game_Data::COLUMN_LIST.join("`,`") + "`");
     QString sizeQueryCommand = baseQueryCommand.arg(GENERAL_QUERY_SIZE_COMMAND);
 
@@ -672,7 +675,7 @@ QSqlError DB::queryEntryDataByID(QueryBuffer& resultBuffer, QUuid appID) const
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appID, bool playableOnly) const
+QSqlError Db::queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appId, bool playableOnly) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -682,7 +685,7 @@ QSqlError DB::queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appID, bool pla
 
     // Make query
     QString baseQueryCommand = "SELECT %1 FROM " + Table_Add_App::NAME + " WHERE " +
-            Table_Add_App::COL_PARENT_ID + " == '" + appID.toString(QUuid::WithoutBraces) + "'";
+            Table_Add_App::COL_PARENT_ID + " == '" + appId.toString(QUuid::WithoutBraces) + "'";
     if(playableOnly)
         baseQueryCommand += " AND " + Table_Add_App::COL_APP_PATH + " NOT IN ('" + Table_Add_App::ENTRY_EXTRAS +
                             "','" + Table_Add_App::ENTRY_MESSAGE + "') AND " + Table_Add_App::COL_AUTORUN +
@@ -694,7 +697,7 @@ QSqlError DB::queryEntryAddApps(QueryBuffer& resultBuffer, QUuid appID, bool pla
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryDataPackSource(QueryBuffer& resultBuffer) const
+QSqlError Db::queryDataPackSource(QueryBuffer& resultBuffer) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -714,7 +717,7 @@ QSqlError DB::queryDataPackSource(QueryBuffer& resultBuffer) const
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryEntrySourceData(QueryBuffer& resultBuffer, QString appSha256Hex) const
+QSqlError Db::queryEntrySourceData(QueryBuffer& resultBuffer, QString appSha256Hex) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -735,7 +738,7 @@ QSqlError DB::queryEntrySourceData(QueryBuffer& resultBuffer, QString appSha256H
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::queryAllGameIDs(QueryBuffer& resultBuffer, LibraryFilter includeFilter) const
+QSqlError Db::queryAllGameIds(QueryBuffer& resultBuffer, LibraryFilter includeFilter) const
 {
     // Ensure return buffer is effectively null
     resultBuffer = QueryBuffer();
@@ -754,7 +757,7 @@ QSqlError DB::queryAllGameIDs(QueryBuffer& resultBuffer, LibraryFilter includeFi
     return makeNonBindQuery(resultBuffer, &fpDB, mainQueryCommand, sizeQueryCommand);
 }
 
-QSqlError DB::entryUsesDataPack(bool& resultBuffer, QUuid gameId) const
+QSqlError Db::entryUsesDataPack(bool& resultBuffer, QUuid gameId) const
 {
     // Default return buffer to false
     resultBuffer = false;
@@ -782,8 +785,8 @@ QSqlError DB::entryUsesDataPack(bool& resultBuffer, QUuid gameId) const
     return QSqlError();
 }
 
-QStringList DB::platformList() const { return mPlatformList; }
-QStringList DB::playlistList() const { return mPlaylistList; }
-QMap<int, DB::TagCategory> DB::tags() const { return mTagMap; }
+QStringList Db::platformList() const { return mPlatformList; }
+QStringList Db::playlistList() const { return mPlaylistList; }
+QMap<int, Db::TagCategory> Db::tags() const { return mTagMap; }
 
 }

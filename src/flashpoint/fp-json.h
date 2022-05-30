@@ -1,13 +1,18 @@
 #ifndef FLASHPOINT_JSON_H
 #define FLASHPOINT_JSON_H
 
+// Qt Includes
 #include <QString>
+#include <QSet>
 #include <QFile>
-#include "qx.h"
 
+// Qx Includes
+#include <qx/core/qx-genericerror.h>
+
+// Project Includes
 #include "fp-macro.h"
 
-namespace FP
+namespace Fp
 {
 
 class Json
@@ -28,6 +33,8 @@ public:
         static inline const QString KEY_IMAGE_FOLDER_PATH = "imageFolderPath";
         static inline const QString KEY_JSON_FOLDER_PATH = "jsonFolderPath";
         static inline const QString KEY_DATA_PACKS_FOLDER_PATH = "dataPacksFolderPath";
+        static inline const QString KEY_ON_DEMAND_IMAGES = "onDemandImages";
+        static inline const QString KEY_ON_DEMAND_BASE_URL = "onDemandBaseUrl";
     };
 
     class Object_Server
@@ -101,6 +108,8 @@ public:
         QString imageFolderPath;
         QString jsonFolderPath;
         QString dataPacksFolderPath;
+        bool onDemandImages;
+        QString onDemandBaseUrl;
     };
 
     struct Services : public Settings

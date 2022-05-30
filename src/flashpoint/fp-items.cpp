@@ -1,7 +1,10 @@
+// Unit Include
 #include "fp-items.h"
-#include "qx.h"
 
-namespace FP
+// Qx Includes
+#include <qx/core/qx-string.h>
+
+namespace Fp
 {
 
 //===============================================================================================================
@@ -14,7 +17,7 @@ Game::Game() {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Public:
-QUuid Game::getID() const { return mID; }
+QUuid Game::getId() const { return mId; }
 QString Game::getTitle() const { return mTitle; }
 QString Game::getSeries() const { return mSeries; }
 QString Game::getDeveloper() const { return mDeveloper; }
@@ -68,7 +71,7 @@ QString GameBuilder::kosherizeRawDate(QString date)
 
 //-Instance Functions------------------------------------------------------------------------------------------
 //Public:
-GameBuilder& GameBuilder::wID(QString rawID) { mGameBlueprint.mID = QUuid(rawID); return *this; }
+GameBuilder& GameBuilder::wId(QString rawId) { mGameBlueprint.mId = QUuid(rawId); return *this; }
 GameBuilder& GameBuilder::wTitle(QString title) { mGameBlueprint.mTitle = title; return *this; }
 GameBuilder& GameBuilder::wSeries(QString series) { mGameBlueprint.mSeries = series; return *this; }
 GameBuilder& GameBuilder::wDeveloper(QString developer) { mGameBlueprint.mDeveloper = developer; return *this; }
@@ -100,43 +103,43 @@ Game GameBuilder::build() { return mGameBlueprint; }
 //Public:
 AddApp::AddApp() {}
 
-//-Opperators----------------------------------------------------------------------------------------------------
+//-Operators----------------------------------------------------------------------------------------------------
 //Public:
 bool operator== (const AddApp& lhs, const AddApp& rhs) noexcept
 {
-    return lhs.mID == rhs.mID &&
+    return lhs.mId == rhs.mId &&
            lhs.mAppPath == rhs.mAppPath &&
            lhs.mAutorunBefore == rhs.mAutorunBefore &&
            lhs.mLaunchCommand == rhs.mLaunchCommand &&
            lhs.mName == rhs.mName &&
            lhs.mWaitExit == rhs.mWaitExit &&
-           lhs.mParentID == rhs.mParentID;
+           lhs.mParentId == rhs.mParentId;
 }
 
 //-Hashing------------------------------------------------------------------------------------------------------
 uint qHash(const AddApp& key, uint seed) noexcept
 {
     QtPrivate::QHashCombine hash;
-    seed = hash(seed, key.mID);
+    seed = hash(seed, key.mId);
     seed = hash(seed, key.mAppPath);
     seed = hash(seed, key.mAutorunBefore);
     seed = hash(seed, key.mLaunchCommand);
     seed = hash(seed, key.mName);
     seed = hash(seed, key.mWaitExit);
-    seed = hash(seed, key.mParentID);
+    seed = hash(seed, key.mParentId);
 
     return seed;
 }
 
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Public:
-QUuid AddApp::getID() const { return mID; }
+QUuid AddApp::getId() const { return mId; }
 QString AddApp::getAppPath() const { return mAppPath; }
 bool AddApp::isAutorunBefore() const { return  mAutorunBefore; }
 QString AddApp::getLaunchCommand() const { return mLaunchCommand; }
 QString AddApp::getName() const { return mName; }
 bool AddApp::isWaitExit() const { return mWaitExit; }
-QUuid AddApp::getParentID() const { return mParentID; }
+QUuid AddApp::getParentId() const { return mParentId; }
 bool AddApp::isPlayable() const { return mAppPath != SPEC_PATH_EXTRA && mAppPath != SPEC_PATH_MSG && !mAutorunBefore; }
 
 //===============================================================================================================
@@ -149,13 +152,13 @@ AddAppBuilder::AddAppBuilder() {}
 
 //-Instance Functions------------------------------------------------------------------------------------------
 //Public:
-AddAppBuilder& AddAppBuilder::wID(QString rawID) { mAddAppBlueprint.mID = QUuid(rawID); return *this; }
+AddAppBuilder& AddAppBuilder::wId(QString rawId) { mAddAppBlueprint.mId = QUuid(rawId); return *this; }
 AddAppBuilder& AddAppBuilder::wAppPath(QString appPath) { mAddAppBlueprint.mAppPath = appPath; return *this; }
 AddAppBuilder& AddAppBuilder::wAutorunBefore(QString rawAutorunBefore)  { mAddAppBlueprint.mAutorunBefore = rawAutorunBefore.toInt() != 0; return *this; }
 AddAppBuilder& AddAppBuilder::wLaunchCommand(QString launchCommand) { mAddAppBlueprint.mLaunchCommand = launchCommand; return *this; }
 AddAppBuilder& AddAppBuilder::wName(QString name) { mAddAppBlueprint.mName = name; return *this; }
 AddAppBuilder& AddAppBuilder::wWaitExit(QString rawWaitExit)  { mAddAppBlueprint.mWaitExit = rawWaitExit.toInt() != 0; return *this; }
-AddAppBuilder& AddAppBuilder::wParentID(QString rawParentID) { mAddAppBlueprint.mParentID = QUuid(rawParentID); return *this; }
+AddAppBuilder& AddAppBuilder::wParentId(QString rawParentId) { mAddAppBlueprint.mParentId = QUuid(rawParentId); return *this; }
 
 AddApp AddAppBuilder::build() { return mAddAppBlueprint; }
 
@@ -169,7 +172,7 @@ Playlist::Playlist() {}
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 //Public:
-QUuid Playlist::getID() const { return mID; }
+QUuid Playlist::getId() const { return mId; }
 QString Playlist::getTitle() const { return mTitle; }
 QString Playlist::getDescription() const { return mDescription; }
 QString Playlist::getAuthor() const { return mAuthor; }
@@ -184,7 +187,7 @@ PlaylistBuilder::PlaylistBuilder() {}
 
 //-Instance Functions------------------------------------------------------------------------------------------
 //Public:
-PlaylistBuilder& PlaylistBuilder::wID(QString rawID) { mPlaylistBlueprint.mID = QUuid(rawID); return *this; }
+PlaylistBuilder& PlaylistBuilder::wId(QString rawId) { mPlaylistBlueprint.mId = QUuid(rawId); return *this; }
 PlaylistBuilder& PlaylistBuilder::wTitle(QString title) { mPlaylistBlueprint.mTitle = title; return *this; }
 PlaylistBuilder& PlaylistBuilder::wDescription(QString description) { mPlaylistBlueprint.mDescription = description; return *this; }
 PlaylistBuilder& PlaylistBuilder::wAuthor(QString author) { mPlaylistBlueprint.mAuthor = author; return *this; }
@@ -202,10 +205,10 @@ PlaylistGame::PlaylistGame() {}
 //-Instance Functions------------------------------------------------------------------------------------------------
 //Public:
 
-int PlaylistGame::getID() const { return mID; }
-QUuid PlaylistGame::getPlaylistID() const { return mPlaylistID; }
+int PlaylistGame::getId() const { return mId; }
+QUuid PlaylistGame::getPlaylistId() const { return mPlaylistId; }
 int PlaylistGame::getOrder() const { return mOrder; }
-QUuid PlaylistGame::getGameID() const { return mGameID; }
+QUuid PlaylistGame::getGameId() const { return mGameId; }
 
 //===============================================================================================================
 // PLAYLIST GAME BUILDER
@@ -217,8 +220,8 @@ QUuid PlaylistGame::getGameID() const { return mGameID; }
 
 //-Instance Functions------------------------------------------------------------------------------------------
 //Public:
-    PlaylistGameBuilder& PlaylistGameBuilder::wID(QString rawID) { mPlaylistGameBlueprint.mID = rawID.toInt(); return *this; }
-    PlaylistGameBuilder& PlaylistGameBuilder::wPlaylistID(QString rawPlaylistID) { mPlaylistGameBlueprint.mPlaylistID = QUuid(rawPlaylistID); return *this; }
+    PlaylistGameBuilder& PlaylistGameBuilder::wId(QString rawId) { mPlaylistGameBlueprint.mId = rawId.toInt(); return *this; }
+    PlaylistGameBuilder& PlaylistGameBuilder::wPlaylistId(QString rawPlaylistId) { mPlaylistGameBlueprint.mPlaylistId = QUuid(rawPlaylistId); return *this; }
 
     PlaylistGameBuilder& PlaylistGameBuilder::wOrder(QString rawOrder)
     {
@@ -230,7 +233,7 @@ QUuid PlaylistGame::getGameID() const { return mGameID; }
         return *this;
     }
 
-    PlaylistGameBuilder& PlaylistGameBuilder::wGameID(QString rawGameID) { mPlaylistGameBlueprint.mGameID = QUuid(rawGameID); return *this; }
+    PlaylistGameBuilder& PlaylistGameBuilder::wGameId(QString rawGameId) { mPlaylistGameBlueprint.mGameId = QUuid(rawGameId); return *this; }
 
     PlaylistGame PlaylistGameBuilder::build() { return mPlaylistGameBlueprint; }
 };

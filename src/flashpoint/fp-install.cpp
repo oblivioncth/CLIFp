@@ -1,8 +1,10 @@
+// Unit Include
 #include "fp-install.h"
-#include "qx-io.h"
-#include "qx-windows.h"
 
-namespace FP
+// Qx Includes
+#include <qx/io/qx-common-io.h>
+
+namespace Fp
 {
 //===============================================================================================================
 // INSTALL
@@ -30,7 +32,7 @@ Install::Install(QString installPath) :
 
     //-Check install validity--------------------------------------------
 
-    // Check for file existance
+    // Check for file existence
     const QList<const QFile*> filesToCheck{
         mDatabaseFile.get(),
         mConfigJsonFile.get(),
@@ -78,7 +80,7 @@ Install::Install(QString installPath) :
     }
 
     // Add database
-    mDatabase = new DB(mDatabaseFile->fileName(), {});
+    mDatabase = new Db(mDatabaseFile->fileName(), {});
 
     if(!mDatabase->isValid())
     {
@@ -101,8 +103,17 @@ Install::~Install()
 }
 
 //-Class Functions------------------------------------------------------------------------------------------------
+//Private:
+QString Install::standardImageSubPath(ImageType imageType, QUuid gameId)
+{
+    QString gameIdString = gameId.toString(QUuid::WithoutBraces);
+    return (imageType == ImageType::Logo ? LOGOS_FOLDER_NAME : SCREENSHOTS_FOLDER_NAME) + '/' +
+           gameIdString.left(2) + '/' + gameIdString.mid(2, 2) + '/' + gameIdString + IMAGE_EXT;
+}
+
+
 //Public:
-Qx::GenericError FP::Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
+Qx::GenericError Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo)
 {
     // Reset buffer
     involvesBuffer = false;
@@ -116,11 +127,11 @@ Qx::GenericError FP::Install::appInvolvesSecurePlayer(bool& involvesBuffer, QFil
     {
         // Check if bat uses secure player
         QFile batFile(appInfo.absoluteFilePath());
-        Qx::IOOpReport readReport = Qx::fileContainsString(involvesBuffer, batFile, SECURE_PLAYER_INFO.baseName());
+        Qx::IoOpReport readReport = Qx::fileContainsString(involvesBuffer, batFile, SECURE_PLAYER_INFO.baseName());
 
         // Check for read errors
         if(!readReport.wasSuccessful())
-            return Qx::GenericError(Qx::GenericError::Critical, readReport.getOutcome(), readReport.getOutcomeInfo());
+            return Qx::GenericError(Qx::GenericError::Critical, readReport.outcome(), readReport.outcomeInfo());
         else
             return Qx::GenericError();
     }
@@ -144,8 +155,10 @@ void Install::nullify()
     mServicesJsonFile.reset();
     mDataPackMounterFile.reset();
     mVersionFile.reset();
-    delete mMacroResolver;
-    delete mDatabase;
+    if(mMacroResolver)
+        delete mMacroResolver;
+    if(mDatabase)
+        delete mDatabase;
 
     // Settings
     Json::Config mConfig = {};
@@ -157,7 +170,15 @@ void Install::nullify()
 bool Install::isValid() const { return mValid; }
 Qx::GenericError Install::error() const { return mError; }
 
-QString Install::versionString() const
+Install::Edition Install::edition() const
+{
+    QString nameVer = nameVersionString();
+
+    return nameVer.contains("ultimate", Qt::CaseInsensitive) ? Edition::Ultimate :
+           nameVer.contains("infinity", Qt::CaseInsensitive) ? Edition::Infinity :
+                                                               Edition::Core;
+}
+QString Install::nameVersionString() const
 {
     // Check version file
     QString readVersion = QString();
@@ -175,11 +196,11 @@ QString Install::launcherChecksum() const
     return launcherHash;
 }
 
-DB* Install::database(QSqlError* error)
+Db* Install::database(QSqlError* error)
 {
     /*
      * Automatically manages opening the database if the thread is different. An error here in unlikely,
-     * given that open capabilities are testing in the DB constructor, but nonetheless they are possible,
+     * given that open capabilities are tested in the DB constructor, but nonetheless they are possible,
      * so a return state is optionally set here. It is only possible for an error to occur if database
      * isn't already open in the calling thread since an issue can only occur from opening a connection
     */
@@ -209,8 +230,20 @@ Json::Services Install::services() const { return mServices; }
 
 QString Install::fullPath() const { return mRootDirectory.absolutePath(); }
 QDir Install::logosDirectory() const { return mLogosDirectory; }
-QDir Install::screenshootsDirectory() const { return mScreenshotsDirectory; }
+QDir Install::screenshotsDirectory() const { return mScreenshotsDirectory; }
 QDir Install::extrasDirectory() const { return mExtrasDirectory; }
+
+QString Install::imageLocalPath(ImageType imageType, QUuid gameId) const
+{
+    QDir sourceDir = imageType == ImageType::Logo ? mLogosDirectory : mScreenshotsDirectory;
+    return sourceDir.absolutePath() + '/' + standardImageSubPath(imageType, gameId);
+}
+
+QUrl Install::imageRemoteUrl(ImageType imageType, QUuid gameId) const
+{
+    return QUrl(mPreferences.onDemandBaseUrl + standardImageSubPath(imageType, gameId));
+}
+
 QString Install::datapackMounterPath() const { return mDataPackMounterFile->fileName(); }
 const MacroResolver* Install::macroResolver() const { return mMacroResolver; }
 
