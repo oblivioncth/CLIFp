@@ -1,3 +1,4 @@
+// Unit Include
 #include "c-prepare.h"
 
 //===============================================================================================================
@@ -26,7 +27,7 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     if(checkStandardOptions())
         return Core::ErrorCodes::NO_ERR;
 
-    // Get ID to prpare
+    // Get ID to prepare
     QUuid id;
 
     if(mParser.isSet(CL_OPTION_ID))
