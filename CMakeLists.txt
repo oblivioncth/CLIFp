@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21.1)
 # Project
 project(CLIFp VERSION 0.8 LANGUAGES CXX)
 set(TARGET_FP_VERSION 10.1)
-set(FORMAL_NAME "CLI for BlueMaxima's Flashpoint")
+set(FORMAL_NAME "CLI Flashpoint")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -104,6 +104,7 @@ set_cxx_project_vars(${TARGET_NAME}
     SHORT_NAME "\"${PROJECT_NAME}\""
     TARGET_FP_VER_STR "\"${TARGET_FP_VERSION}\""
     EXECUTABLE_NAME "\"CLIFp.exe\""
+    APP_NAME "\"${FORMAL_NAME}\""
 )
 
 # Set target exe details
