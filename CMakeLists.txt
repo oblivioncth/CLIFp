@@ -103,6 +103,7 @@ set_cxx_project_vars(${TARGET_NAME}
     VERSION_STR "\"${PROJECT_VERSION}\""
     SHORT_NAME "\"${PROJECT_NAME}\""
     TARGET_FP_VER_STR "\"${TARGET_FP_VERSION}\""
+    EXECUTABLE_NAME "\"CLIFp.exe\""
 )
 
 # Set target exe details
