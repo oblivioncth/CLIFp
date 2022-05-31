@@ -135,7 +135,7 @@ signals:
     void message(const QString& message);
 
     // Network
-    void authenticationRequired(QString prompt, QString* username, QString* password, bool* abort);
+    void authenticationRequired(QString prompt, QAuthenticator* authenticator);
     void downloadProgressChanged(quint64 progress);
     void downloadTotalChanged(quint64 total);
     void downloadStarted(QString task);

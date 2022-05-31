@@ -67,14 +67,19 @@ void Driver::init()
     mDownloadManager->setOverwrite(true);
 
     // Download event handlers
-    connect(mDownloadManager, &Qx::SyncDownloadManager::sslErrors, [this](Qx::GenericError errorMsg, bool* abort) {
-        int choice = mCore->postBlockingError(NAME, errorMsg, true, QMessageBox::Yes | QMessageBox::Abort, QMessageBox::Abort);
-        *abort = choice == QMessageBox::Abort;
+    connect(mDownloadManager, &Qx::SyncDownloadManager::sslErrors, this, [this](Qx::GenericError errorMsg, bool* ignore) {
+        int choice = mCore->postBlockingError(NAME, errorMsg, true, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        *ignore = choice == QMessageBox::Yes;
     });
 
-    connect(mDownloadManager, &Qx::SyncDownloadManager::authenticationRequired, [this](QString prompt, QString* username, QString* password, bool* abort) {
+    connect(mDownloadManager, &Qx::SyncDownloadManager::authenticationRequired, this, [this](QString prompt, QAuthenticator* authenticator) {
         mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_AUTH);
-        emit authenticationRequired(prompt, username, password, abort);
+        emit authenticationRequired(prompt, authenticator);
+    });
+
+    connect(mDownloadManager, &Qx::SyncDownloadManager::proxyAuthenticationRequired, this, [this](QString prompt, QAuthenticator* authenticator) {
+        mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_AUTH);
+        emit authenticationRequired(prompt, authenticator);
     });
 
     connect(mDownloadManager, &Qx::SyncDownloadManager::downloadTotalChanged, this, &Driver::downloadTotalChanged);
