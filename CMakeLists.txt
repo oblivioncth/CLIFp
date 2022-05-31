@@ -132,5 +132,6 @@ target_link_libraries(${TARGET_NAME}
         Qx::Core
         Qx::Io
         Qx::Network
+        Qx::Widgets
         Qx::Windows
 )

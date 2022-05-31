@@ -1,9 +1,13 @@
+// Unit Include
 #include "statusrelay.h"
 
-#include "qx-widgets.h"
-
+// Qt Includes
 #include <QApplication>
 #include <QScopedValueRollback>
+
+// Qx Includes
+#include <qx/widgets/qx-common-widgets.h>
+#include <qx/widgets/qx-logindialog.h>
 
 //===============================================================================================================
 // STATUS RELAY
@@ -15,7 +19,7 @@ StatusRelay::StatusRelay(QObject* parent) :
     mTrayIcon(QIcon(":/res/icon/CLIFp.ico"))
 {
     mTrayIcon.setToolTip(SYS_TRAY_STATUS);
-    connect(&mTrayIcon, &QSystemTrayIcon::activated, [this](){
+    connect(&mTrayIcon, &QSystemTrayIcon::activated, this, [this](){
         mTrayIcon.showMessage(mStatusHeading, mStatusMessage);
     });
     mTrayIcon.show();
@@ -31,12 +35,12 @@ void StatusRelay::statusChangeHandler(const QString& statusHeading, const QStrin
 
 void StatusRelay::errorHandler(Core::Error error)
 {
-    error.errorInfo.exec(QMessageBox::Ok, QMessageBox::NoButton);
+    Qx::postError(error.errorInfo, QMessageBox::Ok, QMessageBox::Ok);
 }
 
 void StatusRelay::blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError)
 {
-    *response = blockingError.errorInfo.exec(blockingError.choices, blockingError.defaultChoice);
+    *response = Qx::postError(blockingError.errorInfo, blockingError.choices, blockingError.defaultChoice);
 }
 
 void StatusRelay::messageHandler(const QString& message)
@@ -44,7 +48,7 @@ void StatusRelay::messageHandler(const QString& message)
     QMessageBox::information(nullptr, QApplication::applicationName(), message);
 }
 
-void StatusRelay::authenticationHandler(QString prompt, QString* username, QString* password, bool* abort)
+void StatusRelay::authenticationHandler(QString prompt, QAuthenticator* authenticator)
 {
     Qx::LoginDialog ld;
     ld.setPrompt(prompt);
@@ -53,11 +57,9 @@ void StatusRelay::authenticationHandler(QString prompt, QString* username, QStri
 
     if(choice == QDialog::Accepted)
     {
-        *username = ld.getUsername();
-        *password = ld.getPassword();
+        authenticator->setUser(ld.username());
+        authenticator->setPassword(ld.password());
     }
-    else
-        *abort = true;
 }
 
 void StatusRelay::downloadProgressHandler(quint64 progress)

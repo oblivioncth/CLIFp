@@ -1,9 +1,13 @@
 #ifndef STATUSRELAY_H
 #define STATUSRELAY_H
 
+// Qt Includes
 #include <QObject>
 #include <QProgressDialog>
 #include <QSystemTrayIcon>
+#include <QAuthenticator>
+
+// Project Includes
 #include "core.h"
 
 class StatusRelay : public QObject
@@ -35,7 +39,7 @@ public slots:
     void messageHandler(const QString& message);
 
     // Network
-    void authenticationHandler(QString prompt, QString* username, QString* password, bool* abort);
+    void authenticationHandler(QString prompt, QAuthenticator* authenticator);
     void downloadProgressHandler(quint64 progress);
     void downloadTotalHandler(quint64 total);
     void downloadStartedHandler(QString task);
