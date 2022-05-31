@@ -1,10 +1,15 @@
+// Unit Include
 #include "driver.h"
 
+// Qt Includes
 #include <QDesktopServices>
 #include <QProgressDialog>
 
-#include "qx-windows.h"
+// Qx Includes
+#include <qx/windows/qx-common-windows.h>
+#include <qx_windows.h>
 
+// Project Includes
 #include "command.h"
 
 //===============================================================================================================
@@ -133,18 +138,19 @@ ErrorCode Driver::processTaskQueue()
 
                 // Setup download
                 QFile packFile(downloadTask->destPath + "/" + downloadTask->destFileName);
-                mDownloadManager->appendTask(Qx::DownloadTask{downloadTask->targetFile, &packFile});
+                QFileInfo packFileInfo(packFile);
+                mDownloadManager->appendTask(Qx::DownloadTask{downloadTask->targetFile, packFileInfo.path()});
 
                 // Log/label string
-                QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(QFileInfo(packFile).fileName());
+                QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(packFileInfo.fileName());
                 mCore->logEvent(NAME, label);
 
                 // Start download
                 emit downloadStarted(label);
-                Qx::SyncDownloadManager::Report downloadReport = mDownloadManager->processQueue(); // This spins an event loop
+                Qx::DownloadManagerReport downloadReport = mDownloadManager->processQueue(); // This spins an event loop
 
                 // Handle result
-                emit downloadFinished(downloadReport.finishStatus() == Qx::SyncDownloadManager::FinishStatus::UserAbort);
+                emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
                 if(!downloadReport.wasSuccessful())
                 {
                     downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
@@ -155,7 +161,7 @@ ErrorCode Driver::processTaskQueue()
 
                 // Confirm checksum
                 bool checksumMatch;
-                Qx::IOOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
+                Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
                 if(!checksumResult.wasSuccessful() || !checksumMatch)
                 {
                     mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
@@ -293,7 +299,7 @@ ErrorCode Driver::waitOnProcess(QString processName, int graceSecs)
             QThread::sleep(graceSecs);
 
         // Find process ID by name
-        spProcessID = Qx::getProcessIDByName(processName);
+        spProcessID = Qx::processIdByName(processName);
 
         // Check that process was found (is running)
         if(spProcessID)
@@ -345,17 +351,17 @@ void Driver::cleanup()
 }
 
 // Helper functions
-std::unique_ptr<FP::Install> Driver::findFlashpointInstall()
+std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
 {
     QDir currentDir(CLIFP_DIR_PATH);
-    std::unique_ptr<FP::Install> fpInstall;
+    std::unique_ptr<Fp::Install> fpInstall;
 
     do
     {
         mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
 
         // Attempt to instantiate
-        fpInstall = std::make_unique<FP::Install>(currentDir.absolutePath());
+        fpInstall = std::make_unique<Fp::Install>(currentDir.absolutePath());
         if(fpInstall->isValid())
             break;
         else
@@ -431,7 +437,7 @@ void Driver::drive()
     }
 
     // Ensure Flashpoint Launcher isn't running
-    if(Qx::processIsRunning(QFileInfo(FP::Install::LAUNCHER_PATH).fileName()))
+    if(Qx::processIsRunning(QFileInfo(Fp::Install::LAUNCHER_PATH).fileName()))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
         emit finished(mCore->logFinish(NAME, Core::ErrorCodes::LAUNCHER_OPEN));
@@ -439,7 +445,7 @@ void Driver::drive()
     }
 
     //-Find and link to Flashpoint Install----------------------------------------------------------
-    std::unique_ptr<FP::Install> flashpointInstall;
+    std::unique_ptr<Fp::Install> flashpointInstall;
     mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
 
     if(!(flashpointInstall = findFlashpointInstall()))

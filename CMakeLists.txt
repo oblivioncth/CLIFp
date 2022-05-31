@@ -131,4 +131,6 @@ target_link_libraries(${TARGET_NAME}
         Qt6::Network
         Qx::Core
         Qx::Io
+        Qx::Network
+        Qx::Windows
 )
