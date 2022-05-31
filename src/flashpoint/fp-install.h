@@ -1,21 +1,28 @@
 #ifndef FLASHPOINT_INSTALL_H
 #define FLASHPOINT_INSTALL_H
 
+// Qt Includes
 #include <QString>
 #include <QDir>
 #include <QFile>
 #include <QtSql>
-#include "qx.h"
 
+// Qx Includes
+
+// Project Includes
 #include "fp-json.h"
 #include "fp-macro.h"
 #include "fp-db.h"
+#include "fp-items.h"
 
-namespace FP
+namespace Fp
 {
 
 class Install
 {
+//-Class Enums---------------------------------------------------------------------------------------------------
+enum class Edition {Ultimate, Infinity, Core};
+
 //-Class Variables-----------------------------------------------------------------------------------------------
 private:
     // Validity check fail reasons
@@ -31,6 +38,7 @@ public:
     static inline const QString VER_TXT_PATH = "version.txt";
 
     // File Info
+    static inline const QString IMAGE_EXT = ".png";
     static inline const QFileInfo SECURE_PLAYER_INFO = QFileInfo("FlashpointSecurePlayer.exe");
 
     // Dynamic path file names
@@ -74,20 +82,23 @@ private:
     Json::Services mServices;
 
     // Database
-    DB* mDatabase;
+    Db* mDatabase = nullptr;
 
     // Utilities
-    MacroResolver* mMacroResolver;
+    MacroResolver* mMacroResolver = nullptr;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
     Install(QString installPath);
 
-//-Desctructor-------------------------------------------------------------------------------------------------
+//-Destructor-------------------------------------------------------------------------------------------------
 public:
     ~Install();
 
 //-Class Functions------------------------------------------------------------------------------------------------------
+private:
+    static QString standardImageSubPath(ImageType imageType, QUuid gameId);
+
 public:
     static Qx::GenericError appInvolvesSecurePlayer(bool& involvesBuffer, QFileInfo appInfo);
 
@@ -101,11 +112,12 @@ public:
     Qx::GenericError error() const;
 
     // General information
-    QString versionString() const;
+    Edition edition() const;
+    QString nameVersionString() const;
     QString launcherChecksum() const;
 
     // Database
-    DB* database(QSqlError* error = nullptr);
+    Db* database(QSqlError* error = nullptr);
 
     // Support Application Checks
     Json::Config config() const;
@@ -115,8 +127,10 @@ public:
     // Data access
     QString fullPath() const;
     QDir logosDirectory() const;
-    QDir screenshootsDirectory() const;
+    QDir screenshotsDirectory() const;
     QDir extrasDirectory() const;
+    QString imageLocalPath(ImageType imageType, QUuid gameId) const;
+    QUrl imageRemoteUrl(ImageType imageType, QUuid gameId) const;
     QString datapackMounterPath() const;
     const MacroResolver* macroResolver() const;
 };

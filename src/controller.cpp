@@ -1,9 +1,15 @@
+// Unit Include
 #include "controller.h"
 
+// Qt Include
 #include <QApplication>
 #include <QWindow>
-#include "windows.h"
 
+// Windows Includes
+#include <qx_windows.h>
+#include <processenv.h>
+
+// Project Includes
 #include "driver.h"
 
 //===============================================================================================================

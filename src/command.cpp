@@ -1,5 +1,11 @@
+// Unit Includes
 #include "command.h"
+
+// Qt Includes
 #include <QApplication>
+
+// Qx Includes
+#include <qx/utility/qx-helpers.h>
 
 //===============================================================================================================
 // Command
@@ -97,7 +103,7 @@ void Command::showHelp()
         {
             // Handle names
             QStringList dashedNames;
-            for(const QString& name :  qAsConstR(clOption->names()))
+            for(const QString& name :  qxAsConst(clOption->names()))
                 dashedNames << ((name.length() > 1 ? "--" : "-") + name);
 
             // Add option

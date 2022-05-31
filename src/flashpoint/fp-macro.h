@@ -3,7 +3,7 @@
 
 #include <QHash>
 
-namespace FP
+namespace Fp
 {
 
 class MacroResolver

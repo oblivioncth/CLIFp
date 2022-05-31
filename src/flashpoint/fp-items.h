@@ -1,12 +1,15 @@
 #ifndef FLASHPOINT_ITEMS_H
 #define FLASHPOINT_ITEMS_H
 
+// Qt Includes
 #include <QString>
 #include <QDateTime>
 #include <QUuid>
 
-namespace FP
+namespace Fp
 {
+//-Enums----------------------------------------------------------------------------------------------------------
+enum class ImageType {Logo, Screenshot};
 
 //-Class Forward Declarations---------------------------------------------------------------------------------------
 class GameBuilder;
@@ -21,7 +24,7 @@ class Game
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
-    QUuid mID;
+    QUuid mId;
     QString mTitle;
     QString mSeries;
     QString mDeveloper;
@@ -49,7 +52,7 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------
 public:
-    QUuid getID() const;
+    QUuid getId() const;
     QString getTitle() const;
     QString getSeries() const;
     QString getDeveloper() const;
@@ -88,7 +91,7 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------
 public:
-    GameBuilder& wID(QString rawID);
+    GameBuilder& wId(QString rawId);
     GameBuilder& wTitle(QString title);
     GameBuilder& wSeries(QString series);
     GameBuilder& wDeveloper(QString developer);
@@ -123,13 +126,13 @@ private:
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
-    QUuid mID;
+    QUuid mId;
     QString mAppPath;
     bool mAutorunBefore;
     QString mLaunchCommand;
     QString mName;
     bool mWaitExit;
-    QUuid mParentID;
+    QUuid mParentId;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
@@ -147,13 +150,13 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:
-    QUuid getID() const;
+    QUuid getId() const;
     QString getAppPath() const;
     bool isAutorunBefore() const;
     QString getLaunchCommand() const;
     QString getName() const;
     bool isWaitExit() const;
-    QUuid getParentID() const;
+    QUuid getParentId() const;
     bool isPlayable() const;
 };
 
@@ -169,13 +172,13 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------
 public:
-    AddAppBuilder& wID(QString rawID);
+    AddAppBuilder& wId(QString rawId);
     AddAppBuilder& wAppPath(QString appPath);
     AddAppBuilder& wAutorunBefore(QString rawAutorunBefore);
     AddAppBuilder& wLaunchCommand(QString launchCommand);
     AddAppBuilder& wName(QString name);
     AddAppBuilder& wWaitExit(QString rawWaitExit);
-    AddAppBuilder& wParentID(QString rawParentID);
+    AddAppBuilder& wParentId(QString rawParentId);
 
     AddApp build();
 };
@@ -186,7 +189,7 @@ class Playlist
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
-    QUuid mID;
+    QUuid mId;
     QString mTitle;
     QString mDescription;
     QString mAuthor;
@@ -197,7 +200,7 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:
-    QUuid getID() const;
+    QUuid getId() const;
     QString getTitle() const;
     QString getDescription() const;
     QString getAuthor() const;
@@ -216,7 +219,7 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------
 public:
-    PlaylistBuilder& wID(QString rawID);
+    PlaylistBuilder& wId(QString rawId);
     PlaylistBuilder& wTitle(QString title);
     PlaylistBuilder& wDescription(QString description);
     PlaylistBuilder& wAuthor(QString author);
@@ -230,10 +233,10 @@ class PlaylistGame
 
 //-Instance Variables-----------------------------------------------------------------------------------------------
 private:
-    int mID;
-    QUuid mPlaylistID;
+    int mId;
+    QUuid mPlaylistId;
     int mOrder;
-    QUuid mGameID;
+    QUuid mGameId;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
@@ -241,10 +244,10 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:
-    int getID() const;
-    QUuid getPlaylistID() const;
+    int getId() const;
+    QUuid getPlaylistId() const;
     int getOrder() const;
-    QUuid getGameID() const;
+    QUuid getGameId() const;
 };
 
 class PlaylistGameBuilder
@@ -259,10 +262,10 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------
 public:
-    PlaylistGameBuilder& wID(QString rawID);
-    PlaylistGameBuilder& wPlaylistID(QString rawPlaylistID);
+    PlaylistGameBuilder& wId(QString rawId);
+    PlaylistGameBuilder& wPlaylistId(QString rawPlaylistId);
     PlaylistGameBuilder& wOrder(QString rawOrder);
-    PlaylistGameBuilder& wGameID(QString rawGameID);
+    PlaylistGameBuilder& wGameId(QString rawGameId);
 
     PlaylistGame build();
 };

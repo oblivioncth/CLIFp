@@ -1,9 +1,15 @@
+// Unit Include
 #include "c-link.h"
-#include "c-play.h"
 
-#include "qfiledialog.h"
-#include "qx-windows.h"
-#include "../version.h"
+// Qt Includes
+#include <QFileDialog>
+
+// Qx Includes
+#include <qx/windows/qx-common-windows.h>
+
+// Project Includes
+#include "c-play.h"
+#include "project_vars.h"
 
 //===============================================================================================================
 // CSHORTCUT
@@ -59,13 +65,13 @@ ErrorCode CLink::process(const QStringList& commandLine)
     mCore.setStatus(STATUS_LINK, shortcutID.toString(QUuid::WithoutBraces));
 
     // Get database
-    FP::DB* database = mCore.getFlashpointInstall().database();
+    Fp::Db* database = mCore.getFlashpointInstall().database();
 
     // Get entry info (also confirms that ID is present in database)
     QSqlError sqlError;
-    FP::DB::QueryBuffer entryInfo;
+    Fp::Db::QueryBuffer entryInfo;
 
-    if((sqlError = database->queryEntryByID(entryInfo, shortcutID)).isValid())
+    if((sqlError = database->queryEntryById(entryInfo, shortcutID)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
         return Core::ErrorCodes::SQL_ERROR;
@@ -79,27 +85,27 @@ ErrorCode CLink::process(const QStringList& commandLine)
     // Get entry title
     entryInfo.result.next();
 
-    if(entryInfo.source == FP::DB::Table_Game::NAME)
-        shortcutName = Qx::kosherizeFileName(entryInfo.result.value(FP::DB::Table_Game::COL_TITLE).toString());
-    else if(entryInfo.source == FP::DB::Table_Add_App::NAME)
+    if(entryInfo.source == Fp::Db::Table_Game::NAME)
+        shortcutName = Qx::kosherizeFileName(entryInfo.result.value(Fp::Db::Table_Game::COL_TITLE).toString());
+    else if(entryInfo.source == Fp::Db::Table_Add_App::NAME)
     {
         // Get parent info
-        FP::DB::QueryBuffer parentInfo;
-        if((sqlError = database->queryEntryByID(parentInfo,
-            QUuid(entryInfo.result.value(FP::DB::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
+        Fp::Db::QueryBuffer parentInfo;
+        if((sqlError = database->queryEntryById(parentInfo,
+            QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
             return Core::ErrorCodes::SQL_ERROR;
         }
         parentInfo.result.next();
 
-        QString parentName = parentInfo.result.value(FP::DB::Table_Game::COL_TITLE).toString();
-        shortcutName = Qx::kosherizeFileName(parentName + " (" + entryInfo.result.value(FP::DB::Table_Add_App::COL_NAME).toString() + ")");
+        QString parentName = parentInfo.result.value(Fp::Db::Table_Game::COL_TITLE).toString();
+        shortcutName = Qx::kosherizeFileName(parentName + " (" + entryInfo.result.value(Fp::Db::Table_Add_App::COL_NAME).toString() + ")");
     }
     else
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH,
-                                               ERR_DIFFERENT_TITLE_SRC.arg(FP::DB::Table_Game::NAME + "/" + FP::DB::Table_Add_App::NAME, entryInfo.source)));
+                                               ERR_DIFFERENT_TITLE_SRC.arg(Fp::Db::Table_Game::NAME + "/" + Fp::Db::Table_Add_App::NAME, entryInfo.source)));
         return Core::ErrorCodes::SQL_MISMATCH;
     }
 
@@ -153,7 +159,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
 
     // Create shortcut properties
     Qx::ShortcutProperties sp;
-    sp.target = CLIFP_DIR_PATH + "/" + VER_ORIGINALFILENAME_STR;
+    sp.target = CLIFP_DIR_PATH + "/" + PROJECT_EXECUTABLE_NAME;
     sp.targetArgs = CPlay::NAME + " -" + CPlay::CL_OPT_ID_S_NAME + " " + shortcutID.toString(QUuid::WithoutBraces);
     sp.comment = shortcutName;
 
