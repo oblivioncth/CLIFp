@@ -94,8 +94,8 @@ public:
 private:
      //TODO: Eventually rework to return via ref arg a list of tasks and a bool if app is message/extra so that startup tasks can be enq afterwords and queue clearing is unneccesary
     ErrorCode enqueueAutomaticTasks(bool&wasStandalone, QUuid targetID);
-    ErrorCode enqueueAdditionalApp(FP::DB::QueryBuffer addAppResult, Core::TaskStage taskStage);
-    ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, FP::DB::LibraryFilter lbFilter);
+    ErrorCode enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Core::TaskStage taskStage);
+    ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::Db::LibraryFilter lbFilter);
     ErrorCode getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid subID);
 
 protected:
