@@ -21,6 +21,10 @@ enable_language("RC")
 set(PROJ_SCRIPTS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
 
+# Versioning
+include(VerboseVersioning)
+setup_verbose_versioning(PROJECT_VERSION_VERBOSE)
+
 # Import Qt
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -35,7 +39,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(FetchQx)
-fetch_qx(ae48c53243bb1b2140196026bbc72aff3e56fbd9) # dev commit
+fetch_qx(aee47d6e11f6e9528bf28754f23ad74660769af7) # dev commit
 
 # Set app sources
 set(CXX_SOURCES
