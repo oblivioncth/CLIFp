@@ -161,6 +161,12 @@ target_link_libraries(${TARGET_NAME}
         Qx::Windows
 )
 
+# Configure target properties
+set_target_properties(${COMPONENT_TARGET_NAME} PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    OUTPUT_NAME "${PROJECT_NAME}"
+)
+
 ## Forward select project variables to C++ code
 include(ProjectVars)
 set_cxx_project_vars(${TARGET_NAME}
@@ -185,12 +191,6 @@ set_win_executable_details(${TARGET_NAME}
     TRADEMARKS_TWO "GNU AGPL V3"
     ORIG_FILENAME "CLIFp.exe"
     PRODUCT_NAME "${FORMAL_NAME}"
-)
-
-# Configure target properties
-set_target_properties(${COMPONENT_TARGET_NAME} PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    OUTPUT_NAME "${PROJECT_NAME}"
 )
 
 #--------------------Package Config-----------------------
