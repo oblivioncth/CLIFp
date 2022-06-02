@@ -7,8 +7,18 @@ cmake_minimum_required(VERSION 3.21.1)
 project(CLIFp VERSION 0.8 LANGUAGES CXX)
 set(TARGET_FP_VERSION 10.1)
 set(FORMAL_NAME "CLI Flashpoint")
+string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LC)
+string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UC)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+# Check if top level
+if(${PROJECT_IS_TOP_LEVEL})
+    message(STATUS "NOTE: ${PROJECT_NAME} is being configured as a top-level project")
+else()
+    set(SUB_PROJ_EXCLUDE_FROM_ALL "EXCLUDE_FROM_ALL")
+    message(STATUS "NOTE: ${PROJECT_NAME} is being configured as a sub-project")
+endif()
 
 # C++
 set(CMAKE_CXX_STANDARD 20)
@@ -112,9 +122,16 @@ set(CXX_INCLUDE_PATHS
     include
 )
 
+# Name here needs to be as unique as possible for when this project is inlcuded
+# in another via FetchContent or add_subdirectory (prevent target clashes)
+set(TARGET_NAME ${PROJECT_NAME_LC}_${PROJECT_NAME_LC})
+
 # Add executable target
-set(TARGET_NAME ${PROJECT_NAME})
 qt_add_executable(${TARGET_NAME} WIN32)
+
+# Make alias target so target can be referred to with its friendly
+# export name both internally and when part of another build tree
+add_executable(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${TARGET_NAME})
 
 # Add sources to target
 target_sources(${TARGET_NAME}
@@ -197,22 +214,29 @@ write_basic_package_version_file(
 # Install executable
 install(TARGETS ${TARGET_NAME}
     CONFIGURATIONS Release
+    COMPONENT ${TARGET_NAME}
     EXPORT ${PROJECT_NAME}Targets
-    RUNTIME DESTINATION bin
+    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
+    RUNTIME DESTINATION bin   
 )
 
 # Install package target export
 install(EXPORT ${PROJECT_NAME}Targets
     CONFIGURATIONS Release
+    COMPONENT ${TARGET_NAME}
     FILE "${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${PROJECT_NAME}::
     DESTINATION cmake
+    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
 )
 
 # Install package config
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
     CONFIGURATIONS Release
+    COMPONENT ${TARGET_NAME}
     DESTINATION cmake
+    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
 )
 
 #========Export For In-tree Builds =================
