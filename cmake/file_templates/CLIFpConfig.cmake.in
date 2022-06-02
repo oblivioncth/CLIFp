@@ -1,0 +1,12 @@
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+
+# Manually set consumer config-to-import mappings since 
+# the package only offers a release executable. The standard
+# four configurations are covered here, though due to CMake
+# fallback rules, others should be correctly map to Release
+#set_target_property(@TARGET_NAME@ PROPERTIES
+#	MAP_IMPORTED_CONFIG_RELEASE Release
+#	MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+#	MAP_IMPORTED_CONFIG_MINSIZEREL Release
+#	MAP_IMPORTED_CONFIG_DEBUG Release
+#)

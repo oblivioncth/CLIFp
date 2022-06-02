@@ -1,3 +1,6 @@
+#================= Project Setup ==========================
+
+# CMake
 cmake_minimum_required(VERSION 3.21.1)
 
 # Project
@@ -21,9 +24,34 @@ enable_language("RC")
 set(PROJ_SCRIPTS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
 
+# General Variables
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(TARGET_ARCH x64)
+else()
+  set(TARGET_ARCH x86)
+endif()
+
+#--------------------Setup Paths-------------------
+
+# Cmake scripts
+set(FILE_TEMPLATES_PATH "${PROJ_SCRIPTS_PATH}/file_templates")
+
+# Install
+set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/install")
+
+# Package
+set(PACKAGE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/dist")
+
+#------------Set Global Build Rules----------------
+
+# Clean install when clean target is ran
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${CMAKE_INSTALL_PREFIX}")
+
 # Versioning
 include(VerboseVersioning)
 setup_verbose_versioning(PROJECT_VERSION_VERBOSE)
+
+#================= Build =========================
 
 # Import Qt
 find_package(Qt6 REQUIRED COMPONENTS
@@ -39,7 +67,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(FetchQx)
-fetch_qx(aee47d6e11f6e9528bf28754f23ad74660769af7) # dev commit
+fetch_qx(828ad58c37c84f48f2617faac6e8f464de848aa9) # dev commit
 
 # Set app sources
 set(CXX_SOURCES
@@ -101,6 +129,21 @@ target_include_directories(${TARGET_NAME}
         ${CXX_INCLUDE_PATHS}
 )
 
+# Link target to libraries
+target_link_libraries(${TARGET_NAME}
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+        Qt6::Sql
+        Qt6::Network
+        Qx::Core
+        Qx::Io
+        Qx::Network
+        Qx::Widgets
+        Qx::Windows
+)
+
 ## Forward select project variables to C++ code
 include(ProjectVars)
 set_cxx_project_vars(${TARGET_NAME}
@@ -127,17 +170,64 @@ set_win_executable_details(${TARGET_NAME}
     PRODUCT_NAME "${FORMAL_NAME}"
 )
 
-# Link target to libraries
-target_link_libraries(${TARGET_NAME}
-    PRIVATE
-        Qt6::Core
-        Qt6::Gui
-        Qt6::Widgets
-        Qt6::Sql
-        Qt6::Network
-        Qx::Core
-        Qx::Io
-        Qx::Network
-        Qx::Widgets
-        Qx::Windows
+# Configure target properties
+set_target_properties(${COMPONENT_TARGET_NAME} PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    OUTPUT_NAME "${PROJECT_NAME}"
 )
+
+#--------------------Package Config-----------------------
+
+# Create config file
+configure_file("${FILE_TEMPLATES_PATH}/${PROJECT_NAME}Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+    @ONLY
+)
+
+# Create version config file
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMinorVersion
+)
+
+#================= Install ==========================
+
+# Install executable
+install(TARGETS ${TARGET_NAME}
+    CONFIGURATIONS Release
+    EXPORT ${PROJECT_NAME}Targets
+    RUNTIME DESTINATION bin
+)
+
+# Install package target export
+install(EXPORT ${PROJECT_NAME}Targets
+    CONFIGURATIONS Release
+    FILE "${PROJECT_NAME}Targets.cmake"
+    DESTINATION cmake
+)
+
+# Install package config
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+    CONFIGURATIONS Release
+    DESTINATION cmake
+)
+
+#========Export For In-tree Builds =================
+# For in source builds
+export(EXPORT ${PROJECT_NAME}Targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
+)
+
+#====================== CPack ==============================
+
+set(CPACK_PACKAGE_VENDOR "oblivioncth")
+set(CPACK_PACKAGE_DIRECTORY "${PACKAGE_PREFIX}")
+set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}_${PROJECT_VERSION_VERBOSE}_${CMAKE_SYSTEM_NAME}_${TARGET_ARCH}")
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+include(CPack)
+
