@@ -162,9 +162,10 @@ target_link_libraries(${TARGET_NAME}
 )
 
 # Configure target properties
-set_target_properties(${COMPONENT_TARGET_NAME} PROPERTIES
+set_target_properties(${TARGET_NAME} PROPERTIES
     VERSION ${PROJECT_VERSION}
     OUTPUT_NAME "${PROJECT_NAME}"
+    EXPORT_NAME "${PROJECT_NAME}"
 )
 
 ## Forward select project variables to C++ code
