@@ -30,7 +30,7 @@ function(set_win_executable_details target)
     endforeach()
 
     if(${WIN_ED_KEYWORDS_MISSING_VALUES})
-        foreach(missing_val ${WIN_ED_UNPARSED_ARGUMENTS})
+        foreach(missing_val ${WIN_ED_KEYWORDS_MISSING_VALUES})
             message(ERROR "A value for '${missing_val}' must be provided")
         endforeach()
         message(FATAL_ERROR "Not all required values were present!")
