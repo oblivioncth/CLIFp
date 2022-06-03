@@ -27,7 +27,6 @@ jobs:
       vs_dev_dir: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/Tools
       cmake_gen: Ninja Multi-Config
     outputs:
-      qt_shared_artifact_name: ${{ steps.get_artifact_name.outputs.qt_shared_artifact_name }}
       qt_static_artifact_name: ${{ steps.get_artifact_name.outputs.qt_static_artifact_name }}
     steps:
     - name: Set matrix derived variables
