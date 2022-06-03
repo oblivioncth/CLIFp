@@ -4,12 +4,18 @@
 cmake_minimum_required(VERSION 3.21.1)
 
 # Project
-project(CLIFp VERSION 0.8 LANGUAGES CXX)
-set(TARGET_FP_VERSION 10.1)
+# NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
+set(CLIFP_BASE_VERSION 0.8) # Required for CI/CD
+project(CLIFp
+    VERSION ${CLIFP_BASE_VERSION}
+    LANGUAGES CXX
+    DESCRIPTION "Command-line Interface for Flashpoint"
+)
 set(FORMAL_NAME "CLI Flashpoint")
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LC)
 string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UC)
 
+set(TARGET_FP_VERSION 10.1)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # Check if top level
