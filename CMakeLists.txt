@@ -52,8 +52,12 @@ endif()
 # Cmake scripts
 set(FILE_TEMPLATES_PATH "${PROJ_SCRIPTS_PATH}/file_templates")
 
-# Install
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/install")
+# Install (override the CMake default, but not a user set value)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/install"
+           CACHE PATH "Project install path" FORCE
+    )
+endif()
 
 # Package
 set(PACKAGE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/dist")
