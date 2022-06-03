@@ -13,9 +13,8 @@ function(set_cxx_project_vars target)
     set(VAR_PREFIX "PROJECT_")
 
     # Validate input
-    set(__SKIP_ARGS 1)
+    set(__SKIP_ARGS 1) # Skip named arguments ('target')
     math(EXPR __ARGNC "${ARGC} - ${__SKIP_ARGS}")
-    message(STATUS "It will be: math(EXPR __ARGC_DIV2_REMAINDER \"${ARGC} % 2\" DECIMAL)")
     math(EXPR __ARGNC_DIV2_REMAINDER "${__ARGNC} % 2")
     if(${__ARGNC_DIV2_REMAINDER} GREATER 0)
         message(FATAL_ERROR "set_cxx_project_vars() requires an even number of arguments following target!")
