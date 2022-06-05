@@ -250,6 +250,15 @@ install(FILES
     ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
 )
 
+# Install README and LICENSE
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+    COMPONENT ${TOP_LEVEL_INSTALL_COMPONENT}
+    DESTINATION .
+    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
+)
+
 #========Export For In-tree Builds =================
 # For in source builds
 export(EXPORT ${PROJECT_NAME}Targets
