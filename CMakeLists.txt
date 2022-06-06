@@ -53,7 +53,7 @@ endif()
 set(FILE_TEMPLATES_PATH "${PROJ_SCRIPTS_PATH}/file_templates")
 
 # Install (override the CMake default, but not a user set value)
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND PROJECT_IS_TOP_LEVEL)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/install"
            CACHE PATH "Project install path" FORCE
     )
