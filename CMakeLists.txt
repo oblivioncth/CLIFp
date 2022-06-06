@@ -50,6 +50,9 @@ if(${PROJECT_IS_TOP_LEVEL})
                CACHE PATH "Project install path" FORCE
         )
     endif()
+
+    # Clean install when clean target is ran
+    set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${CMAKE_INSTALL_PREFIX}")
 else()
     message(STATUS "NOTE: ${PROJECT_NAME} is being configured as a sub-project")
 
@@ -66,9 +69,6 @@ set(FILE_TEMPLATES_PATH "${PROJ_SCRIPTS_PATH}/file_templates")
 set(PACKAGE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/dist")
 
 #------------Set Global Build Rules----------------
-
-# Clean install when clean target is ran
-set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${CMAKE_INSTALL_PREFIX}")
 
 # Versioning
 include(CLIFp/VerboseVersioning)
