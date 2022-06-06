@@ -46,8 +46,8 @@ jobs:
     - name: Set derived variables with shell because GitHub Actions env context sucks
       run: |
         echo "qt_install_dest=${{ env.qt_download_dir }}/${{ env.qt_install_name }}" >> $Env:GITHUB_ENV
-        echo "clifp_package_path=${{ env.clifp_src_dir }}/out/dist" >> $Env:GITHUB_ENV
-        $clifp_install_path="${{ env.clifp_src_dir }}/out/install"
+        echo "clifp_package_path=${{ env.clifp_build_dir }}/out/dist" >> $Env:GITHUB_ENV
+        $clifp_install_path="${{ env.clifp_build_dir }}/out/install"
         echo "clifp_install_path=$clifp_install_path" >> $Env:GITHUB_ENV
         echo "qt_cmake=${Env:qt_install_dir}/bin/qt-cmake.bat" >> $Env:GITHUB_ENV
     - name: Cache Qt Build

@@ -46,7 +46,7 @@ if(${PROJECT_IS_TOP_LEVEL})
 
     # Install (override the CMake default, but not a user set value)
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/install"
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/out/install"
                CACHE PATH "Project install path" FORCE
         )
     endif()
@@ -66,7 +66,7 @@ endif()
 set(FILE_TEMPLATES_PATH "${PROJ_SCRIPTS_PATH}/file_templates")
 
 # Package
-set(PACKAGE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/dist")
+set(PACKAGE_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/out/dist")
 
 #------------Set Global Build Rules----------------
 
