@@ -90,7 +90,11 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(CLIFp/FetchQx)
-fetch_qx(d3f0a902f0d8c2cb2f2a73a60d5d869c3c6a8a20) # dev commit
+fetch_qx(541ec4359dfc6c8961fb973f4964840344fa0145) # dev commit
+
+# Fetch Qx (build and import from source)
+include(CLIFp/Fetchlibfp)
+fetch_libfp(3e3d2aa2cc442f429a57ef185c032624b5a035a1)
 
 # Set app sources
 set(CXX_SOURCES
@@ -112,14 +116,6 @@ set(CXX_SOURCES
     src/core.cpp
     src/driver.h
     src/driver.cpp
-    src/flashpoint/fp-db.h
-    src/flashpoint/fp-db.cpp
-    src/flashpoint/fp-install.h
-    src/flashpoint/fp-install.cpp
-    src/flashpoint/fp-json.h
-    src/flashpoint/fp-json.cpp
-    src/flashpoint/fp-macro.h
-    src/flashpoint/fp-macro.cpp
     src/logger.h
     src/logger.cpp
     src/statusrelay.h
@@ -172,6 +168,7 @@ target_link_libraries(${TARGET_NAME}
         Qx::Network
         Qx::Widgets
         Qx::Windows
+        Fp::Flashpoint
 )
 
 # Configure target properties
