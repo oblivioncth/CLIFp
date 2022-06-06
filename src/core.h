@@ -12,11 +12,13 @@
 #include <QCommandLineParser>
 #include <QMessageBox>
 
+// libfp Includes
+#include <fp/flashpoint/fp-install.h>
+
 // External Includes
 #include "magic_enum.hpp"
 
 // Project Includes
-#include "fp/flashpoint/fp-install.h"
 #include "logger.h"
 #include "project_vars.h"
 
