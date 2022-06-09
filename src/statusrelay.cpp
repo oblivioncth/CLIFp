@@ -16,7 +16,7 @@
 //-Constructor----------------------------------------------------------------
 StatusRelay::StatusRelay(QObject* parent) :
     QObject(parent),
-    mTrayIcon(QIcon(":/res/icon/CLIFp.ico"))
+    mTrayIcon(QIcon(":/icon/CLIFp.ico"))
 {
     mTrayIcon.setToolTip(SYS_TRAY_STATUS);
     connect(&mTrayIcon, &QSystemTrayIcon::activated, this, [this](){
