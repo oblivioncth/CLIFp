@@ -29,7 +29,7 @@ jobs:
     - name: Get target FP version
       id: check_target_fp
       env:
-        match_start: set\(TARGET_FP_VERSION
+        match_start: set\(TARGET_FP_VERSION_PREFIX
         match_end: \)
       run: |
         $project_lists = Get-Content -Raw CMakeLists.txt

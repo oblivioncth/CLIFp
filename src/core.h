@@ -257,7 +257,7 @@ public:
     static inline const QString HELP_COMMAND_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 
     // Command line messages
-    static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with BlueMaxima's Flashpoint " PROJECT_TARGET_FP_VER_STR "+";
+    static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with BlueMaxima's Flashpoint " PROJECT_TARGET_FP_VER_PFX_STR "series";
 
     // Input strings
     static inline const QString MULTI_TITLE_SEL_CAP = "Title Disambiguation";

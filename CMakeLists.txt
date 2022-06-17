@@ -15,7 +15,7 @@ set(FORMAL_NAME "CLI Flashpoint")
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LC)
 string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UC)
 
-set(TARGET_FP_VERSION 10.1)
+set(TARGET_FP_VERSION_PREFIX 10.1)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # C++
@@ -183,7 +183,7 @@ include(CLIFp/ProjectVars)
 set_cxx_project_vars(${TARGET_NAME}
     VERSION_STR "\"${PROJECT_VERSION}\""
     SHORT_NAME "\"${PROJECT_NAME}\""
-    TARGET_FP_VER_STR "\"${TARGET_FP_VERSION}\""
+    TARGET_FP_VER_PFX_STR "\"${TARGET_FP_VERSION_PREFIX}\""
     EXECUTABLE_NAME "\"CLIFp.exe\""
     APP_NAME "\"${FORMAL_NAME}\""
 )
@@ -193,7 +193,7 @@ include(CLIFp/WinExecutableDetails)
 set_win_executable_details(${TARGET_NAME}
     ICON "res/icon/CLIFp.ico"
     FILE_VER ${PROJECT_VERSION}
-    PRODUCT_VER ${TARGET_FP_VERSION}
+    PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
     COMPANY_NAME "oblivioncth"
     FILE_DESC "CLI for BlueMaxima's Flashpoint"
     INTERNAL_NAME "CLIFp"
