@@ -96,6 +96,10 @@ fetch_qx(7a958f983af66bf8074b6ab4395f525a9660c3a3) # dev commit
 include(CLIFp/Fetchlibfp)
 fetch_libfp(654c3ce0be9e066486963c9ea36c606333da5be7)
 
+# Fetch Neargye's Magic Enum
+include(CLIFp/FetchMagicEnum)
+fetch_magicenum("v0.8.0")
+
 # Set app sources
 set(CXX_SOURCES
     src/command/c-link.h
@@ -127,10 +131,6 @@ set(QT_RESOURCES
     res/resources.qrc
 )
 
-set(CXX_INCLUDE_PATHS
-    include
-)
-
 # Name here needs to be as unique as possible for when this project is inlcuded
 # in another via FetchContent or add_subdirectory (prevent target clashes)
 set(TARGET_NAME ${PROJECT_NAME_LC}_${PROJECT_NAME_LC})
@@ -149,12 +149,6 @@ target_sources(${TARGET_NAME}
         ${QT_RESOURCES}
 )
 
-# Add external includes to target
-target_include_directories(${TARGET_NAME}
-    PRIVATE
-        ${CXX_INCLUDE_PATHS}
-)
-
 # Link target to libraries
 target_link_libraries(${TARGET_NAME}
     PRIVATE
@@ -169,6 +163,7 @@ target_link_libraries(${TARGET_NAME}
         Qx::Widgets
         Qx::Windows
         Fp::Flashpoint
+        magic_enum::magic_enum
 )
 
 # Configure target properties
