@@ -5,15 +5,6 @@ on:
     branches: master
 
 jobs:
-  label_pr:
-    name: Label master pull-request
-    if: github.event.action == 'opened'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create label
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          labels: release-pr
   ensure-higher-version:
     name: Ensure higher version than last tag has been set
     runs-on: windows-latest
