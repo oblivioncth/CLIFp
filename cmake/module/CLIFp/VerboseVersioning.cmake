@@ -12,7 +12,7 @@ function(__get_verbose_version repo fallback return)
     if(Git_FOUND)
         # Describe repo
         execute_process(
-            COMMAND "${GIT_EXECUTABLE}" describe --match v*.* --dirty --always
+            COMMAND "${GIT_EXECUTABLE}" describe --tags --match v*.* --dirty --always
             WORKING_DIRECTORY "${repo}"
             COMMAND_ERROR_IS_FATAL ANY
             RESULT_VARIABLE res
