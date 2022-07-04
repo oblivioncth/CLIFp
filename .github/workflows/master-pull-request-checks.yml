@@ -1,0 +1,44 @@
+name: Master pull-request checks
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: master
+
+jobs:
+  ensure-higher-version:
+    name: Ensure higher version than last tag has been set
+    runs-on: windows-latest
+    env:
+      clifp_src_suffix: CLIFp/Source/
+      clifp_src_dir: ${{ github.workspace }}/CLIFp/Source/
+    steps:
+    - name: Checkout CLIFp
+      uses: actions/checkout@v3
+      with:
+        path: ${{ env.clifp_src_suffix }}
+        fetch-depth: 0 # Required for tag search to find previous tag
+    - name: Compare versions
+      env:
+        match_start: set\(CLIFP_BASE_VERSION
+        match_end: \)
+      run: |
+        cd "${{ env.clifp_src_dir }}"
+        echo "Checking for version tags..."
+        if(git tag -l v*.*){
+          echo "Version tags found, comparing new and last tag..."
+          $last_tag_version = $(git describe --abbrev=0 --match v*.*).substring(1)
+          echo "Last tag version: ${last_tag_version}"
+          $project_lists = Get-Content -Raw CMakeLists.txt
+          if(!($project_lists -match '(?<=${{ env.match_start }})(.*)(?=${{ env.match_end }})')){
+            throw "Could not get project version!"
+          }
+          $new_tag_version = $Matches[1].Trim()
+          echo "New tag version: ${new_tag_version}"
+          if(!([version]$new_tag_version -gt [version]$last_tag_version)){
+            throw "Project version was not increased to be above previous tagged version!"
+          }
+        }
+        else{
+          echo "No existing version tags present. Proceeding..."
+        }
+        

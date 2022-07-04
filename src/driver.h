@@ -1,10 +1,15 @@
 #ifndef DRIVER_H
 #define DRIVER_H
 
-#include "core.h"
-#include "qx-net.h"
-
+// Qt Includes
 #include <QThread>
+
+// Qx Includes
+#include <qx/network/qx-downloadmanager.h>
+
+// Project Includes
+#include "core.h"
+
 
 class Driver : public QObject
 {
@@ -106,7 +111,7 @@ private:
     void cleanup();
 
     // Helper
-    std::unique_ptr<FP::Install> findFlashpointInstall();
+    std::unique_ptr<Fp::Install> findFlashpointInstall();
     QString escapeNativeArgsForCMD(QString nativeArgs);
     void logProcessStart(const QProcess* process, Core::ProcessType type);
     void logProcessEnd(const QProcess* process, Core::ProcessType type);
@@ -130,7 +135,7 @@ signals:
     void message(const QString& message);
 
     // Network
-    void authenticationRequired(QString prompt, QString* username, QString* password, bool* abort);
+    void authenticationRequired(QString prompt, QAuthenticator* authenticator);
     void downloadProgressChanged(quint64 progress);
     void downloadTotalChanged(quint64 total);
     void downloadStarted(QString task);

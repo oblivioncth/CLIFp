@@ -1,19 +1,26 @@
 #ifndef CORE_H
 #define CORE_H
 
+// Standard Library Includes
 #include <queue>
+
+// Qt Includes
 #include <QString>
 #include <QList>
 #include <QDir>
 #include <QUrl>
 #include <QCommandLineParser>
+#include <QMessageBox>
 
+// libfp Includes
+#include <fp/flashpoint/fp-install.h>
+
+// External Includes
 #include "magic_enum.hpp"
-#include "qx-io.h"
 
-#include "flashpoint/fp-install.h"
+// Project Includes
 #include "logger.h"
-#include "version.h"
+#include "project_vars.h"
 
 //-Macros----------------------------------------------------------------------
 #define ENUM_NAME(eenum) QString::fromStdString(std::string(magic_enum::enum_name(eenum)))
@@ -199,7 +206,7 @@ public:
     static inline const QString LOG_EVENT_INIT = "Initializing CLIFp...";
     static inline const QString LOG_EVENT_G_HELP_SHOWN = "Displayed general help information";
     static inline const QString LOG_EVENT_VER_SHOWN = "Displayed version information";
-    static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = "Notifcation Level is: %1";
+    static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = "Notification Level is: %1";
     static inline const QString LOG_EVENT_ENQ_START = "Enqueuing startup tasks...";
     static inline const QString LOG_EVENT_ENQ_STOP = "Enqueuing shutdown tasks...";
     static inline const QString LOG_EVENT_ENQ_DATA_PACK = "Enqueuing Data Pack tasks...";
@@ -239,7 +246,7 @@ public:
 
     // Help template
     static inline const QString HELP_TEMPL = "<u>Usage:</u><br>"
-                                             VER_INTERNALNAME_STR "&lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
+                                             PROJECT_SHORT_NAME "&lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
                                              "<br>"
                                              "<u>Global Options:</u>%1<br>"
                                              "<br>"
@@ -250,7 +257,7 @@ public:
     static inline const QString HELP_COMMAND_TEMPL = "<br><b>%1:</b> &nbsp;%2";
 
     // Command line messages
-    static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " VER_FILEVERSION_STR ", designed for use with BlueMaxima's Flashpoint " VER_PRODUCTVERSION_STR "+";
+    static inline const QString CL_VERSION_MESSAGE = "CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with BlueMaxima's Flashpoint " PROJECT_TARGET_FP_VER_PFX_STR "series";
 
     // Input strings
     static inline const QString MULTI_TITLE_SEL_CAP = "Title Disambiguation";
@@ -266,7 +273,7 @@ private:
     QString mRawCommandLine;
 
     // Handles
-    std::unique_ptr<FP::Install> mFlashpointInstall;
+    std::unique_ptr<Fp::Install> mFlashpointInstall;
     std::unique_ptr<QFile> mLogFile;
     std::unique_ptr<Logger> mLogger;
 
@@ -291,7 +298,7 @@ private:
 
 public:
     ErrorCode initialize(QStringList& commandLine);
-    void attachFlashpoint(std::unique_ptr<FP::Install> flashpointInstall);
+    void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 
@@ -312,7 +319,7 @@ public:
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
 
-    FP::Install& getFlashpointInstall();
+    Fp::Install& getFlashpointInstall();
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;

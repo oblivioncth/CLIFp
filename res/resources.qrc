@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icon/CLIFp.ico</file>
+    </qresource>
+</RCC>

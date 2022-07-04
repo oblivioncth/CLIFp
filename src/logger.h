@@ -1,11 +1,13 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+// Qt Includes
 #include <QString>
 #include <QStringList>
-#include "qx.h"
-#include "qx-io.h"
-#include "version.h"
+
+// Qx Includes
+#include <qx/core/qx-genericerror.h>
+#include <qx/io/qx-textstreamwriter.h>
 
 class Logger
 {
@@ -22,7 +24,6 @@ private:
     static inline const QString FINISH_ERR = "prematurely";
 
     static inline const QHash<Qx::GenericError::ErrorLevel, QString> ERROR_LEVEL_STR_MAP = {
-        {Qx::GenericError::Undefined, "UNDEF_LEVEL"},
         {Qx::GenericError::Warning, "WARNING"},
         {Qx::GenericError::Error, "ERROR"},
         {Qx::GenericError::Critical, "CRITICAL"}
@@ -40,7 +41,7 @@ private:
 
     // Working var
     std::unique_ptr<Qx::TextStreamWriter> mTextStreamWriter;
-    Qx::IOOpReport mErrorStatus = Qx::IOOpReport();
+    Qx::IoOpReport mErrorStatus = Qx::IoOpReport();
 
 //-Constructor--------------------------------------------------------------------------------------------------------
 public:
@@ -48,13 +49,13 @@ public:
 
 //-Instance Functions-------------------------------------------------------------------------------------------------
 public:
-    Qx::IOOpReport openLog();
-    Qx::IOOpReport recordVerbatim(QString text);
-    Qx::IOOpReport recordErrorEvent(QString src, Qx::GenericError error);
-    Qx::IOOpReport recordGeneralEvent(QString src, QString event);
-    Qx::IOOpReport finish(int returnCode);
+    Qx::IoOpReport openLog();
+    Qx::IoOpReport recordVerbatim(QString text);
+    Qx::IoOpReport recordErrorEvent(QString src, Qx::GenericError error);
+    Qx::IoOpReport recordGeneralEvent(QString src, QString event);
+    Qx::IoOpReport finish(int returnCode);
 
-    Qx::IOOpReport error();
+    Qx::IoOpReport error();
     bool hasError();
 };
 

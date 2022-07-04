@@ -7,9 +7,9 @@ Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completel
 
 ## Compatability
 ### General
-Since the 0.2 rewrite, the primary paradigm through which CLIFp functions has been significantly improved and should provide a perfect or near-perfect experience when compared to using the standard GUI method of launching games/animations. Additionally, the redesign is expected to be very resilient towards Flashpoint updates and will most likely only require compatibility patches when updates that make major changes are released.
+Because it directly mimics the actions of the GUI launcher, CLIFp should provide a perfect or near-perfect experience when compared to using the standard method of launching games/animations. Additionally, this makes it fairly resilient towards Flashpoint updates and will most likely only require compatibility patches when updates that make major changes are released.
 
-All Flashpoint features are supported, other than editing the local database (this includes playlists) and querying title meta-data through the command-line. More specifically, one can launch:
+All Flashpoint features are supported, other than editing the local database and querying title meta-data through the command-line. More specifically, one can launch:
 
  - Games (with or without autorun-before additional apps)
  - Animations
@@ -20,21 +20,17 @@ All Flashpoint features are supported, other than editing the local database (th
 While testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection. Games are slightly prioritized when it comes to testing the application however.
 
 ### Version Matching
-Each release of this application targets a specific version or versions of BlueMaxima's Flashpoint and while newer releases will sometimes contain general improvements to functionality, they will largely be created to match the changes made between each Flashpoint release and therefore maintain compatibility. These matches are shown below:
-| CLIFp Version   | Target Flashpoint Version       |
-|-----------------|---------------------------------|
-| 0.1             | 8.1 ("Spirit of Adventure")     |
-| 0.1.1           | 8.2 ("Approaching Planet Nine") |
-| 0.2 - 0.3.1.1   | 8.1 - 8.2                       |
-| 0.3.2 - 0.4.0.1 | 9.0 ("Glorious Sunset")         |
-| 0.4.1 - 0.7.0.2 | 10.0 ("Absence")                |
-| 0.8             | 10.1 ("Absence II")
+Each release of this application targets a specific version series of BlueMaxima’s Flashpoint, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
 
-Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however since 0.2 compatibility with newer versions is quite likely even if they aren't explicit listed yet** (usually because I haven't had time to check if an update is needed).
+Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however**, given its design, CLIFp is likely to continue working with newer versions of FP that are released without requiring an update, unless that new version contains significant technical changes.
+
+The title of each [release](https://stackedit.io/github.com/oblivioncth/CLIFp/releases) will indicate which version of Flashpoint it targets.
+
+Updates will always set to target the latest Flashpoint release, even if they were not created explicitly for compatibility reasons.
 
 ## Usage
 ### Target Usage
-CLIFp was primarily created for use with its sister project [OFILb (Obby's Flashpoint Importer for LaunchBox)](https://github.com/oblivioncth/OFILb) to facilitate the inclusion of Flashpoint in to LaunchBox user's collections. The operation of CLIFp is completely automated when used in this manner.
+CLIFp was primarily created for use with its sister project [FIL (Flashpoint Importer for Launchers)](https://github.com/oblivioncth/FIL) to facilitate the inclusion of Flashpoint in to LaunchBox and other frontend collections. The operation of CLIFp is completely automated when used in this manner.
 
 It was later refined to also be used directly with the Flashpoint project to allow users to create shortcuts and leverage other benefits of a CLI. 
 
@@ -71,7 +67,7 @@ Or if feeling spontanious, use the **-r** switch, followed by a library filter t
 See the full command/options list for more information.
 
 **Direct Execution:**
-The more legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's webserver and then start the application specified with the provided parameters:
+The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's webserver and then start the application specified with the provided parameters:
 
     CLIFp run --app="FPSoftware\Flash\flashplayer_32_sa.exe" --param="http://www.mowa.org/work/buttons/buttons_art/basic.swf"
 
@@ -217,8 +213,21 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
  - Although general compatibility is quite high, compatibility with every single title cannot be assured. Issues with a title or group of titles will be fixed as they are discovered
 
 ## Source
-This tool was written in C++ 17 along with Qt 5 and currently only targets Windows Vista and above; however, this tool can easily be ported to Linux with minimal changes, though to what end I am not sure since this is for a Windows application. The source includes an easy-to-use .pro file if you wish to build the application in Qt Creator (or qmake via the command-line) and the available latest release was compiled in Qt Creator using MSVC 2019 and a static compilation of Qt 5.15.2. Other than a C++ 17 capable compiler and Qt 5.15.x+ (compiled with some form of SSL support) all files required to compile this software are included.
 
-All functions/variables under the "Qx" (QExtended) namespace belong to a small, personal library I maintain to always have access to frequently used functionality in my projects. A pre-compiled static version of this library is provided with the source for this tool. If anyone truly needs it, I can provide the source for this library as well.
+### Summary
 
-Additionally the source makes use of [Neargye's Magic Enum](https://github.com/Neargye/magic_enum) header for gaining static reflection of enumerated types, primarily to easily convert enum names to strings.
+ - C++20
+ - CMake 3.21.1
+ - Targets Windows 10 and above
+
+### Dependencies
+- Qt6
+- [Qx](https://github.com/oblivioncth/Qx/)
+- [libfp](https://github.com/oblivioncth/libfp/)
+- [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
+
+### Builds
+Tested with MSVC2022.
+
+### Details
+The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.

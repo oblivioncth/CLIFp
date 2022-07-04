@@ -1,0 +1,31 @@
+name: Pull-request auto-labeler
+on:
+  pull_request:
+    types: [opened]
+    
+jobs:
+  label_master_pr:
+    name: Label master pull-request
+    if: github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: release-pr
+  label_other_pr:
+    name: Label other standard pull-requests
+    if: github.base_ref != 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label bugfix PR
+        if: startsWith(github.head_ref, 'bugfix/')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: bug
+      - name: Label feature PR
+        if:  startsWith(github.head_ref, 'feature/')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: enhancement
+    

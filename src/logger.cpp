@@ -1,4 +1,8 @@
+// Unit Includes
 #include "logger.h"
+
+// Project Includes
+#include "project_vars.h"
 
 //===============================================================================================================
 // LOGGER
@@ -8,19 +12,20 @@
 //Public:
 Logger::Logger(QFile* const logFile, QString commandLine, QString globalOptions, QString header, int maxEntries)
     : mLogFile(logFile), mCommandLine(commandLine), mGlobalOptions(globalOptions),
-      mEntryHeader(HEADER_TEMPLATE.arg(header, VER_FILEVERSION_STR)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
+      mEntryHeader(HEADER_TEMPLATE.arg(header, PROJECT_VERSION_STR)), mTimeStamp(QDateTime::currentDateTime()), mMaxEntries(maxEntries)
 {
     // Initializer stream writer
-    mTextStreamWriter = std::make_unique<Qx::TextStreamWriter>(*mLogFile, Qx::Append, true, false);
+    mTextStreamWriter = std::make_unique<Qx::TextStreamWriter>(mLogFile, Qx::WriteMode::Append, Qx::WriteOption::CreatePath |
+                                                                                                Qx::WriteOption::Unbuffered);
 }
 
 //-Instance Functions--------------------------------------------------------------------------------------------
 //Public:
-Qx::IOOpReport Logger::openLog()
+Qx::IoOpReport Logger::openLog()
 {
     //-Prepare Log File--------------------------------------------------
     QFileInfo logFileInfo(*mLogFile);
-    Qx::IOOpReport logFileOpReport;
+    Qx::IoOpReport logFileOpReport;
 
     QString entryStart;
 
@@ -43,8 +48,8 @@ Qx::IOOpReport Logger::openLog()
         if(entryStartLocations.count() >= mMaxEntries)
         {
             int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
-            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).getLineNum() - 1, -1);
-            logFileOpReport = Qx::deleteTextRangeFromFile(*mLogFile, Qx::TextPos::START, deleteEnd);
+            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).line() - 1, -1);
+            logFileOpReport = Qx::deleteTextFromFile(*mLogFile, Qx::TextPos::START, deleteEnd);
             if(!logFileOpReport.wasSuccessful())
             {
                 mErrorStatus = logFileOpReport;
@@ -74,7 +79,7 @@ Qx::IOOpReport Logger::openLog()
     return logFileOpReport;
 }
 
-Qx::IOOpReport Logger::recordVerbatim(QString text)
+Qx::IoOpReport Logger::recordVerbatim(QString text)
 {
     if(mErrorStatus.wasSuccessful())
     {
@@ -82,10 +87,10 @@ Qx::IOOpReport Logger::recordVerbatim(QString text)
         return mErrorStatus;
     }
 
-    return Qx::IOOpReport();
+    return Qx::IoOpReport();
 }
 
-Qx::IOOpReport Logger::recordErrorEvent(QString src, Qx::GenericError error)
+Qx::IoOpReport Logger::recordErrorEvent(QString src, Qx::GenericError error)
 {
     if(mErrorStatus.wasSuccessful())
     {
@@ -99,10 +104,10 @@ Qx::IOOpReport Logger::recordErrorEvent(QString src, Qx::GenericError error)
         return mErrorStatus;
     }
 
-    return Qx::IOOpReport();
+    return Qx::IoOpReport();
 }
 
-Qx::IOOpReport Logger::recordGeneralEvent(QString src, QString event)
+Qx::IoOpReport Logger::recordGeneralEvent(QString src, QString event)
 {
     if(mErrorStatus.wasSuccessful())
     {
@@ -110,10 +115,10 @@ Qx::IOOpReport Logger::recordGeneralEvent(QString src, QString event)
         return mErrorStatus;
     }
 
-    return Qx::IOOpReport();
+    return Qx::IoOpReport();
 }
 
-Qx::IOOpReport Logger::finish(int returnCode)
+Qx::IoOpReport Logger::finish(int returnCode)
 {
     if(mErrorStatus.wasSuccessful())
     {
@@ -125,8 +130,8 @@ Qx::IOOpReport Logger::finish(int returnCode)
         return mErrorStatus;
     }
 
-    return Qx::IOOpReport();
+    return Qx::IoOpReport();
 }
 
-Qx::IOOpReport Logger::error() { return mErrorStatus; }
+Qx::IoOpReport Logger::error() { return mErrorStatus; }
 bool Logger::hasError() { return !mErrorStatus.wasSuccessful(); }

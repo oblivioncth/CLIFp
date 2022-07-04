@@ -1,11 +1,12 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+// Qt Includes
 #include <QObject>
 
+// Project Includes
 #include "statusrelay.h"
 #include "core.h"
-
 
 class Controller : public QObject
 {

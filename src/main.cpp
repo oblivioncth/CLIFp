@@ -1,21 +1,22 @@
+// Qt Includes
 #include <QApplication>
 
-#include "version.h"
+// Project Includes
 #include "core.h"
 #include "controller.h"
+#include "project_vars.h"
 
 ErrorCode main(int argc, char *argv[])
 {
     //-Basic Application Setup-------------------------------------------------------------
-    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     // QApplication Object
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
 
     // Set application name
-    QCoreApplication::setApplicationName(VER_PRODUCTNAME_STR);
-    QCoreApplication::setApplicationVersion(VER_FILEVERSION_STR);
+    QCoreApplication::setApplicationName(PROJECT_APP_NAME);
+    QCoreApplication::setApplicationVersion(PROJECT_VERSION_STR);
 
     // Register metatypes
     qRegisterMetaType<Core::Error>();
