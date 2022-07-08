@@ -144,7 +144,7 @@ ErrorCode Driver::processTaskQueue()
                 // Setup download
                 QFile packFile(downloadTask->destPath + "/" + downloadTask->destFileName);
                 QFileInfo packFileInfo(packFile);
-                mDownloadManager->appendTask(Qx::DownloadTask{downloadTask->targetFile, packFileInfo.path()});
+                mDownloadManager->appendTask(Qx::DownloadTask{downloadTask->targetFile, packFileInfo.absoluteFilePath()});
 
                 // Log/label string
                 QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(packFileInfo.fileName());
