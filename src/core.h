@@ -274,7 +274,6 @@ private:
 
     // Handles
     std::unique_ptr<Fp::Install> mFlashpointInstall;
-    std::unique_ptr<QFile> mLogFile;
     std::unique_ptr<Logger> mLogger;
 
     // Processing

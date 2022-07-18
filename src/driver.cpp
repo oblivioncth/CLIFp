@@ -167,7 +167,7 @@ ErrorCode Driver::processTaskQueue()
                 // Confirm checksum
                 bool checksumMatch;
                 Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
-                if(!checksumResult.wasSuccessful() || !checksumMatch)
+                if(checksumResult.isFailure() || !checksumMatch)
                 {
                     mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
                     handleExecutionError(taskNum, executionError, Core::ErrorCodes::DATA_PACK_INVALID);

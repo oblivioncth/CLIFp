@@ -90,11 +90,11 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(CLIFp/FetchQx)
-fetch_qx("v0.3.0.3")
+fetch_qx("c148272b65da2f364b467200dd166c8d538ef4cd")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
-fetch_libfp("v0.1")
+fetch_libfp("5f667cb1df8ddf053fe0c2ce51f7a5649c62c21e")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)
