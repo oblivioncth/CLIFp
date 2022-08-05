@@ -23,7 +23,7 @@
 #include "project_vars.h"
 
 //-Macros----------------------------------------------------------------------
-#define ENUM_NAME(eenum) QString::fromStdString(std::string(magic_enum::enum_name(eenum)))
+#define ENUM_NAME(eenum) QString(magic_enum::enum_name(eenum).data())
 #define CLIFP_DIR_PATH QCoreApplication::applicationDirPath()
 
 //-Typedef---------------------------------------------------------------------
