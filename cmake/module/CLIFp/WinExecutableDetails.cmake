@@ -5,7 +5,6 @@ function(set_win_executable_details target)
     set(GENERATED_PATH "${GENERATED_DIR}/${GENERATED_NAME}")
     set(TEMPLATE_FILE "__resources.rc.in")
 
-
     # Additional Function inputs
     set(oneValueArgs
         ICON
@@ -36,12 +35,17 @@ function(set_win_executable_details target)
         message(FATAL_ERROR "Not all required values were present!")
     endif()
 
-    # Determine absolute icon path
-    set(EXE_ICON "${CMAKE_CURRENT_LIST_DIR}/${WIN_ED_ICON}")
+    # Determine absolute icon path (relative to caller)
+    cmake_path(ABSOLUTE_PATH WIN_ED_ICON
+        BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+        NORMALIZE
+        OUTPUT_VARIABLE __ABS_ICON_PATH
+    )
 
-    # Convert icon path to relative
-    cmake_path(RELATIVE_PATH EXE_ICON
+    # Determine relative icon path (relative to generated rc file)
+    cmake_path(RELATIVE_PATH __ABS_ICON_PATH
         BASE_DIRECTORY "${GENERATED_DIR}"
+        OUTPUT_VARIABLE EXE_ICON
     )
 
     # Set binary file and product versions
