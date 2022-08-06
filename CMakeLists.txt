@@ -217,6 +217,8 @@ write_basic_package_version_file(
 
 #================= Install ==========================
 
+set(TOP_LEVEL_INSTALL_COMPONENT ${PROJECT_NAME_LC})
+
 # Install executable
 install(TARGETS ${TARGET_NAME}
     CONFIGURATIONS Release
