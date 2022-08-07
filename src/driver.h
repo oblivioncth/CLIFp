@@ -5,6 +5,7 @@
 #include <QThread>
 
 // Qx Includes
+#include <qx/core/qx-setonce.h>
 #include <qx/network/qx-downloadmanager.h>
 
 // Project Includes
@@ -80,6 +81,8 @@ private:
 private:
     QStringList mArguments;
     QString mRawArguments;
+    Qx::SetOnce<ErrorCode> mErrorStatus;
+
     Core* mCore; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     QList<QProcess*> mActiveChildProcesses;
     Qx::SyncDownloadManager* mDownloadManager; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
@@ -104,8 +107,9 @@ private:
     void init();
 
     // Process
-    ErrorCode processTaskQueue();
-    void handleExecutionError(int taskNum, ErrorCode& currentError, ErrorCode newError);
+    void processExecTask(const std::shared_ptr<Core::ExecTask> task);
+    void processTaskQueue();
+    void handleExecutionError(int taskNum, ErrorCode error);
     bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
     ErrorCode waitOnProcess(QString processName, int graceSecs);
     void cleanup();

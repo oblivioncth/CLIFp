@@ -19,7 +19,8 @@
 //-Constructor--------------------------------------------------------------------
 Driver::Driver(QStringList arguments, QString rawArguments) :
     mArguments(arguments),
-    mRawArguments(rawArguments)
+    mRawArguments(rawArguments),
+    mErrorStatus(Core::ErrorCodes::NO_ERR)
 {}
 
 //-Class Functions----------------------------------------------------------------
@@ -86,11 +87,9 @@ void Driver::init()
     connect(mDownloadManager, &Qx::SyncDownloadManager::downloadProgress, this, &Driver::downloadProgressChanged);
 }
 
-ErrorCode Driver::processTaskQueue()
+void Driver::processTaskQueue()
 {
     mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
-    // Error tracker
-    ErrorCode executionError = Core::ErrorCodes::NO_ERR;
 
     // Exhaust queue
     for(int taskNum = 0; mCore->hasTasks(); taskNum++)
@@ -100,7 +99,7 @@ ErrorCode Driver::processTaskQueue()
         mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask->stage)));
 
         // Only execute task after an error if it is a Shutdown task
-        if(!executionError || currentTask->stage == Core::TaskStage::Shutdown)
+        if(!mErrorStatus.isSet() || currentTask->stage == Core::TaskStage::Shutdown)
         {
             // Cover each task type
             if(std::dynamic_pointer_cast<Core::MessageTask>(currentTask))
@@ -118,7 +117,7 @@ ErrorCode Driver::processTaskQueue()
                 if(!extraTask->dir.exists())
                 {
                     mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(extraTask->dir.path()))));
-                    handleExecutionError(taskNum, executionError, Core::ErrorCodes::EXTRA_NOT_FOUND);
+                    handleExecutionError(taskNum, Core::ErrorCodes::EXTRA_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
@@ -133,7 +132,7 @@ ErrorCode Driver::processTaskQueue()
                 ErrorCode waitError = waitOnProcess(waitTask->processName, SECURE_PLAYER_GRACE);
                 if(waitError)
                 {
-                    handleExecutionError(taskNum, executionError, waitError);
+                    handleExecutionError(taskNum, waitError);
                     continue; // Continue to next task
                 }
             }
@@ -160,7 +159,7 @@ ErrorCode Driver::processTaskQueue()
                 {
                     downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
                     mCore->postError(NAME, downloadReport.errorInfo());
-                    handleExecutionError(taskNum, executionError, Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
+                    handleExecutionError(taskNum, Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
                     continue; // Continue to next task
                 }
 
@@ -170,7 +169,7 @@ ErrorCode Driver::processTaskQueue()
                 if(checksumResult.isFailure() || !checksumMatch)
                 {
                     mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
-                    handleExecutionError(taskNum, executionError, Core::ErrorCodes::DATA_PACK_INVALID);
+                    handleExecutionError(taskNum, Core::ErrorCodes::DATA_PACK_INVALID);
                     continue; // Continue to next task
                 }
 
@@ -186,7 +185,7 @@ ErrorCode Driver::processTaskQueue()
                 {
                     mCore->postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                     ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(taskNum, executionError, Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
+                    handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
                     continue; // Continue to next task
                 }
 
@@ -195,7 +194,7 @@ ErrorCode Driver::processTaskQueue()
                 {
                     mCore->postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                     ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(taskNum, executionError, Core::ErrorCodes::EXECUTABLE_NOT_VALID);
+                    handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_VALID);
                     continue; // Continue to next task
                 }
 
@@ -222,7 +221,7 @@ ErrorCode Driver::processTaskQueue()
                         taskProcess->setParent(this);
                         if(!cleanStartProcess(taskProcess, executableInfo))
                         {
-                            handleExecutionError(taskNum, executionError, Core::ErrorCodes::PROCESS_START_FAIL);
+                            handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(taskProcess, Core::ProcessType::Blocking);
@@ -236,7 +235,7 @@ ErrorCode Driver::processTaskQueue()
                         taskProcess->setParent(this);
                         if(!cleanStartProcess(taskProcess, executableInfo))
                         {
-                            handleExecutionError(taskNum, executionError, Core::ErrorCodes::PROCESS_START_FAIL);
+                            handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(taskProcess, Core::ProcessType::Deferred);
@@ -247,7 +246,7 @@ ErrorCode Driver::processTaskQueue()
                     case Core::ProcessType::Detached:
                         if(!taskProcess->startDetached())
                         {
-                            handleExecutionError(taskNum, executionError, Core::ErrorCodes::PROCESS_START_FAIL);
+                            handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
                             continue; // Continue to next task
                         }
                         logProcessStart(taskProcess, Core::ProcessType::Detached);
@@ -263,16 +262,11 @@ ErrorCode Driver::processTaskQueue()
         // Remove handled task
         mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH.arg(taskNum));
     }
-
-    // Return error status
-    return executionError;
 }
 
-void Driver::handleExecutionError(int taskNum, ErrorCode& currentError, ErrorCode newError)
+void Driver::handleExecutionError(int taskNum, ErrorCode error)
 {
-    if(!currentError) // Only record first error
-        currentError = newError;
-
+    mErrorStatus = error;
     mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(taskNum)); // Record early end of task
 }
 
@@ -423,13 +417,11 @@ void Driver::drive()
     // Initialize
     init();
 
-    // Error status tracker
-    ErrorCode errorStatus = Core::ErrorCodes::NO_ERR;
-
     //-Initialize Core--------------------------------------------------------------------------
-    if((errorStatus = mCore->initialize(mArguments)) || mArguments.empty()) // Terminate if error or no command
+    mErrorStatus = mCore->initialize(mArguments);
+    if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
     {
-        emit finished(mCore->logFinish(NAME, errorStatus));
+        emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
         return;
     }
 
@@ -479,9 +471,10 @@ void Driver::drive()
     std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
     // Process command
-    if((errorStatus = commandProcessor->process(mArguments)))
+    mErrorStatus = commandProcessor->process(mArguments);
+    if(mErrorStatus.isSet())
     {
-        emit finished(mCore->logFinish(NAME, errorStatus));
+        emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
         return;
     }
 
@@ -490,7 +483,7 @@ void Driver::drive()
     if(mCore->hasTasks())
     {
         // Process app task queue
-        ErrorCode executionError = processTaskQueue();
+        processTaskQueue();
         mCore->logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
 
         // Cleanup
@@ -498,7 +491,7 @@ void Driver::drive()
         mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
 
         // Return error status
-        emit finished(mCore->logFinish(NAME, executionError));
+        emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
         return;
     }
     else
