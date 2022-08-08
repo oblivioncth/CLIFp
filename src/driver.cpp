@@ -245,31 +245,16 @@ void Driver::processTaskQueue()
         if(!mErrorStatus.isSet() || currentTask->stage == Core::TaskStage::Shutdown)
         {
             // Cover each task type
-            if(std::dynamic_pointer_cast<Core::MessageTask>(currentTask))
-            {
-                std::shared_ptr<Core::MessageTask> messageTask = std::static_pointer_cast<Core::MessageTask>(currentTask);
+            if(auto messageTask = std::dynamic_pointer_cast<Core::MessageTask>(currentTask)) // Message
                 processMessageTask(messageTask);
-            }
-            else if(std::dynamic_pointer_cast<Core::ExtraTask>(currentTask)) // Extra
-            {
-                std::shared_ptr<Core::ExtraTask> extraTask = std::static_pointer_cast<Core::ExtraTask>(currentTask);
+            else if(auto extraTask = std::dynamic_pointer_cast<Core::ExtraTask>(currentTask)) // Extra
                 processExtraTask(extraTask, taskNum);
-            }
-            else if(std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
-            {
-                std::shared_ptr<Core::WaitTask> waitTask = std::static_pointer_cast<Core::WaitTask>(currentTask);
+            else if(auto waitTask = std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
                 processWaitTask(waitTask, taskNum);
-            }
-            else if(std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
-            {
-                std::shared_ptr<Core::DownloadTask> downloadTask = std::static_pointer_cast<Core::DownloadTask>(currentTask);
+            else if(auto downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
                 processDownloadTask(downloadTask, taskNum);
-            }
-            else if(std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
-            {
-                std::shared_ptr<Core::ExecTask> execTask = std::static_pointer_cast<Core::ExecTask>(currentTask);
+            else if(auto execTask = std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
                 processExecTask(execTask, taskNum);
-            }
             else
                 throw new std::runtime_error("Unhandled Task child was present in task queue");
         }
