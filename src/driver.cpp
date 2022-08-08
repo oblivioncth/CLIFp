@@ -62,7 +62,7 @@ void Driver::operate()
         return;
 
     //-Restrict app to only one instance---------------------------------------------------
-    if(!Qx::enforceSingleInstance())
+    if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
         mErrorStatus = Core::ErrorCodes::ALREADY_OPEN;

@@ -17,13 +17,16 @@ class Driver : public QObject
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Single Instance ID
+    static inline const QString SINGLE_INSTANCE_ID = "CLIFp_ONE_INSTANCE"; // Basically never change this
+
     // Error Messages - Prep
     static inline const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
     static inline const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
     static inline const QString ERR_LAUNCHER_RUNNING_P = "The CLI cannot be used while the Flashpoint Launcher is running.";
     static inline const QString ERR_LAUNCHER_RUNNING_S = "Please close the Launcher first.";
     static inline const QString ERR_INSTALL_INVALID_P = "CLIFp does not appear to be deployed in a valid Flashpoint install";
-    static inline const QString ERR_INSTALL_INVALID_S = "Check its location and compatability with your Flashpoint version.";
+    static inline const QString ERR_INSTALL_INVALID_S = "Check its location and compatibility with your Flashpoint version.";
 
     // Error Messages - Execution
     static inline const QString ERR_EXTRA_NOT_FOUND = "The extra %1 does not exist!";
