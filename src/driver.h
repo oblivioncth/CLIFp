@@ -103,6 +103,9 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------------
 private:
+    // Main Driving Function
+    void operate();
+
     // Setup
     void init();
 

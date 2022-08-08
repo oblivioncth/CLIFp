@@ -51,6 +51,80 @@ QString Driver::getRawCommandLineParams(const QString& rawCommandLine)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+void Driver::operate()
+{
+    // Initialize
+    init();
+
+    //-Initialize Core--------------------------------------------------------------------------
+    mErrorStatus = mCore->initialize(mArguments);
+    if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
+        return;
+
+    //-Restrict app to only one instance---------------------------------------------------
+    if(!Qx::enforceSingleInstance())
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
+        mErrorStatus = Core::ErrorCodes::ALREADY_OPEN;
+        return;
+    }
+
+    // Ensure Flashpoint Launcher isn't running
+    if(Qx::processIsRunning(Fp::Install::LAUNCHER_INFO.fileName()))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
+        mErrorStatus = Core::ErrorCodes::LAUNCHER_OPEN;
+        return;
+    }
+
+    //-Find and link to Flashpoint Install----------------------------------------------------------
+    std::unique_ptr<Fp::Install> flashpointInstall;
+    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
+
+    if(!(flashpointInstall = findFlashpointInstall()))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
+        mErrorStatus = Core::ErrorCodes::INSTALL_INVALID;
+        return;
+    }
+    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
+
+    // Insert into core
+    mCore->attachFlashpoint(std::move(flashpointInstall));
+
+    //-Handle Command and Command Options----------------------------------------------------------
+    QString commandStr = mArguments.first().toLower();
+
+    // Check for valid command
+    if(!Command::isRegistered(commandStr))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
+        mErrorStatus = Core::ErrorCodes::INVALID_ARGS;
+        return;
+    }
+
+    // Create command instance
+    std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
+
+    // Process command
+    mErrorStatus = commandProcessor->process(mArguments);
+    if(mErrorStatus.isSet())
+        return;
+
+    //-Handle Tasks-----------------------------------------------------------------------
+    mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
+    if(mCore->hasTasks())
+    {
+        // Process app task queue
+        processTaskQueue();
+        mCore->logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
+
+        // Cleanup
+        cleanup();
+        mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
+    }
+}
+
 void Driver::init()
 {
     // Create core & download manager
@@ -416,91 +490,11 @@ void Driver::logProcessEnd(const QProcess* process, Core::ProcessType type)
 //Public:
 void Driver::drive()
 {
-    // Initialize
-    init();
-
-    //-Initialize Core--------------------------------------------------------------------------
-    mErrorStatus = mCore->initialize(mArguments);
-    if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
-    {
-        emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
-        return;
-    }
-
-    //-Restrict app to only one instance---------------------------------------------------
-    if(!Qx::enforceSingleInstance())
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        emit finished(mCore->logFinish(NAME, Core::ErrorCodes::ALREADY_OPEN));
-        return;
-    }
-
-    // Ensure Flashpoint Launcher isn't running
-    if(Qx::processIsRunning(Fp::Install::LAUNCHER_INFO.fileName()))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        emit finished(mCore->logFinish(NAME, Core::ErrorCodes::LAUNCHER_OPEN));
-        return;
-    }
-
-    //-Find and link to Flashpoint Install----------------------------------------------------------
-    std::unique_ptr<Fp::Install> flashpointInstall;
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
-
-    if(!(flashpointInstall = findFlashpointInstall()))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        emit finished(mCore->logFinish(NAME, Core::ErrorCodes::INSTALL_INVALID));
-        return;
-    }
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
-
-    // Insert into core
-    mCore->attachFlashpoint(std::move(flashpointInstall));
-
-    //-Handle Command and Command Options----------------------------------------------------------
-    QString commandStr = mArguments.first().toLower();
-
-    // Check for valid command
-    if(!Command::isRegistered(commandStr))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
-        emit finished(mCore->logFinish(NAME, Core::ErrorCodes::INVALID_ARGS));
-        return;
-    }
-
-    // Create command instance
-    std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
-
-    // Process command
-    mErrorStatus = commandProcessor->process(mArguments);
-    if(mErrorStatus.isSet())
-    {
-        emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
-        return;
-    }
-
-    //-Handle Tasks-----------------------------------------------------------------------
-    mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
-    if(mCore->hasTasks())
-    {
-        // Process app task queue
-        processTaskQueue();
-        mCore->logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
-
-        // Cleanup
-        cleanup();
-        mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
-
-        // Return error status
-        emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
-        return;
-    }
-    else
-    {
-        emit finished(mCore->logFinish(NAME, Core::ErrorCodes::NO_ERR));
-        return;
-    }
+    /* Using this public function as a wrapper for the actual operation ensures that no
+     * matter where operate returns from 'finished' will always be emitted
+     */
+    operate();
+    emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
 }
 
 void Driver::cancelActiveDownloads() { mDownloadManager->abort(); }
