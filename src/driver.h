@@ -107,7 +107,12 @@ private:
     void init();
 
     // Process
-    void processExecTask(const std::shared_ptr<Core::ExecTask> task);
+    void processExecTask(const std::shared_ptr<Core::ExecTask> task, int taskNum);
+    void processMessageTask(const std::shared_ptr<Core::MessageTask> task);
+    void processExtraTask(const std::shared_ptr<Core::ExtraTask> task, int taskNum);
+    void processWaitTask(const std::shared_ptr<Core::WaitTask> task, int taskNum);
+    void processDownloadTask(const std::shared_ptr<Core::DownloadTask> task, int taskNum);
+
     void processTaskQueue();
     void handleExecutionError(int taskNum, ErrorCode error);
     bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);

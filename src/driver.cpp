@@ -87,6 +87,149 @@ void Driver::init()
     connect(mDownloadManager, &Qx::SyncDownloadManager::downloadProgress, this, &Driver::downloadProgressChanged);
 }
 
+void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task, int taskNum)
+{
+    // Ensure executable exists
+    QFileInfo executableInfo(task->path + "/" + task->filename);
+    if(!executableInfo.exists() || !executableInfo.isFile())
+    {
+        mCore->postError(NAME, Qx::GenericError(task->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                                        ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
+        handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
+        return;
+    }
+
+    // Ensure executable is valid
+    if(!executableInfo.isExecutable())
+    {
+        mCore->postError(NAME, Qx::GenericError(task->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                                        ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
+        handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_VALID);
+        return;
+    }
+
+    // Move to executable directory
+    QDir::setCurrent(task->path);
+    mCore->logEvent(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(task->path)));
+
+    // Check if task is a batch file
+    bool batchTask = QFileInfo(task->filename).suffix() == BAT_SUFX;
+
+    // Create process handle
+    QProcess* taskProcess = new QProcess();
+    taskProcess->setProgram(batchTask ? CMD_EXE : task->filename);
+    taskProcess->setArguments(task->param);
+    taskProcess->setNativeArguments(batchTask ? CMD_ARG_TEMPLATE.arg(task->filename, escapeNativeArgsForCMD(task->nativeParam))
+                                              : task->nativeParam);
+    taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inhert console window
+    taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inhert console window
+
+    // Cover each process type
+    switch(task->processType)
+    {
+        case Core::ProcessType::Blocking:
+            taskProcess->setParent(this);
+            if(!cleanStartProcess(taskProcess, executableInfo))
+            {
+                handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
+                return;
+            }
+            logProcessStart(taskProcess, Core::ProcessType::Blocking);
+
+            taskProcess->waitForFinished(-1); // Wait for process to end, don't time out
+            logProcessEnd(taskProcess, Core::ProcessType::Blocking);
+            delete taskProcess; // Clear finished process handle from heap
+            break;
+
+        case Core::ProcessType::Deferred:
+            taskProcess->setParent(this);
+            if(!cleanStartProcess(taskProcess, executableInfo))
+            {
+                handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
+                return;
+            }
+            logProcessStart(taskProcess, Core::ProcessType::Deferred);
+
+            mActiveChildProcesses.append(taskProcess); // Add process to list for deferred termination
+            break;
+
+        case Core::ProcessType::Detached:
+            if(!taskProcess->startDetached())
+            {
+                handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
+                return;
+            }
+            logProcessStart(taskProcess, Core::ProcessType::Detached);
+            break;
+    }
+}
+
+void Driver::processMessageTask(const std::shared_ptr<Core::MessageTask> task)
+{
+    mCore->postMessage(task->message);
+    mCore->logEvent(NAME, LOG_EVENT_SHOW_MESSAGE);
+}
+
+void Driver::processExtraTask(const std::shared_ptr<Core::ExtraTask> task, int taskNum)
+{
+    // Ensure extra exists
+    if(!task->dir.exists())
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(task->dir.path()))));
+        handleExecutionError(taskNum, Core::ErrorCodes::EXTRA_NOT_FOUND);
+        return;
+    }
+
+    // Open extra
+    QDesktopServices::openUrl(QUrl::fromLocalFile(task->dir.absolutePath()));
+    mCore->logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(task->dir.path())));
+}
+
+void Driver::processWaitTask(const std::shared_ptr<Core::WaitTask> task, int taskNum)
+{
+    ErrorCode waitError = waitOnProcess(task->processName, SECURE_PLAYER_GRACE);
+    if(waitError)
+        handleExecutionError(taskNum, waitError);
+}
+
+void Driver::processDownloadTask(const std::shared_ptr<Core::DownloadTask> task, int taskNum)
+{
+    // Setup download
+    QFile packFile(task->destPath + "/" + task->destFileName);
+    QFileInfo packFileInfo(packFile);
+    mDownloadManager->appendTask(Qx::DownloadTask{task->targetFile, packFileInfo.absoluteFilePath()});
+
+    // Log/label string
+    QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(packFileInfo.fileName());
+    mCore->logEvent(NAME, label);
+
+    // Start download
+    emit downloadStarted(label);
+    Qx::DownloadManagerReport downloadReport = mDownloadManager->processQueue(); // This spins an event loop
+
+    // Handle result
+    emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
+    if(!downloadReport.wasSuccessful())
+    {
+        downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
+        mCore->postError(NAME, downloadReport.errorInfo());
+        handleExecutionError(taskNum, Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
+        return;
+    }
+
+    // Confirm checksum
+    bool checksumMatch;
+    Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, task->sha256, QCryptographicHash::Sha256);
+    if(checksumResult.isFailure() || !checksumMatch)
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
+        handleExecutionError(taskNum, Core::ErrorCodes::DATA_PACK_INVALID);
+        return;
+    }
+
+    mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_SUCC);
+}
+
 void Driver::processTaskQueue()
 {
     mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
@@ -105,153 +248,27 @@ void Driver::processTaskQueue()
             if(std::dynamic_pointer_cast<Core::MessageTask>(currentTask))
             {
                 std::shared_ptr<Core::MessageTask> messageTask = std::static_pointer_cast<Core::MessageTask>(currentTask);
-
-                mCore->postMessage(messageTask->message);
-                mCore->logEvent(NAME, LOG_EVENT_SHOW_MESSAGE);
+                processMessageTask(messageTask);
             }
             else if(std::dynamic_pointer_cast<Core::ExtraTask>(currentTask)) // Extra
             {
                 std::shared_ptr<Core::ExtraTask> extraTask = std::static_pointer_cast<Core::ExtraTask>(currentTask);
-
-                // Ensure extra exists
-                if(!extraTask->dir.exists())
-                {
-                    mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(extraTask->dir.path()))));
-                    handleExecutionError(taskNum, Core::ErrorCodes::EXTRA_NOT_FOUND);
-                    continue; // Continue to next task
-                }
-
-                // Open extra
-                QDesktopServices::openUrl(QUrl::fromLocalFile(extraTask->dir.absolutePath()));
-                mCore->logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(extraTask->dir.path())));
+                processExtraTask(extraTask, taskNum);
             }
             else if(std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
             {
                 std::shared_ptr<Core::WaitTask> waitTask = std::static_pointer_cast<Core::WaitTask>(currentTask);
-
-                ErrorCode waitError = waitOnProcess(waitTask->processName, SECURE_PLAYER_GRACE);
-                if(waitError)
-                {
-                    handleExecutionError(taskNum, waitError);
-                    continue; // Continue to next task
-                }
+                processWaitTask(waitTask, taskNum);
             }
             else if(std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
             {
                 std::shared_ptr<Core::DownloadTask> downloadTask = std::static_pointer_cast<Core::DownloadTask>(currentTask);
-
-                // Setup download
-                QFile packFile(downloadTask->destPath + "/" + downloadTask->destFileName);
-                QFileInfo packFileInfo(packFile);
-                mDownloadManager->appendTask(Qx::DownloadTask{downloadTask->targetFile, packFileInfo.absoluteFilePath()});
-
-                // Log/label string
-                QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(packFileInfo.fileName());
-                mCore->logEvent(NAME, label);
-
-                // Start download
-                emit downloadStarted(label);
-                Qx::DownloadManagerReport downloadReport = mDownloadManager->processQueue(); // This spins an event loop
-
-                // Handle result
-                emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
-                if(!downloadReport.wasSuccessful())
-                {
-                    downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
-                    mCore->postError(NAME, downloadReport.errorInfo());
-                    handleExecutionError(taskNum, Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
-                    continue; // Continue to next task
-                }
-
-                // Confirm checksum
-                bool checksumMatch;
-                Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
-                if(checksumResult.isFailure() || !checksumMatch)
-                {
-                    mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
-                    handleExecutionError(taskNum, Core::ErrorCodes::DATA_PACK_INVALID);
-                    continue; // Continue to next task
-                }
-
-                mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_SUCC);
+                processDownloadTask(downloadTask, taskNum);
             }
             else if(std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
             {
                 std::shared_ptr<Core::ExecTask> execTask = std::static_pointer_cast<Core::ExecTask>(currentTask);
-
-                // Ensure executable exists
-                QFileInfo executableInfo(execTask->path + "/" + execTask->filename);
-                if(!executableInfo.exists() || !executableInfo.isFile())
-                {
-                    mCore->postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                    ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
-                    continue; // Continue to next task
-                }
-
-                // Ensure executable is valid
-                if(!executableInfo.isExecutable())
-                {
-                    mCore->postError(NAME, Qx::GenericError(execTask->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                    ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-                    handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_VALID);
-                    continue; // Continue to next task
-                }
-
-                // Move to executable directory
-                QDir::setCurrent(execTask->path);
-                mCore->logEvent(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(execTask->path)));
-
-                // Check if task is a batch file
-                bool batchTask = QFileInfo(execTask->filename).suffix() == BAT_SUFX;
-
-                // Create process handle
-                QProcess* taskProcess = new QProcess();
-                taskProcess->setProgram(batchTask ? CMD_EXE : execTask->filename);
-                taskProcess->setArguments(execTask->param);
-                taskProcess->setNativeArguments(batchTask ? CMD_ARG_TEMPLATE.arg(execTask->filename, escapeNativeArgsForCMD(execTask->nativeParam))
-                                                          : execTask->nativeParam);
-                taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inhert console window
-                taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inhert console window
-
-                // Cover each process type
-                switch(execTask->processType)
-                {
-                    case Core::ProcessType::Blocking:
-                        taskProcess->setParent(this);
-                        if(!cleanStartProcess(taskProcess, executableInfo))
-                        {
-                            handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
-                            continue; // Continue to next task
-                        }
-                        logProcessStart(taskProcess, Core::ProcessType::Blocking);
-
-                        taskProcess->waitForFinished(-1); // Wait for process to end, don't time out
-                        logProcessEnd(taskProcess, Core::ProcessType::Blocking);
-                        delete taskProcess; // Clear finished process handle from heap
-                        break;
-
-                    case Core::ProcessType::Deferred:
-                        taskProcess->setParent(this);
-                        if(!cleanStartProcess(taskProcess, executableInfo))
-                        {
-                            handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
-                            continue; // Continue to next task
-                        }
-                        logProcessStart(taskProcess, Core::ProcessType::Deferred);
-
-                        mActiveChildProcesses.append(taskProcess); // Add process to list for deferred termination
-                        break;
-
-                    case Core::ProcessType::Detached:
-                        if(!taskProcess->startDetached())
-                        {
-                            handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
-                            continue; // Continue to next task
-                        }
-                        logProcessStart(taskProcess, Core::ProcessType::Detached);
-                        break;
-                }
+                processExecTask(execTask, taskNum);
             }
             else
                 throw new std::runtime_error("Unhandled Task child was present in task queue");
