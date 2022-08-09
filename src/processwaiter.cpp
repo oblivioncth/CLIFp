@@ -143,7 +143,7 @@ bool ProcessWaiter::stopProcess()
     QThread::sleep(1); // This blocks the calling thread, not the one in run
 
     // See if process closed
-    if(processIsRunning())
+    if(!processIsRunning())
         return true;
 
     // Force stop the process
