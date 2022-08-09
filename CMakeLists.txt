@@ -90,7 +90,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(CLIFp/FetchQx)
-fetch_qx("3f8424f0b683096525eb195d048fc0dcfe8f05a5")
+fetch_qx("b17756580a0c2c91d4d1a23959ca977f6fae0c4b")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
@@ -122,6 +122,8 @@ set(CXX_SOURCES
     src/driver.cpp
     src/logger.h
     src/logger.cpp
+    src/processwaiter.h
+    src/processwaiter.cpp
     src/statusrelay.h
     src/statusrelay.cpp
     src/main.cpp

@@ -306,7 +306,7 @@ public:
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
     ErrorCode enqueueDataPackTasks(QUuid targetID);
     void enqueueSingleTask(std::shared_ptr<Task> task);
-    void clearTaskQueue();
+    void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
@@ -322,7 +322,8 @@ public:
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;
-    std::shared_ptr<Task> takeFrontTask();
+    std::shared_ptr<Task> frontTask();
+    void removeFrontTask();
 
     QString statusHeading();
     QString statusMessage();

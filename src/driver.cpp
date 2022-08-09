@@ -7,7 +7,6 @@
 
 // Qx Includes
 #include <qx/windows/qx-common-windows.h>
-#include <qx_windows.h>
 
 // Project Includes
 #include "command.h"
@@ -20,7 +19,11 @@
 Driver::Driver(QStringList arguments, QString rawArguments) :
     mArguments(arguments),
     mRawArguments(rawArguments),
-    mErrorStatus(Core::ErrorCodes::NO_ERR)
+    mErrorStatus(Core::ErrorCodes::NO_ERR),
+    mCurrentTaskNumber(-1),
+    mCore(nullptr),
+    mMainBlockingProcess(nullptr),
+    mDownloadManager(nullptr)
 {}
 
 //-Class Functions----------------------------------------------------------------
@@ -51,85 +54,14 @@ QString Driver::getRawCommandLineParams(const QString& rawCommandLine)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-void Driver::operate()
-{
-    // Initialize
-    init();
-
-    //-Initialize Core--------------------------------------------------------------------------
-    mErrorStatus = mCore->initialize(mArguments);
-    if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
-        return;
-
-    //-Restrict app to only one instance---------------------------------------------------
-    if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        mErrorStatus = Core::ErrorCodes::ALREADY_OPEN;
-        return;
-    }
-
-    // Ensure Flashpoint Launcher isn't running
-    if(Qx::processIsRunning(Fp::Install::LAUNCHER_INFO.fileName()))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        mErrorStatus = Core::ErrorCodes::LAUNCHER_OPEN;
-        return;
-    }
-
-    //-Find and link to Flashpoint Install----------------------------------------------------------
-    std::unique_ptr<Fp::Install> flashpointInstall;
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
-
-    if(!(flashpointInstall = findFlashpointInstall()))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        mErrorStatus = Core::ErrorCodes::INSTALL_INVALID;
-        return;
-    }
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
-
-    // Insert into core
-    mCore->attachFlashpoint(std::move(flashpointInstall));
-
-    //-Handle Command and Command Options----------------------------------------------------------
-    QString commandStr = mArguments.first().toLower();
-
-    // Check for valid command
-    if(!Command::isRegistered(commandStr))
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
-        mErrorStatus = Core::ErrorCodes::INVALID_ARGS;
-        return;
-    }
-
-    // Create command instance
-    std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
-
-    // Process command
-    mErrorStatus = commandProcessor->process(mArguments);
-    if(mErrorStatus.isSet())
-        return;
-
-    //-Handle Tasks-----------------------------------------------------------------------
-    mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
-    if(mCore->hasTasks())
-    {
-        // Process app task queue
-        processTaskQueue();
-        mCore->logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
-
-        // Cleanup
-        cleanup();
-        mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
-    }
-}
-
 void Driver::init()
 {
     // Create core & download manager
     mCore = new Core(this, getRawCommandLineParams(mRawArguments));
-    mDownloadManager = new Qx::SyncDownloadManager(this);
+    mDownloadManager = new Qx::AsyncDownloadManager(this);
+
+    //-Setup Self Connections---------------
+    connect(this, &Driver::__currentTaskFinished, this, &Driver::finishedTaskHandler, Qt::QueuedConnection); // This way external events are processed between tasks
 
     //-Setup Core---------------------------
     connect(mCore, &Core::statusChanged, this, &Driver::statusChanged);
@@ -142,34 +74,38 @@ void Driver::init()
     mDownloadManager->setOverwrite(true);
 
     // Download event handlers
-    connect(mDownloadManager, &Qx::SyncDownloadManager::sslErrors, this, [this](Qx::GenericError errorMsg, bool* ignore) {
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::GenericError errorMsg, bool* ignore) {
         int choice = mCore->postBlockingError(NAME, errorMsg, true, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         *ignore = choice == QMessageBox::Yes;
     });
 
-    connect(mDownloadManager, &Qx::SyncDownloadManager::authenticationRequired, this, [this](QString prompt, QAuthenticator* authenticator) {
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::authenticationRequired, this, [this](QString prompt, QAuthenticator* authenticator) {
         mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_AUTH);
         emit authenticationRequired(prompt, authenticator);
     });
 
-    connect(mDownloadManager, &Qx::SyncDownloadManager::proxyAuthenticationRequired, this, [this](QString prompt, QAuthenticator* authenticator) {
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::proxyAuthenticationRequired, this, [this](QString prompt, QAuthenticator* authenticator) {
         mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_AUTH);
         emit authenticationRequired(prompt, authenticator);
     });
 
-    connect(mDownloadManager, &Qx::SyncDownloadManager::downloadTotalChanged, this, &Driver::downloadTotalChanged);
-    connect(mDownloadManager, &Qx::SyncDownloadManager::downloadProgress, this, &Driver::downloadProgressChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &Driver::downloadTotalChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, &Driver::downloadProgressChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::finished, this, &Driver::finishedDownloadHandler);
 }
 
-void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task, int taskNum)
+void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task)
 {
+    // Emit complete signal on return unless dismissed
+    QScopeGuard autoFinishEmitter([this](){ emit __currentTaskFinished(); });
+
     // Ensure executable exists
     QFileInfo executableInfo(task->path + "/" + task->filename);
     if(!executableInfo.exists() || !executableInfo.isFile())
     {
         mCore->postError(NAME, Qx::GenericError(task->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                         ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-        handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
+        handleTaskError(Core::ErrorCodes::EXECUTABLE_NOT_FOUND);
         return;
     }
 
@@ -178,7 +114,7 @@ void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task, int tas
     {
         mCore->postError(NAME, Qx::GenericError(task->stage == Core::TaskStage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                         ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-        handleExecutionError(taskNum, Core::ErrorCodes::EXECUTABLE_NOT_VALID);
+        handleTaskError(Core::ErrorCodes::EXECUTABLE_NOT_VALID);
         return;
     }
 
@@ -205,21 +141,22 @@ void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task, int tas
             taskProcess->setParent(this);
             if(!cleanStartProcess(taskProcess, executableInfo))
             {
-                handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
+                handleTaskError(Core::ErrorCodes::PROCESS_START_FAIL);
                 return;
             }
             logProcessStart(taskProcess, Core::ProcessType::Blocking);
 
-            taskProcess->waitForFinished(-1); // Wait for process to end, don't time out
-            logProcessEnd(taskProcess, Core::ProcessType::Blocking);
-            delete taskProcess; // Clear finished process handle from heap
+            // Now wait on the process asynchronously
+            mMainBlockingProcess = taskProcess;
+            connect(mMainBlockingProcess, &QProcess::finished, this, &Driver::finishedBlockingExecutionHandler);
+            autoFinishEmitter.dismiss();
             break;
 
         case Core::ProcessType::Deferred:
             taskProcess->setParent(this);
             if(!cleanStartProcess(taskProcess, executableInfo))
             {
-                handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
+                handleTaskError(Core::ErrorCodes::PROCESS_START_FAIL);
                 return;
             }
             logProcessStart(taskProcess, Core::ProcessType::Deferred);
@@ -230,7 +167,7 @@ void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task, int tas
         case Core::ProcessType::Detached:
             if(!taskProcess->startDetached())
             {
-                handleExecutionError(taskNum, Core::ErrorCodes::PROCESS_START_FAIL);
+                handleTaskError(Core::ErrorCodes::PROCESS_START_FAIL);
                 return;
             }
             logProcessStart(taskProcess, Core::ProcessType::Detached);
@@ -242,31 +179,42 @@ void Driver::processMessageTask(const std::shared_ptr<Core::MessageTask> task)
 {
     mCore->postMessage(task->message);
     mCore->logEvent(NAME, LOG_EVENT_SHOW_MESSAGE);
+    emit __currentTaskFinished();
 }
 
-void Driver::processExtraTask(const std::shared_ptr<Core::ExtraTask> task, int taskNum)
+void Driver::processExtraTask(const std::shared_ptr<Core::ExtraTask> task)
 {
     // Ensure extra exists
-    if(!task->dir.exists())
+    if(task->dir.exists())
+    {
+        // Open extra
+        QDesktopServices::openUrl(QUrl::fromLocalFile(task->dir.absolutePath()));
+        mCore->logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(task->dir.path())));
+    }
+    else
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(task->dir.path()))));
-        handleExecutionError(taskNum, Core::ErrorCodes::EXTRA_NOT_FOUND);
-        return;
+        handleTaskError(Core::ErrorCodes::EXTRA_NOT_FOUND);
     }
 
-    // Open extra
-    QDesktopServices::openUrl(QUrl::fromLocalFile(task->dir.absolutePath()));
-    mCore->logEvent(NAME, LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(task->dir.path())));
+    emit __currentTaskFinished();
 }
 
-void Driver::processWaitTask(const std::shared_ptr<Core::WaitTask> task, int taskNum)
+void Driver::processWaitTask(const std::shared_ptr<Core::WaitTask> task)
 {
-    ErrorCode waitError = waitOnProcess(task->processName, SECURE_PLAYER_GRACE);
-    if(waitError)
-        handleExecutionError(taskNum, waitError);
+    // Create waiter
+    mProcessWaiter = new ProcessWaiter(task->processName, SECURE_PLAYER_GRACE, this);
+
+    // Connect notifiers
+    connect(mProcessWaiter, &ProcessWaiter::statusChanged, this,  [this](QString statusMessage){ mCore->logEvent(NAME, statusMessage); });
+    connect(mProcessWaiter, &ProcessWaiter::errorOccured, this, [this](Qx::GenericError errorMessage){ mCore->postError(NAME, errorMessage); });
+    connect(mProcessWaiter, &ProcessWaiter::waitFinished, this, &Driver::finishedWaitHandler);
+
+    // Start wait
+    mProcessWaiter->start();
 }
 
-void Driver::processDownloadTask(const std::shared_ptr<Core::DownloadTask> task, int taskNum)
+void Driver::processDownloadTask(const std::shared_ptr<Core::DownloadTask> task)
 {
     // Setup download
     QFile packFile(task->destPath + "/" + task->destFileName);
@@ -279,71 +227,48 @@ void Driver::processDownloadTask(const std::shared_ptr<Core::DownloadTask> task,
 
     // Start download
     emit downloadStarted(label);
-    Qx::DownloadManagerReport downloadReport = mDownloadManager->processQueue(); // This spins an event loop
-
-    // Handle result
-    emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
-    if(!downloadReport.wasSuccessful())
-    {
-        downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
-        mCore->postError(NAME, downloadReport.errorInfo());
-        handleExecutionError(taskNum, Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
-        return;
-    }
-
-    // Confirm checksum
-    bool checksumMatch;
-    Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, task->sha256, QCryptographicHash::Sha256);
-    if(checksumResult.isFailure() || !checksumMatch)
-    {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
-        handleExecutionError(taskNum, Core::ErrorCodes::DATA_PACK_INVALID);
-        return;
-    }
-
-    mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_SUCC);
+    mDownloadManager->processQueue();
 }
 
-void Driver::processTaskQueue()
+void Driver::startNextTask()
 {
-    mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
+    // Ensure tasks exist
+    if(!mCore->hasTasks())
+        throw std::runtime_error(Q_FUNC_INFO " called with no tasks remaining.");
 
-    // Exhaust queue
-    for(int taskNum = 0; mCore->hasTasks(); taskNum++)
+    // Get task at front of queue
+    std::shared_ptr<Core::Task> currentTask = mCore->frontTask();
+    mCurrentTaskNumber++;
+    mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(mCurrentTaskNumber).arg(ENUM_NAME(currentTask->stage)));
+
+    // Only execute task after an error if it is a Shutdown task
+    if(!mErrorStatus.isSet() || currentTask->stage == Core::TaskStage::Shutdown)
     {
-        // Handle task at front of queue
-        std::shared_ptr<Core::Task> currentTask = mCore->takeFrontTask();
-        mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(taskNum).arg(ENUM_NAME(currentTask->stage)));
-
-        // Only execute task after an error if it is a Shutdown task
-        if(!mErrorStatus.isSet() || currentTask->stage == Core::TaskStage::Shutdown)
-        {
-            // Cover each task type
-            if(auto messageTask = std::dynamic_pointer_cast<Core::MessageTask>(currentTask)) // Message
-                processMessageTask(messageTask);
-            else if(auto extraTask = std::dynamic_pointer_cast<Core::ExtraTask>(currentTask)) // Extra
-                processExtraTask(extraTask, taskNum);
-            else if(auto waitTask = std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
-                processWaitTask(waitTask, taskNum);
-            else if(auto downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
-                processDownloadTask(downloadTask, taskNum);
-            else if(auto execTask = std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
-                processExecTask(execTask, taskNum);
-            else
-                throw new std::runtime_error("Unhandled Task child was present in task queue");
-        }
+        // Cover each task type
+        if(auto messageTask = std::dynamic_pointer_cast<Core::MessageTask>(currentTask)) // Message
+            processMessageTask(messageTask);
+        else if(auto extraTask = std::dynamic_pointer_cast<Core::ExtraTask>(currentTask)) // Extra
+            processExtraTask(extraTask);
+        else if(auto waitTask = std::dynamic_pointer_cast<Core::WaitTask>(currentTask)) // Wait task
+            processWaitTask(waitTask);
+        else if(auto downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
+            processDownloadTask(downloadTask);
+        else if(auto execTask = std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
+            processExecTask(execTask);
         else
-            mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP);
-
-        // Remove handled task
-        mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH.arg(taskNum));
+            throw std::runtime_error("Unhandled Task child was present in task queue");
+    }
+    else
+    {
+        mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP);
+        emit __currentTaskFinished(); // Since task was skipped
     }
 }
 
-void Driver::handleExecutionError(int taskNum, ErrorCode error)
+void Driver::handleTaskError(ErrorCode error)
 {
     mErrorStatus = error;
-    mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(taskNum)); // Record early end of task
+    mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(mCurrentTaskNumber)); // Record early end of task
 }
 
 bool Driver::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
@@ -362,58 +287,6 @@ bool Driver::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
     return true;
 }
 
-ErrorCode Driver::waitOnProcess(QString processName, int graceSecs)
-{
-    // Wait until secure player has stopped running for grace period
-    DWORD spProcessID;
-    do
-    {
-        // Yield for grace period
-        mCore->logEvent(NAME, LOG_EVENT_WAIT_GRACE.arg(processName));
-        if(graceSecs > 0)
-            QThread::sleep(graceSecs);
-
-        // Find process ID by name
-        spProcessID = Qx::processIdByName(processName);
-
-        // Check that process was found (is running)
-        if(spProcessID)
-        {
-            mCore->logEvent(NAME, LOG_EVENT_WAIT_RUNNING.arg(processName));
-
-            // Get process handle and see if it is valid
-            HANDLE batchProcessHandle;
-            if((batchProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, spProcessID)) == NULL)
-            {
-                mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(processName),
-                                           WRN_WAIT_PROCESS_NOT_HANDLED_S));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HANDLED;
-            }
-
-            // Attempt to wait on process to terminate
-            mCore->logEvent(NAME, LOG_EVENT_WAIT_ON.arg(processName));
-            DWORD waitError = WaitForSingleObject(batchProcessHandle, INFINITE);
-
-            // Close handle to process
-            CloseHandle(batchProcessHandle);
-
-            if(waitError != WAIT_OBJECT_0)
-            {
-                mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(processName),
-                                           WRN_WAIT_PROCESS_NOT_HOOKED_S));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HOOKED;
-            }
-            mCore->logEvent(NAME, LOG_EVENT_WAIT_QUIT.arg(processName));
-        }
-    }
-    while(spProcessID);
-
-    // Return success
-    mCore->logEvent(NAME, LOG_EVENT_WAIT_FINISHED.arg(processName));
-    return Core::ErrorCodes::NO_ERR;
-}
-
-
 void Driver::cleanup()
 {
     // Close each remaining child process
@@ -423,7 +296,11 @@ void Driver::cleanup()
         logProcessEnd(childProcess, Core::ProcessType::Deferred);
         delete childProcess;
     }
+
+    mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
 }
+
+void Driver::finish() { emit finished(mCore->logFinish(NAME, mErrorStatus.value())); }
 
 // Helper functions
 std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
@@ -487,14 +364,166 @@ void Driver::logProcessEnd(const QProcess* process, Core::ProcessType type)
 }
 
 //-Slots--------------------------------------------------------------------------------
+//Private:
+void Driver::finishedBlockingExecutionHandler()
+{
+    // Ensure all is well
+    if(!mMainBlockingProcess)
+        throw std::runtime_error(Q_FUNC_INFO " called with when the main blocking process pointer was null.");
+
+    // Handle process cleanup
+    logProcessEnd(mMainBlockingProcess, Core::ProcessType::Blocking);
+    mMainBlockingProcess->deleteLater(); // Clear finished process handle from heap when possible
+    mMainBlockingProcess = nullptr;
+
+    emit __currentTaskFinished();
+}
+void Driver::finishedDownloadHandler(Qx::DownloadManagerReport downloadReport)
+{
+    // Handle result
+    emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
+    if(downloadReport.wasSuccessful())
+    {
+        // Get task completed download task
+        std::shared_ptr<Core::DownloadTask> downloadTask;
+        if(!(downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(mCore->frontTask())))
+            throw std::runtime_error(Q_FUNC_INFO "called when top task of queue is not a DownloadTask.");
+
+        // Confirm checksum is correct
+        QFile packFile(downloadTask->destPath + "/" + downloadTask->destFileName);
+        bool checksumMatch;
+        Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, downloadTask->sha256, QCryptographicHash::Sha256);
+        if(checksumResult.isFailure() || !checksumMatch)
+        {
+            mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
+            handleTaskError(Core::ErrorCodes::DATA_PACK_INVALID);
+        }
+        else
+            mCore->logEvent(NAME, LOG_EVENT_DOWNLOAD_SUCC);
+    }
+    else
+    {
+        downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
+        mCore->postError(NAME, downloadReport.errorInfo());
+        handleTaskError(Core::ErrorCodes::CANT_OBTAIN_DATA_PACK);
+    }
+
+    emit __currentTaskFinished();
+}
+
+void Driver::finishedWaitHandler(ErrorCode errorStatus)
+{
+    // Handle potential error
+    if(errorStatus)
+        handleTaskError(errorStatus);
+
+    // Delete waiter when possible
+    mProcessWaiter->deleteLater();
+    mProcessWaiter = nullptr;
+
+    emit __currentTaskFinished();
+}
+
+void Driver::finishedTaskHandler()
+{
+    // Remove task from queue
+    mCore->removeFrontTask();
+
+    // Note handled task
+    mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH.arg(mCurrentTaskNumber));
+
+    // Perform next task if any remain
+    if(mCore->hasTasks())
+        startNextTask();
+    else
+    {
+        mCore->logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
+        cleanup();
+        finish();
+    }
+}
+
 //Public:
 void Driver::drive()
 {
-    /* Using this public function as a wrapper for the actual operation ensures that no
-     * matter where operate returns from 'finished' will always be emitted
-     */
-    operate();
-    emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
+    // Initialize
+    init();
+
+    //-Initialize Core--------------------------------------------------------------------------
+    mErrorStatus = mCore->initialize(mArguments);
+    if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
+    {
+        finish();
+        return;
+    }
+
+    //-Restrict app to only one instance---------------------------------------------------
+    if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
+        mErrorStatus = Core::ErrorCodes::ALREADY_OPEN;
+        finish();
+        return;
+    }
+
+    // Ensure Flashpoint Launcher isn't running
+    if(Qx::processIsRunning(Fp::Install::LAUNCHER_INFO.fileName()))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
+        mErrorStatus = Core::ErrorCodes::LAUNCHER_OPEN;
+        finish();
+        return;
+    }
+
+    //-Find and link to Flashpoint Install----------------------------------------------------------
+    std::unique_ptr<Fp::Install> flashpointInstall;
+    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
+
+    if(!(flashpointInstall = findFlashpointInstall()))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
+        mErrorStatus = Core::ErrorCodes::INSTALL_INVALID;
+        finish();
+        return;
+    }
+    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
+
+    // Insert into core
+    mCore->attachFlashpoint(std::move(flashpointInstall));
+
+    //-Handle Command and Command Options----------------------------------------------------------
+    QString commandStr = mArguments.first().toLower();
+
+    // Check for valid command
+    if(!Command::isRegistered(commandStr))
+    {
+        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
+        mErrorStatus = Core::ErrorCodes::INVALID_ARGS;
+        finish();
+        return;
+    }
+
+    // Create command instance
+    std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
+
+    // Process command
+    mErrorStatus = commandProcessor->process(mArguments);
+    if(mErrorStatus.isSet())
+    {
+        finish();
+        return;
+    }
+
+    //-Handle Tasks-----------------------------------------------------------------------
+    mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
+    if(mCore->hasTasks())
+    {
+        // Process app task queue
+        mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
+        startNextTask();
+    }
+    else
+        finish();
 }
 
 void Driver::cancelActiveDownloads() { mDownloadManager->abort(); }

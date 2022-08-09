@@ -558,13 +558,8 @@ Fp::Install& Core::getFlashpointInstall() { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
-
-std::shared_ptr<Core::Task> Core::takeFrontTask()
-{
-    std::shared_ptr<Task> frontTask = mTaskQueue.front();
-    mTaskQueue.pop();
-    return frontTask;
-}
+std::shared_ptr<Core::Task> Core::frontTask() { return mTaskQueue.front(); }
+void Core::removeFrontTask() { mTaskQueue.pop(); }
 
 QString Core::statusHeading() { return mStatusHeading; }
 QString Core::statusMessage() { return mStatusMessage;}

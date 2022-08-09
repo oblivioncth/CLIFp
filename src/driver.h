@@ -10,7 +10,7 @@
 
 // Project Includes
 #include "core.h"
-
+#include "processwaiter.h"
 
 class Driver : public QObject
 {
@@ -34,10 +34,6 @@ private:
     static inline const QString ERR_EXE_NOT_STARTED = "Could not start %1!";
     static inline const QString ERR_EXE_NOT_VALID = "%1 is not an executable file!";
     static inline const QString ERR_PACK_SUM_MISMATCH = "The title's Data Pack checksum does not match its record!";
-    static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = "Could not get a wait handle to %1.";
-    static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_S = "The title may not work correctly";
-    static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting.";
-    static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_S = "The title may not work correctly";
 
     // Suffixes
     static inline const QString BAT_SUFX = "bat";
@@ -68,11 +64,6 @@ private:
     static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
     static inline const QString LOG_EVENT_END_PROCESS = "%1 process %2 finished";
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
-    static inline const QString LOG_EVENT_WAIT_GRACE = "Waiting " + QString::number(SECURE_PLAYER_GRACE) + " seconds for process %1 to be running";
-    static inline const QString LOG_EVENT_WAIT_RUNNING = "Wait-on process %1 is running";
-    static inline const QString LOG_EVENT_WAIT_ON = "Waiting for process %1 to finish";
-    static inline const QString LOG_EVENT_WAIT_QUIT = "Wait-on process %1 has finished";
-    static inline const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running after the grace period";
     static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
@@ -85,13 +76,16 @@ private:
     QStringList mArguments;
     QString mRawArguments;
     Qx::SetOnce<ErrorCode> mErrorStatus;
+    int mCurrentTaskNumber;
 
     Core* mCore; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
+    QProcess* mMainBlockingProcess;
     QList<QProcess*> mActiveChildProcesses;
-    Qx::SyncDownloadManager* mDownloadManager; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
+    ProcessWaiter* mProcessWaiter; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
+    Qx::AsyncDownloadManager* mDownloadManager; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     /*
      * TODO: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
-     * pointers instead for simplicity. If set as a child of this instance, they will be moved with the instance automatically when the instance is moved to a sperate
+     * pointers instead for simplicity. If set as a child of this instance, they will be moved with the instance automatically when the instance is moved to a separate
      * thread. Otherwise (and without using pointers and init during drive()), the connections they have will be invoked on the main thread since they are spawned when
      * Driver is constructed, which is done on the main thread before it is moved.
     */
@@ -106,24 +100,23 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------------
 private:
-    // Main Driving Function
-    void operate();
-
     // Setup
     void init();
 
     // Process
-    void processExecTask(const std::shared_ptr<Core::ExecTask> task, int taskNum);
+    void processExecTask(const std::shared_ptr<Core::ExecTask> task);
     void processMessageTask(const std::shared_ptr<Core::MessageTask> task);
-    void processExtraTask(const std::shared_ptr<Core::ExtraTask> task, int taskNum);
-    void processWaitTask(const std::shared_ptr<Core::WaitTask> task, int taskNum);
-    void processDownloadTask(const std::shared_ptr<Core::DownloadTask> task, int taskNum);
+    void processExtraTask(const std::shared_ptr<Core::ExtraTask> task);
+    void processWaitTask(const std::shared_ptr<Core::WaitTask> task);
+    void processDownloadTask(const std::shared_ptr<Core::DownloadTask> task);
 
-    void processTaskQueue();
-    void handleExecutionError(int taskNum, ErrorCode error);
+    void startNextTask();
+    void handleTaskError(ErrorCode error);
     bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
     ErrorCode waitOnProcess(QString processName, int graceSecs);
     void cleanup();
+
+    void finish();
 
     // Helper
     std::unique_ptr<Fp::Install> findFlashpointInstall();
@@ -132,6 +125,12 @@ private:
     void logProcessEnd(const QProcess* process, Core::ProcessType type);
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
+private slots:
+    void finishedBlockingExecutionHandler();
+    void finishedDownloadHandler(Qx::DownloadManagerReport downloadReport);
+    void finishedWaitHandler(ErrorCode errorStatus);
+    void finishedTaskHandler();
+
 public slots:
     // Worker main
     void drive();
@@ -140,6 +139,9 @@ public slots:
     void cancelActiveDownloads();
 
 signals:
+    // Private Signals
+    void __currentTaskFinished();
+
     // Worker status
     void finished(ErrorCode errorCode);
 
