@@ -94,7 +94,7 @@ fetch_qx("b17756580a0c2c91d4d1a23959ca977f6fae0c4b")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
-fetch_libfp("787476d811fdae593b8664a7b2fe799f76cda7b8")
+fetch_libfp("bb22ec609585f7060f8d1d76b215fc7fcde94583")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)
