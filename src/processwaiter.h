@@ -38,7 +38,7 @@ class ProcessWaiter : public QThread
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Process
-    static const DWORD PROCESS_HANDLE_ACCESS_RIGHTS = PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE;
+    static const DWORD PROCESS_HANDLE_ACCESS_RIGHTS = PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE;
 
     // Error Messages
     static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = "Could not get a wait handle to %1, the title will likely not work correctly.";
