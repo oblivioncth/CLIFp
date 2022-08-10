@@ -65,15 +65,17 @@ private:
 public:
     ProcessWaiter(QString processName, uint respawnGrace, QObject* parent = nullptr);
 
+//-Class Functions---------------------------------------------------------------------------------------------------------
+private:
+    static bool closeAdminProcess(DWORD processId, bool force);
+
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
-    bool processIsRunning();
     ErrorCode doWait();
     void run() override;
 
 public:
-    bool stopProcess();
-    void deleteLater();
+    bool closeProcess();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 public slots:

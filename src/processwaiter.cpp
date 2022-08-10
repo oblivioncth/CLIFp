@@ -1,6 +1,9 @@
 // Unit Include
 #include "processwaiter.h"
 
+// Windows Include
+#include <shellapi.h>
+
 //===============================================================================================================
 // ProcessWaiter
 //===============================================================================================================
@@ -14,32 +17,60 @@ ProcessWaiter::ProcessWaiter(QString processName, uint respawnGrace, QObject* pa
     mProcessHandle(nullptr)
 {}
 
-//-Instance Functions-------------------------------------------------------------
+//-Class Functions-------------------------------------------------------------
 //Private:
-bool ProcessWaiter::processIsRunning()
+bool ProcessWaiter::closeAdminProcess(DWORD processId, bool force)
 {
+    /* Killing an elevated process from this process while it is unelevated requires (without COM non-sense) starting
+     * a new process as admin to do the job. While a special purpose executable could be made, taskkill already
+     * perfectly suitable here
+     */
+
+    // Setup taskkill args
+    QString tkArgs;
+    if(force)
+        tkArgs += "/F ";
+    tkArgs += "/PID ";
+    tkArgs += QString::number(processId);
+    const std::wstring tkArgsStd = tkArgs.toStdWString();
+
+    // Setup taskkill info
+    SHELLEXECUTEINFOW tkExecInfo = {0};
+    tkExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW); // Required
+    tkExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS; // Causes hProcess member to be set to process handle
+    tkExecInfo.hwnd = NULL;
+    tkExecInfo.lpVerb = L"runas";
+    tkExecInfo.lpFile = L"taskkill";
+    tkExecInfo.lpParameters = tkArgsStd.data();
+    tkExecInfo.lpDirectory = NULL;
+    tkExecInfo.nShow = SW_HIDE;
+
+    // Start taskkill
+    if(!ShellExecuteEx(&tkExecInfo))
+        return false;
+
+    // Check for handle
+    HANDLE tkHandle = tkExecInfo.hProcess;
+    if(!tkHandle)
+        return false;
+
+    // Wait for taskkill to finish (should be fast)
+    if(WaitForSingleObject(tkHandle, 5000) != WAIT_OBJECT_0)
+        return false;
+
     DWORD exitCode;
-    if(!GetExitCodeProcess(mProcessHandle, &exitCode))
+    if(!GetExitCodeProcess(tkHandle, &exitCode))
         return false;
 
-    if(exitCode != STILL_ACTIVE)
-        return false;
-    else
-    {
-        /* Due to a design oversight, it's possible for a process to return the value
-         * associated with STILL_ACTIVE as its exit code, which would make it look
-         * like it's still running here when it isn't, so a different method must be
-         * used to double check
-         */
+    // Cleanup taskkill handle
+    CloseHandle(tkHandle);
 
-         // Zero timeout means check if "signaled" (i.e. dead) state immediately
-         if(WaitForSingleObject(mProcessHandle, 0) == WAIT_TIMEOUT)
-             return true;
-         else
-             return false;
-    }
+    // Return taskkill result
+    return exitCode == 0;
 }
 
+//-Instance Functions-------------------------------------------------------------
+//Private:
 ErrorCode ProcessWaiter::doWait()
 {
     // Lock other threads from interaction while managing process handle
@@ -55,7 +86,7 @@ ErrorCode ProcessWaiter::doWait()
             QThread::sleep(mRespawnGrace);
 
         // Find process ID by name
-        spProcessID = Qx::processIdByName(mProcessName);
+        spProcessID = Qx::processId(mProcessName);
 
         // Check that process was found (is running)
         if(spProcessID)
@@ -109,19 +140,7 @@ void ProcessWaiter::run()
     emit waitFinished(status);
 }
 
-//Public:
-// Straight from the source: https://github.com/qt/qtbase/blob/05fc3aef53348fb58be6308076e000825b704e58/src/corelib/io/qprocess_win.cpp#L614
-static BOOL QT_WIN_CALLBACK qt_terminateApp(HWND hwnd, LPARAM procId)
-{
-    DWORD currentProcId = 0;
-    GetWindowThreadProcessId(hwnd, &currentProcId);
-    if (currentProcId == (DWORD)procId)
-        PostMessage(hwnd, WM_CLOSE, 0, 0);
-
-    return TRUE;
-}
-
-bool ProcessWaiter::stopProcess()
+bool ProcessWaiter::closeProcess()
 {
     if(!mProcessHandle)
         return false;
@@ -129,28 +148,38 @@ bool ProcessWaiter::stopProcess()
     // Lock access to handle and auto-unlock when done
     QMutexLocker handleLocker(&mProcessHandleMutex);
 
-    // Get additional process info
+    /* Get process ID for use in following calls so that the specific permissions the mProcessHandle
+     * was opened with don't have to be considered
+     */
     DWORD processId = GetProcessId(mProcessHandle);
-    DWORD threadId = 0;
-    QList<DWORD> allProcessThreadIds = Qx::processThreadIds(processId);
-    if(!allProcessThreadIds.empty())
-        threadId = allProcessThreadIds.first(); // Assume first thread is main thread (not perfect, but good in most cases).
 
-    // Try to notify process to close (allow 1 second)
-    EnumWindows(qt_terminateApp, (LPARAM)processId); // Tells all top-level windows of the process to close
-    if(threadId)
-        PostThreadMessage(threadId, WM_CLOSE, 0, 0); // Tells the main thread of the process to close
-    QThread::sleep(1); // This blocks the calling thread, not the one in run
+    // Check if admin rights are needed (CLIFp shouldn't be run as admin, but check anyway)
+    bool selfElevated;
+    if(Qx::processIsElevated(selfElevated).isValid())
+        selfElevated = false; // If check fails, assume CLIFP is not elevated to be safe
+    bool waitProcessElevated;
+    if(Qx::processIsElevated(waitProcessElevated, processId).isValid())
+        waitProcessElevated = true; // If check fails, assume process is elevated to be safe
+
+    bool elevate = !selfElevated && waitProcessElevated;
+
+    // Try clean close first
+    if(!elevate)
+        Qx::cleanKillProcess(processId);
+    else
+        closeAdminProcess(processId, false);
+    QThread::sleep(1);
 
     // See if process closed
-    if(!processIsRunning())
+    if(!Qx::processIsRunning(processId))
         return true;
 
-    // Force stop the process
-    return TerminateProcess(mProcessHandle, 0xFFFF);
+    // Force close
+    if(!elevate)
+        return !Qx::forceKillProcess(processId).isValid();
+    else
+        return closeAdminProcess(processId, true);
 }
-
-void ProcessWaiter::deleteLater() { QObject::deleteLater(); }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Public Slots:
