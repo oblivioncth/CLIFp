@@ -148,7 +148,7 @@ bool ProcessWaiter::closeProcess()
     // Lock access to handle and auto-unlock when done
     QMutexLocker handleLocker(&mProcessHandleMutex);
 
-    /* Get process ID for use in following calls so that the specific permissions the mProcessHandle
+    /* Get process ID for use in some of the following calls so that the specific permissions the mProcessHandle
      * was opened with don't have to be considered
      */
     DWORD processId = GetProcessId(mProcessHandle);
@@ -168,10 +168,12 @@ bool ProcessWaiter::closeProcess()
         Qx::cleanKillProcess(processId);
     else
         closeAdminProcess(processId, false);
-    QThread::sleep(1);
+
+    // Wait for process to close (allow up to 2 seconds)
+    DWORD waitRes = WaitForSingleObject(mProcessHandle, 2000);
 
     // See if process closed
-    if(!Qx::processIsRunning(processId))
+    if(waitRes == WAIT_OBJECT_0)
         return true;
 
     // Force close
