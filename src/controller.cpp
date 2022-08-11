@@ -39,6 +39,7 @@ Controller::Controller(QObject* parent)
     connect(driver, &Driver::downloadTotalChanged, &mStatusRelay, &StatusRelay::downloadTotalHandler);
     connect(driver, &Driver::downloadStarted, &mStatusRelay, &StatusRelay::downloadStartedHandler);
     connect(driver, &Driver::downloadFinished, &mStatusRelay, &StatusRelay::downloadFinishedHandler);
+    connect(&mStatusRelay, &StatusRelay::downloadCanceled, driver, &Driver::cancelActiveDownloads);
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
     connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
