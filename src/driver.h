@@ -34,6 +34,7 @@ private:
     static inline const QString ERR_EXE_NOT_STARTED = "Could not start %1!";
     static inline const QString ERR_EXE_NOT_VALID = "%1 is not an executable file!";
     static inline const QString ERR_PACK_SUM_MISMATCH = "The title's Data Pack checksum does not match its record!";
+    static inline const QString ERR_CANT_CLOSE_WAIT_ON = "Could not automatically end the running title! It will have to be closed manually.";
 
     // Suffixes
     static inline const QString BAT_SUFX = "bat";
@@ -59,7 +60,8 @@ private:
     static inline const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
     static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
     static inline const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
-    static inline const QString LOG_EVENT_TASK_SKIP = "App Task skipped due to previous errors";
+    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = "App Task skipped due to previous errors";
+    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = "App Task skipped because the application is quitting";
     static inline const QString LOG_EVENT_CD = "Changed current directory to: %1";
     static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
     static inline const QString LOG_EVENT_END_PROCESS = "%1 process %2 finished";
@@ -67,6 +69,7 @@ private:
     static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
+    static inline const QString LOG_EVENT_CLOSE_REQUEST = "Received close request";
 
     // Meta
     static inline const QString NAME = "driver";
@@ -77,6 +80,7 @@ private:
     QString mRawArguments;
     Qx::SetOnce<ErrorCode> mErrorStatus;
     int mCurrentTaskNumber;
+    bool mQuitRequested;
 
     Core* mCore; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     QProcess* mMainBlockingProcess;
@@ -137,6 +141,9 @@ public slots:
 
     // Net
     void cancelActiveDownloads();
+
+    // General
+    void closeNow();
 
 signals:
     // Private Signals

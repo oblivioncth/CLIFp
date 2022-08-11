@@ -21,6 +21,7 @@ Driver::Driver(QStringList arguments, QString rawArguments) :
     mRawArguments(rawArguments),
     mErrorStatus(Core::ErrorCodes::NO_ERR),
     mCurrentTaskNumber(-1),
+    mQuitRequested(false),
     mCore(nullptr),
     mMainBlockingProcess(nullptr),
     mDownloadManager(nullptr)
@@ -241,7 +242,18 @@ void Driver::startNextTask()
     mCurrentTaskNumber++;
     mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(mCurrentTaskNumber).arg(ENUM_NAME(currentTask->stage)));
 
-    // Only execute task after an error if it is a Shutdown task
+    // Only execute task after an error/quit if it is a Shutdown task
+    bool isShutdown = currentTask->stage == Core::TaskStage::Shutdown;
+    if(mErrorStatus.isSet() && !isShutdown)
+    {
+        mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP_ERROR);
+        emit __currentTaskFinished(); // Since task was skipped
+    }
+    else if(mQuitRequested && !isShutdown)
+    {
+        mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP_QUIT);
+        emit __currentTaskFinished(); // Since task was skipped
+    }
     if(!mErrorStatus.isSet() || currentTask->stage == Core::TaskStage::Shutdown)
     {
         // Cover each task type
@@ -257,11 +269,6 @@ void Driver::startNextTask()
             processExecTask(execTask);
         else
             throw std::runtime_error("Unhandled Task child was present in task queue");
-    }
-    else
-    {
-        mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP);
-        emit __currentTaskFinished(); // Since task was skipped
     }
 }
 
@@ -527,3 +534,40 @@ void Driver::drive()
 }
 
 void Driver::cancelActiveDownloads() { mDownloadManager->abort(); }
+
+void Driver::closeNow()
+{
+    mQuitRequested = true;
+    mCore->logEvent(NAME, LOG_EVENT_CLOSE_REQUEST);
+
+    //-Handle all potential cases in which CLIFp is waiting for something---------------
+
+    // Downloading
+    if(mDownloadManager->isProcessing())
+        mDownloadManager->abort();
+
+    // Main process running
+    if(mMainBlockingProcess) // May want to add && isOpen() here, but not sure if that is implemented correctly
+    {
+        // Try soft kill
+        mMainBlockingProcess->terminate();
+        if(mMainBlockingProcess->state() != QProcess::NotRunning)
+            mMainBlockingProcess->waitForFinished(2000); // Allow up to 2 seconds to close
+
+        /* See if process stopped. Can't use result of QProcess::waitForFinished directly since there is a small
+         * race condition in which the process ends between the previous check of its state and when
+         * waitForFinished is invoked. If this happened, waitForFinished would return false and give the impression
+         * that the process was still running
+         */
+        if(mMainBlockingProcess->state() != QProcess::NotRunning)
+            mMainBlockingProcess->terminate(); // Hard kill
+    }
+
+    // Waiting on restarted main process
+    if(mProcessWaiter)
+    {
+        if(!mProcessWaiter->closeProcess())
+            mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Error, ERR_CANT_CLOSE_WAIT_ON));
+    }
+
+}
