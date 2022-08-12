@@ -550,11 +550,15 @@ void Driver::quitNow()
 
     // Downloading
     if(mDownloadManager->isProcessing())
+    {
+        mCore->logEvent(NAME, LOG_EVENT_STOPPING_DOWNLOADS);
         mDownloadManager->abort();
+    }
 
     // Main process running
     if(mMainBlockingProcess)
     {
+        mCore->logEvent(NAME, LOG_EVENT_STOPPING_MAIN_PROCESS);
         // NOTE: Careful in this function, once the process is dead and the finishedBlockingExecutionHandler
         // slot has been invoked, mMainBlockingProcess gets reset to nullptr
 
@@ -581,6 +585,7 @@ void Driver::quitNow()
     // Waiting on restarted main process
     if(mProcessWaiter)
     {
+        mCore->logEvent(NAME, LOG_EVENT_STOPPING_WAIT_PROCESS);
         if(!mProcessWaiter->closeProcess())
             mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Error, ERR_CANT_CLOSE_WAIT_ON));
     }

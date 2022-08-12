@@ -71,6 +71,9 @@ private:
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
     static inline const QString LOG_EVENT_QUIT_REQUEST = "Received quit request";
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = "Received redundant quit request";
+    static inline const QString LOG_EVENT_STOPPING_MAIN_PROCESS = "Stopping primary execution process...";
+    static inline const QString LOG_EVENT_STOPPING_WAIT_PROCESS = "Stopping current wait on execution process...";
+    static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = "Stopping current download(s)...";
 
     // Meta
     static inline const QString NAME = "driver";
