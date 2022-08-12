@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
-set(CLIFP_BASE_VERSION 0.8.1.1) # Required for CI/CD
+set(CLIFP_BASE_VERSION 0.8.2) # Required for CI/CD
 project(CLIFp
     VERSION ${CLIFP_BASE_VERSION}
     LANGUAGES CXX
