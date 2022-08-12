@@ -24,6 +24,7 @@ Driver::Driver(QStringList arguments, QString rawArguments) :
     mQuitRequested(false),
     mCore(nullptr),
     mMainBlockingProcess(nullptr),
+    mProcessWaiter(nullptr),
     mDownloadManager(nullptr)
 {}
 
