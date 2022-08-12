@@ -49,8 +49,8 @@ private:
 
     // Logging - Messages
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = "Searching for Flashpoint root...";
-    static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = "Checking if \"%1\" is flashpoint root";
-    static inline const QString LOG_EVENT_FLASHPOINT_LINK = "Linked to Flashpoint install at: %1";
+    static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = R"(Checking if "%1" is flashpoint root)";
+    static inline const QString LOG_EVENT_FLASHPOINT_LINK = R"(Linked to Flashpoint install at: "%1")";
     static inline const QString LOG_EVENT_SHOW_MESSAGE = "Displayed message";
     static inline const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
     static inline const QString LOG_EVENT_TASK_COUNT = "%1 task(s) to perform";
