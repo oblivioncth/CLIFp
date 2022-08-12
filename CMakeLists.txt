@@ -188,7 +188,7 @@ set_cxx_project_vars(${TARGET_NAME}
 # Set target exe details
 include(CLIFp/WinExecutableDetails)
 set_win_executable_details(${TARGET_NAME}
-    ICON "res/icon/CLIFp.ico"
+    ICON "res/app/CLIFp.ico"
     FILE_VER ${PROJECT_VERSION}
     PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
     COMPANY_NAME "oblivioncth"
