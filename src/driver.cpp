@@ -553,19 +553,28 @@ void Driver::quitNow()
         mDownloadManager->abort();
 
     // Main process running
-    if(mMainBlockingProcess) // May want to add && isOpen() here, but not sure if that is implemented correctly
+    if(mMainBlockingProcess)
     {
+        // NOTE: Careful in this function, once the process is dead and the finishedBlockingExecutionHandler
+        // slot has been invoked, mMainBlockingProcess gets reset to nullptr
+
         // Try soft kill
         mMainBlockingProcess->terminate();
-        if(mMainBlockingProcess->state() != QProcess::NotRunning)
-            mMainBlockingProcess->waitForFinished(2000); // Allow up to 2 seconds to close
-
-        /* See if process stopped. Can't use result of QProcess::waitForFinished directly since there is a small
-         * race condition in which the process ends between the previous check of its state and when
-         * waitForFinished is invoked. If this happened, waitForFinished would return false and give the impression
-         * that the process was still running
+        bool closed = mMainBlockingProcess->waitForFinished(2000); // Allow up to 2 seconds to close
+        /* NOTE: Initially there was concern that the above has a race condition in that the app could
+         * finish closing after terminate was invoked, but before the portion of waitForFinished
+         * that checks if the process is still running (since it returns false if it isn't) is reached.
+         * This would make the return value misleading (it would appear as if the process is still running
+         * (I think this behavior of waitForFinished is silly but that's an issue for another time); however,
+         * debug testing showed that after sitting at a break point before waitForFinished, but after terminate
+         * for a significant amount of time and then executing waitForFinished it still initially treated the
+         * process as if it was running. Likely QProcess isn't made aware that the app stopped until some kind
+         * of event is processed after it ends that is processed within waitForFinished, meaning there is no
+         * race condition
          */
-        if(mMainBlockingProcess->state() != QProcess::NotRunning)
+
+        // Hard kill if necessary
+        if(!closed)
             mMainBlockingProcess->kill(); // Hard kill
     }
 
