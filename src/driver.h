@@ -69,7 +69,8 @@ private:
     static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
-    static inline const QString LOG_EVENT_CLOSE_REQUEST = "Received close request";
+    static inline const QString LOG_EVENT_QUIT_REQUEST = "Received quit request";
+    static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = "Received redundant quit request";
 
     // Meta
     static inline const QString NAME = "driver";
@@ -143,7 +144,7 @@ public slots:
     void cancelActiveDownloads();
 
     // General
-    void closeNow();
+    void quitNow();
 
 signals:
     // Private Signals

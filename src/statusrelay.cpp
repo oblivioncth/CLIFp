@@ -13,15 +13,34 @@
 // STATUS RELAY
 //===============================================================================================================
 
-//-Constructor----------------------------------------------------------------
+//-Constructor--------------------------------------------------------------------
 StatusRelay::StatusRelay(QObject* parent) :
-    QObject(parent),
-    mTrayIcon(QIcon(":/icon/CLIFp.ico"))
+    QObject(parent)
 {
+    setupTrayIcon();
+}
+
+void StatusRelay::setupTrayIcon()
+{
+    // Set Icon
+    mTrayIcon.setIcon(QIcon(":/app/CLIFp.ico"));
+
+    // Set ToolTip Action
     mTrayIcon.setToolTip(SYS_TRAY_STATUS);
-    connect(&mTrayIcon, &QSystemTrayIcon::activated, this, [this](){
-        mTrayIcon.showMessage(mStatusHeading, mStatusMessage);
+    connect(&mTrayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason){
+        if(reason != QSystemTrayIcon::Context)
+            mTrayIcon.showMessage(mStatusHeading, mStatusMessage);
     });
+
+    // Set Context Menu
+    QAction* quit = new QAction(&mTrayIconContextMenu);
+    quit->setIcon(QIcon(":/tray/Exit.png"));
+    quit->setText("Quit");
+    connect(quit, &QAction::triggered, this, &StatusRelay::quitRequested);
+    mTrayIconContextMenu.addAction(quit);
+    mTrayIcon.setContextMenu(&mTrayIconContextMenu);
+
+    // Display Icon
     mTrayIcon.show();
 }
 

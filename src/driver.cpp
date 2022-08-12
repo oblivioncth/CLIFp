@@ -535,10 +535,16 @@ void Driver::drive()
 
 void Driver::cancelActiveDownloads() { mDownloadManager->abort(); }
 
-void Driver::closeNow()
+void Driver::quitNow()
 {
+    if(mQuitRequested)
+    {
+        mCore->logEvent(NAME, LOG_EVENT_QUIT_REQUEST_REDUNDANT);
+        return;
+    }
+
     mQuitRequested = true;
-    mCore->logEvent(NAME, LOG_EVENT_CLOSE_REQUEST);
+    mCore->logEvent(NAME, LOG_EVENT_QUIT_REQUEST);
 
     //-Handle all potential cases in which CLIFp is waiting for something---------------
 
