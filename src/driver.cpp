@@ -566,7 +566,7 @@ void Driver::quitNow()
          * that the process was still running
          */
         if(mMainBlockingProcess->state() != QProcess::NotRunning)
-            mMainBlockingProcess->terminate(); // Hard kill
+            mMainBlockingProcess->kill(); // Hard kill
     }
 
     // Waiting on restarted main process
