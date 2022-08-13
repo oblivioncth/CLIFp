@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>icon/CLIFp.ico</file>
+        <file>app/CLIFp.ico</file>
+		<file>tray/Exit.png</file>
     </qresource>
 </RCC>

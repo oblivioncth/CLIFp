@@ -39,10 +39,15 @@ Controller::Controller(QObject* parent)
     connect(driver, &Driver::downloadTotalChanged, &mStatusRelay, &StatusRelay::downloadTotalHandler);
     connect(driver, &Driver::downloadStarted, &mStatusRelay, &StatusRelay::downloadStartedHandler);
     connect(driver, &Driver::downloadFinished, &mStatusRelay, &StatusRelay::downloadFinishedHandler);
+    connect(&mStatusRelay, &StatusRelay::downloadCanceled, driver, &Driver::cancelActiveDownloads);
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
     connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::authenticationRequired, &mStatusRelay, &StatusRelay::authenticationHandler, Qt::BlockingQueuedConnection);
+
+    // Connect quit handler
+    connect(&mStatusRelay, &StatusRelay::quitRequested, this, &Controller::quitRequestHandler);
+    connect(this, &Controller::quit, driver, &Driver::quitNow);
 
     // Start thread
     mWorkerThread.start();
@@ -73,10 +78,19 @@ bool Controller::windowsAreOpen()
 
 
 //Public:
-void Controller::run() { emit operate();}
+void Controller::run() { emit operate(); }
 
 //-Slots--------------------------------------------------------------------------------
 //Private:
+void Controller::quitRequestHandler()
+{
+    // Notify driver to quit if it still exists
+    emit quit();
+
+    // Close all top-level windows
+    qApp->closeAllWindows();
+}
+
 void Controller::finisher(ErrorCode errorCode)
 {
     // Quit once no windows remain

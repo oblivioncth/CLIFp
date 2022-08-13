@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QProgressDialog>
 #include <QSystemTrayIcon>
+#include <QMenu>
 #include <QAuthenticator>
 
 // Project Includes
@@ -25,10 +26,15 @@ public:
     QString mStatusMessage;
 
     QSystemTrayIcon mTrayIcon;
+    QMenu mTrayIconContextMenu;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
     explicit StatusRelay(QObject* parent = nullptr);
+
+//-Instance Functions--------------------------------------------------------------------------------------------------
+private:
+    void setupTrayIcon();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------
 public slots:
@@ -47,6 +53,7 @@ public slots:
 
 signals:
     void downloadCanceled();
+    void quitRequested();
 };
 
 #endif // STATUSRELAY_H

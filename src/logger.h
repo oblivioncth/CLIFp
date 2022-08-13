@@ -32,7 +32,7 @@ private:
 //-Instance Variables-------------------------------------------------------------------------------------------------
 private:
     // From constructor
-    QFile* const mLogFile;
+    QString mFilePath;
     QString mCommandLine;
     QString mGlobalOptions;
     QString mEntryHeader;
@@ -45,7 +45,7 @@ private:
 
 //-Constructor--------------------------------------------------------------------------------------------------------
 public:
-    Logger(QFile* const logFile, QString commandLine, QString globalOptions, QString header, int maxEntries);
+    Logger(const QString& filePath, QString commandLine, QString globalOptions, QString header, int maxEntries);
 
 //-Instance Functions-------------------------------------------------------------------------------------------------
 public:

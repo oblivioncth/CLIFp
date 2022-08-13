@@ -23,7 +23,7 @@
 #include "project_vars.h"
 
 //-Macros----------------------------------------------------------------------
-#define ENUM_NAME(eenum) QString::fromStdString(std::string(magic_enum::enum_name(eenum)))
+#define ENUM_NAME(eenum) QString(magic_enum::enum_name(eenum).data())
 #define CLIFP_DIR_PATH QCoreApplication::applicationDirPath()
 
 //-Typedef---------------------------------------------------------------------
@@ -274,7 +274,6 @@ private:
 
     // Handles
     std::unique_ptr<Fp::Install> mFlashpointInstall;
-    std::unique_ptr<QFile> mLogFile;
     std::unique_ptr<Logger> mLogger;
 
     // Processing
@@ -307,7 +306,7 @@ public:
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
     ErrorCode enqueueDataPackTasks(QUuid targetID);
     void enqueueSingleTask(std::shared_ptr<Task> task);
-    void clearTaskQueue();
+    void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
@@ -323,7 +322,8 @@ public:
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;
-    std::shared_ptr<Task> takeFrontTask();
+    std::shared_ptr<Task> frontTask();
+    void removeFrontTask();
 
     QString statusHeading();
     QString statusMessage();

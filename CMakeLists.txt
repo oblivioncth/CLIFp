@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
-set(CLIFP_BASE_VERSION 0.8.1.1) # Required for CI/CD
+set(CLIFP_BASE_VERSION 0.8.2) # Required for CI/CD
 project(CLIFp
     VERSION ${CLIFP_BASE_VERSION}
     LANGUAGES CXX
@@ -90,11 +90,11 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(CLIFp/FetchQx)
-fetch_qx("v0.3.0.3")
+fetch_qx("v0.3.1")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
-fetch_libfp("v0.1")
+fetch_libfp("v0.1.1")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)
@@ -122,6 +122,8 @@ set(CXX_SOURCES
     src/driver.cpp
     src/logger.h
     src/logger.cpp
+    src/processwaiter.h
+    src/processwaiter.cpp
     src/statusrelay.h
     src/statusrelay.cpp
     src/main.cpp
@@ -186,7 +188,7 @@ set_cxx_project_vars(${TARGET_NAME}
 # Set target exe details
 include(CLIFp/WinExecutableDetails)
 set_win_executable_details(${TARGET_NAME}
-    ICON "res/icon/CLIFp.ico"
+    ICON "res/app/CLIFp.ico"
     FILE_VER ${PROJECT_VERSION}
     PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
     COMPANY_NAME "oblivioncth"
@@ -216,6 +218,8 @@ write_basic_package_version_file(
 )
 
 #================= Install ==========================
+
+set(TOP_LEVEL_INSTALL_COMPONENT ${PROJECT_NAME_LC})
 
 # Install executable
 install(TARGETS ${TARGET_NAME}

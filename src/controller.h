@@ -33,9 +33,11 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
+    void quitRequestHandler();
     void finisher(ErrorCode errorCode);
 
 signals:
+    void quit();
     void operate();
 };
 

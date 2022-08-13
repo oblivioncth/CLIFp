@@ -5,6 +5,8 @@ CLIFp (pronounced "Cliff-P") is a command-line interface for [BlueMaxima's Flash
 
 Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completely in the background so that the only windows seen during use are the same ones present while running standard Flashpoint. It automatically terminates once the target application has exited, requiring no manual tasks or clean-up by the user. 
 
+[![Dev Builds](https://github.com/oblivioncth/CLIFp/actions/workflows/push-reaction.yml/badge.svg?branch=dev)](https://github.com/oblivioncth/CLIFp/actions/workflows/push-reaction.yml)
+
 ## Compatability
 ### General
 Because it directly mimics the actions of the GUI launcher, CLIFp should provide a perfect or near-perfect experience when compared to using the standard method of launching games/animations. Additionally, this makes it fairly resilient towards Flashpoint updates and will most likely only require compatibility patches when updates that make major changes are released.

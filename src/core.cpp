@@ -115,12 +115,12 @@ ErrorCode Core::initialize(QStringList& commandLine)
     commandLine.removeFirst();
 
     // Create logger instance
-    mLogFile = std::make_unique<QFile>(CLIFP_DIR_PATH + '/' + LOG_FILE_NAME);
-    mLogger = std::make_unique<Logger>(mLogFile.get(), mRawCommandLine.isEmpty() ? LOG_NO_PARAMS : mRawCommandLine, globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
+    QString logPath = CLIFP_DIR_PATH + '/' + LOG_FILE_NAME;
+    mLogger = std::make_unique<Logger>(logPath, mRawCommandLine.isEmpty() ? LOG_NO_PARAMS : mRawCommandLine, globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
 
     // Open log
     Qx::IoOpReport logOpen = mLogger->openLog();
-    if(!logOpen.wasSuccessful())
+    if(logOpen.isFailure())
         postError(NAME, Qx::GenericError(Qx::GenericError::Warning, logOpen.outcome(), logOpen.outcomeInfo()), false);
 
     // Log initialization step
@@ -154,7 +154,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
     }
     else
     {
-        commandLine.clear(); // Clear remaining options since they are now irrelavent
+        commandLine.clear(); // Clear remaining options since they are now irrelevant
         showHelp();
         logError(NAME, Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
         return ErrorCodes::INVALID_ARGS;
@@ -381,7 +381,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     if(packFile.exists())
     {
         Qx::IoOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, packSha256, QCryptographicHash::Sha256);
-        if(!checksumReport.wasSuccessful())
+        if(checksumReport.isFailure())
             logError(NAME, Qx::GenericError(Qx::GenericError::Error, checksumReport.outcome(), checksumReport.outcomeInfo()));
 
         if(!checksumMatches)
@@ -458,14 +458,14 @@ void Core::clearTaskQueue() { mTaskQueue = {}; }
 void Core::logCommand(QString src, QString commandName)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_LABEL.arg(commandName));
-    if(!logReport.wasSuccessful())
+    if(logReport.isFailure())
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 }
 
 void Core::logCommandOptions(QString src, QString commandOptions)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_OPT_LABEL.arg(commandOptions));
-    if(!logReport.wasSuccessful())
+    if(logReport.isFailure())
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 }
 
@@ -473,7 +473,7 @@ void Core::logError(QString src, Qx::GenericError error)
 {
     Qx::IoOpReport logReport = mLogger->recordErrorEvent(src, error);
 
-    if(!logReport.wasSuccessful())
+    if(logReport.isFailure())
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 
     if(error.errorLevel() == Qx::GenericError::Critical)
@@ -483,7 +483,7 @@ void Core::logError(QString src, Qx::GenericError error)
 void Core::logEvent(QString src, QString event)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, event);
-    if(!logReport.wasSuccessful())
+    if(logReport.isFailure())
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 }
 
@@ -495,7 +495,7 @@ int Core::logFinish(QString src, int exitCode)
         logEvent(src, LOG_ERR_CRITICAL);
 
     Qx::IoOpReport logReport = mLogger->finish(exitCode);
-    if(!logReport.wasSuccessful())
+    if(logReport.isFailure())
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 
     // Return exit code so main function can return with this one
@@ -558,13 +558,8 @@ Fp::Install& Core::getFlashpointInstall() { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
-
-std::shared_ptr<Core::Task> Core::takeFrontTask()
-{
-    std::shared_ptr<Task> frontTask = mTaskQueue.front();
-    mTaskQueue.pop();
-    return frontTask;
-}
+std::shared_ptr<Core::Task> Core::frontTask() { return mTaskQueue.front(); }
+void Core::removeFrontTask() { mTaskQueue.pop(); }
 
 QString Core::statusHeading() { return mStatusHeading; }
 QString Core::statusMessage() { return mStatusMessage;}
