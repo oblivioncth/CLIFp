@@ -54,17 +54,22 @@ void StatusRelay::statusChangeHandler(const QString& statusHeading, const QStrin
 
 void StatusRelay::errorHandler(Core::Error error)
 {
-    Qx::postError(error.errorInfo, QMessageBox::Ok, QMessageBox::Ok);
+    Qx::postError(error.errorInfo);
 }
 
 void StatusRelay::blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError)
 {
-    *response = Qx::postError(blockingError.errorInfo, blockingError.choices, blockingError.defaultChoice);
+    *response = Qx::postBlockingError(blockingError.errorInfo, blockingError.choices, blockingError.defaultChoice);
 }
 
 void StatusRelay::messageHandler(const QString& message)
 {
-    QMessageBox::information(nullptr, QApplication::applicationName(), message);
+    QMessageBox* msg  = new QMessageBox();
+    msg->setIcon(QMessageBox::Information);
+    msg->setWindowTitle(QApplication::applicationName()); // This should be the default, but hey being explicit never hurt
+    msg->setText(message);
+    msg->setAttribute(Qt::WA_DeleteOnClose);
+    msg->show();
 }
 
 void StatusRelay::authenticationHandler(QString prompt, QAuthenticator* authenticator)
