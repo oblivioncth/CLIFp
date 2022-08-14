@@ -28,7 +28,7 @@ Using a version of CLIFp with a version of Flashpoint different than its target 
 
 The title of each [release](https://stackedit.io/github.com/oblivioncth/CLIFp/releases) will indicate which version of Flashpoint it targets.
 
-Updates will always set to target the latest Flashpoint release, even if they were not created explicitly for compatibility reasons.
+Updates will always be set to target the latest Flashpoint release, even if they were not created explicitly for compatibility reasons.
 
 ## Usage
 ### Target Usage
@@ -172,9 +172,9 @@ Requires:
 With any use of the **--title** option for the commands that support it the title must be entered verbatim as it appears within Flashpoint, as close matches are not checked (due to technical limitations). If two entries happen to share the title specified, a dialog window with more information will be displayed so that the intended title can be selected.
 
 ## Other Features
-CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on.
+CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on and features a context menu with an option to exit at any time.
 
-The functionality of the tray icon will be expanded upon in future releases.
+The functionality of the tray icon may be expanded upon in future releases.
 
 ## Exit Codes
 Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
