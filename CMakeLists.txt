@@ -243,6 +243,7 @@ install(EXPORT ${PROJECT_NAME}Targets
 # Install package config
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
     CONFIGURATIONS Release
     COMPONENT ${TARGET_NAME}
     DESTINATION cmake
