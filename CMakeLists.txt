@@ -263,6 +263,7 @@ install(FILES
 # For in source builds
 export(EXPORT ${PROJECT_NAME}Targets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${PROJECT_NAME}::
 )
 
 #====================== CPack ==============================
