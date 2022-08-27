@@ -23,6 +23,9 @@ Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverP
     mNam.setAutoDeleteReplies(true);
     mNam.setTransferTimeout(10);
 
+    // Setup QMPI
+    mQemuMounter.setTransactionTimeout(5000);
+
     // Connections - Work
     connect(&mQemuMounter, &Qmpi::readyForCommands, this, &Mounter::qmpiReadyForCommandsHandler);
     connect(&mQemuMounter, &Qmpi::finished, this, &Mounter::qmpiFinishedHandler);
