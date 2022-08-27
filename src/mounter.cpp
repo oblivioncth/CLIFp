@@ -62,7 +62,7 @@ void Mounter::createMountPoint()
             {"filename", mCurrentMountInfo.filePath}
         }}
     },
-    "blockdev-add");
+    QString("blockdev-add"));
 
     mQemuMounter.execute("device_add", {
         {"driver", "virtio-blk-pci"},
@@ -70,7 +70,7 @@ void Mounter::createMountPoint()
         {"id", mCurrentMountInfo.driveId},
         {"serial", mCurrentMountInfo.driveSerial}
     },
-    "device_add");
+    QString("device_add"));
 
     // Await finished() signal...
 }
