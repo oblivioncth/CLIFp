@@ -24,7 +24,7 @@ Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverP
     mNam.setTransferTimeout(10);
 
     // Setup QMPI
-    mQemuMounter.setTransactionTimeout(5000);
+    mQemuMounter.setTransactionTimeout(500000); // TODO: Make reasonable when done debugging
 
     // Connections - Work
     connect(&mQemuMounter, &Qmpi::readyForCommands, this, &Mounter::qmpiReadyForCommandsHandler);
@@ -56,24 +56,38 @@ void Mounter::finish()
 
 void Mounter::createMountPoint()
 {
-    // Create mount point in QEMU instance
-    mQemuMounter.execute("blockdev-add", {
-        {"node-name", mCurrentMountInfo.driveId},
-        {"driver", "raw"},
-        {"file", QJsonObject{
-            {"driver", "file"},
-            {"filename", mCurrentMountInfo.filePath}
-        }}
-    },
-    QString("blockdev-add"));
+    // Build commands
+    QString blockDevAddCmd = "blockdev=add";
+    QString deviceAddCmd = "device_add";
 
-    mQemuMounter.execute("device_add", {
-        {"driver", "virtio-blk-pci"},
-        {"drive", mCurrentMountInfo.driveId},
-        {"id", mCurrentMountInfo.driveId},
-        {"serial", mCurrentMountInfo.driveSerial}
-    },
-    QString("device_add"));
+    QJsonObject blockDevAddArgs;
+    blockDevAddArgs["node-name"] = mCurrentMountInfo.driveId;
+    blockDevAddArgs["driver"] = "raw";
+    QJsonObject fileArgs;
+    fileArgs["driver"] = "file";
+    fileArgs["filename"] = mCurrentMountInfo.filePath;
+    blockDevAddArgs["file"] = fileArgs;
+
+    QJsonObject deviceAddArgs;
+    deviceAddArgs["driver"] = "virtio-blk-pci";
+    deviceAddArgs["drive"] = mCurrentMountInfo.driveId;
+    deviceAddArgs["id"] = mCurrentMountInfo.driveId;
+    deviceAddArgs["serial"] = mCurrentMountInfo.driveSerial;
+
+    // Log formatter
+    QJsonDocument formatter;
+    QString cmdLog;
+
+    // Queue/Log commands
+    formatter.setObject(blockDevAddArgs);
+    cmdLog = formatter.toJson(QJsonDocument::Compact);
+    mQemuMounter.execute(blockDevAddCmd, blockDevAddArgs,
+                         blockDevAddCmd + " " + cmdLog);
+
+    formatter.setObject(deviceAddArgs);
+    cmdLog = formatter.toJson(QJsonDocument::Compact);
+    mQemuMounter.execute(deviceAddCmd, deviceAddArgs,
+                         deviceAddCmd + " " + cmdLog);
 
     // Await finished() signal...
 }
