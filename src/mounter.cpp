@@ -214,7 +214,13 @@ void Mounter::mount(QUuid titleId, QString filePath)
 void Mounter::abort()
 {
     if(mQemuMounter.isConnectionActive())
-        mQemuMounter.disconnectFromHost();
+    {
+        // Aborting this doesn't cause an error so we must set one here manually.
+        mErrorStatus = Core::ErrorCodes::QMP_CONNECTION_FAIL;
+        Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(ERR_QMP_CONNECTION_ABORT));
+        emit errorOccured(errMsg);
+        mQemuMounter.abort(); // Call last here because it causes finished signal to emit immediately
+    }
     if(mPhpMountReply && mPhpMountReply->isRunning())
         mPhpMountReply->abort();
 }

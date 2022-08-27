@@ -31,6 +31,7 @@ private:
 private:
     static inline const QString MOUNT_ERROR_TEXT = "An error occurred while mounting a data pack.";
     static inline const QString ERR_QMP_CONNECTION = "QMPI connection error - \"%1\"";
+    static inline const QString ERR_QMP_CONNECTION_ABORT = "The connection was aborted.";
     static inline const QString ERR_QMP_COMMUNICATION = "QMPI communication error - \"%1\"";
     static inline const QString ERR_QMP_COMMAND = "QMPI command %1 error - [%2] \"%3\"";
 
