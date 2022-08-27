@@ -5,12 +5,12 @@
 #include <QApplication>
 #include <QWindow>
 
+// Project Includes
+#include "driver.h"
+
 // Windows Includes
 #include <qx_windows.h>
 #include <processenv.h>
-
-// Project Includes
-#include "driver.h"
 
 //===============================================================================================================
 // CONTROLLER
