@@ -1,8 +1,12 @@
 // Unit Include
 #include "processwaiter.h"
 
+// Qx Includes
+#include <qx_windows.h>
+
 // Windows Include
 #include <shellapi.h>
+
 
 //===============================================================================================================
 // ProcessWaiter
@@ -94,7 +98,8 @@ ErrorCode ProcessWaiter::doWait()
             emit statusChanged(LOG_EVENT_WAIT_RUNNING.arg(mProcessName));
 
             // Get process handle and see if it is valid
-            if((mProcessHandle = OpenProcess(PROCESS_HANDLE_ACCESS_RIGHTS, FALSE, spProcessID)) == NULL)
+            DWORD rights = PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE;
+            if((mProcessHandle = OpenProcess(rights, FALSE, spProcessID)) == NULL)
             {
                 Qx::GenericError nativeError = Qx::translateHresult(HRESULT_FROM_WIN32(GetLastError()));
 

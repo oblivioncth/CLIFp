@@ -7,7 +7,6 @@
 
 // Qx Includes
 #include <qx/windows/qx-common-windows.h>
-#include <qx_windows.h>
 
 // Project Includes
 #include "core.h"
@@ -36,9 +35,6 @@ class ProcessWaiter : public QThread
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
-    // Process
-    static const DWORD PROCESS_HANDLE_ACCESS_RIGHTS = PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE;
-
     // Error Messages
     static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = "Could not get a wait handle to %1, the title will likely not work correctly.";
     static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting, the title will likely not work correctly.";
