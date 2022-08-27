@@ -118,11 +118,11 @@ void StatusRelay::longTaskStartedHandler(QString task)
     mLongTaskProgressDialog->setValue(0);
 }
 
-void StatusRelay::longTaskFinishedHandler(bool canceled)
+void StatusRelay::longTaskFinishedHandler()
 {
     if(mLongTaskProgressDialog)
     {
-        if(!canceled) // Is already closed if canceled
+        if(mLongTaskProgressDialog->isVisible()) // Is already closed if canceled
             mLongTaskProgressDialog->close();
 
         mLongTaskProgressDialog->deleteLater(); // May still have pending events from setValue, so can't delete immediately

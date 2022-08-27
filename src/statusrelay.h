@@ -51,7 +51,7 @@ public slots:
     void longTaskProgressHandler(quint64 progress);
     void longTaskTotalHandler(quint64 total);
     void longTaskStartedHandler(QString task);
-    void longTaskFinishedHandler(bool canceled);
+    void longTaskFinishedHandler();
 
 signals:
     void longTaskCanceled();

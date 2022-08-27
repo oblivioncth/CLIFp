@@ -98,7 +98,7 @@ fetch_libfp("4110dd8069c6ba9e9856f2910d2337e4e0e24586")
 
 # Fetch QI-QMP (build and import from source)
 include(CLIFp/FetchQI-QMP)
-fetch_qi_qmp("dc85583ba90a586f6e8162df80b04ebc5ffe92fe")
+fetch_qi_qmp("a15a4bd4f87848a0b90acca9d9f759ab2026c3d5")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)

@@ -414,7 +414,7 @@ void Driver::finishedBlockingExecutionHandler()
 void Driver::finishedDownloadHandler(Qx::DownloadManagerReport downloadReport)
 {
     // Handle result
-    emit longTaskFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
+    emit longTaskFinished();
     if(downloadReport.wasSuccessful())
     {
         // Get task completed download task
@@ -459,7 +459,8 @@ void Driver::finishedWaitHandler(ErrorCode errorStatus)
 
 void Driver::finishedMountHandler(ErrorCode errorStatus)
 {
-    // Handle potential error
+    // Handle result
+    emit longTaskFinished();
     if(errorStatus)
         handleTaskError(errorStatus);
 

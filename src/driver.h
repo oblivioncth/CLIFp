@@ -175,7 +175,7 @@ signals:
     void longTaskProgressChanged(quint64 progress);
     void longTaskTotalChanged(quint64 total);
     void longTaskStarted(QString task);
-    void longTaskFinished(bool canceled);
+    void longTaskFinished();
 };
 
 #endif // DRIVER_H
