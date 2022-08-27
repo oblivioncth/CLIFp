@@ -11,6 +11,7 @@
 // Project Includes
 #include "core.h"
 #include "processwaiter.h"
+#include "mounter.h"
 
 class Driver : public QObject
 {
@@ -69,11 +70,13 @@ private:
     static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
+    static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = "Mounting Data Pack %1";
     static inline const QString LOG_EVENT_QUIT_REQUEST = "Received quit request";
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = "Received redundant quit request";
     static inline const QString LOG_EVENT_STOPPING_MAIN_PROCESS = "Stopping primary execution process...";
     static inline const QString LOG_EVENT_STOPPING_WAIT_PROCESS = "Stopping current wait on execution process...";
     static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = "Stopping current download(s)...";
+    static inline const QString LOG_EVENT_STOPPING_MOUNT = "Stopping current mount(s)...";
 
     // Meta
     static inline const QString NAME = "driver";
@@ -90,6 +93,7 @@ private:
     QProcess* mMainBlockingProcess;
     QList<QProcess*> mActiveChildProcesses;
     ProcessWaiter* mProcessWaiter; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
+    Mounter* mMounter; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     Qx::AsyncDownloadManager* mDownloadManager; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     /*
      * TODO: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
@@ -117,6 +121,7 @@ private:
     void processExtraTask(const std::shared_ptr<Core::ExtraTask> task);
     void processWaitTask(const std::shared_ptr<Core::WaitTask> task);
     void processDownloadTask(const std::shared_ptr<Core::DownloadTask> task);
+    void processMountTask(const std::shared_ptr<Core::MountTask> task);
 
     void startNextTask();
     void handleTaskError(ErrorCode error);
@@ -137,6 +142,7 @@ private slots:
     void finishedBlockingExecutionHandler();
     void finishedDownloadHandler(Qx::DownloadManagerReport downloadReport);
     void finishedWaitHandler(ErrorCode errorStatus);
+    void finishedMountHandler(ErrorCode errorStatus);
     void finishedTaskHandler();
 
 public slots:
@@ -144,7 +150,7 @@ public slots:
     void drive();
 
     // Net
-    void cancelActiveDownloads();
+    void cancelActiveLongTask();
 
     // General
     void quitNow();
@@ -164,10 +170,12 @@ signals:
 
     // Network
     void authenticationRequired(QString prompt, QAuthenticator* authenticator);
-    void downloadProgressChanged(quint64 progress);
-    void downloadTotalChanged(quint64 total);
-    void downloadStarted(QString task);
-    void downloadFinished(bool canceled);
+
+    // Long task
+    void longTaskProgressChanged(quint64 progress);
+    void longTaskTotalChanged(quint64 total);
+    void longTaskStarted(QString task);
+    void longTaskFinished(bool canceled);
 };
 
 #endif // DRIVER_H

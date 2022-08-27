@@ -349,7 +349,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     // Possible future waits...
 }
 
-ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
+ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
@@ -360,7 +360,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     // Get database
     Fp::Db* database = mFlashpointInstall->database();
 
-    if((searchError = database->queryEntryDataById(searchResult, targetID)).isValid())
+    if((searchError = database->queryEntryDataById(searchResult, targetId)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
         return ErrorCodes::SQL_ERROR;
@@ -434,16 +434,11 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         logTask(NAME, downloadTask.get());
     }
 
-    // Enqeue pack mount
-    QFileInfo mounterInfo(mFlashpointInstall->datapackMounterPath());
-
-    std::shared_ptr<ExecTask> mountTask = std::make_shared<ExecTask>();
+    // Enqueue pack mount
+    std::shared_ptr<MountTask> mountTask = std::make_shared<MountTask>();
     mountTask->stage = TaskStage::Auxiliary;
-    mountTask->path = mounterInfo.absolutePath();
-    mountTask->filename = mounterInfo.fileName();
-    mountTask->param = QStringList{targetID.toString(QUuid::WithoutBraces), packDestFolderPath + "/" + packFileName};
-    mountTask->nativeParam = QString();
-    mountTask->processType = ProcessType::Blocking;
+    mountTask->titleId = targetId;
+    mountTask->path = packDestFolderPath + "/" + packFileName;
 
     mTaskQueue.push(mountTask);
     logTask(NAME, mountTask.get());

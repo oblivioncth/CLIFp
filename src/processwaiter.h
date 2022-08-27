@@ -6,7 +6,6 @@
 #include <QMutex>
 
 // Qx Includes
-#include <qx/core/qx-setonce.h>
 #include <qx/windows/qx-common-windows.h>
 #include <qx_windows.h>
 

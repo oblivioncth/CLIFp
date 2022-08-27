@@ -35,11 +35,11 @@ Controller::Controller(QObject* parent)
     connect(driver, &Driver::statusChanged, &mStatusRelay, &StatusRelay::statusChangeHandler);
     connect(driver, &Driver::errorOccured, &mStatusRelay, &StatusRelay::errorHandler);
     connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler);
-    connect(driver, &Driver::downloadProgressChanged, &mStatusRelay, &StatusRelay::downloadProgressHandler);
-    connect(driver, &Driver::downloadTotalChanged, &mStatusRelay, &StatusRelay::downloadTotalHandler);
-    connect(driver, &Driver::downloadStarted, &mStatusRelay, &StatusRelay::downloadStartedHandler);
-    connect(driver, &Driver::downloadFinished, &mStatusRelay, &StatusRelay::downloadFinishedHandler);
-    connect(&mStatusRelay, &StatusRelay::downloadCanceled, driver, &Driver::cancelActiveDownloads);
+    connect(driver, &Driver::longTaskProgressChanged, &mStatusRelay, &StatusRelay::longTaskProgressHandler);
+    connect(driver, &Driver::longTaskTotalChanged, &mStatusRelay, &StatusRelay::longTaskTotalHandler);
+    connect(driver, &Driver::longTaskStarted, &mStatusRelay, &StatusRelay::longTaskStartedHandler);
+    connect(driver, &Driver::longTaskFinished, &mStatusRelay, &StatusRelay::longTaskFinishedHandler);
+    connect(&mStatusRelay, &StatusRelay::longTaskCanceled, driver, &Driver::cancelActiveLongTask);
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
     connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);

@@ -86,47 +86,47 @@ void StatusRelay::authenticationHandler(QString prompt, QAuthenticator* authenti
     }
 }
 
-void StatusRelay::downloadProgressHandler(quint64 progress)
+void StatusRelay::longTaskProgressHandler(quint64 progress)
 {
-    if(mDownloadProgressDialog)
+    if(mLongTaskProgressDialog)
     {
-        mDownloadProgressDialog->setValue(progress);
+        mLongTaskProgressDialog->setValue(progress);
     }
 }
 
-void StatusRelay::downloadTotalHandler(quint64 total)
+void StatusRelay::longTaskTotalHandler(quint64 total)
 {
-    if(mDownloadProgressDialog)
+    if(mLongTaskProgressDialog)
     {
-        mDownloadProgressDialog->setMaximum(total);
+        mLongTaskProgressDialog->setMaximum(total);
     }
 }
 
-void StatusRelay::downloadStartedHandler(QString task)
+void StatusRelay::longTaskStartedHandler(QString task)
 {
     // Create progress dialog
-    mDownloadProgressDialog = new QProgressDialog(task, "Cancel", 0, 0);
+    mLongTaskProgressDialog = new QProgressDialog(task, "Cancel", 0, 0);
 
     // Initialize dialog
-    mDownloadProgressDialog->setWindowModality(Qt::NonModal);
-    mDownloadProgressDialog->setMinimumDuration(0);
-    mDownloadProgressDialog->setAutoClose(false);
-    mDownloadProgressDialog->setAutoReset(false);
-    connect(mDownloadProgressDialog, &QProgressDialog::canceled, this, &StatusRelay::downloadCanceled);
+    mLongTaskProgressDialog->setWindowModality(Qt::NonModal);
+    mLongTaskProgressDialog->setMinimumDuration(0);
+    mLongTaskProgressDialog->setAutoClose(false);
+    mLongTaskProgressDialog->setAutoReset(false);
+    connect(mLongTaskProgressDialog, &QProgressDialog::canceled, this, &StatusRelay::longTaskCanceled);
 
     // Show right away
-    mDownloadProgressDialog->setValue(0);
+    mLongTaskProgressDialog->setValue(0);
 }
 
-void StatusRelay::downloadFinishedHandler(bool canceled)
+void StatusRelay::longTaskFinishedHandler(bool canceled)
 {
-    if(mDownloadProgressDialog)
+    if(mLongTaskProgressDialog)
     {
         if(!canceled) // Is already closed if canceled
-            mDownloadProgressDialog->close();
+            mLongTaskProgressDialog->close();
 
-        mDownloadProgressDialog->deleteLater(); // May still have pending events from setValue, so can't delete immediately
-        mDownloadProgressDialog = nullptr;
+        mLongTaskProgressDialog->deleteLater(); // May still have pending events from setValue, so can't delete immediately
+        mLongTaskProgressDialog = nullptr;
         /*
          * NOTE: It may have been from accidentally running the app without copying the new build into the FP directory,
          * and therefore deleteLater wasn't actually used on that run, but one time when testing this deleteLater still
