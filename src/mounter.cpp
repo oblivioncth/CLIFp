@@ -35,7 +35,6 @@ Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverP
     connect(&mQemuMounter, &Qmpi::connectionErrorOccured, this, &Mounter::qmpiConnectionErrorHandler);
     connect(&mQemuMounter, &Qmpi::communicationErrorOccured, this, &Mounter::qmpiCommunicationErrorHandler);
     connect(&mQemuMounter, &Qmpi::errorResponseReceived, this, &Mounter::qmpiCommandErrorHandler);
-    connect(&mQemuMounter, &Qmpi::errorResponseReceived, this, &Mounter::qmpiCommandErrorHandler);
 
     // Connections - Log
     connect(&mQemuMounter, &Qmpi::responseReceived, this, &Mounter::qmpiCommandResponseHandler);
