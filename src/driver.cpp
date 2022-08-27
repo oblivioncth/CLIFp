@@ -75,7 +75,7 @@ void Driver::init()
 
     //-Setup Mounter------------------------------------
     connect(mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
-        mCore->logError(NAME, errorMsg);
+        mCore->postError(NAME, errorMsg);
     });
     connect(mMounter, &Mounter::eventOccured, this, [this](QString event){
         mCore->logEvent(NAME, event);
