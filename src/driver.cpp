@@ -82,6 +82,7 @@ void Driver::init()
     });
     connect(mMounter, &Mounter::mountProgressMaximumChanged, this, &Driver::longTaskTotalChanged);
     connect(mMounter, &Mounter::mountProgress, this, &Driver::longTaskProgressChanged);
+    connect(mMounter, &Mounter::mountFinished, this, &Driver::finishedMountHandler);
 
     //-Setup Download Manager---------------------------
     mDownloadManager->setOverwrite(true);
