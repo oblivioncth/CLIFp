@@ -288,6 +288,8 @@ void Driver::startNextTask()
             processWaitTask(waitTask);
         else if(auto downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
             processDownloadTask(downloadTask);
+        else if(auto mountTask = std::dynamic_pointer_cast<Core::MountTask>(currentTask)) // Mount task
+            processMountTask(mountTask);
         else if(auto execTask = std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
             processExecTask(execTask);
         else
