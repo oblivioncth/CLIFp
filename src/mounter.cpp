@@ -165,7 +165,7 @@ void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, s
     QString commandErr = ERR_QMP_COMMAND.arg(std::any_cast<QString>(context), errorClass, description);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, commandErr);
     emit errorOccured(errMsg);
-    mQemuMounter.disconnectFromHost();
+    mQemuMounter.abort();
 }
 
 void Mounter::qmpiCommandResponseHandler(QJsonValue value, std::any context)
