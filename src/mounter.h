@@ -35,6 +35,7 @@ private:
     static inline const QString ERR_QMP_COMMUNICATION = "QMPI communication error - \"%1\"";
     static inline const QString ERR_QMP_COMMAND = "QMPI command %1 error - [%2] \"%3\"";
 
+    static inline const QString QMP_WELCOME_MESSAGE = "QMPI connected to QEMU Version: \"%1\" | Capabilities: \"%2\"";
     static inline const QString COMMAND_RESPONSE = "QMPI command %1 returned - \"%2\"";
     static inline const QString EVENT_OCCURRED = "QMPI event occurred at %1 - [%2] \"%3\"";
     static inline const QString PHP_RESPONSE = "Mount.php Response: \"%1\"";
@@ -69,6 +70,7 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
+    void qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities);
     void qmpiFinishedHandler();
     void qmpiReadyForCommandsHandler();
     void phpMountFinishedHandler(QNetworkReply *reply);

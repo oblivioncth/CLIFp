@@ -37,6 +37,7 @@ Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverP
     connect(&mQemuMounter, &Qmpi::errorResponseReceived, this, &Mounter::qmpiCommandErrorHandler);
 
     // Connections - Log
+    connect(&mQemuMounter, &Qmpi::connected, this, &Mounter::qmpiConnectedHandler);
     connect(&mQemuMounter, &Qmpi::responseReceived, this, &Mounter::qmpiCommandResponseHandler);
     connect(&mQemuMounter, &Qmpi::eventReceived, this, &Mounter::qmpiEventOccurredHandler);
 }
@@ -105,6 +106,15 @@ bool Mounter::isMounting() { return mMounting; }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Private Slots:
+void Mounter::qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities)
+{
+    QJsonDocument formatter(version);
+    QString versionStr = formatter.toJson(QJsonDocument::Compact);
+    formatter.setArray(capabilities);
+    QString capabilitiesStr = formatter.toJson(QJsonDocument::Compact);
+    emit eventOccured(QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
+}
+
 void Mounter::qmpiFinishedHandler()
 {
     if(mErrorStatus.isSet())
