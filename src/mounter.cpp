@@ -24,7 +24,7 @@ Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverP
     mNam.setTransferTimeout(10);
 
     // Setup QMPI
-    mQemuMounter.setTransactionTimeout(500000); // TODO: Make reasonable when done debugging
+    mQemuMounter.setTransactionTimeout(5000);
 
     // Connections - Work
     connect(&mQemuMounter, &Qmpi::readyForCommands, this, &Mounter::qmpiReadyForCommandsHandler);
@@ -57,7 +57,7 @@ void Mounter::finish()
 void Mounter::createMountPoint()
 {
     // Build commands
-    QString blockDevAddCmd = "blockdev=add";
+    QString blockDevAddCmd = "blockdev-add";
     QString deviceAddCmd = "device_add";
 
     QJsonObject blockDevAddArgs;
