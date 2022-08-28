@@ -61,7 +61,7 @@ void Driver::init()
 {
     // Create core, mounter, and download manager
     mCore = new Core(this, getRawCommandLineParams(mRawArguments));
-    mMounter = new Mounter(4444, 0, 22500, this); // Prod port not used yet
+    mMounter = new Mounter(22501, 0, 22500, this); // Prod port not used yet
     mDownloadManager = new Qx::AsyncDownloadManager(this);
 
     //-Setup Self Connections---------------
