@@ -87,6 +87,7 @@ void Mounter::createMountPoint()
     QJsonObject blockDevAddArgs;
     blockDevAddArgs["node-name"] = mCurrentMountInfo.driveId;
     blockDevAddArgs["driver"] = "raw";
+    blockDevAddArgs["read-only"] = true;
     QJsonObject fileArgs;
     fileArgs["driver"] = "file";
     fileArgs["filename"] = mCurrentMountInfo.filePath;
