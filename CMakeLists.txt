@@ -90,11 +90,15 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(CLIFp/FetchQx)
-fetch_qx("v0.3.1")
+fetch_qx("183dfe17e846efa682ae9b9ec9a5b4deef52fbc6")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
-fetch_libfp("v0.1.1")
+fetch_libfp("4110dd8069c6ba9e9856f2910d2337e4e0e24586")
+
+# Fetch QI-QMP (build and import from source)
+include(CLIFp/FetchQI-QMP)
+fetch_qi_qmp("975c634caa95c37599c12c7d0964e21c730ac1f5")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)
@@ -127,6 +131,8 @@ set(CXX_SOURCES
     src/statusrelay.h
     src/statusrelay.cpp
     src/main.cpp
+    src/mounter.h
+    src/mounter.cpp
 )
 
 set(QT_RESOURCES
@@ -165,6 +171,7 @@ target_link_libraries(${TARGET_NAME}
         Qx::Widgets
         Qx::Windows
         Fp::Flashpoint
+        QI-QMP::Qmpi
         magic_enum::magic_enum
 )
 

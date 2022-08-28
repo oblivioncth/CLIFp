@@ -97,9 +97,9 @@ Qx::IoOpReport Logger::recordErrorEvent(QString src, Qx::GenericError error)
     {
         QString errorString = EVENT_TEMPLATE.arg(QTime::currentTime().toString(), src, ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + ") " + error.primaryInfo());
         if(!error.secondaryInfo().isNull())
-            errorString + " " + error.secondaryInfo();
+            errorString += " " + error.secondaryInfo();
         if(!error.detailedInfo().isNull())
-            errorString + "\n\t" + error.detailedInfo().replace("\n", "\n\t");
+            errorString += "\n\t" + error.detailedInfo().replace("\n", "\n\t");
 
         mErrorStatus = mTextStreamWriter->writeLine(errorString);
         return mErrorStatus;

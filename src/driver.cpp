@@ -25,6 +25,7 @@ Driver::Driver(QStringList arguments, QString rawArguments) :
     mCore(nullptr),
     mMainBlockingProcess(nullptr),
     mProcessWaiter(nullptr),
+    mMounter(nullptr),
     mDownloadManager(nullptr)
 {}
 
@@ -58,8 +59,9 @@ QString Driver::getRawCommandLineParams(const QString& rawCommandLine)
 //Private:
 void Driver::init()
 {
-    // Create core & download manager
+    // Create core, mounter, and download manager
     mCore = new Core(this, getRawCommandLineParams(mRawArguments));
+    mMounter = new Mounter(4444, 0, 22500, this); // Prod port not used yet
     mDownloadManager = new Qx::AsyncDownloadManager(this);
 
     //-Setup Self Connections---------------
@@ -71,6 +73,16 @@ void Driver::init()
     connect(mCore, &Core::blockingErrorOccured, this, &Driver::blockingErrorOccured);
     connect(mCore, &Core::message, this, &Driver::message);
 
+    //-Setup Mounter------------------------------------
+    connect(mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
+        mCore->postError(NAME, errorMsg);
+    });
+    connect(mMounter, &Mounter::eventOccured, this, [this](QString event){
+        mCore->logEvent(NAME, event);
+    });
+    connect(mMounter, &Mounter::mountProgressMaximumChanged, this, &Driver::longTaskTotalChanged);
+    connect(mMounter, &Mounter::mountProgress, this, &Driver::longTaskProgressChanged);
+    connect(mMounter, &Mounter::mountFinished, this, &Driver::finishedMountHandler);
 
     //-Setup Download Manager---------------------------
     mDownloadManager->setOverwrite(true);
@@ -91,8 +103,8 @@ void Driver::init()
         emit authenticationRequired(prompt, authenticator);
     });
 
-    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &Driver::downloadTotalChanged);
-    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, &Driver::downloadProgressChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &Driver::longTaskTotalChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, &Driver::longTaskProgressChanged);
     connect(mDownloadManager, &Qx::AsyncDownloadManager::finished, this, &Driver::finishedDownloadHandler);
 }
 
@@ -228,8 +240,19 @@ void Driver::processDownloadTask(const std::shared_ptr<Core::DownloadTask> task)
     mCore->logEvent(NAME, label);
 
     // Start download
-    emit downloadStarted(label);
+    emit longTaskStarted(label);
     mDownloadManager->processQueue();
+}
+
+void Driver::processMountTask(const std::shared_ptr<Core::MountTask> task)
+{
+    // Log/label string
+    QFileInfo packFileInfo(task->path);
+    QString label = LOG_EVENT_MOUNTING_DATA_PACK.arg(packFileInfo.fileName());
+
+    // Start mount
+    emit longTaskStarted(label);
+    mMounter->mount(task->titleId, task->path);
 }
 
 void Driver::startNextTask()
@@ -266,6 +289,8 @@ void Driver::startNextTask()
             processWaitTask(waitTask);
         else if(auto downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
             processDownloadTask(downloadTask);
+        else if(auto mountTask = std::dynamic_pointer_cast<Core::MountTask>(currentTask)) // Mount task
+            processMountTask(mountTask);
         else if(auto execTask = std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
             processExecTask(execTask);
         else
@@ -389,7 +414,7 @@ void Driver::finishedBlockingExecutionHandler()
 void Driver::finishedDownloadHandler(Qx::DownloadManagerReport downloadReport)
 {
     // Handle result
-    emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
+    emit longTaskFinished();
     if(downloadReport.wasSuccessful())
     {
         // Get task completed download task
@@ -428,6 +453,16 @@ void Driver::finishedWaitHandler(ErrorCode errorStatus)
     // Delete waiter when possible
     mProcessWaiter->deleteLater();
     mProcessWaiter = nullptr;
+
+    emit __currentTaskFinished();
+}
+
+void Driver::finishedMountHandler(ErrorCode errorStatus)
+{
+    // Handle result
+    emit longTaskFinished();
+    if(errorStatus)
+        handleTaskError(errorStatus);
 
     emit __currentTaskFinished();
 }
@@ -534,7 +569,13 @@ void Driver::drive()
         finish();
 }
 
-void Driver::cancelActiveDownloads() { mDownloadManager->abort(); }
+void Driver::cancelActiveLongTask()
+{
+    if(mDownloadManager->isProcessing())
+        mDownloadManager->abort();
+    else if(mMounter->isMounting())
+        mMounter->abort();
+}
 
 void Driver::quitNow()
 {
@@ -554,6 +595,13 @@ void Driver::quitNow()
     {
         mCore->logEvent(NAME, LOG_EVENT_STOPPING_DOWNLOADS);
         mDownloadManager->abort();
+    }
+
+    // Mounting
+    if(mMounter->isMounting())
+    {
+        mCore->logEvent(NAME, LOG_EVENT_STOPPING_MOUNT);
+        mMounter->abort();
     }
 
     // Main process running
