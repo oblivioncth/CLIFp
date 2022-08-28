@@ -1,9 +1,13 @@
 // Unit Includes
 #include "mounter.h"
 
+// Qt Includes
+#include <QAuthenticator>
+
 // Qx Includes
 #include <qx/core/qx-json.h>
 #include <qx/core/qx-base85.h>
+#include <qx/core/qx-string.h>
 
 //===============================================================================================================
 // Mounter
@@ -40,6 +44,24 @@ Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverP
     connect(&mQemuMounter, &Qmpi::connected, this, &Mounter::qmpiConnectedHandler);
     connect(&mQemuMounter, &Qmpi::responseReceived, this, &Mounter::qmpiCommandResponseHandler);
     connect(&mQemuMounter, &Qmpi::eventReceived, this, &Mounter::qmpiEventOccurredHandler);
+
+    /* Network check (none of these should be triggered, they are here in case a FP update would required
+     * them to be used as to help make that clear in the logs when the update causes this to stop working).
+     */
+    connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
+        emit eventOccured("Unexpected use of authentication by PHP server!");
+    });
+    connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
+        emit eventOccured("Unexpected use of PSK authentication by PHP server!");
+    });
+    connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
+        emit eventOccured("Unexpected use of proxy by PHP server!");
+    });
+    connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
+        Q_UNUSED(reply);
+        QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, ",");
+        emit eventOccured("Unexpected SSL errors from PHP server! {" + errStrList + "}");
+    });
 }
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
