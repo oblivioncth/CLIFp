@@ -128,6 +128,7 @@ void Mounter::setMountOnServer()
     mountUrl.setPort(22500);
     mountUrl.setPath("/mount.php");
     mountUrl.setQuery({{"file", QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial)}});
+
     QNetworkRequest mountReq(mountUrl);
 
     // GET request
@@ -170,7 +171,8 @@ void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
 {
     assert(reply == mPhpMountReply.get());
 
-    if(reply->error() != QNetworkReply::NoError)
+    // FP (as of 11) is currently bugged and is expected to give an internal server error so it must be ignored
+    if(reply->error() != QNetworkReply::NoError && reply->error() != QNetworkReply::InternalServerError)
     {
         mErrorStatus = Core::ErrorCodes::PHP_MOUNT_FAIL;
         Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, reply->errorString());
