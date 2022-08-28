@@ -47,6 +47,10 @@ private:
     static inline const QString EVENT_CREATING_MOUNT_POINT = "Creating datapack mount point on QEMU instance...";
     static inline const QString EVENT_MOUNTING_THROUGH_SERVER = "Moutning datapack via PHP server...";
 
+    // Connections
+    static const int QMP_TRANSACTION_TIMEOUT = 5000; // ms
+    static const int PHP_TRANSFER_TIMEOUT = 5000; // ms
+
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
     bool mMounting;
