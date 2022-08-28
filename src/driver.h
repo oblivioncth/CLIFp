@@ -56,7 +56,7 @@ private:
     static inline const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
     static inline const QString LOG_EVENT_TASK_COUNT = "%1 task(s) to perform";
     static inline const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
-    static inline const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
+    static inline const QString LOG_EVENT_TASK_START = "Handling task %1 [%2] (%3)";
     static inline const QString LOG_EVENT_TASK_FINISH = "End of task %1";
     static inline const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
     static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";

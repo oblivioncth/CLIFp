@@ -264,7 +264,9 @@ void Driver::startNextTask()
     // Get task at front of queue
     std::shared_ptr<Core::Task> currentTask = mCore->frontTask();
     mCurrentTaskNumber++;
-    mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(mCurrentTaskNumber).arg(ENUM_NAME(currentTask->stage)));
+    mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(QString::number(mCurrentTaskNumber),
+                                                   currentTask->name(),
+                                                   ENUM_NAME(currentTask->stage)));
 
     // Only execute task after an error/quit if it is a Shutdown task
     bool isShutdown = currentTask->stage == Core::TaskStage::Shutdown;
