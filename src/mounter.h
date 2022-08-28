@@ -44,8 +44,8 @@ private:
 
     // Events - Internal
     static inline const QString EVENT_CONNECTING_TO_QEMU = "Connecting to FP QEMU instance...";
-    static inline const QString EVENT_CREATING_MOUNT_POINT = "Creating datapack mount point on QEMU instance...";
-    static inline const QString EVENT_MOUNTING_THROUGH_SERVER = "Moutning datapack via PHP server...";
+    static inline const QString EVENT_CREATING_MOUNT_POINT = "Creating data pack mount point on QEMU instance...";
+    static inline const QString EVENT_MOUNTING_THROUGH_SERVER = "Moutning data pack via PHP server...";
 
     // Connections
     static const int QMP_TRANSACTION_TIMEOUT = 5000; // ms
