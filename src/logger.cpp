@@ -49,7 +49,7 @@ Qx::IoOpReport Logger::openLog()
         if(entryStartLocations.count() >= mMaxEntries)
         {
             int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
-            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).line() - 1, -1);
+            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).line() - 1, Qx::Index32::LAST);
             logFileOpReport = Qx::deleteTextFromFile(logFile, Qx::TextPos::START, deleteEnd);
             if(logFileOpReport.isFailure())
             {
