@@ -56,6 +56,8 @@ void Mounter::finish()
 
 void Mounter::createMountPoint()
 {
+    emit eventOccured(EVENT_CREATING_MOUNT_POINT);
+
     // Build commands
     QString blockDevAddCmd = "blockdev-add";
     QString deviceAddCmd = "device_add";
@@ -94,6 +96,8 @@ void Mounter::createMountPoint()
 
 void Mounter::setMountOnServer()
 {
+    emit eventOccured(EVENT_MOUNTING_THROUGH_SERVER);
+
     // Create mount request
     QUrl mountUrl;
     mountUrl.setScheme("http");
@@ -111,7 +115,7 @@ void Mounter::setMountOnServer()
 
 void Mounter::notePhpMountResponse(const QString& response)
 {
-    emit eventOccured(PHP_RESPONSE.arg(response));
+    emit eventOccured(EVENT_PHP_RESPONSE.arg(response));
     finish();
 }
 
@@ -126,7 +130,7 @@ void Mounter::qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities)
     QString versionStr = formatter.toJson(QJsonDocument::Compact);
     formatter.setArray(capabilities);
     QString capabilitiesStr = formatter.toJson(QJsonDocument::Compact);
-    emit eventOccured(QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
+    emit eventOccured(EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
 }
 
 void Mounter::qmpiFinishedHandler()
@@ -185,7 +189,7 @@ void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, s
 void Mounter::qmpiCommandResponseHandler(QJsonValue value, std::any context)
 {
     mCompletedQemuCommands++;
-    emit eventOccured(COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::Json::asString(value)));
+    emit eventOccured(EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::Json::asString(value)));
 
     if(mCompletedQemuCommands == 2)
         mQemuMounter.disconnectFromHost();
@@ -196,7 +200,7 @@ void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime
     QJsonDocument formatter(data);
     QString dataStr = formatter.toJson(QJsonDocument::Compact);
     QString timestampStr = timestamp.toString("hh:mm:ss.zzz");
-    emit eventOccured(EVENT_OCCURRED.arg(name, dataStr, timestampStr));
+    emit eventOccured(EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
 }
 
 //Public Slots:
@@ -229,6 +233,7 @@ void Mounter::mount(QUuid titleId, QString filePath)
     mCurrentMountInfo.driveSerial = driveSerial.toString();
 
     // Connect to QEMU instance
+    emit eventOccured(EVENT_CONNECTING_TO_QEMU);
     mQemuMounter.connectToHost();
 
     // Await readyForCommands() signal...

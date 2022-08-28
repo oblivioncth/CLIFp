@@ -29,16 +29,23 @@ private:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Error
     static inline const QString MOUNT_ERROR_TEXT = "An error occurred while mounting a data pack.";
     static inline const QString ERR_QMP_CONNECTION = "QMPI connection error - \"%1\"";
     static inline const QString ERR_QMP_CONNECTION_ABORT = "The connection was aborted.";
     static inline const QString ERR_QMP_COMMUNICATION = "QMPI communication error - \"%1\"";
     static inline const QString ERR_QMP_COMMAND = "QMPI command %1 error - [%2] \"%3\"";
 
-    static inline const QString QMP_WELCOME_MESSAGE = "QMPI connected to QEMU Version: %1 | Capabilities: %2";
-    static inline const QString COMMAND_RESPONSE = "QMPI command %1 returned - \"%2\"";
-    static inline const QString EVENT_OCCURRED = "QMPI event occurred at %1 - [%2] \"%3\"";
-    static inline const QString PHP_RESPONSE = "Mount.php Response: \"%1\"";
+    // Events - External
+    static inline const QString EVENT_QMP_WELCOME_MESSAGE = "QMPI connected to QEMU Version: %1 | Capabilities: %2";
+    static inline const QString EVENT_QMP_COMMAND_RESPONSE = "QMPI command %1 returned - \"%2\"";
+    static inline const QString EVENT_QMP_EVENT = "QMPI event occurred at %1 - [%2] \"%3\"";
+    static inline const QString EVENT_PHP_RESPONSE = "Mount.php Response: \"%1\"";
+
+    // Events - Internal
+    static inline const QString EVENT_CONNECTING_TO_QEMU = "Connecting to FP QEMU instance...";
+    static inline const QString EVENT_CREATING_MOUNT_POINT = "Creating datapack mount point on QEMU instance...";
+    static inline const QString EVENT_MOUNTING_THROUGH_SERVER = "Moutning datapack via PHP server...";
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
