@@ -226,6 +226,7 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 - Qt6
 - [Qx](https://github.com/oblivioncth/Qx/)
 - [libfp](https://github.com/oblivioncth/libfp/)
+- [QI-QMP](https://github.com/oblivioncth/QI-QMP/)
 - [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
 
 ### Builds
