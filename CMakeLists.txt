@@ -94,11 +94,15 @@ fetch_qx("183dfe17e846efa682ae9b9ec9a5b4deef52fbc6")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
-fetch_libfp("4110dd8069c6ba9e9856f2910d2337e4e0e24586")
+fetch_libfp("249d67a71871259e5d0f3504c412b1a12c58bc3e")
 
 # Fetch QI-QMP (build and import from source)
 include(CLIFp/FetchQI-QMP)
 fetch_qi_qmp("975c634caa95c37599c12c7d0964e21c730ac1f5")
+
+# Fetch QuaZip (build and import from source)
+include (CLIFP/FetchQuaZip)
+fetch_quazip("v1.3")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)
@@ -172,6 +176,7 @@ target_link_libraries(${TARGET_NAME}
         Qx::Windows
         Fp::Flashpoint
         QI-QMP::Qmpi
+        QuaZip::QuaZip
         magic_enum::magic_enum
 )
 
