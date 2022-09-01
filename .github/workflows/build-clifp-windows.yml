@@ -1,4 +1,4 @@
-name: Build CLIFp - Windows (Qt 6.3.0)
+name: Build CLIFp - Windows (Qt 6.3.1)
 on:
   workflow_call:
     secrets:
@@ -36,8 +36,8 @@ jobs:
         map: |
           {
             "static": {
-              "qt_install_name": "qt-Production-6.3.0-win32-msvc-x64-static-release.7z",
-              "qt_install_url": "https://mega.nz/file/J7IxAbYL",
+              "qt_install_name": "qt-Production-6.3.1-win32-msvc-x64-static-release.7z",
+              "qt_install_url": "https://mega.nz/file/QupBFJrC",
               "qt_install_url_key": "${{ secrets.qt_static_dec_key }}",
               "artifact_output_var": "qt_static_artifact_name"
             }

@@ -158,6 +158,19 @@ public:
         }
     };
 
+    struct ExtractTask : public Task
+    {
+        QString packPath;
+
+        QString name() const { return "ExtractTask"; }
+        QStringList members() const
+        {
+            QStringList ml = Task::members();
+            ml.append(".packPath = \"" + packPath + "\"");
+            return ml;
+        }
+    };
+
 //-Inner Classes--------------------------------------------------------------------------------------------------------
 public:
     class ErrorCodes
@@ -189,6 +202,7 @@ public:
         static const ErrorCode QMP_COMMUNICATION_FAIL = 22;
         static const ErrorCode QMP_COMMAND_FAIL = 23;
         static const ErrorCode PHP_MOUNT_FAIL = 24;
+        static const ErrorCode PACK_EXTRACT_FAIL = 25;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -231,6 +245,8 @@ public:
     static inline const QString LOG_EVENT_ENQ_DATA_PACK = "Enqueuing Data Pack tasks...";
     static inline const QString LOG_EVENT_DATA_PACK_MISS = "Title Data Pack is not available locally";
     static inline const QString LOG_EVENT_DATA_PACK_FOUND = "Title Data Pack with correct hash is already present, no need to download";
+    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = "Title Data Pack requires mounting";
+    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = "Title Data Pack requires extraction";
     static inline const QString LOG_EVENT_TASK_ENQ = "Enqueued %1: {%2}";
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";

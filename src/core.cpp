@@ -369,10 +369,11 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     // Advance result to only record
     searchResult.result.next();
 
-    // Extract relavent data
+    // Extract relevant data
     QString packDestFolderPath = mFlashpointInstall->fullPath() + "/" + mFlashpointInstall->preferences().dataPacksFolderPath;
     QString packFileName = searchResult.result.value(Fp::Db::Table_Game_Data::COL_PATH).toString();
     QString packSha256 = searchResult.result.value(Fp::Db::Table_Game_Data::COL_SHA256).toString();
+    QString packParameters = searchResult.result.value(Fp::Db::Table_Game_Data::COL_PARAM).toString();
     QFile packFile(packDestFolderPath + "/" + packFileName);
 
     // Get current file checksum if it exists
@@ -434,14 +435,30 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         logTask(NAME, downloadTask.get());
     }
 
-    // Enqueue pack mount
-    std::shared_ptr<MountTask> mountTask = std::make_shared<MountTask>();
-    mountTask->stage = TaskStage::Auxiliary;
-    mountTask->titleId = targetId;
-    mountTask->path = packDestFolderPath + "/" + packFileName;
 
-    mTaskQueue.push(mountTask);
-    logTask(NAME, mountTask.get());
+    // Enqueue pack mount or extract
+    if(packParameters.contains("-extract"))
+    {
+        logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
+
+        std::shared_ptr<ExtractTask> extractTask = std::make_shared<ExtractTask>();
+        extractTask->packPath = packDestFolderPath + "/" + packFileName;
+
+        mTaskQueue.push(extractTask);
+        logTask(NAME, extractTask.get());
+    }
+    else
+    {
+        logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
+
+        std::shared_ptr<MountTask> mountTask = std::make_shared<MountTask>();
+        mountTask->stage = TaskStage::Auxiliary;
+        mountTask->titleId = targetId;
+        mountTask->path = packDestFolderPath + "/" + packFileName;
+
+        mTaskQueue.push(mountTask);
+        logTask(NAME, mountTask.get());
+    }
 
     // Return success
     return ErrorCodes::NO_ERR;
