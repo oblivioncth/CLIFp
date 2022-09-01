@@ -11,6 +11,7 @@
 // Project Includes
 #include "core.h"
 #include "processwaiter.h"
+#include "mounter.h"
 
 class Driver : public QObject
 {
@@ -34,6 +35,13 @@ private:
     static inline const QString ERR_EXE_NOT_STARTED = "Could not start %1!";
     static inline const QString ERR_EXE_NOT_VALID = "%1 is not an executable file!";
     static inline const QString ERR_PACK_SUM_MISMATCH = "The title's Data Pack checksum does not match its record!";
+    static inline const QString ERR_PACK_EXTRACT = "Could not extract data pack %1.";
+    static inline const QString ERR_PACK_EXTRACT_OPEN = "Failed to open the archive.";
+    static inline const QString ERR_PACK_EXTRACT_MAKE_PATH = "Failed to create file path.";
+    static inline const QString ERR_PACK_EXTRACT_OPEN_ARCH_FILE = "Failed to open archive file (code 0x%1).";
+    static inline const QString ERR_PACK_EXTRACT_OPEN_DISK_FILE = "Failed to open disk file \"%1\".";
+    static inline const QString ERR_PACK_EXTRACT_WRITE_DISK_FILE = "Failed to write disk file \"%1\".";
+    static inline const QString ERR_PACK_EXTRACT_GENERAL_ZIP = "General zip error (code 0x%1).";
     static inline const QString ERR_CANT_CLOSE_WAIT_ON = "Could not automatically end the running title! It will have to be closed manually.";
 
     // Suffixes
@@ -55,7 +63,7 @@ private:
     static inline const QString LOG_EVENT_SHOW_EXTRA = "Opened folder of extra %1";
     static inline const QString LOG_EVENT_TASK_COUNT = "%1 task(s) to perform";
     static inline const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
-    static inline const QString LOG_EVENT_TASK_START = "Handling task %1 (%2)";
+    static inline const QString LOG_EVENT_TASK_START = "Handling task %1 [%2] (%3)";
     static inline const QString LOG_EVENT_TASK_FINISH = "End of task %1";
     static inline const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
     static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
@@ -69,11 +77,15 @@ private:
     static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = "Authentication required to download Data Pack, requesting credentials...";
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
+    static inline const QString LOG_EVENT_EXTRACTING_DATA_PACK = "Extracting Data Pack %1";
+    static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = "Mounting Data Pack %1";
     static inline const QString LOG_EVENT_QUIT_REQUEST = "Received quit request";
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = "Received redundant quit request";
     static inline const QString LOG_EVENT_STOPPING_MAIN_PROCESS = "Stopping primary execution process...";
     static inline const QString LOG_EVENT_STOPPING_WAIT_PROCESS = "Stopping current wait on execution process...";
     static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = "Stopping current download(s)...";
+    static inline const QString LOG_EVENT_STOPPING_MOUNT = "Stopping current mount(s)...";
+
 
     // Meta
     static inline const QString NAME = "driver";
@@ -90,6 +102,7 @@ private:
     QProcess* mMainBlockingProcess;
     QList<QProcess*> mActiveChildProcesses;
     ProcessWaiter* mProcessWaiter; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
+    Mounter* mMounter; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     Qx::AsyncDownloadManager* mDownloadManager; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     /*
      * TODO: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
@@ -105,6 +118,7 @@ public:
 //-Class Functions---------------------------------------------------------------------------------------------------------------
 private:
     static QString getRawCommandLineParams(const QString& rawCommandLine);
+    static Qx::GenericError extractZipSubFolderContentToDir(QString zipFilePath, QString subFolder, QDir dir);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------------
 private:
@@ -117,6 +131,8 @@ private:
     void processExtraTask(const std::shared_ptr<Core::ExtraTask> task);
     void processWaitTask(const std::shared_ptr<Core::WaitTask> task);
     void processDownloadTask(const std::shared_ptr<Core::DownloadTask> task);
+    void processMountTask(const std::shared_ptr<Core::MountTask> task);
+    void processExtractTask(const std::shared_ptr<Core::ExtractTask> task);
 
     void startNextTask();
     void handleTaskError(ErrorCode error);
@@ -137,6 +153,7 @@ private slots:
     void finishedBlockingExecutionHandler();
     void finishedDownloadHandler(Qx::DownloadManagerReport downloadReport);
     void finishedWaitHandler(ErrorCode errorStatus);
+    void finishedMountHandler(ErrorCode errorStatus);
     void finishedTaskHandler();
 
 public slots:
@@ -144,7 +161,7 @@ public slots:
     void drive();
 
     // Net
-    void cancelActiveDownloads();
+    void cancelActiveLongTask();
 
     // General
     void quitNow();
@@ -164,10 +181,12 @@ signals:
 
     // Network
     void authenticationRequired(QString prompt, QAuthenticator* authenticator);
-    void downloadProgressChanged(quint64 progress);
-    void downloadTotalChanged(quint64 total);
-    void downloadStarted(QString task);
-    void downloadFinished(bool canceled);
+
+    // Long task
+    void longTaskProgressChanged(quint64 progress);
+    void longTaskTotalChanged(quint64 total);
+    void longTaskStarted(QString task);
+    void longTaskFinished();
 };
 
 #endif // DRIVER_H

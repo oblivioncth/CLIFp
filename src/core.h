@@ -143,6 +143,34 @@ public:
         }
     };
 
+    struct MountTask : public Task
+    {
+        QUuid titleId;
+        QString path;
+
+        QString name() const { return "MountTask"; }
+        QStringList members() const
+        {
+            QStringList ml = Task::members();
+            ml.append(".titleId = \"" + titleId.toString() + "\"");
+            ml.append(".path = \"" + QDir::toNativeSeparators(path) + "\"");
+            return ml;
+        }
+    };
+
+    struct ExtractTask : public Task
+    {
+        QString packPath;
+
+        QString name() const { return "ExtractTask"; }
+        QStringList members() const
+        {
+            QStringList ml = Task::members();
+            ml.append(".packPath = \"" + packPath + "\"");
+            return ml;
+        }
+    };
+
 //-Inner Classes--------------------------------------------------------------------------------------------------------
 public:
     class ErrorCodes
@@ -170,6 +198,11 @@ public:
         static const ErrorCode CANT_OBTAIN_DATA_PACK = 18;
         static const ErrorCode DATA_PACK_INVALID = 19;
         static const ErrorCode EXTRA_NOT_FOUND = 20;
+        static const ErrorCode QMP_CONNECTION_FAIL = 21;
+        static const ErrorCode QMP_COMMUNICATION_FAIL = 22;
+        static const ErrorCode QMP_COMMAND_FAIL = 23;
+        static const ErrorCode PHP_MOUNT_FAIL = 24;
+        static const ErrorCode PACK_EXTRACT_FAIL = 25;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -212,6 +245,8 @@ public:
     static inline const QString LOG_EVENT_ENQ_DATA_PACK = "Enqueuing Data Pack tasks...";
     static inline const QString LOG_EVENT_DATA_PACK_MISS = "Title Data Pack is not available locally";
     static inline const QString LOG_EVENT_DATA_PACK_FOUND = "Title Data Pack with correct hash is already present, no need to download";
+    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = "Title Data Pack requires mounting";
+    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = "Title Data Pack requires extraction";
     static inline const QString LOG_EVENT_TASK_ENQ = "Enqueued %1: {%2}";
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
@@ -304,7 +339,7 @@ public:
     ErrorCode enqueueStartupTasks();
     void enqueueShutdownTasks();
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
-    ErrorCode enqueueDataPackTasks(QUuid targetID);
+    ErrorCode enqueueDataPackTasks(QUuid targetId);
     void enqueueSingleTask(std::shared_ptr<Task> task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 

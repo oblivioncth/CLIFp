@@ -349,7 +349,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     // Possible future waits...
 }
 
-ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
+ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
@@ -360,7 +360,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     // Get database
     Fp::Db* database = mFlashpointInstall->database();
 
-    if((searchError = database->queryEntryDataById(searchResult, targetID)).isValid())
+    if((searchError = database->queryEntryDataById(searchResult, targetId)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
         return ErrorCodes::SQL_ERROR;
@@ -369,10 +369,11 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
     // Advance result to only record
     searchResult.result.next();
 
-    // Extract relavent data
+    // Extract relevant data
     QString packDestFolderPath = mFlashpointInstall->fullPath() + "/" + mFlashpointInstall->preferences().dataPacksFolderPath;
     QString packFileName = searchResult.result.value(Fp::Db::Table_Game_Data::COL_PATH).toString();
     QString packSha256 = searchResult.result.value(Fp::Db::Table_Game_Data::COL_SHA256).toString();
+    QString packParameters = searchResult.result.value(Fp::Db::Table_Game_Data::COL_PARAM).toString();
     QFile packFile(packDestFolderPath + "/" + packFileName);
 
     // Get current file checksum if it exists
@@ -434,19 +435,30 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetID)
         logTask(NAME, downloadTask.get());
     }
 
-    // Enqeue pack mount
-    QFileInfo mounterInfo(mFlashpointInstall->datapackMounterPath());
 
-    std::shared_ptr<ExecTask> mountTask = std::make_shared<ExecTask>();
-    mountTask->stage = TaskStage::Auxiliary;
-    mountTask->path = mounterInfo.absolutePath();
-    mountTask->filename = mounterInfo.fileName();
-    mountTask->param = QStringList{targetID.toString(QUuid::WithoutBraces), packDestFolderPath + "/" + packFileName};
-    mountTask->nativeParam = QString();
-    mountTask->processType = ProcessType::Blocking;
+    // Enqueue pack mount or extract
+    if(packParameters.contains("-extract"))
+    {
+        logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
-    mTaskQueue.push(mountTask);
-    logTask(NAME, mountTask.get());
+        std::shared_ptr<ExtractTask> extractTask = std::make_shared<ExtractTask>();
+        extractTask->packPath = packDestFolderPath + "/" + packFileName;
+
+        mTaskQueue.push(extractTask);
+        logTask(NAME, extractTask.get());
+    }
+    else
+    {
+        logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
+
+        std::shared_ptr<MountTask> mountTask = std::make_shared<MountTask>();
+        mountTask->stage = TaskStage::Auxiliary;
+        mountTask->titleId = targetId;
+        mountTask->path = packDestFolderPath + "/" + packFileName;
+
+        mTaskQueue.push(mountTask);
+        logTask(NAME, mountTask.get());
+    }
 
     // Return success
     return ErrorCodes::NO_ERR;

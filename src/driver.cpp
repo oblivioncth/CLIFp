@@ -8,6 +8,10 @@
 // Qx Includes
 #include <qx/windows/qx-common-windows.h>
 
+// QuaZip Includes
+#include <quazip/quazip.h>
+#include <quazip/quazipfile.h>
+
 // Project Includes
 #include "command.h"
 
@@ -25,6 +29,7 @@ Driver::Driver(QStringList arguments, QString rawArguments) :
     mCore(nullptr),
     mMainBlockingProcess(nullptr),
     mProcessWaiter(nullptr),
+    mMounter(nullptr),
     mDownloadManager(nullptr)
 {}
 
@@ -54,12 +59,97 @@ QString Driver::getRawCommandLineParams(const QString& rawCommandLine)
     return QString(rawIt);
 }
 
+Qx::GenericError Driver::extractZipSubFolderContentToDir(QString zipFilePath, QString subFolder, QDir dir)
+{
+    // Error template
+    QFileInfo zipInfo(zipFilePath);
+    Qx::GenericError error(Qx::GenericError::Critical, ERR_PACK_EXTRACT.arg(zipInfo.fileName()));
+
+    // Zip file
+    QuaZip zipFile(zipFilePath);
+
+    // Form subfolder string to match zip content scheme
+    if(subFolder.isEmpty())
+        subFolder = '/';
+
+    if(subFolder != '/')
+    {
+        // Remove leading '/' if present
+        if(subFolder.front() == '/')
+            subFolder = subFolder.mid(1);
+
+        // Add trailing '/' if missing
+        if(subFolder.back() != '/')
+            subFolder.append('/');
+    }
+
+    // Open archive, ensure it's closed when done
+    if(!zipFile.open(QuaZip::mdUnzip))
+        return error.setSecondaryInfo(ERR_PACK_EXTRACT_OPEN);
+    QScopeGuard closeGuard([&](){ zipFile.close(); });
+
+    // Persistent data
+    QuaZipFile currentArchiveFile(&zipFile);
+    QDir currentDirOnDisk(dir);
+
+    // Extract all files in sub-folder
+    for(bool atEnd = !zipFile.goToFirstFile(); !atEnd; atEnd = !zipFile.goToNextFile())
+    {
+        QString fileName = zipFile.getCurrentFileName();
+
+        // Only consider files in specified sub-folder
+        if(fileName.startsWith(subFolder))
+        {
+            // Determine path on disk
+            QString pathWithinFolder = fileName.mid(subFolder.size());
+            QFileInfo pathOnDisk(dir.absoluteFilePath(pathWithinFolder));
+
+            // Update current directory and make path if necessary
+            if(pathOnDisk.absolutePath() != currentDirOnDisk.absolutePath())
+            {
+                currentDirOnDisk = pathOnDisk.absoluteDir();
+                if(!currentDirOnDisk.mkpath("."))
+                    return error.setSecondaryInfo(ERR_PACK_EXTRACT_MAKE_PATH);
+            }
+
+            // Open file in archive and read its data
+            if(!currentArchiveFile.open(QIODevice::ReadOnly))
+            {
+                int zipError = zipFile.getZipError();
+                return error.setSecondaryInfo(ERR_PACK_EXTRACT_OPEN_ARCH_FILE.arg(zipError, 2, 16, QChar('0')));
+            }
+
+            QByteArray fileData = currentArchiveFile.readAll();
+            currentArchiveFile.close();
+
+            // Open disk file and write data to it
+            QFile fileOnDisk(pathOnDisk.absoluteFilePath());
+            if(!fileOnDisk.open(QIODevice::WriteOnly))
+                return error.setSecondaryInfo(ERR_PACK_EXTRACT_OPEN_DISK_FILE.arg(fileOnDisk.fileName()));
+
+            if(fileOnDisk.write(fileData) != fileData.size())
+                return error.setSecondaryInfo(ERR_PACK_EXTRACT_WRITE_DISK_FILE.arg(fileOnDisk.fileName()));
+
+            fileOnDisk.close();
+        }
+    }
+
+    // Check if processing ended due to an error
+    int zipError = zipFile.getZipError();
+    if(zipError != UNZ_OK)
+        return error.setSecondaryInfo(ERR_PACK_EXTRACT_GENERAL_ZIP.arg(zipError, 2, 16, QChar('0')));
+
+    // Return success
+    return Qx::GenericError();
+}
+
 //-Instance Functions-------------------------------------------------------------
 //Private:
 void Driver::init()
 {
-    // Create core & download manager
+    // Create core, mounter, and download manager
     mCore = new Core(this, getRawCommandLineParams(mRawArguments));
+    mMounter = new Mounter(22501, 0, 22500, this); // Prod port not used yet
     mDownloadManager = new Qx::AsyncDownloadManager(this);
 
     //-Setup Self Connections---------------
@@ -71,6 +161,16 @@ void Driver::init()
     connect(mCore, &Core::blockingErrorOccured, this, &Driver::blockingErrorOccured);
     connect(mCore, &Core::message, this, &Driver::message);
 
+    //-Setup Mounter------------------------------------
+    connect(mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
+        mCore->postError(NAME, errorMsg);
+    });
+    connect(mMounter, &Mounter::eventOccured, this, [this](QString event){
+        mCore->logEvent(NAME, event);
+    });
+    connect(mMounter, &Mounter::mountProgressMaximumChanged, this, &Driver::longTaskTotalChanged);
+    connect(mMounter, &Mounter::mountProgress, this, &Driver::longTaskProgressChanged);
+    connect(mMounter, &Mounter::mountFinished, this, &Driver::finishedMountHandler);
 
     //-Setup Download Manager---------------------------
     mDownloadManager->setOverwrite(true);
@@ -91,8 +191,8 @@ void Driver::init()
         emit authenticationRequired(prompt, authenticator);
     });
 
-    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &Driver::downloadTotalChanged);
-    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, &Driver::downloadProgressChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &Driver::longTaskTotalChanged);
+    connect(mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, &Driver::longTaskProgressChanged);
     connect(mDownloadManager, &Qx::AsyncDownloadManager::finished, this, &Driver::finishedDownloadHandler);
 }
 
@@ -228,8 +328,40 @@ void Driver::processDownloadTask(const std::shared_ptr<Core::DownloadTask> task)
     mCore->logEvent(NAME, label);
 
     // Start download
-    emit downloadStarted(label);
+    emit longTaskStarted(label);
     mDownloadManager->processQueue();
+}
+
+void Driver::processMountTask(const std::shared_ptr<Core::MountTask> task)
+{
+    // Log/label string
+    QFileInfo packFileInfo(task->path);
+    QString label = LOG_EVENT_MOUNTING_DATA_PACK.arg(packFileInfo.fileName());
+
+    // Start mount
+    emit longTaskStarted(label);
+    mMounter->mount(task->titleId, task->path);
+}
+
+void Driver::processExtractTask(const std::shared_ptr<Core::ExtractTask> task)
+{
+    // Log string
+    QFileInfo packFileInfo(task->packPath);
+    mCore->logEvent(NAME, LOG_EVENT_EXTRACTING_DATA_PACK.arg(packFileInfo.fileName()));
+
+    // Extract pack
+    Fp::Json::Preferences fpPref = mCore->getFlashpointInstall().preferences();
+    Qx::GenericError extractError = extractZipSubFolderContentToDir(task->packPath,
+                                                                    "content",
+                                                                    fpPref.htdocsFolderPath);
+
+    if(extractError.isValid())
+    {
+        mCore->postError(NAME, extractError);
+        handleTaskError(Core::ErrorCodes::PACK_EXTRACT_FAIL);
+    }
+
+    emit __currentTaskFinished();
 }
 
 void Driver::startNextTask()
@@ -241,7 +373,9 @@ void Driver::startNextTask()
     // Get task at front of queue
     std::shared_ptr<Core::Task> currentTask = mCore->frontTask();
     mCurrentTaskNumber++;
-    mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(mCurrentTaskNumber).arg(ENUM_NAME(currentTask->stage)));
+    mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(QString::number(mCurrentTaskNumber),
+                                                   currentTask->name(),
+                                                   ENUM_NAME(currentTask->stage)));
 
     // Only execute task after an error/quit if it is a Shutdown task
     bool isShutdown = currentTask->stage == Core::TaskStage::Shutdown;
@@ -266,8 +400,12 @@ void Driver::startNextTask()
             processWaitTask(waitTask);
         else if(auto downloadTask = std::dynamic_pointer_cast<Core::DownloadTask>(currentTask)) // Download task
             processDownloadTask(downloadTask);
+        else if(auto mountTask = std::dynamic_pointer_cast<Core::MountTask>(currentTask)) // Mount task
+            processMountTask(mountTask);
         else if(auto execTask = std::dynamic_pointer_cast<Core::ExecTask>(currentTask)) // Execution task
             processExecTask(execTask);
+        else if(auto extractTask = std::dynamic_pointer_cast<Core::ExtractTask>(currentTask)) // Extract task
+            processExtractTask(extractTask);
         else
             throw std::runtime_error("Unhandled Task child was present in task queue");
     }
@@ -389,7 +527,7 @@ void Driver::finishedBlockingExecutionHandler()
 void Driver::finishedDownloadHandler(Qx::DownloadManagerReport downloadReport)
 {
     // Handle result
-    emit downloadFinished(downloadReport.outcome() == Qx::DownloadManagerReport::Outcome::Abort);
+    emit longTaskFinished();
     if(downloadReport.wasSuccessful())
     {
         // Get task completed download task
@@ -428,6 +566,16 @@ void Driver::finishedWaitHandler(ErrorCode errorStatus)
     // Delete waiter when possible
     mProcessWaiter->deleteLater();
     mProcessWaiter = nullptr;
+
+    emit __currentTaskFinished();
+}
+
+void Driver::finishedMountHandler(ErrorCode errorStatus)
+{
+    // Handle result
+    emit longTaskFinished();
+    if(errorStatus)
+        handleTaskError(errorStatus);
 
     emit __currentTaskFinished();
 }
@@ -534,7 +682,13 @@ void Driver::drive()
         finish();
 }
 
-void Driver::cancelActiveDownloads() { mDownloadManager->abort(); }
+void Driver::cancelActiveLongTask()
+{
+    if(mDownloadManager->isProcessing())
+        mDownloadManager->abort();
+    else if(mMounter->isMounting())
+        mMounter->abort();
+}
 
 void Driver::quitNow()
 {
@@ -554,6 +708,13 @@ void Driver::quitNow()
     {
         mCore->logEvent(NAME, LOG_EVENT_STOPPING_DOWNLOADS);
         mDownloadManager->abort();
+    }
+
+    // Mounting
+    if(mMounter->isMounting())
+    {
+        mCore->logEvent(NAME, LOG_EVENT_STOPPING_MOUNT);
+        mMounter->abort();
     }
 
     // Main process running

@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
-set(CLIFP_BASE_VERSION 0.8.2) # Required for CI/CD
+set(CLIFP_BASE_VERSION 0.9) # Required for CI/CD
 project(CLIFp
     VERSION ${CLIFP_BASE_VERSION}
     LANGUAGES CXX
@@ -15,7 +15,7 @@ set(FORMAL_NAME "CLI Flashpoint")
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LC)
 string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UC)
 
-set(TARGET_FP_VERSION_PREFIX 10.1)
+set(TARGET_FP_VERSION_PREFIX 11.0)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # C++
@@ -90,11 +90,19 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(CLIFp/FetchQx)
-fetch_qx("v0.3.1")
+fetch_qx("183dfe17e846efa682ae9b9ec9a5b4deef52fbc6")
 
 # Fetch libfp (build and import from source)
 include(CLIFp/Fetchlibfp)
-fetch_libfp("v0.1.1")
+fetch_libfp("249d67a71871259e5d0f3504c412b1a12c58bc3e")
+
+# Fetch QI-QMP (build and import from source)
+include(CLIFp/FetchQI-QMP)
+fetch_qi_qmp("975c634caa95c37599c12c7d0964e21c730ac1f5")
+
+# Fetch QuaZip (build and import from source)
+include (CLIFP/FetchQuaZip)
+fetch_quazip("v1.3")
 
 # Fetch Neargye's Magic Enum
 include(CLIFp/FetchMagicEnum)
@@ -127,6 +135,8 @@ set(CXX_SOURCES
     src/statusrelay.h
     src/statusrelay.cpp
     src/main.cpp
+    src/mounter.h
+    src/mounter.cpp
 )
 
 set(QT_RESOURCES
@@ -165,6 +175,8 @@ target_link_libraries(${TARGET_NAME}
         Qx::Widgets
         Qx::Windows
         Fp::Flashpoint
+        QI-QMP::Qmpi
+        QuaZip::QuaZip
         magic_enum::magic_enum
 )
 
@@ -243,6 +255,7 @@ install(EXPORT ${PROJECT_NAME}Targets
 # Install package config
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
     CONFIGURATIONS Release
     COMPONENT ${TARGET_NAME}
     DESTINATION cmake
@@ -262,6 +275,7 @@ install(FILES
 # For in source builds
 export(EXPORT ${PROJECT_NAME}Targets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${PROJECT_NAME}::
 )
 
 #====================== CPack ==============================

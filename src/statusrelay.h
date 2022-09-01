@@ -21,7 +21,7 @@ public:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 public:
-    QProgressDialog* mDownloadProgressDialog;
+    QProgressDialog* mLongTaskProgressDialog;
     QString mStatusHeading;
     QString mStatusMessage;
 
@@ -46,13 +46,15 @@ public slots:
 
     // Network
     void authenticationHandler(QString prompt, QAuthenticator* authenticator);
-    void downloadProgressHandler(quint64 progress);
-    void downloadTotalHandler(quint64 total);
-    void downloadStartedHandler(QString task);
-    void downloadFinishedHandler(bool canceled);
+
+    // Long Job
+    void longTaskProgressHandler(quint64 progress);
+    void longTaskTotalHandler(quint64 total);
+    void longTaskStartedHandler(QString task);
+    void longTaskFinishedHandler();
 
 signals:
-    void downloadCanceled();
+    void longTaskCanceled();
     void quitRequested();
 };
 

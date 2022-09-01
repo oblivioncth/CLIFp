@@ -49,7 +49,7 @@ Qx::IoOpReport Logger::openLog()
         if(entryStartLocations.count() >= mMaxEntries)
         {
             int firstToKeep = entryStartLocations.count() - mMaxEntries + 1; // +1 to account for new entry
-            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).line() - 1, -1);
+            Qx::TextPos deleteEnd = Qx::TextPos(entryStartLocations.at(firstToKeep).line() - 1, Qx::Index32::LAST);
             logFileOpReport = Qx::deleteTextFromFile(logFile, Qx::TextPos::START, deleteEnd);
             if(logFileOpReport.isFailure())
             {
@@ -97,9 +97,9 @@ Qx::IoOpReport Logger::recordErrorEvent(QString src, Qx::GenericError error)
     {
         QString errorString = EVENT_TEMPLATE.arg(QTime::currentTime().toString(), src, ERROR_LEVEL_STR_MAP.value(error.errorLevel()) + ") " + error.primaryInfo());
         if(!error.secondaryInfo().isNull())
-            errorString + " " + error.secondaryInfo();
+            errorString += " " + error.secondaryInfo();
         if(!error.detailedInfo().isNull())
-            errorString + "\n\t" + error.detailedInfo().replace("\n", "\n\t");
+            errorString += "\n\t" + error.detailedInfo().replace("\n", "\n\t");
 
         mErrorStatus = mTextStreamWriter->writeLine(errorString);
         return mErrorStatus;
