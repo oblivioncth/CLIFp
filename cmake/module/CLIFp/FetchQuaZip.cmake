@@ -10,7 +10,7 @@ function(fetch_quazip git_ref)
     FetchContent_Declare(
         ZLIB
         GIT_REPOSITORY https://github.com/madler/zlib.git
-        GIT_TAG v1.2.12
+        GIT_TAG v1.2.11
         OVERRIDE_FIND_PACKAGE # Allows this to be used when QuaZip calls `find_package(ZLIB)`
     )
 
