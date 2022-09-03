@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
-set(CLIFP_BASE_VERSION 0.9) # Required for CI/CD
+set(CLIFP_BASE_VERSION 0.9.0.1) # Required for CI/CD
 project(CLIFp
     VERSION ${CLIFP_BASE_VERSION}
     LANGUAGES CXX
@@ -31,6 +31,10 @@ enable_language("RC")
 # Add local modules
 set(PROJ_SCRIPTS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
+
+# Get helper scripts
+include(CLIFp/FetchOBCMake)
+fetch_ob_cmake("v0.1")
 
 # General Variables
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -71,7 +75,7 @@ set(PACKAGE_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/out/dist")
 #------------Set Global Build Rules----------------
 
 # Versioning
-include(CLIFp/VerboseVersioning)
+include(OB/VerboseVersioning)
 setup_verbose_versioning(PROJECT_VERSION_VERBOSE)
 
 #================= Build =========================
@@ -89,23 +93,23 @@ find_package(Qt6 REQUIRED COMPONENTS
 add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
-include(CLIFp/FetchQx)
-fetch_qx("183dfe17e846efa682ae9b9ec9a5b4deef52fbc6")
+include(OB/FetchQx)
+fetch_qx("v0.3.2")
 
 # Fetch libfp (build and import from source)
-include(CLIFp/Fetchlibfp)
-fetch_libfp("249d67a71871259e5d0f3504c412b1a12c58bc3e")
+include(OB/Fetchlibfp)
+fetch_libfp("v0.1.2")
 
 # Fetch QI-QMP (build and import from source)
-include(CLIFp/FetchQI-QMP)
-fetch_qi_qmp("975c634caa95c37599c12c7d0964e21c730ac1f5")
+include(OB/FetchQI-QMP)
+fetch_qi_qmp("v0.1.2.1")
 
 # Fetch QuaZip (build and import from source)
-include (CLIFP/FetchQuaZip)
+include (OB/FetchQuaZip)
 fetch_quazip("v1.3")
 
 # Fetch Neargye's Magic Enum
-include(CLIFp/FetchMagicEnum)
+include(OB/FetchMagicEnum)
 fetch_magicenum("v0.8.0")
 
 # Set app sources
@@ -188,7 +192,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES
 )
 
 ## Forward select project variables to C++ code
-include(CLIFp/ProjectVars)
+include(OB/ProjectVars)
 set_cxx_project_vars(${TARGET_NAME}
     VERSION_STR "\"${PROJECT_VERSION}\""
     SHORT_NAME "\"${PROJECT_NAME}\""
@@ -198,7 +202,7 @@ set_cxx_project_vars(${TARGET_NAME}
 )
 
 # Set target exe details
-include(CLIFp/WinExecutableDetails)
+include(OB/WinExecutableDetails)
 set_win_executable_details(${TARGET_NAME}
     ICON "res/app/CLIFp.ico"
     FILE_VER ${PROJECT_VERSION}
