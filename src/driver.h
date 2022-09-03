@@ -85,6 +85,7 @@ private:
     static inline const QString LOG_EVENT_STOPPING_WAIT_PROCESS = "Stopping current wait on execution process...";
     static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = "Stopping current download(s)...";
     static inline const QString LOG_EVENT_STOPPING_MOUNT = "Stopping current mount(s)...";
+    static inline const QString LOG_EVENT_BaSILISK_EXCEPTION = "ExecTask calls for Basilisk-Portable. Swapping for FPNavigator";
 
 
     // Meta
