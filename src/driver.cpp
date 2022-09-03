@@ -15,6 +15,15 @@
 // Project Includes
 #include "command.h"
 
+/* TODO: While it might be problematic to implement, it would be much cleaner in the end
+ * and go a long way towards making the Linux port easier to achieve if the task types
+ * had their handling moved to be internal by an invokeable method like inheritance is
+ * usually employed, instead of checking for and casting to the type within Driver. Some
+ * of the concerns about how to interact with driver contained objects/functions while
+ * doing this may be able to be aliveated by making the task classes inherit QObject
+ * and then using signals/slots
+ */
+
 //===============================================================================================================
 // DRIVER
 //===============================================================================================================
@@ -200,6 +209,15 @@ void Driver::processExecTask(const std::shared_ptr<Core::ExecTask> task)
 {
     // Emit complete signal on return unless dismissed
     QScopeGuard autoFinishEmitter([this](){ emit __currentTaskFinished(); });
+
+    // TODO: Remove this as soon as FP fixes this shit
+    //Check for Basilisk exception
+    if(task->filename == "Basilisk-Portable.exe")
+    {
+        mCore->logEvent(NAME, LOG_EVENT_BaSILISK_EXCEPTION);
+        task->filename = "FPNavigator.exe";
+        task->path.replace("Basilisk-Portable", "fpnavigator-portable");
+    }
 
     // Ensure executable exists
     QFileInfo executableInfo(task->path + "/" + task->filename);
