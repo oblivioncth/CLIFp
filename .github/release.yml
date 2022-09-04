@@ -9,6 +9,9 @@ changelog:
     - title: Bug Fixes
       labels:
         - bug
+    - title: Backend Improvements
+      labels:
+        - backend
     - title: Other Changes
       labels:
         - "*"
