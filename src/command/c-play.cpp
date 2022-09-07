@@ -4,6 +4,11 @@
 // Qt Includes
 #include <QApplication>
 
+// Project Includes
+#include "../task/t-exec.h"
+#include "../task/t-message.h"
+#include "../task/t-extra.h"
+
 /* TODO: Allow this command to launch additional apps by their title,
  * likely by a second switch provided in addition to '-t' that checks
  * for that Add App title under the main title. Could allow it to also
@@ -100,7 +105,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
                 return enqueueError;
         }
 
-        enqueueError = enqueueAdditionalApp(searchResult, Core::TaskStage::Primary);
+        enqueueError = enqueueAdditionalApp(searchResult, Task::Stage::Primary);
         mCore.setStatus(STATUS_PLAY, searchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString());
 
         if(enqueueError)
@@ -151,7 +156,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
             if(addAppSearchResult.result.value(Fp::Db::Table_Add_App::COL_AUTORUN).toInt() != 0)
             {
                 mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString()));
-                enqueueError = enqueueAdditionalApp(addAppSearchResult, Core::TaskStage::Auxiliary);
+                enqueueError = enqueueAdditionalApp(addAppSearchResult, Task::Stage::Auxiliary);
                 if(enqueueError)
                     return enqueueError;
             }
@@ -162,13 +167,13 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         QString gameArgs = searchResult.result.value(Fp::Db::Table_Game::COL_LAUNCH_COMMAND).toString();
         QFileInfo gameInfo(mCore.getFlashpointInstall().fullPath() + '/' + gamePath);
 
-        std::shared_ptr<Core::ExecTask> gameTask = std::make_shared<Core::ExecTask>();
-        gameTask->stage = Core::TaskStage::Primary;
-        gameTask->path = gameInfo.absolutePath();
-        gameTask->filename = gameInfo.fileName();
-        gameTask->param = QStringList();
-        gameTask->nativeParam = gameArgs;
-        gameTask->processType = Core::ProcessType::Blocking;
+        std::shared_ptr<TExec> gameTask = std::make_shared<TExec>();
+        gameTask->setStage(Task::Stage::Primary);
+        gameTask->setPath(gameInfo.absolutePath());
+        gameTask->setFilename(gameInfo.fileName());
+        gameTask->setParameters(QStringList());
+        gameTask->setNativeParameters(gameArgs);
+        gameTask->setProcessType(TExec::ProcessType::Blocking);
 
         mCore.enqueueSingleTask(gameTask);
         mCore.setStatus(STATUS_PLAY, searchResult.result.value(Fp::Db::Table_Game::COL_TITLE).toString());
@@ -184,7 +189,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     return Core::ErrorCodes::NO_ERR;
 }
 
-ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Core::TaskStage taskStage)
+ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::Stage taskStage)
 {
     // Ensure query result is additional app
     assert(addAppResult.source == Fp::Db::Table_Add_App::NAME);
@@ -195,18 +200,18 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Core::Ta
 
     if(appPath == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
     {
-        std::shared_ptr<Core::MessageTask> messageTask = std::make_shared<Core::MessageTask>();
-        messageTask->stage = taskStage;
-        messageTask->message = appArgs;
-        messageTask->modal = waitForExit || taskStage == Core::TaskStage::Primary;
+        std::shared_ptr<TMessage> messageTask = std::make_shared<TMessage>();
+        messageTask->setStage(taskStage);
+        messageTask->setMessage(appArgs);
+        messageTask->setModal(waitForExit || taskStage == Task::Stage::Primary);
 
         mCore.enqueueSingleTask(messageTask);
     }
     else if(appPath == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
     {
-        std::shared_ptr<Core::ExtraTask> extraTask = std::make_shared<Core::ExtraTask>();
-        extraTask->stage = taskStage;
-        extraTask->dir = QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + appArgs);
+        std::shared_ptr<TExtra> extraTask = std::make_shared<TExtra>();
+        extraTask->setStage(taskStage);
+        extraTask->setDirectory(QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + appArgs));
 
         mCore.enqueueSingleTask(extraTask);
     }
@@ -214,13 +219,13 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Core::Ta
     {
         QFileInfo addAppInfo(mCore.getFlashpointInstall().fullPath() + '/' + appPath);
 
-        std::shared_ptr<Core::ExecTask> addAppTask = std::make_shared<Core::ExecTask>();
-        addAppTask->stage = taskStage;
-        addAppTask->path = addAppInfo.absolutePath();
-        addAppTask->filename = addAppInfo.fileName();
-        addAppTask->param = QStringList();
-        addAppTask->nativeParam = appArgs;
-        addAppTask->processType = (waitForExit || taskStage == Core::TaskStage::Primary) ? Core::ProcessType::Blocking : Core::ProcessType::Deferred;
+        std::shared_ptr<TExec> addAppTask = std::make_shared<TExec>();
+        addAppTask->setStage(taskStage);
+        addAppTask->setPath(addAppInfo.absolutePath());
+        addAppTask->setFilename(addAppInfo.fileName());
+        addAppTask->setParameters(QStringList());
+        addAppTask->setNativeParameters(appArgs);
+        addAppTask->setProcessType(waitForExit || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
 
         mCore.enqueueSingleTask(addAppTask);
 

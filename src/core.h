@@ -15,12 +15,10 @@
 // libfp Includes
 #include <fp/flashpoint/fp-install.h>
 
-// External Includes
-#include "magic_enum.hpp"
-
 // Project Includes
 #include "logger.h"
 #include "project_vars.h"
+#include "task.h"
 
 //-Macros----------------------------------------------------------------------
 #define ENUM_NAME(eenum) QString(magic_enum::enum_name(eenum).data())
@@ -35,8 +33,6 @@ class Core : public QObject
 //-Class Enums-----------------------------------------------------------------------
 public:
     enum class NotificationVerbosity { Full, Quiet, Silent };
-    enum class TaskStage { Startup, Primary, Auxiliary, Shutdown };
-    enum class ProcessType { Blocking, Deferred, Detached };
 
 //-Class Structs---------------------------------------------------------------------
 public:
@@ -54,125 +50,11 @@ public:
         QMessageBox::StandardButton defaultChoice;
     };
 
-    struct Task
-    {
-        TaskStage stage;
-
-        virtual QString name() const = 0;
-        virtual QStringList members() const { return {".stage = " + ENUM_NAME(stage)}; }
-    };
-
-    struct ExecTask : public Task
-    {
-        QString path;
-        QString filename;
-        QStringList param;
-        QString nativeParam;
-        ProcessType processType;
-
-        QString name() const { return "ExecTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".path = \"" + QDir::toNativeSeparators(path) + "\"");
-            ml.append(".filename = \"" + filename + "\"");
-            ml.append(".param = {\"" + param.join(R"(", ")") + "\"}");
-            ml.append(".nativeParam = \"" + nativeParam + "\"");
-            ml.append(".processType = " + ENUM_NAME(processType));
-            return ml;
-        }
-    };
-
-    struct MessageTask : public Task
-    {
-        QString message;
-        bool modal;
-
-        QString name() const { return "MessageTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".message = \"" + message + "\"");
-            ml.append(".modal = \"" + QString(modal ? "true" : "false"));
-            return ml;
-        }
-    };
-
-    struct ExtraTask : public Task
-    {
-        QDir dir;
-
-        QString name() const { return "ExtraTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".extraDir = \"" + QDir::toNativeSeparators(dir.path()) + "\"");
-            return ml;
-        }
-    };
-
-    struct WaitTask : public Task
-    {
-        QString processName;
-
-        QString name() const { return "WaitTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".processName = \"" + processName + "\"");
-            return ml;
-        }
-    };
-
-    struct DownloadTask : public Task
-    {
-        QString destPath;
-        QString destFileName;
-        QUrl targetFile;
-        QString sha256;
-
-        QString name() const { return "DownloadTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".destPath = \"" + QDir::toNativeSeparators(destPath) + "\"");
-            ml.append(".destFileName = \"" + destFileName + "\"");
-            ml.append(".targetFile = \"" + targetFile.toString() + "\"");
-            ml.append(".sha256 = " + sha256);
-            return ml;
-        }
-    };
-
-    struct MountTask : public Task
-    {
-        QUuid titleId;
-        QString path;
-
-        QString name() const { return "MountTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".titleId = \"" + titleId.toString() + "\"");
-            ml.append(".path = \"" + QDir::toNativeSeparators(path) + "\"");
-            return ml;
-        }
-    };
-
-    struct ExtractTask : public Task
-    {
-        QString packPath;
-
-        QString name() const { return "ExtractTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".packPath = \"" + packPath + "\"");
-            return ml;
-        }
-    };
-
 //-Inner Classes--------------------------------------------------------------------------------------------------------
 public:
+    // TODO: Now that some error codes are a part of Task derivatives, probably should reindex them so that each
+    // task has its own base number just like commands do, instead of sharing Core's base of 0. Also the utility
+    // classes that are used by the tasks should contain their own error codes too instead of taking them from here
     class ErrorCodes
     {
     //-Class Variables--------------------------------------------------------------------------------------------------
@@ -185,9 +67,6 @@ public:
         static const ErrorCode CONFIG_SERVER_MISSING = 5;
         static const ErrorCode SQL_ERROR = 6;
         static const ErrorCode SQL_MISMATCH = 7;
-        static const ErrorCode EXECUTABLE_NOT_FOUND = 8;
-        static const ErrorCode EXECUTABLE_NOT_VALID = 9;
-        static const ErrorCode PROCESS_START_FAIL = 10;
         static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 11;
         static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 12;
         static const ErrorCode CANT_READ_BAT_FILE = 13;
@@ -195,14 +74,10 @@ public:
         static const ErrorCode ID_NOT_FOUND = 15;
         static const ErrorCode ID_DUPLICATE = 16;
         static const ErrorCode TITLE_NOT_FOUND = 17;
-        static const ErrorCode CANT_OBTAIN_DATA_PACK = 18;
-        static const ErrorCode DATA_PACK_INVALID = 19;
-        static const ErrorCode EXTRA_NOT_FOUND = 20;
         static const ErrorCode QMP_CONNECTION_FAIL = 21;
         static const ErrorCode QMP_COMMUNICATION_FAIL = 22;
         static const ErrorCode QMP_COMMAND_FAIL = 23;
         static const ErrorCode PHP_MOUNT_FAIL = 24;
-        static const ErrorCode PACK_EXTRACT_FAIL = 25;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------

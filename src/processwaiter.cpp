@@ -14,9 +14,8 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-ProcessWaiter::ProcessWaiter(QString processName, uint respawnGrace, QObject* parent) :
+ProcessWaiter::ProcessWaiter(QObject* parent, uint respawnGrace) :
     QThread(parent),
-    mProcessName(processName),
     mRespawnGrace(respawnGrace),
     mProcessHandle(nullptr)
 {}
@@ -145,6 +144,9 @@ void ProcessWaiter::run()
     emit waitFinished(status);
 }
 
+//Public:
+void ProcessWaiter::setRespawnGrace(uint respawnGrace) { mRespawnGrace = respawnGrace; }
+
 bool ProcessWaiter::closeProcess()
 {
     if(!mProcessHandle)
@@ -190,9 +192,12 @@ bool ProcessWaiter::closeProcess()
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Public Slots:
-void ProcessWaiter::start()
+void ProcessWaiter::start(QString processName)
 {
     // Start new thread for waiting
     if(!isRunning())
+    {
+        mProcessName = processName;
         QThread::start();
+    }
 }

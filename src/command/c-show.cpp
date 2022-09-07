@@ -1,6 +1,10 @@
 // Unit Include
 #include "c-show.h"
 
+// Project Includes
+#include "../task/t-message.h"
+#include "../task/t-extra.h"
+
 //===============================================================================================================
 // CSHOW
 //===============================================================================================================
@@ -30,22 +34,22 @@ ErrorCode CShow::process(const QStringList& commandLine)
     // Enqueue show task
     if(mParser.isSet(CL_OPTION_MSG))
     {
-        std::shared_ptr<Core::MessageTask> messageTask = std::make_shared<Core::MessageTask>();
-        messageTask->stage = Core::TaskStage::Primary;
-        messageTask->message = mParser.value(CL_OPTION_MSG);
-        messageTask->modal = true;
+        std::shared_ptr<TMessage> messageTask = std::make_shared<TMessage>();
+        messageTask->setStage(Task::Stage::Primary);
+        messageTask->setMessage(mParser.value(CL_OPTION_MSG));
+        messageTask->setModal(true);
 
         mCore.enqueueSingleTask(messageTask);
-        mCore.setStatus(STATUS_SHOW_MSG, messageTask->message);
+        mCore.setStatus(STATUS_SHOW_MSG, messageTask->message());
     }
     else if(mParser.isSet(CL_OPTION_EXTRA))
     {
-        std::shared_ptr<Core::ExtraTask> extraTask = std::make_shared<Core::ExtraTask>();
-        extraTask->stage = Core::TaskStage::Primary;
-        extraTask->dir = QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA));
+        std::shared_ptr<TExtra> extraTask = std::make_shared<TExtra>();
+        extraTask->setStage(Task::Stage::Primary);
+        extraTask->setDirectory(QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA)));
 
         mCore.enqueueSingleTask(extraTask);
-        mCore.setStatus(STATUS_SHOW_EXTRA, extraTask->dir.dirName());
+        mCore.setStatus(STATUS_SHOW_EXTRA, extraTask->directory().dirName());
     }
     else
     {

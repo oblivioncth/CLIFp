@@ -1,6 +1,9 @@
 // Unit Include
 #include "c-run.h"
 
+// Project Includes
+#include "../task/t-exec.h"
+
 //===============================================================================================================
 // CRUN
 //===============================================================================================================
@@ -40,16 +43,16 @@ ErrorCode CRun::process(const QStringList& commandLine)
 
     QFileInfo inputInfo = QFileInfo(mCore.getFlashpointInstall().fullPath() + '/' + mParser.value(CL_OPTION_APP));
 
-    std::shared_ptr<Core::ExecTask> runTask = std::make_shared<Core::ExecTask>();
-    runTask->stage = Core::TaskStage::Primary;
-    runTask->path = inputInfo.absolutePath();
-    runTask->filename = inputInfo.fileName();
-    runTask->param = QStringList();
-    runTask->nativeParam = mParser.value(CL_OPTION_PARAM);
-    runTask->processType = Core::ProcessType::Blocking;
+    std::shared_ptr<TExec> runTask = std::make_shared<TExec>();
+    runTask->setStage(Task::Stage::Primary);
+    runTask->setPath(inputInfo.absolutePath());
+    runTask->setFilename(inputInfo.fileName());
+    runTask->setParameters(QStringList());
+    runTask->setNativeParameters(mParser.value(CL_OPTION_PARAM));
+    runTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(runTask);
-    mCore.setStatus(STATUS_RUN, runTask->filename);
+    mCore.setStatus(STATUS_RUN, runTask->filename());
 
     // Add wait task if required
     if((errorStatus = mCore.enqueueConditionalWaitTask(inputInfo)))

@@ -44,9 +44,6 @@ public slots:
     void blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError);
     void messageHandler(const QString& message);
 
-    // Network
-    void authenticationHandler(QString prompt, QAuthenticator* authenticator);
-
     // Long Job
     void longTaskProgressHandler(quint64 progress);
     void longTaskTotalHandler(quint64 total);

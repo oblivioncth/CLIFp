@@ -7,7 +7,6 @@
 
 // Qx Includes
 #include <qx/widgets/qx-common-widgets.h>
-#include <qx/widgets/qx-logindialog.h>
 
 //===============================================================================================================
 // STATUS RELAY
@@ -70,20 +69,6 @@ void StatusRelay::messageHandler(const QString& message)
     msg->setText(message);
     msg->setAttribute(Qt::WA_DeleteOnClose);
     msg->show();
-}
-
-void StatusRelay::authenticationHandler(QString prompt, QAuthenticator* authenticator)
-{
-    Qx::LoginDialog ld;
-    ld.setPrompt(prompt);
-
-    int choice = ld.exec();
-
-    if(choice == QDialog::Accepted)
-    {
-        authenticator->setUser(ld.username());
-        authenticator->setPassword(ld.password());
-    }
 }
 
 void StatusRelay::longTaskProgressHandler(quint64 progress)

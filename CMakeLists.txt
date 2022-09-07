@@ -126,6 +126,22 @@ set(CXX_SOURCES
     src/command/c-show.h
     src/command.h
     src/command.cpp
+    src/task/t-download.h
+    src/task/t-download.cpp
+    src/task/t-exec.h
+    src/task/t-exec.cpp
+    src/task/t-extra.h
+    src/task/t-extra.cpp
+    src/task/t-extract.h
+    src/task/t-extract.cpp
+    src/task/t-message.h
+    src/task/t-message.cpp
+    src/task/t-mount.h
+    src/task/t-mount.cpp
+    src/task/t-wait.h
+    src/task/t-wait.cpp
+    src/task.h
+    src/task.cpp
     src/controller.h
     src/controller.cpp
     src/core.h
