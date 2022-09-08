@@ -25,6 +25,7 @@
 Core::Core(QObject* parent, QString rawCommandLineParam) :
     QObject(parent),
     mRawCommandLine(rawCommandLineParam),
+    mCriticalErrorOccured(false),
     mStatusHeading("Initializing"),
     mStatusMessage("...")
 {}

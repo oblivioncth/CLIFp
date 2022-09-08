@@ -187,7 +187,7 @@ private:
     std::unique_ptr<Logger> mLogger;
 
     // Processing
-    bool mCriticalErrorOccured = false;
+    bool mCriticalErrorOccured;
     NotificationVerbosity mNotificationVerbosity;
     std::queue<std::shared_ptr<Task>> mTaskQueue;
 
