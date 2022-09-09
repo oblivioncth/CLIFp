@@ -21,7 +21,7 @@ public:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 public:
-    QProgressDialog* mLongTaskProgressDialog;
+    QProgressDialog mLongTaskProgressDialog;
     QString mStatusHeading;
     QString mStatusMessage;
 
@@ -35,6 +35,7 @@ public:
 //-Instance Functions--------------------------------------------------------------------------------------------------
 private:
     void setupTrayIcon();
+    void setupProgressDialog();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------
 public slots:
