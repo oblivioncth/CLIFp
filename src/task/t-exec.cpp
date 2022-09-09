@@ -10,7 +10,8 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-TExec::TExec() :
+TExec::TExec(QObject* parent) :
+    Task(parent),
     mBlockingProcess(nullptr)
 {}
 

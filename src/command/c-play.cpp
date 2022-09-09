@@ -167,7 +167,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         QString gameArgs = searchResult.result.value(Fp::Db::Table_Game::COL_LAUNCH_COMMAND).toString();
         QFileInfo gameInfo(mCore.getFlashpointInstall().fullPath() + '/' + gamePath);
 
-        std::shared_ptr<TExec> gameTask = std::make_shared<TExec>();
+        TExec* gameTask = new TExec(&mCore);
         gameTask->setStage(Task::Stage::Primary);
         gameTask->setPath(gameInfo.absolutePath());
         gameTask->setFilename(gameInfo.fileName());
@@ -200,7 +200,7 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::St
 
     if(appPath == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
     {
-        std::shared_ptr<TMessage> messageTask = std::make_shared<TMessage>();
+        TMessage* messageTask = new TMessage(&mCore);
         messageTask->setStage(taskStage);
         messageTask->setMessage(appArgs);
         messageTask->setModal(waitForExit || taskStage == Task::Stage::Primary);
@@ -209,7 +209,7 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::St
     }
     else if(appPath == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
     {
-        std::shared_ptr<TExtra> extraTask = std::make_shared<TExtra>();
+        TExtra* extraTask = new TExtra(&mCore);
         extraTask->setStage(taskStage);
         extraTask->setDirectory(QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + appArgs));
 
@@ -219,7 +219,7 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::St
     {
         QFileInfo addAppInfo(mCore.getFlashpointInstall().fullPath() + '/' + appPath);
 
-        std::shared_ptr<TExec> addAppTask = std::make_shared<TExec>();
+        TExec* addAppTask = new TExec(&mCore);
         addAppTask->setStage(taskStage);
         addAppTask->setPath(addAppInfo.absolutePath());
         addAppTask->setFilename(addAppInfo.fileName());

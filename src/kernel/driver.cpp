@@ -3,6 +3,7 @@
 
 // Qx Includes
 #include <qx/windows/qx-common-windows.h>
+#include <qx/utility/qx-helpers.h>
 
 // Project Includes
 #include "command/command.h"
@@ -102,22 +103,22 @@ void Driver::startNextTask()
     else
     {
         // Connect task notifiers
-        connect(mCurrentTask.get(), &Task::notificationReady, mCore, &Core::postMessage);
-        connect(mCurrentTask.get(), &Task::eventOccurred, mCore, &Core::logEvent);
-        connect(mCurrentTask.get(), &Task::errorOccurred, mCore, [this](QString taskName, Qx::GenericError error){
+        connect(mCurrentTask, &Task::notificationReady, mCore, &Core::postMessage);
+        connect(mCurrentTask, &Task::eventOccurred, mCore, &Core::logEvent);
+        connect(mCurrentTask, &Task::errorOccurred, mCore, [this](QString taskName, Qx::GenericError error){
             mCore->postError(taskName, error); // Can't connect directly because newer connect syntax doesn't support default args
         });
-        connect(mCurrentTask.get(), &Task::blockingErrorOccured, this,
+        connect(mCurrentTask, &Task::blockingErrorOccured, this,
                 [this](QString taskName, int* response, Qx::GenericError error, QMessageBox::StandardButtons choices) {
             *response = mCore->postBlockingError(taskName, error, true, choices);
         });
-        connect(mCurrentTask.get(), &Task::longTaskStarted, this, &Driver::longTaskStarted);
-        connect(mCurrentTask.get(), &Task::longTaskTotalChanged, this, &Driver::longTaskTotalChanged);
-        connect(mCurrentTask.get(), &Task::longTaskProgressChanged, this, &Driver::longTaskProgressChanged);
-        connect(mCurrentTask.get(), &Task::longTaskFinished, this, &Driver::longTaskFinished);
+        connect(mCurrentTask, &Task::longTaskStarted, this, &Driver::longTaskStarted);
+        connect(mCurrentTask, &Task::longTaskTotalChanged, this, &Driver::longTaskTotalChanged);
+        connect(mCurrentTask, &Task::longTaskProgressChanged, this, &Driver::longTaskProgressChanged);
+        connect(mCurrentTask, &Task::longTaskFinished, this, &Driver::longTaskFinished);
 
         // QueuedConnection, allow event processing between tasks
-        connect(mCurrentTask.get(), &Task::complete, this, &Driver::completeTaskHandler, Qt::QueuedConnection);
+        connect(mCurrentTask, &Task::complete, this, &Driver::completeTaskHandler, Qt::QueuedConnection);
 
         // Perform task
         mCurrentTask->perform();
@@ -174,7 +175,7 @@ void Driver::completeTaskHandler(ErrorCode ec)
 
     // Cleanup handled task
     mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH.arg(mCurrentTaskNumber));
-    mCurrentTask.reset();
+    qxDelete(mCurrentTask);
 
     // Perform next task if any remain
     if(mCore->hasTasks())

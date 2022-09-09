@@ -255,7 +255,7 @@ ErrorCode Core::enqueueStartupTasks()
     // Add Start entries from services
     for(const Fp::Json::StartStop& startEntry : qAsConst(fpServices.starts))
     {
-        std::shared_ptr<TExec> currentTask = std::make_shared<TExec>();
+        TExec* currentTask = new TExec(this);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setPath(mFlashpointInstall->fullPath() + '/' + startEntry.path);
         currentTask->setFilename(startEntry.filename);
@@ -264,7 +264,7 @@ ErrorCode Core::enqueueStartupTasks()
         currentTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(currentTask);
-        logTask(NAME, currentTask.get());
+        logTask(NAME, currentTask);
     }
 
     // Add Server entry from services if applicable
@@ -278,7 +278,7 @@ ErrorCode Core::enqueueStartupTasks()
 
         Fp::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
-        std::shared_ptr<TExec> serverTask = std::make_shared<TExec>();
+        TExec* serverTask = new TExec(this);
         serverTask->setStage(Task::Stage::Startup);
         serverTask->setPath(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
         serverTask->setFilename(configuredServer.filename);
@@ -287,14 +287,14 @@ ErrorCode Core::enqueueStartupTasks()
         serverTask->setProcessType(configuredServer.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(serverTask);
-        logTask(NAME, serverTask.get());
+        logTask(NAME, serverTask);
     }
 
     // Add Daemon entry from services
     QHash<QString, Fp::Json::ServerDaemon>::const_iterator daemonIt;
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
-        std::shared_ptr<TExec> currentTask = std::make_shared<TExec>();
+        TExec* currentTask = new TExec(this);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setPath(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
         currentTask->setFilename(daemonIt.value().filename);
@@ -303,7 +303,7 @@ ErrorCode Core::enqueueStartupTasks()
         currentTask->setProcessType(daemonIt.value().kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(currentTask);
-        logTask(NAME, currentTask.get());
+        logTask(NAME, currentTask);
     }
 
     // Return success
@@ -316,7 +316,7 @@ void Core::enqueueShutdownTasks()
     // Add Stop entries from services
     for(const Fp::Json::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
     {
-        std::shared_ptr<TExec> shutdownTask = std::make_shared<TExec>();
+        TExec* shutdownTask = new TExec(this);
         shutdownTask->setStage(Task::Stage::Shutdown);
         shutdownTask->setPath(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
         shutdownTask->setFilename(stopEntry.filename);
@@ -325,7 +325,7 @@ void Core::enqueueShutdownTasks()
         shutdownTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(shutdownTask);
-        logTask(NAME, shutdownTask.get());
+        logTask(NAME, shutdownTask);
     }
 }
 
@@ -342,12 +342,12 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 
     if(involvesSecurePlayer)
     {
-        std::shared_ptr<TWait> waitTask = std::make_shared<TWait>();
+        TWait* waitTask = new TWait(this);
         waitTask->setStage(Task::Stage::Auxiliary);
         waitTask->setProcessName(Fp::Install::SECURE_PLAYER_INFO.fileName());
 
         mTaskQueue.push(waitTask);
-        logTask(NAME, waitTask.get());
+        logTask(NAME, waitTask);
     }
 
     // Return success
@@ -431,7 +431,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         // Get title's Data Pack sub-URL
         QString packSubUrl = searchResult.result.value(Fp::Db::Table_Source_Data::COL_URL_PATH).toString().replace('\\','/');
 
-        std::shared_ptr<TDownload> downloadTask = std::make_shared<TDownload>();
+        TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
         downloadTask->setDestinationPath(packDestFolderPath);
         downloadTask->setDestinationFilename(packFileName);
@@ -439,41 +439,40 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         downloadTask->setSha256(packSha256);
 
         mTaskQueue.push(downloadTask);
-        logTask(NAME, downloadTask.get());
+        logTask(NAME, downloadTask);
     }
-
 
     // Enqueue pack mount or extract
     if(packParameters.contains("-extract"))
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
-        std::shared_ptr<TExtract> extractTask = std::make_shared<TExtract>();
+        TExtract* extractTask = new TExtract(this);
         extractTask->setPackPath(packDestFolderPath + "/" + packFileName);
         extractTask->setPathInPack("content");
         extractTask->setDestinationPath(mFlashpointInstall->preferences().htdocsFolderPath);
 
         mTaskQueue.push(extractTask);
-        logTask(NAME, extractTask.get());
+        logTask(NAME, extractTask);
     }
     else
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
-        std::shared_ptr<TMount> mountTask = std::make_shared<TMount>();
+        TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(targetId);
         mountTask->setPath(packDestFolderPath + "/" + packFileName);
 
         mTaskQueue.push(mountTask);
-        logTask(NAME, mountTask.get());
+        logTask(NAME, mountTask);
     }
 
     // Return success
     return ErrorCode::NO_ERR;
 }
 
-void Core::enqueueSingleTask(std::shared_ptr<Task> task) { mTaskQueue.push(task); logTask(NAME, task.get()); }
+void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(NAME, task); }
 void Core::clearTaskQueue() { mTaskQueue = {}; }
 
 void Core::logCommand(QString src, QString commandName)
@@ -579,7 +578,7 @@ Fp::Install& Core::getFlashpointInstall() { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
-std::shared_ptr<Task> Core::frontTask() { return mTaskQueue.front(); }
+Task* Core::frontTask() { return mTaskQueue.front(); }
 void Core::removeFrontTask() { mTaskQueue.pop(); }
 
 QString Core::statusHeading() { return mStatusHeading; }

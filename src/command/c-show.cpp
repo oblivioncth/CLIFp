@@ -34,7 +34,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
     // Enqueue show task
     if(mParser.isSet(CL_OPTION_MSG))
     {
-        std::shared_ptr<TMessage> messageTask = std::make_shared<TMessage>();
+        TMessage* messageTask = new TMessage(&mCore);
         messageTask->setStage(Task::Stage::Primary);
         messageTask->setMessage(mParser.value(CL_OPTION_MSG));
         messageTask->setModal(true);
@@ -44,7 +44,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
     }
     else if(mParser.isSet(CL_OPTION_EXTRA))
     {
-        std::shared_ptr<TExtra> extraTask = std::make_shared<TExtra>();
+        TExtra* extraTask = new TExtra(&mCore);
         extraTask->setStage(Task::Stage::Primary);
         extraTask->setDirectory(QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA)));
 

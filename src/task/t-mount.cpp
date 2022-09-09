@@ -10,7 +10,8 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TMount::TMount() :
+TMount::TMount(QObject* parent) :
+    Task(parent),
     mMounter(22501, 0, 22500) // Prod port not used yet
 {
     //-Setup Mounter------------------------------------

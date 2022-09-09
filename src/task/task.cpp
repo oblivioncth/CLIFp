@@ -10,7 +10,9 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-Task::Task() {}
+Task::Task(QObject* parent) :
+    QObject(parent)
+{}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:

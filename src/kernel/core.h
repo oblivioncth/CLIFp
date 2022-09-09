@@ -152,7 +152,7 @@ private:
     // Processing
     bool mCriticalErrorOccured;
     NotificationVerbosity mNotificationVerbosity;
-    std::queue<std::shared_ptr<Task>> mTaskQueue;
+    std::queue<Task*> mTaskQueue;
 
     // Info
     QString mStatusHeading;
@@ -178,7 +178,7 @@ public:
     void enqueueShutdownTasks();
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
     ErrorCode enqueueDataPackTasks(QUuid targetId);
-    void enqueueSingleTask(std::shared_ptr<Task> task);
+    void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     void logCommand(QString src, QString commandName);
@@ -195,7 +195,7 @@ public:
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;
-    std::shared_ptr<Task> frontTask();
+    Task* frontTask();
     void removeFrontTask();
 
     QString statusHeading();

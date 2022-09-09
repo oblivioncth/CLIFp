@@ -7,7 +7,8 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TWait::TWait() :
+TWait::TWait(QObject* parent) :
+    Task(parent),
     mProcessWaiter(nullptr, STANDARD_GRACE)
 {
     // Setup waiter

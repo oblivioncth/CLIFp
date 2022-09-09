@@ -43,7 +43,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
 
     QFileInfo inputInfo = QFileInfo(mCore.getFlashpointInstall().fullPath() + '/' + mParser.value(CL_OPTION_APP));
 
-    std::shared_ptr<TExec> runTask = std::make_shared<TExec>();
+    TExec* runTask = new TExec(&mCore);
     runTask->setStage(Task::Stage::Primary);
     runTask->setPath(inputInfo.absolutePath());
     runTask->setFilename(inputInfo.fileName());

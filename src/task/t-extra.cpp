@@ -11,7 +11,9 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TExtra::TExtra() {}
+TExtra::TExtra(QObject* parent) :
+    Task(parent)
+{}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:

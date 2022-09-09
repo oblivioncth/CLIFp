@@ -7,7 +7,9 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TMessage::TMessage() {}
+TMessage::TMessage(QObject* parent) :
+    Task(parent)
+{}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:

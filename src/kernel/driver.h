@@ -66,7 +66,7 @@ private:
 
     Qx::SetOnce<ErrorCode> mErrorStatus;
 
-    std::shared_ptr<Task> mCurrentTask;
+    Task* mCurrentTask;
     int mCurrentTaskNumber;
 
     bool mQuitRequested;

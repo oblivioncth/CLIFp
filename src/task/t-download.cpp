@@ -7,7 +7,8 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-TDownload::TDownload()
+TDownload::TDownload(QObject* parent) :
+    Task(parent)
 {
     // Setup download manager
     mDownloadManager.setOverwrite(true);
