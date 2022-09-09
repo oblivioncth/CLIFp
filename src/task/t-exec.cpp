@@ -183,7 +183,8 @@ void TExec::perform()
             return;
 
         case ProcessType::Deferred:
-            taskProcess->setParent(this);
+             // Can't use 'this' as parent since process will outlive this instance, so use parent of task
+            taskProcess->setParent(this->parent());
             if(!cleanStartProcess(taskProcess, executableInfo))
             {
                 emit complete(ErrorCode::PROCESS_START_FAIL);
