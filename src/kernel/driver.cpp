@@ -128,6 +128,7 @@ void Driver::startNextTask()
 void Driver::cleanup()
 {
     // Close each remaining child process
+    mCore->logEvent(NAME, LOG_EVENT_ENDING_CHILD_PROCESSES);
     const QStringList logStatements = TExec::closeChildProcesses();
     for(const QString& statement : logStatements)
         mCore->logEvent(NAME, statement);
