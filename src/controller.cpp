@@ -6,7 +6,7 @@
 #include <QWindow>
 
 // Project Includes
-#include "driver.h"
+#include "kernel/driver.h"
 
 // Windows Includes
 #include <qx_windows.h>

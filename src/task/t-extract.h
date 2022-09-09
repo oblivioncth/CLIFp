@@ -2,7 +2,7 @@
 #define TEXTRACT_H
 
 // Project Includes
-#include "../task.h"
+#include "task/task.h"
 
 // Qt Includes
 #include <QDir>
@@ -10,17 +10,6 @@
 class TExtract : public Task
 {
     Q_OBJECT;
-
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-private:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode NO_ERR = 0;
-        static const ErrorCode PACK_EXTRACT_FAIL = 25;
-    };
-
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta

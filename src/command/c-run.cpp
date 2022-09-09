@@ -2,7 +2,7 @@
 #include "c-run.h"
 
 // Project Includes
-#include "../task/t-exec.h"
+#include "task/t-exec.h"
 
 //===============================================================================================================
 // CRUN
@@ -28,13 +28,13 @@ ErrorCode CRun::process(const QStringList& commandLine)
 
     // Handle standard options
     if(checkStandardOptions())
-        return Core::ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
 
     // Make sure that at least an app was provided
     if(!mParser.isSet(CL_OPTION_PARAM))
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_APP));
-        return Core::ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 
     // Enqueue startup tasks
@@ -59,5 +59,5 @@ ErrorCode CRun::process(const QStringList& commandLine)
         return errorStatus;
 
     // Return success
-    return Core::ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }

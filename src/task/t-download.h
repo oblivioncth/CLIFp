@@ -5,22 +5,11 @@
 #include <qx/network/qx-downloadmanager.h>
 
 // Project Includes
-#include "../task.h"
+#include "task/task.h"
 
 class TDownload : public Task
 {
     Q_OBJECT;
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-private:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode NO_ERR = 0;
-        static const ErrorCode CANT_OBTAIN_DATA_PACK = 18;
-        static const ErrorCode DATA_PACK_INVALID = 19;
-    };
-
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta

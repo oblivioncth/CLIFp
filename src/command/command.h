@@ -2,7 +2,7 @@
 #define COMMAND_H
 
 // Project Includes 
-#include "core.h"
+#include "kernel/core.h"
 
 class CommandFactory;
 

@@ -1,21 +1,10 @@
 #ifndef CPLAY_H
 #define CPLAY_H
 
-#include "../command.h"
-#include "../task.h"
+#include "command/command.h"
 
 class CPlay : public Command
 {
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-private:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode RAND_FILTER_NOT_VALID = 101;
-        static const ErrorCode PARENT_INVALID = 102;
-    };
-
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status

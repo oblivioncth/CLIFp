@@ -5,15 +5,17 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QPointer>
 
 // Qx Includes
 #include <qx/core/qx-setonce.h>
+#include <qx/core/qx-genericerror.h>
 
 // QI-QMP Includes
 #include <qi-qmp/qmpi.h>
 
 // Project Includes
-#include "core.h"
+#include "kernel/errorcode.h"
 
 class Mounter : public QObject
 {

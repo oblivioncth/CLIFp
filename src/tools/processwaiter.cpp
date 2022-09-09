@@ -7,7 +7,6 @@
 // Windows Include
 #include <shellapi.h>
 
-
 //===============================================================================================================
 // ProcessWaiter
 //===============================================================================================================
@@ -104,7 +103,7 @@ ErrorCode ProcessWaiter::doWait()
 
                 emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(mProcessName),
                                                    nativeError.primaryInfo()));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HANDLED;
+                return ErrorCode::WAIT_PROCESS_NOT_HANDLED;
             }
 
             // Attempt to wait on process to terminate
@@ -126,7 +125,7 @@ ErrorCode ProcessWaiter::doWait()
 
                 emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(mProcessName),
                                                    nativeError.primaryInfo()));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HOOKED;
+                return ErrorCode::WAIT_PROCESS_NOT_HOOKED;
             }
             emit statusChanged(LOG_EVENT_WAIT_QUIT.arg(mProcessName));
         }
@@ -135,7 +134,7 @@ ErrorCode ProcessWaiter::doWait()
 
     // Return success
     emit statusChanged(LOG_EVENT_WAIT_FINISHED.arg(mProcessName));
-    return Core::ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }
 
 void ProcessWaiter::run()

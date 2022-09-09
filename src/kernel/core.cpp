@@ -9,17 +9,17 @@
 #include <qx/utility/qx-helpers.h>
 
 // Project Includes
-#include "command.h"
+#include "command/command.h"
 #include "task/t-download.h"
 #include "task/t-exec.h"
 #include "task/t-extract.h"
 #include "task/t-mount.h"
 #include "task/t-wait.h"
+#include "utility.h"
 
 //===============================================================================================================
 // CORE
 //===============================================================================================================
-
 
 //-Constructor-------------------------------------------------------------
 Core::Core(QObject* parent, QString rawCommandLineParam) :
@@ -157,14 +157,14 @@ ErrorCode Core::initialize(QStringList& commandLine)
             commandLine = clParser.positionalArguments(); // Remove core options from command line list
 
         // Return success
-        return ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     }
     else
     {
         commandLine.clear(); // Clear remaining options since they are now irrelevant
         showHelp();
         logError(NAME, Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
-        return ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 
 }
@@ -187,7 +187,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
     if((searchError = mFlashpointInstall->database()->queryEntriesByTitle(searchResult, title)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCodes::SQL_ERROR;
+        return ErrorCode::SQL_ERROR;
     }
 
     logEvent(NAME, LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(title));
@@ -195,7 +195,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
     if(searchResult.size < 1)
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_TITLE_NOT_FOUND));
-        return ErrorCodes::TITLE_NOT_FOUND;
+        return ErrorCode::TITLE_NOT_FOUND;
     }
     else if(searchResult.size == 1)
     {
@@ -206,7 +206,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         returnBuffer = QUuid(searchResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
         logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
 
-        return ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     }
     else
     {
@@ -240,7 +240,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         returnBuffer = idMap.value(userChoice);
         logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
 
-        return ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     }
 }
 
@@ -273,7 +273,7 @@ ErrorCode Core::enqueueStartupTasks()
         if(!fpServices.servers.contains(fpConfig.server))
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
-            return ErrorCodes::CONFIG_SERVER_MISSING;
+            return ErrorCode::CONFIG_SERVER_MISSING;
         }
 
         Fp::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
@@ -307,7 +307,7 @@ ErrorCode Core::enqueueStartupTasks()
     }
 
     // Return success
-    return ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }
 
 void Core::enqueueShutdownTasks()
@@ -337,7 +337,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     if(securePlayerCheckError.isValid())
     {
         postError(NAME, securePlayerCheckError);
-        return ErrorCodes::CANT_READ_BAT_FILE;
+        return ErrorCode::CANT_READ_BAT_FILE;
     }
 
     if(involvesSecurePlayer)
@@ -351,7 +351,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     }
 
     // Return success
-    return ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 
     // Possible future waits...
 }
@@ -370,7 +370,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     if((searchError = database->queryEntryDataById(searchResult, targetId)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCodes::SQL_ERROR;
+        return ErrorCode::SQL_ERROR;
     }
 
     // Advance result to only record
@@ -408,7 +408,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return ErrorCodes::SQL_ERROR;
+            return ErrorCode::SQL_ERROR;
         }
 
         // Advance result to only record (or first if there are more than one in future versions)
@@ -422,7 +422,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return ErrorCodes::SQL_ERROR;
+            return ErrorCode::SQL_ERROR;
         }
 
         // Advance result to only record
@@ -470,7 +470,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     }
 
     // Return success
-    return ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }
 
 void Core::enqueueSingleTask(std::shared_ptr<Task> task) { mTaskQueue.push(task); logTask(NAME, task.get()); }
@@ -508,9 +508,9 @@ void Core::logEvent(QString src, QString event)
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 }
 
-void Core::logTask(QString src, const Task* const task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
+void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
 
-int Core::logFinish(QString src, int exitCode)
+ErrorCode Core::logFinish(QString src, ErrorCode exitCode)
 {
     if(mCriticalErrorOccured)
         logEvent(src, LOG_ERR_CRITICAL);

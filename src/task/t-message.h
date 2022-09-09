@@ -2,21 +2,11 @@
 #define TMESSAGE_H
 
 // Project Includes
-#include "../task.h"
+#include "task/task.h"
 
 class TMessage : public Task
 {
     Q_OBJECT;
-
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-private:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode NO_ERR = 0;
-    };
-
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta

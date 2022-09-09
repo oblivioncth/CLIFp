@@ -1,6 +1,9 @@
 // Unit Include
 #include "t-exec.h"
 
+// Project Includes
+#include "utility.h"
+
 //===============================================================================================================
 // TExec
 //===============================================================================================================
@@ -132,7 +135,7 @@ void TExec::perform()
     {
         emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                   ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-        emit complete(ErrorCodes::EXECUTABLE_NOT_FOUND);
+        emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
         return;
     }
 
@@ -141,7 +144,7 @@ void TExec::perform()
     {
         emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
                                                  ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-        emit complete(ErrorCodes::EXECUTABLE_NOT_VALID);
+        emit complete(ErrorCode::EXECUTABLE_NOT_VALID);
         return;
     }
 
@@ -168,7 +171,7 @@ void TExec::perform()
             taskProcess->setParent(this);
             if(!cleanStartProcess(taskProcess, executableInfo))
             {
-                emit complete(ErrorCodes::PROCESS_START_FAIL);
+                emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
             }
             logProcessStart(taskProcess, ProcessType::Blocking);
@@ -182,7 +185,7 @@ void TExec::perform()
             taskProcess->setParent(this);
             if(!cleanStartProcess(taskProcess, executableInfo))
             {
-                emit complete(ErrorCodes::PROCESS_START_FAIL);
+                emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
             }
             logProcessStart(taskProcess, ProcessType::Deferred);
@@ -193,7 +196,7 @@ void TExec::perform()
         case ProcessType::Detached:
             if(!taskProcess->startDetached())
             {
-                emit complete(ErrorCodes::PROCESS_START_FAIL);
+                emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
             }
             logProcessStart(taskProcess, ProcessType::Detached);
@@ -201,7 +204,7 @@ void TExec::perform()
     }
 
     // Return success
-    emit complete(ErrorCodes::NO_ERR);
+    emit complete(ErrorCode::NO_ERR);
 }
 
 void TExec::stop()
@@ -247,5 +250,5 @@ void TExec::postBlockingProcess()
     mBlockingProcess = nullptr;
 
     // Return success
-    emit complete(ErrorCodes::NO_ERR);
+    emit complete(ErrorCode::NO_ERR);
 }

@@ -2,8 +2,8 @@
 #define TWAIT_H
 
 // Project Includes
-#include "../task.h"
-#include "../processwaiter.h"
+#include "task/task.h"
+#include "tools/processwaiter.h"
 
 class TWait : public Task
 {

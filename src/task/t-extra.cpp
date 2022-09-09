@@ -30,7 +30,7 @@ void TExtra::setDirectory(QDir dir) { mDirectory = dir; }
 void TExtra::perform()
 {
     // Error tracking
-    ErrorCode errorStatus = ErrorCodes::NO_ERR;
+    ErrorCode errorStatus = ErrorCode::NO_ERR;
 
     // Ensure extra exists
     if(mDirectory.exists())
@@ -42,7 +42,7 @@ void TExtra::perform()
     else
     {
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(mDirectory.path()))));
-        errorStatus = ErrorCodes::EXTRA_NOT_FOUND;
+        errorStatus = ErrorCode::EXTRA_NOT_FOUND;
     }
 
     emit complete(errorStatus);

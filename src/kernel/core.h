@@ -16,16 +16,9 @@
 #include <fp/flashpoint/fp-install.h>
 
 // Project Includes
-#include "logger.h"
+#include "task/task.h"
+#include "tools/logger.h"
 #include "project_vars.h"
-#include "task.h"
-
-//-Macros----------------------------------------------------------------------
-#define ENUM_NAME(eenum) QString(magic_enum::enum_name(eenum).data())
-#define CLIFP_DIR_PATH QCoreApplication::applicationDirPath()
-
-//-Typedef---------------------------------------------------------------------
-typedef int ErrorCode;
 
 class Core : public QObject
 {
@@ -48,36 +41,6 @@ public:
         Qx::GenericError errorInfo;
         QMessageBox::StandardButtons choices;
         QMessageBox::StandardButton defaultChoice;
-    };
-
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-public:
-    // TODO: Now that some error codes are a part of Task derivatives, probably should reindex them so that each
-    // task has its own base number just like commands do, instead of sharing Core's base of 0. Also the utility
-    // classes that are used by the tasks should contain their own error codes too instead of taking them from here
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode NO_ERR = 0;
-        static const ErrorCode ALREADY_OPEN = 1;
-        static const ErrorCode INVALID_ARGS = 2;
-        static const ErrorCode LAUNCHER_OPEN = 3;
-        static const ErrorCode INSTALL_INVALID = 4;
-        static const ErrorCode CONFIG_SERVER_MISSING = 5;
-        static const ErrorCode SQL_ERROR = 6;
-        static const ErrorCode SQL_MISMATCH = 7;
-        static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 11;
-        static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 12;
-        static const ErrorCode CANT_READ_BAT_FILE = 13;
-        static const ErrorCode ID_NOT_VALID = 14;
-        static const ErrorCode ID_NOT_FOUND = 15;
-        static const ErrorCode ID_DUPLICATE = 16;
-        static const ErrorCode TITLE_NOT_FOUND = 17;
-        static const ErrorCode QMP_CONNECTION_FAIL = 21;
-        static const ErrorCode QMP_COMMUNICATION_FAIL = 22;
-        static const ErrorCode QMP_COMMAND_FAIL = 23;
-        static const ErrorCode PHP_MOUNT_FAIL = 24;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -222,8 +185,8 @@ public:
     void logCommandOptions(QString src, QString commandOptions);
     void logError(QString src, Qx::GenericError error);
     void logEvent(QString src, QString event);
-    void logTask(QString src, const Task* const task);
-    int logFinish(QString src, int exitCode);
+    void logTask(QString src, const Task* task);
+    ErrorCode logFinish(QString src, ErrorCode exitCode);
     void postError(QString src, Qx::GenericError error, bool log = true);
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);

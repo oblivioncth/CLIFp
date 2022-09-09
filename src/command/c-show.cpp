@@ -2,8 +2,8 @@
 #include "c-show.h"
 
 // Project Includes
-#include "../task/t-message.h"
-#include "../task/t-extra.h"
+#include "task/t-message.h"
+#include "task/t-extra.h"
 
 //===============================================================================================================
 // CSHOW
@@ -29,7 +29,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
 
     // Handle standard options
     if(checkStandardOptions())
-        return Core::ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
 
     // Enqueue show task
     if(mParser.isSet(CL_OPTION_MSG))
@@ -54,9 +54,9 @@ ErrorCode CShow::process(const QStringList& commandLine)
     else
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_SHOW));
-        return Core::ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 
     // Return success
-    return Core::ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }

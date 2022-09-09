@@ -93,7 +93,7 @@ void TDownload::stop()
 void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
 {
     // Status holder
-    ErrorCode errorStatus = ErrorCodes::NO_ERR;
+    ErrorCode errorStatus = ErrorCode::NO_ERR;
 
     // Handle result
     emit longTaskFinished();
@@ -106,7 +106,7 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
         if(checksumResult.isFailure() || !checksumMatch)
         {
             emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
-            errorStatus = ErrorCodes::DATA_PACK_INVALID;
+            errorStatus = ErrorCode::DATA_PACK_INVALID;
         }
         else
             emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_SUCC);
@@ -115,7 +115,7 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
     {
         downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
         emit errorOccurred(NAME, downloadReport.errorInfo());
-        errorStatus = ErrorCodes::CANT_OBTAIN_DATA_PACK;
+        errorStatus = ErrorCode::CANT_OBTAIN_DATA_PACK;
     }
 
     emit complete(errorStatus);

@@ -2,7 +2,7 @@
 #define TEXEC_H
 
 // Project Includes
-#include "../task.h"
+#include "task/task.h"
 
 // Qt Includes
 #include <QProcess>
@@ -15,18 +15,6 @@ class TExec : public Task
 //-Class Enums-----------------------------------------------------------------------------------------------------
 public:
     enum class ProcessType { Blocking, Deferred, Detached };
-
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-private:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode NO_ERR = 0;
-        static const ErrorCode EXECUTABLE_NOT_FOUND = 8;
-        static const ErrorCode EXECUTABLE_NOT_VALID = 9;
-        static const ErrorCode PROCESS_START_FAIL = 10;
-    };
 
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:

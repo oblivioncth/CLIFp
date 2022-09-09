@@ -3,11 +3,16 @@
 
 // Qt Includes
 #include <QAuthenticator>
+#include <QRandomGenerator>
+#include <QUrlQuery>
 
 // Qx Includes
 #include <qx/core/qx-json.h>
 #include <qx/core/qx-base85.h>
 #include <qx/core/qx-string.h>
+
+// Project Includes
+#include "utility.h"
 
 //===============================================================================================================
 // Mounter
@@ -18,7 +23,7 @@
 Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverPort, QObject* parent) :
     QObject(parent),
     mMounting(false),
-    mErrorStatus(Core::ErrorCodes::NO_ERR),
+    mErrorStatus(ErrorCode::NO_ERR),
     mQemuMounter(QHostAddress::LocalHost, qemuMountPort, this),
     mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this),
     mCompletedQemuCommands(0)
@@ -174,7 +179,7 @@ void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
     // FP (as of 11) is currently bugged and is expected to give an internal server error so it must be ignored
     if(reply->error() != QNetworkReply::NoError && reply->error() != QNetworkReply::InternalServerError)
     {
-        mErrorStatus = Core::ErrorCodes::PHP_MOUNT_FAIL;
+        mErrorStatus = ErrorCode::PHP_MOUNT_FAIL;
         Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, reply->errorString());
         emit errorOccured(errMsg);
         finish();
@@ -188,7 +193,7 @@ void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
 
 void Mounter::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
 {
-    mErrorStatus = Core::ErrorCodes::QMP_CONNECTION_FAIL;
+    mErrorStatus = ErrorCode::QMP_CONNECTION_FAIL;
     QString errStr = ENUM_NAME(error);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(errStr));
     emit errorOccured(errMsg);
@@ -196,7 +201,7 @@ void Mounter::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
 
 void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
 {
-    mErrorStatus = Core::ErrorCodes::QMP_COMMUNICATION_FAIL;
+    mErrorStatus = ErrorCode::QMP_COMMUNICATION_FAIL;
     QString errStr = ENUM_NAME(error);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_COMMUNICATION.arg(errStr));
     emit errorOccured(errMsg);
@@ -204,7 +209,7 @@ void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
 
 void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, std::any context)
 {
-    mErrorStatus = Core::ErrorCodes::QMP_COMMAND_FAIL;
+    mErrorStatus = ErrorCode::QMP_COMMAND_FAIL;
     QString commandErr = ERR_QMP_COMMAND.arg(std::any_cast<QString>(context), errorClass, description);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, commandErr);
     emit errorOccured(errMsg);
@@ -269,7 +274,7 @@ void Mounter::abort()
     if(mQemuMounter.isConnectionActive())
     {
         // Aborting this doesn't cause an error so we must set one here manually.
-        mErrorStatus = Core::ErrorCodes::QMP_CONNECTION_FAIL;
+        mErrorStatus = ErrorCode::QMP_CONNECTION_FAIL;
         Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(ERR_QMP_CONNECTION_ABORT));
         emit errorOccured(errMsg);
         mQemuMounter.abort(); // Call last here because it causes finished signal to emit immediately

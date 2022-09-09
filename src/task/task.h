@@ -8,21 +8,8 @@
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
 
-// Magic Enum Includes
-#include "magic_enum.hpp"
-
-/* The macro and typedef here exist to recreate the ones from core.h since that can't
- * be included here as it would cause infinite include recursion. When this is included
- * by core, the macro/typedef there is fine because the standard allows redefinition
- * of macros/typedefs as long as the definitions are the same in all locations.
- */
-
-//-Macros----------------------------------------------------------------------
-#define ENUM_NAME(eenum) QString(magic_enum::enum_name(eenum).data())
-
-//-Typedef---------------------------------------------------------------------
-typedef int ErrorCode;
-
+// Project Includes
+#include "kernel/errorcode.h"
 
 class Task : public QObject
 {

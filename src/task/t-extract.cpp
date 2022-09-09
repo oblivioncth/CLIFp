@@ -124,7 +124,7 @@ void TExtract::setDestinationPath(QString path) { mDestinationPath = path; }
 void TExtract::perform()
 {
     // Error tracking
-    ErrorCode errorStatus = ErrorCodes::NO_ERR;
+    ErrorCode errorStatus = ErrorCode::NO_ERR;
 
     // Log string
     QFileInfo packFileInfo(mPackPath);
@@ -138,7 +138,7 @@ void TExtract::perform()
     if(extractError.isValid())
     {
         emit errorOccurred(NAME, extractError);
-        errorStatus = ErrorCodes::PACK_EXTRACT_FAIL;
+        errorStatus = ErrorCode::PACK_EXTRACT_FAIL;
     }
 
     emit complete(errorStatus);

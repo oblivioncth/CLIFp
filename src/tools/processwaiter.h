@@ -9,7 +9,7 @@
 #include <qx/windows/qx-common-windows.h>
 
 // Project Includes
-#include "core.h"
+#include "kernel/errorcode.h"
 
 /* This uses the approach of sub-classing QThread instead of the worker/object model. This means that by default there is no event
  * loop running in the new thread (not needed with current setup), and that only the contents of run() take place in the new thread,

@@ -9,7 +9,7 @@
 #include <qx/network/qx-downloadmanager.h>
 
 // Project Includes
-#include "core.h"
+#include "kernel/core.h"
 
 class Driver : public QObject
 {
@@ -53,10 +53,15 @@ private:
 
     Core* mCore; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     /*
-     * TODO: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
+     * NOTE: The pointer members here could be on stack if they are assigned as children to this Driver instance in its initialization list, but at the moment using
      * pointers instead for simplicity. If set as a child of this instance, they will be moved with the instance automatically when the instance is moved to a separate
      * thread. Otherwise (and without using pointers and init during drive()), the connections they have will be invoked on the main thread since they are spawned when
      * Driver is constructed, which is done on the main thread before it is moved.
+     *
+     * However, if this were to be done then any member variables of Core that derive from QObject, and are constructed during its construction (e.g. stack variables),
+     * would have to have their parents set as Core as well, with this being needed recursively all the way down the tree (i.e. those objects would have to have all
+     * their QObject based members made children). Because ensuring this can be tricky and error prone if any members in this tree change, it's just easier to
+     * construct core after Driver is already moved to the new thread.
     */
 
     Qx::SetOnce<ErrorCode> mErrorStatus;
@@ -90,16 +95,14 @@ private:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
-    void completeTaskHandler(ErrorCode ec = Core::ErrorCodes::NO_ERR);
+    void completeTaskHandler(ErrorCode ec = ErrorCode::NO_ERR);
 
 public slots:
     // Worker main
     void drive();
 
-    // Net
+    // Termination
     void cancelActiveLongTask();
-
-    // General
     void quitNow();
 
 signals:

@@ -5,8 +5,10 @@
 #include <qx/windows/qx-common-windows.h>
 
 // Project Includes
-#include "command.h"
+#include "command/command.h"
 #include "task/t-exec.h"
+#include "utility.h"
+
 //===============================================================================================================
 // DRIVER
 //===============================================================================================================
@@ -15,7 +17,7 @@
 Driver::Driver(QStringList arguments, QString rawArguments) :
     mArguments(arguments),
     mRawArguments(rawArguments),
-    mErrorStatus(Core::ErrorCodes::NO_ERR),
+    mErrorStatus(ErrorCode::NO_ERR),
     mCurrentTaskNumber(-1),
     mQuitRequested(false),
     mCore(nullptr)
@@ -164,7 +166,7 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
 void Driver::completeTaskHandler(ErrorCode ec)
 {
     // Handle errors
-    if(ec != Core::ErrorCodes::NO_ERR)
+    if(ec != ErrorCode::NO_ERR)
     {
         mErrorStatus = ec;
         mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(mCurrentTaskNumber)); // Record early end of task
@@ -203,7 +205,7 @@ void Driver::drive()
     if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        mErrorStatus = Core::ErrorCodes::ALREADY_OPEN;
+        mErrorStatus = ErrorCode::ALREADY_OPEN;
         finish();
         return;
     }
@@ -212,7 +214,7 @@ void Driver::drive()
     if(Qx::processIsRunning(Fp::Install::LAUNCHER_INFO.fileName()))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        mErrorStatus = Core::ErrorCodes::LAUNCHER_OPEN;
+        mErrorStatus = ErrorCode::LAUNCHER_OPEN;
         finish();
         return;
     }
@@ -224,7 +226,7 @@ void Driver::drive()
     if(!(flashpointInstall = findFlashpointInstall()))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        mErrorStatus = Core::ErrorCodes::INSTALL_INVALID;
+        mErrorStatus = ErrorCode::INSTALL_INVALID;
         finish();
         return;
     }
@@ -240,7 +242,7 @@ void Driver::drive()
     if(!Command::isRegistered(commandStr))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
-        mErrorStatus = Core::ErrorCodes::INVALID_ARGS;
+        mErrorStatus = ErrorCode::INVALID_ARGS;
         finish();
         return;
     }

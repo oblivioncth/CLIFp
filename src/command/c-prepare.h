@@ -2,7 +2,7 @@
 #define CPREPARE_H
 
 // Project Includes
-#include "../command.h"
+#include "command/command.h"
 
 class CPrepare : public Command
 {

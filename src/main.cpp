@@ -2,11 +2,11 @@
 #include <QApplication>
 
 // Project Includes
-#include "core.h"
+#include "kernel/core.h"
 #include "controller.h"
 #include "project_vars.h"
 
-ErrorCode main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     //-Basic Application Setup-------------------------------------------------------------
 

@@ -9,7 +9,7 @@
 #include <QAuthenticator>
 
 // Project Includes
-#include "core.h"
+#include "kernel/core.h"
 
 class StatusRelay : public QObject
 {
