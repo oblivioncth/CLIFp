@@ -121,15 +121,6 @@ void TExec::setProcessType(ProcessType processType) { mProcessType = processType
 
 void TExec::perform()
 {
-    // TODO: Implement proper app swaps via preferences.json
-    // Check for Basilisk exception
-    if(mFilename == "Basilisk-Portable.exe")
-    {
-        emit eventOccurred(NAME, LOG_EVENT_BASILISK_EXCEPTION);
-        mFilename = "FPNavigator.exe";
-        mPath.replace("Basilisk-Portable", "fpnavigator-portable");
-    }
-
     // Ensure executable exists
     QFileInfo executableInfo(mPath + "/" + mFilename);
     if(!executableInfo.exists() || !executableInfo.isFile())

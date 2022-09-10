@@ -164,6 +164,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
 
         // Enqueue game
         QString gamePath = searchResult.result.value(Fp::Db::Table_Game::COL_APP_PATH).toString();
+        gamePath = mCore.getFlashpointInstall().resolveAppPathOverrides(gamePath);
         QString gameArgs = searchResult.result.value(Fp::Db::Table_Game::COL_LAUNCH_COMMAND).toString();
         QFileInfo gameInfo(mCore.getFlashpointInstall().fullPath() + '/' + gamePath);
 
@@ -195,6 +196,7 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::St
     assert(addAppResult.source == Fp::Db::Table_Add_App::NAME);
 
     QString appPath = addAppResult.result.value(Fp::Db::Table_Add_App::COL_APP_PATH).toString();
+    appPath = mCore.getFlashpointInstall().resolveAppPathOverrides(appPath);
     QString appArgs = addAppResult.result.value(Fp::Db::Table_Add_App::COL_LAUNCH_COMMAND).toString();
     bool waitForExit = addAppResult.result.value(Fp::Db::Table_Add_App::COL_WAIT_EXIT).toInt() != 0;
 
