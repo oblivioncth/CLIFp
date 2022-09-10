@@ -448,6 +448,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
         TExtract* extractTask = new TExtract(this);
+        extractTask->setStage(Task::Stage::Auxiliary);
         extractTask->setPackPath(packDestFolderPath + "/" + packFileName);
         extractTask->setPathInPack("content");
         extractTask->setDestinationPath(mFlashpointInstall->preferences().htdocsFolderPath);
