@@ -1,20 +1,11 @@
-#ifndef CSHORTCUT_H
-#define CSHORTCUT_H
+#ifndef CLINK_H
+#define CLINK_H
 
 // Project Includes
-#include "../command.h"
+#include "command/command.h"
 
 class CLink : public Command
 {
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-private:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode INVALID_SHORTCUT_PARAM = 201;
-    };
-
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
@@ -81,4 +72,4 @@ public:
 };
 REGISTER_COMMAND(CLink::NAME, CLink, CLink::DESCRIPTION);
 
-#endif // CSHORTCUT_H
+#endif // CLINK_H

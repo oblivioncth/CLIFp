@@ -15,19 +15,10 @@
 // libfp Includes
 #include <fp/flashpoint/fp-install.h>
 
-// External Includes
-#include "magic_enum.hpp"
-
 // Project Includes
-#include "logger.h"
+#include "task/task.h"
+#include "tools/logger.h"
 #include "project_vars.h"
-
-//-Macros----------------------------------------------------------------------
-#define ENUM_NAME(eenum) QString(magic_enum::enum_name(eenum).data())
-#define CLIFP_DIR_PATH QCoreApplication::applicationDirPath()
-
-//-Typedef---------------------------------------------------------------------
-typedef int ErrorCode;
 
 class Core : public QObject
 {
@@ -35,8 +26,6 @@ class Core : public QObject
 //-Class Enums-----------------------------------------------------------------------
 public:
     enum class NotificationVerbosity { Full, Quiet, Silent };
-    enum class TaskStage { Startup, Primary, Auxiliary, Shutdown };
-    enum class ProcessType { Blocking, Deferred, Detached };
 
 //-Class Structs---------------------------------------------------------------------
 public:
@@ -52,157 +41,6 @@ public:
         Qx::GenericError errorInfo;
         QMessageBox::StandardButtons choices;
         QMessageBox::StandardButton defaultChoice;
-    };
-
-    struct Task
-    {
-        TaskStage stage;
-
-        virtual QString name() const = 0;
-        virtual QStringList members() const { return {".stage = " + ENUM_NAME(stage)}; }
-    };
-
-    struct ExecTask : public Task
-    {
-        QString path;
-        QString filename;
-        QStringList param;
-        QString nativeParam;
-        ProcessType processType;
-
-        QString name() const { return "ExecTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".path = \"" + QDir::toNativeSeparators(path) + "\"");
-            ml.append(".filename = \"" + filename + "\"");
-            ml.append(".param = {\"" + param.join(R"(", ")") + "\"}");
-            ml.append(".nativeParam = \"" + nativeParam + "\"");
-            ml.append(".processType = " + ENUM_NAME(processType));
-            return ml;
-        }
-    };
-
-    struct MessageTask : public Task
-    {
-        QString message;
-        bool modal;
-
-        QString name() const { return "MessageTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".message = \"" + message + "\"");
-            ml.append(".modal = \"" + QString(modal ? "true" : "false"));
-            return ml;
-        }
-    };
-
-    struct ExtraTask : public Task
-    {
-        QDir dir;
-
-        QString name() const { return "ExtraTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".extraDir = \"" + QDir::toNativeSeparators(dir.path()) + "\"");
-            return ml;
-        }
-    };
-
-    struct WaitTask : public Task
-    {
-        QString processName;
-
-        QString name() const { return "WaitTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".processName = \"" + processName + "\"");
-            return ml;
-        }
-    };
-
-    struct DownloadTask : public Task
-    {
-        QString destPath;
-        QString destFileName;
-        QUrl targetFile;
-        QString sha256;
-
-        QString name() const { return "DownloadTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".destPath = \"" + QDir::toNativeSeparators(destPath) + "\"");
-            ml.append(".destFileName = \"" + destFileName + "\"");
-            ml.append(".targetFile = \"" + targetFile.toString() + "\"");
-            ml.append(".sha256 = " + sha256);
-            return ml;
-        }
-    };
-
-    struct MountTask : public Task
-    {
-        QUuid titleId;
-        QString path;
-
-        QString name() const { return "MountTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".titleId = \"" + titleId.toString() + "\"");
-            ml.append(".path = \"" + QDir::toNativeSeparators(path) + "\"");
-            return ml;
-        }
-    };
-
-    struct ExtractTask : public Task
-    {
-        QString packPath;
-
-        QString name() const { return "ExtractTask"; }
-        QStringList members() const
-        {
-            QStringList ml = Task::members();
-            ml.append(".packPath = \"" + packPath + "\"");
-            return ml;
-        }
-    };
-
-//-Inner Classes--------------------------------------------------------------------------------------------------------
-public:
-    class ErrorCodes
-    {
-    //-Class Variables--------------------------------------------------------------------------------------------------
-    public:
-        static const ErrorCode NO_ERR = 0;
-        static const ErrorCode ALREADY_OPEN = 1;
-        static const ErrorCode INVALID_ARGS = 2;
-        static const ErrorCode LAUNCHER_OPEN = 3;
-        static const ErrorCode INSTALL_INVALID = 4;
-        static const ErrorCode CONFIG_SERVER_MISSING = 5;
-        static const ErrorCode SQL_ERROR = 6;
-        static const ErrorCode SQL_MISMATCH = 7;
-        static const ErrorCode EXECUTABLE_NOT_FOUND = 8;
-        static const ErrorCode EXECUTABLE_NOT_VALID = 9;
-        static const ErrorCode PROCESS_START_FAIL = 10;
-        static const ErrorCode WAIT_PROCESS_NOT_HANDLED = 11;
-        static const ErrorCode WAIT_PROCESS_NOT_HOOKED = 12;
-        static const ErrorCode CANT_READ_BAT_FILE = 13;
-        static const ErrorCode ID_NOT_VALID = 14;
-        static const ErrorCode ID_NOT_FOUND = 15;
-        static const ErrorCode ID_DUPLICATE = 16;
-        static const ErrorCode TITLE_NOT_FOUND = 17;
-        static const ErrorCode CANT_OBTAIN_DATA_PACK = 18;
-        static const ErrorCode DATA_PACK_INVALID = 19;
-        static const ErrorCode EXTRA_NOT_FOUND = 20;
-        static const ErrorCode QMP_CONNECTION_FAIL = 21;
-        static const ErrorCode QMP_COMMUNICATION_FAIL = 22;
-        static const ErrorCode QMP_COMMAND_FAIL = 23;
-        static const ErrorCode PHP_MOUNT_FAIL = 24;
-        static const ErrorCode PACK_EXTRACT_FAIL = 25;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -312,9 +150,9 @@ private:
     std::unique_ptr<Logger> mLogger;
 
     // Processing
-    bool mCriticalErrorOccured = false;
+    bool mCriticalErrorOccured;
     NotificationVerbosity mNotificationVerbosity;
-    std::queue<std::shared_ptr<Task>> mTaskQueue;
+    std::queue<Task*> mTaskQueue;
 
     // Info
     QString mStatusHeading;
@@ -340,15 +178,15 @@ public:
     void enqueueShutdownTasks();
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
     ErrorCode enqueueDataPackTasks(QUuid targetId);
-    void enqueueSingleTask(std::shared_ptr<Task> task);
+    void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
     void logError(QString src, Qx::GenericError error);
     void logEvent(QString src, QString event);
-    void logTask(QString src, const Task* const task);
-    int logFinish(QString src, int exitCode);
+    void logTask(QString src, const Task* task);
+    ErrorCode logFinish(QString src, ErrorCode exitCode);
     void postError(QString src, Qx::GenericError error, bool log = true);
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
@@ -357,7 +195,7 @@ public:
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;
-    std::shared_ptr<Task> frontTask();
+    Task* frontTask();
     void removeFrontTask();
 
     QString statusHeading();

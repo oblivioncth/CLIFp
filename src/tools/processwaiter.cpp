@@ -7,16 +7,14 @@
 // Windows Include
 #include <shellapi.h>
 
-
 //===============================================================================================================
 // ProcessWaiter
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Public:
-ProcessWaiter::ProcessWaiter(QString processName, uint respawnGrace, QObject* parent) :
+ProcessWaiter::ProcessWaiter(QObject* parent, uint respawnGrace) :
     QThread(parent),
-    mProcessName(processName),
     mRespawnGrace(respawnGrace),
     mProcessHandle(nullptr)
 {}
@@ -105,7 +103,7 @@ ErrorCode ProcessWaiter::doWait()
 
                 emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(mProcessName),
                                                    nativeError.primaryInfo()));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HANDLED;
+                return ErrorCode::WAIT_PROCESS_NOT_HANDLED;
             }
 
             // Attempt to wait on process to terminate
@@ -127,7 +125,7 @@ ErrorCode ProcessWaiter::doWait()
 
                 emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(mProcessName),
                                                    nativeError.primaryInfo()));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HOOKED;
+                return ErrorCode::WAIT_PROCESS_NOT_HOOKED;
             }
             emit statusChanged(LOG_EVENT_WAIT_QUIT.arg(mProcessName));
         }
@@ -136,7 +134,7 @@ ErrorCode ProcessWaiter::doWait()
 
     // Return success
     emit statusChanged(LOG_EVENT_WAIT_FINISHED.arg(mProcessName));
-    return Core::ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }
 
 void ProcessWaiter::run()
@@ -144,6 +142,9 @@ void ProcessWaiter::run()
     ErrorCode status = doWait();
     emit waitFinished(status);
 }
+
+//Public:
+void ProcessWaiter::setRespawnGrace(uint respawnGrace) { mRespawnGrace = respawnGrace; }
 
 bool ProcessWaiter::closeProcess()
 {
@@ -190,9 +191,12 @@ bool ProcessWaiter::closeProcess()
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Public Slots:
-void ProcessWaiter::start()
+void ProcessWaiter::start(QString processName)
 {
     // Start new thread for waiting
     if(!isRunning())
+    {
+        mProcessName = processName;
         QThread::start();
+    }
 }

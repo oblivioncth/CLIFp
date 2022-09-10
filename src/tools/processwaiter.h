@@ -9,7 +9,7 @@
 #include <qx/windows/qx-common-windows.h>
 
 // Project Includes
-#include "core.h"
+#include "kernel/errorcode.h"
 
 /* This uses the approach of sub-classing QThread instead of the worker/object model. This means that by default there is no event
  * loop running in the new thread (not needed with current setup), and that only the contents of run() take place in the new thread,
@@ -58,7 +58,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    ProcessWaiter(QString processName, uint respawnGrace, QObject* parent = nullptr);
+    ProcessWaiter(QObject* parent = nullptr, uint respawnGrace = 30000);
 
 //-Class Functions---------------------------------------------------------------------------------------------------------
 private:
@@ -70,11 +70,13 @@ private:
     void run() override;
 
 public:
+    void setRespawnGrace(uint respawnGrace);
+
     bool closeProcess();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 public slots:
-    void start();
+    void start(QString processName);
 
 signals:
     void statusChanged(QString statusMessage);

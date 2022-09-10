@@ -64,11 +64,11 @@ ErrorCode Command::parse(const QStringList& commandLine)
     mCore.logCommandOptions(NAME, optionsStr);
 
     if(validArgs)
-        return Core::ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     else
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, mParser.errorText()));
-        return Core::ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 }
 

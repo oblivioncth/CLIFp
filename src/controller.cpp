@@ -6,7 +6,7 @@
 #include <QWindow>
 
 // Project Includes
-#include "driver.h"
+#include "kernel/driver.h"
 
 // Windows Includes
 #include <qx_windows.h>
@@ -43,7 +43,6 @@ Controller::Controller(QObject* parent)
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
     connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
-    connect(driver, &Driver::authenticationRequired, &mStatusRelay, &StatusRelay::authenticationHandler, Qt::BlockingQueuedConnection);
 
     // Connect quit handler
     connect(&mStatusRelay, &StatusRelay::quitRequested, this, &Controller::quitRequestHandler);

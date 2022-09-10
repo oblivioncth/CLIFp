@@ -2,7 +2,7 @@
 #define CRUN_H
 
 // Project Includes
-#include "../command.h"
+#include "command/command.h"
 
 class CRun : public Command
 {

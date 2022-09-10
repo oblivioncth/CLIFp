@@ -5,8 +5,8 @@
 #include <QObject>
 
 // Project Includes
-#include "statusrelay.h"
-#include "core.h"
+#include "frontend/statusrelay.h"
+#include "kernel/core.h"
 
 class Controller : public QObject
 {

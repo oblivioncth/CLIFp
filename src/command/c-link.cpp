@@ -10,6 +10,7 @@
 // Project Includes
 #include "c-play.h"
 #include "project_vars.h"
+#include "utility.h"
 
 //===============================================================================================================
 // CSHORTCUT
@@ -35,7 +36,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
 
     // Handle standard options
     if(checkStandardOptions())
-        return Core::ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
 
     // Shortcut parameters
     QUuid shortcutID;
@@ -48,7 +49,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
         if((shortcutID = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
-            return Core::ErrorCodes::ID_NOT_VALID;
+            return ErrorCode::ID_NOT_VALID;
         }
     }
     else if(mParser.isSet(CL_OPTION_TITLE))
@@ -59,7 +60,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     else
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
-        return Core::ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 
     mCore.setStatus(STATUS_LINK, shortcutID.toString(QUuid::WithoutBraces));
@@ -74,12 +75,12 @@ ErrorCode CLink::process(const QStringList& commandLine)
     if((sqlError = database->queryEntryById(entryInfo, shortcutID)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
-        return Core::ErrorCodes::SQL_ERROR;
+        return ErrorCode::SQL_ERROR;
     }
     else if(entryInfo.size < 1)
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND, sqlError.text()));
-        return Core::ErrorCodes::ID_NOT_FOUND;
+        return ErrorCode::ID_NOT_FOUND;
     }
 
     // Get entry title
@@ -95,7 +96,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
             QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
-            return Core::ErrorCodes::SQL_ERROR;
+            return ErrorCode::SQL_ERROR;
         }
         parentInfo.result.next();
 
@@ -106,7 +107,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH,
                                                ERR_DIFFERENT_TITLE_SRC.arg(Fp::Db::Table_Game::NAME + "/" + Fp::Db::Table_Add_App::NAME, entryInfo.source)));
-        return Core::ErrorCodes::SQL_MISMATCH;
+        return ErrorCode::SQL_MISMATCH;
     }
 
     // Get shortcut path
@@ -132,7 +133,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
         if(selectedPath.isEmpty())
         {
             mCore.logEvent(NAME, LOG_EVENT_DIAG_CANCEL);
-            return Core::ErrorCodes::NO_ERR;
+            return ErrorCode::NO_ERR;
         }
         else
         {
@@ -152,7 +153,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
         if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, ERR_INVALID_PATH));
-            return ErrorCodes::INVALID_SHORTCUT_PARAM;
+            return ErrorCode::INVALID_SHORTCUT_PARAM;
         }
         mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));
     }
@@ -171,11 +172,11 @@ ErrorCode CLink::process(const QStringList& commandLine)
     if(shortcutError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, shortcutError.primaryInfo()));
-        return ErrorCodes::INVALID_SHORTCUT_PARAM;
+        return ErrorCode::INVALID_SHORTCUT_PARAM;
     }
     else
         mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(shortcutID.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullShortcutPath)));
 
     // Return success
-    return Core::ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }

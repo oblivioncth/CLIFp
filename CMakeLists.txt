@@ -16,7 +16,6 @@ string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LC)
 string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UC)
 
 set(TARGET_FP_VERSION_PREFIX 11.0)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # C++
 set(CMAKE_CXX_STANDARD 20)
@@ -102,7 +101,7 @@ fetch_libfp("v0.1.2")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-fetch_qi_qmp("v0.1.2.1")
+fetch_qi_qmp("fd06a49d052c0ad3b28299951ff02e0a4b69418a")
 
 # Fetch QuaZip (build and import from source)
 include (OB/FetchQuaZip)
@@ -112,110 +111,13 @@ fetch_quazip("v1.3")
 include(OB/FetchMagicEnum)
 fetch_magicenum("v0.8.0")
 
-# Set app sources
-set(CXX_SOURCES
-    src/command/c-link.h
-    src/command/c-link.cpp
-    src/command/c-play.h
-    src/command/c-play.cpp
-    src/command/c-prepare.h
-    src/command/c-prepare.cpp
-    src/command/c-run.h
-    src/command/c-run.cpp
-    src/command/c-show.cpp
-    src/command/c-show.h
-    src/command.h
-    src/command.cpp
-    src/controller.h
-    src/controller.cpp
-    src/core.h
-    src/core.cpp
-    src/driver.h
-    src/driver.cpp
-    src/logger.h
-    src/logger.cpp
-    src/processwaiter.h
-    src/processwaiter.cpp
-    src/statusrelay.h
-    src/statusrelay.cpp
-    src/main.cpp
-    src/mounter.h
-    src/mounter.cpp
-)
-
-set(QT_RESOURCES
-    res/resources.qrc
-)
-
+# Set main target name
 # Name here needs to be as unique as possible for when this project is inlcuded
 # in another via FetchContent or add_subdirectory (prevent target clashes)
-set(TARGET_NAME ${PROJECT_NAME_LC}_${PROJECT_NAME_LC})
+set(MAIN_TARGET_NAME ${PROJECT_NAME_LC}_${PROJECT_NAME_LC})
 
-# Add executable target
-qt_add_executable(${TARGET_NAME} WIN32)
-
-# Make alias target so target can be referred to with its friendly
-# export name both internally and when part of another build tree
-add_executable(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${TARGET_NAME})
-
-# Add sources to target
-target_sources(${TARGET_NAME}
-    PRIVATE
-        ${CXX_SOURCES}
-        ${QT_RESOURCES}
-)
-
-# Link target to libraries
-target_link_libraries(${TARGET_NAME}
-    PRIVATE
-        Qt6::Core
-        Qt6::Gui
-        Qt6::Widgets
-        Qt6::Sql
-        Qt6::Network
-        Qx::Core
-        Qx::Io
-        Qx::Network
-        Qx::Widgets
-        Qx::Windows
-        Fp::Flashpoint
-        QI-QMP::Qmpi
-        QuaZip::QuaZip
-        magic_enum::magic_enum
-)
-
-# Configure target properties
-set_target_properties(${TARGET_NAME} PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    OUTPUT_NAME "${PROJECT_NAME}"
-    EXPORT_NAME "${PROJECT_NAME}"
-)
-
-## Forward select project variables to C++ code
-include(OB/ProjectVars)
-set_cxx_project_vars(${TARGET_NAME}
-    VERSION_STR "\"${PROJECT_VERSION}\""
-    SHORT_NAME "\"${PROJECT_NAME}\""
-    TARGET_FP_VER_PFX_STR "\"${TARGET_FP_VERSION_PREFIX}\""
-    EXECUTABLE_NAME "\"CLIFp.exe\""
-    APP_NAME "\"${FORMAL_NAME}\""
-)
-
-# Set target exe details
-include(OB/WinExecutableDetails)
-set_win_executable_details(${TARGET_NAME}
-    ICON "res/app/CLIFp.ico"
-    FILE_VER ${PROJECT_VERSION}
-    PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
-    COMPANY_NAME "oblivioncth"
-    FILE_DESC "CLI for BlueMaxima's Flashpoint"
-    INTERNAL_NAME "CLIFp"
-    COPYRIGHT "Open Source @ 2022 oblivioncth"
-    TRADEMARKS_ONE "All Rights Reserved"
-    TRADEMARKS_TWO "GNU AGPL V3"
-    ORIG_FILENAME "CLIFp.exe"
-    PRODUCT_NAME "${FORMAL_NAME}"
-)
+# Process source files and create target
+add_subdirectory(src)
 
 #--------------------Package Config-----------------------
 
@@ -237,19 +139,10 @@ write_basic_package_version_file(
 
 set(TOP_LEVEL_INSTALL_COMPONENT ${PROJECT_NAME_LC})
 
-# Install executable
-install(TARGETS ${TARGET_NAME}
-    CONFIGURATIONS Release
-    COMPONENT ${TARGET_NAME}
-    EXPORT ${PROJECT_NAME}Targets
-    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
-    RUNTIME DESTINATION bin   
-)
-
 # Install package target export
 install(EXPORT ${PROJECT_NAME}Targets
     CONFIGURATIONS Release
-    COMPONENT ${TARGET_NAME}
+    COMPONENT ${MAIN_TARGET_NAME}
     FILE "${PROJECT_NAME}Targets.cmake"
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION cmake
@@ -261,7 +154,7 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
     CONFIGURATIONS Release
-    COMPONENT ${TARGET_NAME}
+    COMPONENT ${MAIN_TARGET_NAME}
     DESTINATION cmake
     ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
 )

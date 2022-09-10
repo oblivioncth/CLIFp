@@ -9,7 +9,13 @@
 #include <qx/utility/qx-helpers.h>
 
 // Project Includes
-#include "command.h"
+#include "command/command.h"
+#include "task/t-download.h"
+#include "task/t-exec.h"
+#include "task/t-extract.h"
+#include "task/t-mount.h"
+#include "task/t-wait.h"
+#include "utility.h"
 
 //===============================================================================================================
 // CORE
@@ -19,6 +25,7 @@
 Core::Core(QObject* parent, QString rawCommandLineParam) :
     QObject(parent),
     mRawCommandLine(rawCommandLineParam),
+    mCriticalErrorOccured(false),
     mStatusHeading("Initializing"),
     mStatusMessage("...")
 {}
@@ -150,14 +157,14 @@ ErrorCode Core::initialize(QStringList& commandLine)
             commandLine = clParser.positionalArguments(); // Remove core options from command line list
 
         // Return success
-        return ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     }
     else
     {
         commandLine.clear(); // Clear remaining options since they are now irrelevant
         showHelp();
         logError(NAME, Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
-        return ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 
 }
@@ -180,7 +187,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
     if((searchError = mFlashpointInstall->database()->queryEntriesByTitle(searchResult, title)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCodes::SQL_ERROR;
+        return ErrorCode::SQL_ERROR;
     }
 
     logEvent(NAME, LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(title));
@@ -188,7 +195,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
     if(searchResult.size < 1)
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_TITLE_NOT_FOUND));
-        return ErrorCodes::TITLE_NOT_FOUND;
+        return ErrorCode::TITLE_NOT_FOUND;
     }
     else if(searchResult.size == 1)
     {
@@ -199,7 +206,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         returnBuffer = QUuid(searchResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
         logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
 
-        return ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     }
     else
     {
@@ -233,7 +240,7 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         returnBuffer = idMap.value(userChoice);
         logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
 
-        return ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
     }
 }
 
@@ -248,16 +255,16 @@ ErrorCode Core::enqueueStartupTasks()
     // Add Start entries from services
     for(const Fp::Json::StartStop& startEntry : qAsConst(fpServices.starts))
     {
-        std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
-        currentTask->stage = TaskStage::Startup;
-        currentTask->path = mFlashpointInstall->fullPath() + '/' + startEntry.path;
-        currentTask->filename = startEntry.filename;
-        currentTask->param = startEntry.arguments;
-        currentTask->nativeParam = QString();
-        currentTask->processType = ProcessType::Blocking;
+        TExec* currentTask = new TExec(this);
+        currentTask->setStage(Task::Stage::Startup);
+        currentTask->setPath(mFlashpointInstall->fullPath() + '/' + startEntry.path);
+        currentTask->setFilename(startEntry.filename);
+        currentTask->setParameters(startEntry.arguments);
+        currentTask->setNativeParameters(QString());
+        currentTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(currentTask);
-        logTask(NAME, currentTask.get());
+        logTask(NAME, currentTask);
     }
 
     // Add Server entry from services if applicable
@@ -266,41 +273,41 @@ ErrorCode Core::enqueueStartupTasks()
         if(!fpServices.servers.contains(fpConfig.server))
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
-            return ErrorCodes::CONFIG_SERVER_MISSING;
+            return ErrorCode::CONFIG_SERVER_MISSING;
         }
 
         Fp::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
-        std::shared_ptr<ExecTask> serverTask = std::make_shared<ExecTask>();
-        serverTask->stage = TaskStage::Startup;
-        serverTask->path = mFlashpointInstall->fullPath() + '/' + configuredServer.path;
-        serverTask->filename = configuredServer.filename;
-        serverTask->param = configuredServer.arguments;
-        serverTask->nativeParam = QString();
-        serverTask->processType = configuredServer.kill ? ProcessType::Deferred : ProcessType::Detached;
+        TExec* serverTask = new TExec(this);
+        serverTask->setStage(Task::Stage::Startup);
+        serverTask->setPath(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
+        serverTask->setFilename(configuredServer.filename);
+        serverTask->setParameters(configuredServer.arguments);
+        serverTask->setNativeParameters(QString());
+        serverTask->setProcessType(configuredServer.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(serverTask);
-        logTask(NAME, serverTask.get());
+        logTask(NAME, serverTask);
     }
 
     // Add Daemon entry from services
     QHash<QString, Fp::Json::ServerDaemon>::const_iterator daemonIt;
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
-        std::shared_ptr<ExecTask> currentTask = std::make_shared<ExecTask>();
-        currentTask->stage = TaskStage::Startup;
-        currentTask->path = mFlashpointInstall->fullPath() + '/' + daemonIt.value().path;
-        currentTask->filename = daemonIt.value().filename;
-        currentTask->param = daemonIt.value().arguments;
-        currentTask->nativeParam = QString();
-        currentTask->processType = daemonIt.value().kill ? ProcessType::Deferred : ProcessType::Detached;
+        TExec* currentTask = new TExec(this);
+        currentTask->setStage(Task::Stage::Startup);
+        currentTask->setPath(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
+        currentTask->setFilename(daemonIt.value().filename);
+        currentTask->setParameters(daemonIt.value().arguments);
+        currentTask->setNativeParameters(QString());
+        currentTask->setProcessType(daemonIt.value().kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(currentTask);
-        logTask(NAME, currentTask.get());
+        logTask(NAME, currentTask);
     }
 
     // Return success
-    return ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }
 
 void Core::enqueueShutdownTasks()
@@ -309,16 +316,16 @@ void Core::enqueueShutdownTasks()
     // Add Stop entries from services
     for(const Fp::Json::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
     {
-        std::shared_ptr<ExecTask> shutdownTask = std::make_shared<ExecTask>();
-        shutdownTask->stage = TaskStage::Shutdown;
-        shutdownTask->path = mFlashpointInstall->fullPath() + '/' + stopEntry.path;
-        shutdownTask->filename = stopEntry.filename;
-        shutdownTask->param = stopEntry.arguments;
-        shutdownTask->nativeParam = QString();
-        shutdownTask->processType = ProcessType::Blocking;
+        TExec* shutdownTask = new TExec(this);
+        shutdownTask->setStage(Task::Stage::Shutdown);
+        shutdownTask->setPath(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
+        shutdownTask->setFilename(stopEntry.filename);
+        shutdownTask->setParameters(stopEntry.arguments);
+        shutdownTask->setNativeParameters(QString());
+        shutdownTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(shutdownTask);
-        logTask(NAME, shutdownTask.get());
+        logTask(NAME, shutdownTask);
     }
 }
 
@@ -330,21 +337,21 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
     if(securePlayerCheckError.isValid())
     {
         postError(NAME, securePlayerCheckError);
-        return ErrorCodes::CANT_READ_BAT_FILE;
+        return ErrorCode::CANT_READ_BAT_FILE;
     }
 
     if(involvesSecurePlayer)
     {
-        std::shared_ptr<WaitTask> waitTask = std::make_shared<WaitTask>();
-        waitTask->stage = TaskStage::Auxiliary;
-        waitTask->processName = Fp::Install::SECURE_PLAYER_INFO.fileName();
+        TWait* waitTask = new TWait(this);
+        waitTask->setStage(Task::Stage::Auxiliary);
+        waitTask->setProcessName(Fp::Install::SECURE_PLAYER_INFO.fileName());
 
         mTaskQueue.push(waitTask);
-        logTask(NAME, waitTask.get());
+        logTask(NAME, waitTask);
     }
 
     // Return success
-    return ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 
     // Possible future waits...
 }
@@ -363,7 +370,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     if((searchError = database->queryEntryDataById(searchResult, targetId)).isValid())
     {
         postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCodes::SQL_ERROR;
+        return ErrorCode::SQL_ERROR;
     }
 
     // Advance result to only record
@@ -401,7 +408,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return ErrorCodes::SQL_ERROR;
+            return ErrorCode::SQL_ERROR;
         }
 
         // Advance result to only record (or first if there are more than one in future versions)
@@ -415,7 +422,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         if(searchError.isValid())
         {
             postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return ErrorCodes::SQL_ERROR;
+            return ErrorCode::SQL_ERROR;
         }
 
         // Advance result to only record
@@ -424,47 +431,49 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         // Get title's Data Pack sub-URL
         QString packSubUrl = searchResult.result.value(Fp::Db::Table_Source_Data::COL_URL_PATH).toString().replace('\\','/');
 
-        std::shared_ptr<DownloadTask> downloadTask = std::make_shared<DownloadTask>();
-        downloadTask->stage = TaskStage::Auxiliary;
-        downloadTask->destPath = packDestFolderPath;
-        downloadTask->destFileName = packFileName;
-        downloadTask->targetFile = sourceBaseUrl + packSubUrl;
-        downloadTask->sha256 = packSha256;
+        TDownload* downloadTask = new TDownload(this);
+        downloadTask->setStage(Task::Stage::Auxiliary);
+        downloadTask->setDestinationPath(packDestFolderPath);
+        downloadTask->setDestinationFilename(packFileName);
+        downloadTask->setTargetFile(sourceBaseUrl + packSubUrl);
+        downloadTask->setSha256(packSha256);
 
         mTaskQueue.push(downloadTask);
-        logTask(NAME, downloadTask.get());
+        logTask(NAME, downloadTask);
     }
-
 
     // Enqueue pack mount or extract
     if(packParameters.contains("-extract"))
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
-        std::shared_ptr<ExtractTask> extractTask = std::make_shared<ExtractTask>();
-        extractTask->packPath = packDestFolderPath + "/" + packFileName;
+        TExtract* extractTask = new TExtract(this);
+        extractTask->setStage(Task::Stage::Auxiliary);
+        extractTask->setPackPath(packDestFolderPath + "/" + packFileName);
+        extractTask->setPathInPack("content");
+        extractTask->setDestinationPath(mFlashpointInstall->preferences().htdocsFolderPath);
 
         mTaskQueue.push(extractTask);
-        logTask(NAME, extractTask.get());
+        logTask(NAME, extractTask);
     }
     else
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
-        std::shared_ptr<MountTask> mountTask = std::make_shared<MountTask>();
-        mountTask->stage = TaskStage::Auxiliary;
-        mountTask->titleId = targetId;
-        mountTask->path = packDestFolderPath + "/" + packFileName;
+        TMount* mountTask = new TMount(this);
+        mountTask->setStage(Task::Stage::Auxiliary);
+        mountTask->setTitleId(targetId);
+        mountTask->setPath(packDestFolderPath + "/" + packFileName);
 
         mTaskQueue.push(mountTask);
-        logTask(NAME, mountTask.get());
+        logTask(NAME, mountTask);
     }
 
     // Return success
-    return ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }
 
-void Core::enqueueSingleTask(std::shared_ptr<Task> task) { mTaskQueue.push(task); logTask(NAME, task.get()); }
+void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(NAME, task); }
 void Core::clearTaskQueue() { mTaskQueue = {}; }
 
 void Core::logCommand(QString src, QString commandName)
@@ -499,9 +508,9 @@ void Core::logEvent(QString src, QString event)
         postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
 }
 
-void Core::logTask(QString src, const Task* const task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
+void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
 
-int Core::logFinish(QString src, int exitCode)
+ErrorCode Core::logFinish(QString src, ErrorCode exitCode)
 {
     if(mCriticalErrorOccured)
         logEvent(src, LOG_ERR_CRITICAL);
@@ -570,7 +579,7 @@ Fp::Install& Core::getFlashpointInstall() { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
-std::shared_ptr<Core::Task> Core::frontTask() { return mTaskQueue.front(); }
+Task* Core::frontTask() { return mTaskQueue.front(); }
 void Core::removeFrontTask() { mTaskQueue.pop(); }
 
 QString Core::statusHeading() { return mStatusHeading; }
