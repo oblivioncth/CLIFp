@@ -50,12 +50,11 @@ void StatusRelay::setupProgressDialog()
 {
     // Initialize dialog
     mLongTaskProgressDialog.setCancelButtonText("Cancel");
-    mLongTaskProgressDialog.setMinimum(0);
-    mLongTaskProgressDialog.setMaximum(0);
     mLongTaskProgressDialog.setWindowModality(Qt::NonModal);
     mLongTaskProgressDialog.setMinimumDuration(0);
     mLongTaskProgressDialog.setAutoClose(true);
     mLongTaskProgressDialog.setAutoReset(false);
+    mLongTaskProgressDialog.reset(); // Stops the auto-show timer that is started by QProgressDialog's ctor
     connect(&mLongTaskProgressDialog, &QProgressDialog::canceled, this, &StatusRelay::longTaskCanceled);
 }
 
