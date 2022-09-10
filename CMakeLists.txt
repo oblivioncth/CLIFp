@@ -101,7 +101,7 @@ fetch_libfp("v0.1.2")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-fetch_qi_qmp("v0.1.2.1")
+fetch_qi_qmp("fd06a49d052c0ad3b28299951ff02e0a4b69418a")
 
 # Fetch QuaZip (build and import from source)
 include (OB/FetchQuaZip)
