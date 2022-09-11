@@ -15,49 +15,20 @@
 //===============================================================================================================
 
 //-Constructor--------------------------------------------------------------------
-Driver::Driver(QStringList arguments, QString rawArguments) :
+Driver::Driver(QStringList arguments) :
     mArguments(arguments),
-    mRawArguments(rawArguments),
     mErrorStatus(ErrorCode::NO_ERR),
     mCurrentTaskNumber(-1),
     mQuitRequested(false),
     mCore(nullptr)
 {}
 
-//-Class Functions----------------------------------------------------------------
-//Private:
-QString Driver::getRawCommandLineParams(const QString& rawCommandLine)
-{
-    // Remove application path, based on WINE
-    // https://github.com/wine-mirror/wine/blob/a10267172046fc16aaa1cd1237701f6867b92fc0/dlls/shcore/main.c#L259
-    QString::const_iterator rawIt = rawCommandLine.constBegin();
-    if (*rawIt == '"')
-    {
-        ++rawIt;
-        while (rawIt != rawCommandLine.constEnd())
-            if (*rawIt++ == '"')
-                break;
-    }
-    else
-        while (rawIt != rawCommandLine.constEnd() && *rawIt != ' ' && *rawIt != '\t')
-            ++rawIt;
-
-    // Remove spaces before first arg
-    while (*rawIt == ' ' || *rawIt == '\t')
-        ++rawIt;
-
-    // Return cropped string
-    return QString(rawIt);
-}
-
-
-
 //-Instance Functions-------------------------------------------------------------
 //Private:
 void Driver::init()
 {
     // Create core
-    mCore = new Core(this, getRawCommandLineParams(mRawArguments));
+    mCore = new Core(this);
 
     //-Setup Core---------------------------
     connect(mCore, &Core::statusChanged, this, &Driver::statusChanged);

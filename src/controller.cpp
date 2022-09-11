@@ -8,10 +8,6 @@
 // Project Includes
 #include "kernel/driver.h"
 
-// Windows Includes
-#include <qx_windows.h>
-#include <processenv.h>
-
 //===============================================================================================================
 // CONTROLLER
 //===============================================================================================================
@@ -22,7 +18,7 @@ Controller::Controller(QObject* parent)
     mStatusRelay(this)
 {
     // Create driver
-    Driver* driver = new Driver(QApplication::arguments(), QString::fromStdWString(std::wstring(GetCommandLineW())));
+    Driver* driver = new Driver(QApplication::arguments());
     driver->moveToThread(&mWorkerThread);
 
     // Connect driver - Operation

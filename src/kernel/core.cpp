@@ -22,9 +22,8 @@
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
-Core::Core(QObject* parent, QString rawCommandLineParam) :
+Core::Core(QObject* parent) :
     QObject(parent),
-    mRawCommandLine(rawCommandLineParam),
     mCriticalErrorOccured(false),
     mStatusHeading("Initializing"),
     mStatusMessage("...")
@@ -123,7 +122,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
 
     // Create logger instance
     QString logPath = CLIFP_DIR_PATH + '/' + LOG_FILE_NAME;
-    mLogger = std::make_unique<Logger>(logPath, mRawCommandLine.isEmpty() ? LOG_NO_PARAMS : mRawCommandLine, globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
+    mLogger = std::make_unique<Logger>(logPath, commandLine.isEmpty() ? LOG_NO_PARAMS : commandLine.join(" "), globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
 
     // Open log
     Qx::IoOpReport logOpen = mLogger->openLog();

@@ -142,9 +142,6 @@ public:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
-    // For log
-    QString mRawCommandLine;
-
     // Handles
     std::unique_ptr<Fp::Install> mFlashpointInstall;
     std::unique_ptr<Logger> mLogger;
@@ -160,7 +157,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    explicit Core(QObject* parent, QString rawCommandLineParam);
+    explicit Core(QObject* parent);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

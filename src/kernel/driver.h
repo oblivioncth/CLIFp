@@ -50,7 +50,6 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
     QStringList mArguments;
-    QString mRawArguments;
 
     Core* mCore; // Must not be spawned during construction but after object is moved to thread and operated (since it uses signals/slots)
     /*
@@ -74,11 +73,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    Driver(QStringList arguments, QString rawArguments);
-
-//-Class Functions---------------------------------------------------------------------------------------------------------------
-private:
-    static QString getRawCommandLineParams(const QString& rawCommandLine);
+    Driver(QStringList arguments);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------------
 private:
