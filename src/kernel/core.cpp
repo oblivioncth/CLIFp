@@ -259,7 +259,6 @@ ErrorCode Core::enqueueStartupTasks()
         currentTask->setPath(mFlashpointInstall->fullPath() + '/' + startEntry.path);
         currentTask->setFilename(startEntry.filename);
         currentTask->setParameters(startEntry.arguments);
-        currentTask->setNativeParameters(QString());
         currentTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(currentTask);
@@ -282,7 +281,6 @@ ErrorCode Core::enqueueStartupTasks()
         serverTask->setPath(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
         serverTask->setFilename(configuredServer.filename);
         serverTask->setParameters(configuredServer.arguments);
-        serverTask->setNativeParameters(QString());
         serverTask->setProcessType(configuredServer.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(serverTask);
@@ -298,7 +296,6 @@ ErrorCode Core::enqueueStartupTasks()
         currentTask->setPath(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
         currentTask->setFilename(daemonIt.value().filename);
         currentTask->setParameters(daemonIt.value().arguments);
-        currentTask->setNativeParameters(QString());
         currentTask->setProcessType(daemonIt.value().kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(currentTask);
@@ -320,7 +317,6 @@ void Core::enqueueShutdownTasks()
         shutdownTask->setPath(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
         shutdownTask->setFilename(stopEntry.filename);
         shutdownTask->setParameters(stopEntry.arguments);
-        shutdownTask->setNativeParameters(QString());
         shutdownTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(shutdownTask);
