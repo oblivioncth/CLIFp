@@ -3,6 +3,7 @@
 
 // Qx Includes
 #include <qx_windows.h>
+#include <qx/core/qx-system.h>
 
 // Windows Include
 #include <shellapi.h>

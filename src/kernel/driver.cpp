@@ -2,7 +2,7 @@
 #include "driver.h"
 
 // Qx Includes
-#include <qx/windows/qx-common-windows.h>
+#include <qx/core/qx-system.h>
 #include <qx/utility/qx-helpers.h>
 
 // Project Includes
