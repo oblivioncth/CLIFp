@@ -160,7 +160,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
 
     // Create shortcut properties
     Qx::ShortcutProperties sp;
-    sp.target = CLIFP_DIR_PATH + "/" + PROJECT_EXECUTABLE_NAME;
+    sp.target = CLIFP_DIR_PATH + "/" + PROJECT_EXECUTABLE_BASE_NAME + ".exe";
     sp.targetArgs = CPlay::NAME + " -" + CPlay::CL_OPT_ID_S_NAME + " " + shortcutID.toString(QUuid::WithoutBraces);
     sp.comment = shortcutName;
 

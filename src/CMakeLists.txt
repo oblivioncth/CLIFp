@@ -1,10 +1,27 @@
-#================= Build =========================
+#================= Common Build =========================
 
 # Allow includes relative to source root
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # Get path to resources
 set(RESOURCE_PATH "${PROJECT_SOURCE_DIR}/res")
+
+# Add executable target
+qt_add_executable(${MAIN_TARGET_NAME} WIN32)
+
+# Make alias target so target can be referred to with its friendly
+# export name both internally and when part of another build tree
+add_executable(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${MAIN_TARGET_NAME})
+
+set(QT_RESOURCES
+    ${RESOURCE_PATH}/resources.qrc
+)
+
+# Create source group for QT resources
+source_group(TREE "${RESOURCE_PATH}"
+    PREFIX "Resource Files"
+    FILES ${QT_RESOURCES}
+)
 
 # Set app sources
 set(CXX_SOURCES
@@ -46,8 +63,6 @@ set(CXX_SOURCES
     tools/logger.cpp
     tools/mounter.h
     tools/mounter.cpp
-    tools/processwaiter.h
-    tools/processwaiter.cpp
     frontend/statusrelay.h
     frontend/statusrelay.cpp
     controller.h
@@ -55,23 +70,6 @@ set(CXX_SOURCES
     main.cpp
     utility.h
 )
-
-set(QT_RESOURCES
-    ${RESOURCE_PATH}/resources.qrc
-)
-
-# Create source group for QT resources
-source_group(TREE "${RESOURCE_PATH}"
-    PREFIX "Resource Files"
-    FILES ${QT_RESOURCES}
-)
-
-# Add executable target
-qt_add_executable(${MAIN_TARGET_NAME} WIN32)
-
-# Make alias target so target can be referred to with its friendly
-# export name both internally and when part of another build tree
-add_executable(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${MAIN_TARGET_NAME})
 
 # Add sources to target
 target_sources(${MAIN_TARGET_NAME}
@@ -92,7 +90,6 @@ target_link_libraries(${MAIN_TARGET_NAME}
         Qx::Io
         Qx::Network
         Qx::Widgets
-        Qx::Windows
         Fp::Flashpoint
         QI-QMP::Qmpi
         QuaZip::QuaZip
@@ -112,25 +109,48 @@ set_cxx_project_vars(${MAIN_TARGET_NAME}
     VERSION_STR "\"${PROJECT_VERSION}\""
     SHORT_NAME "\"${PROJECT_NAME}\""
     TARGET_FP_VER_PFX_STR "\"${TARGET_FP_VERSION_PREFIX}\""
-    EXECUTABLE_NAME "\"CLIFp.exe\""
+    EXECUTABLE_BASE_NAME "\"${PROJECT_NAME}\""
     APP_NAME "\"${FORMAL_NAME}\""
 )
 
-# Set target exe details
-include(OB/WinExecutableDetails)
-set_win_executable_details(${MAIN_TARGET_NAME}
-    ICON "${RESOURCE_PATH}/app/CLIFp.ico"
-    FILE_VER ${PROJECT_VERSION}
-    PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
-    COMPANY_NAME "oblivioncth"
-    FILE_DESC "CLI for BlueMaxima's Flashpoint"
-    INTERNAL_NAME "CLIFp"
-    COPYRIGHT "Open Source @ 2022 oblivioncth"
-    TRADEMARKS_ONE "All Rights Reserved"
-    TRADEMARKS_TWO "GNU AGPL V3"
-    ORIG_FILENAME "CLIFp.exe"
-    PRODUCT_NAME "${FORMAL_NAME}"
-)
+################# Windows Build #################
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+    # Sources
+    target_sources(${MAIN_TARGET_NAME}
+        PRIVATE
+            tools/processwaiter.h
+            tools/processwaiter.cpp
+    )
+
+    # Links
+    target_link_libraries(${MAIN_TARGET_NAME}
+        PRIVATE
+            Qx::Windows
+    )
+
+    # Set target exe details
+    include(OB/WinExecutableDetails)
+    set_win_executable_details(${MAIN_TARGET_NAME}
+        ICON "${RESOURCE_PATH}/app/CLIFp.ico"
+        FILE_VER ${PROJECT_VERSION}
+        PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
+        COMPANY_NAME "oblivioncth"
+        FILE_DESC "CLI for BlueMaxima's Flashpoint"
+        INTERNAL_NAME "CLIFp"
+        COPYRIGHT "Open Source @ 2022 oblivioncth"
+        TRADEMARKS_ONE "All Rights Reserved"
+        TRADEMARKS_TWO "GNU AGPL V3"
+        ORIG_FILENAME "CLIFp.exe"
+        PRODUCT_NAME "${FORMAL_NAME}"
+    )
+endif()
+
+
+################# Linux Build #################
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+
+endif()
+
 
 #================= Install ==========================
 

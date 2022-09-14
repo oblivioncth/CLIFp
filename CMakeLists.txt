@@ -25,7 +25,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-enable_language("RC")
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+    enable_language("RC")
+endif()
 
 # Add local modules
 set(PROJ_SCRIPTS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -33,7 +35,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
 
 # Get helper scripts
 include(CLIFp/FetchOBCMake)
-fetch_ob_cmake("v0.1")
+fetch_ob_cmake("2bdcf390af3c46a15645e7bce5268255a3c48cf9")
 
 # General Variables
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -97,7 +99,7 @@ fetch_qx("68ce4b043684fecb00d4b86a0e3f701de5cbefea")
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-fetch_libfp("9865fae3264d18dd5d9ef7b7eb6dfcbfd064a0a8")
+fetch_libfp("dcecb02071ceea7040ada0311ef679e907f93ab1")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
