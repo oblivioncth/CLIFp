@@ -66,7 +66,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     mCore.setStatus(STATUS_LINK, shortcutID.toString(QUuid::WithoutBraces));
 
     // Get database
-    Fp::Db* database = mCore.getFlashpointInstall().database();
+    Fp::Db* database = mCore.fpInstall().database();
 
     // Get entry info (also confirms that ID is present in database)
     QSqlError sqlError;

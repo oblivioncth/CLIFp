@@ -574,7 +574,7 @@ int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMess
 
 void Core::postMessage(QString msg) { emit message(msg); }
 
-Fp::Install& Core::getFlashpointInstall() { return *mFlashpointInstall; }
+Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }

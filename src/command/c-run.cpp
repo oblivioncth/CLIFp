@@ -41,8 +41,8 @@ ErrorCode CRun::process(const QStringList& commandLine)
     if((errorStatus = mCore.enqueueStartupTasks()))
         return errorStatus;
 
-    QString inputPath = mCore.getFlashpointInstall().resolveAppPathOverrides(mParser.value(CL_OPTION_APP));
-    QFileInfo inputInfo = QFileInfo(mCore.getFlashpointInstall().fullPath() + '/' + inputPath);
+    QString inputPath = mCore.fpInstall().resolveAppPathOverrides(mParser.value(CL_OPTION_APP));
+    QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
 
     TExec* runTask = new TExec(&mCore);
     runTask->setStage(Task::Stage::Primary);

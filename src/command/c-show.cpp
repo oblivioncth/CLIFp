@@ -46,7 +46,7 @@ ErrorCode CShow::process(const QStringList& commandLine)
     {
         TExtra* extraTask = new TExtra(&mCore);
         extraTask->setStage(Task::Stage::Primary);
-        extraTask->setDirectory(QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA)));
+        extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + "/" + mParser.value(CL_OPTION_EXTRA)));
 
         mCore.enqueueSingleTask(extraTask);
         mCore.setStatus(STATUS_SHOW_EXTRA, extraTask->directory().dirName());

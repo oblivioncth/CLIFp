@@ -188,7 +188,7 @@ public:
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
 
-    Fp::Install& getFlashpointInstall();
+    Fp::Install& fpInstall();
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;

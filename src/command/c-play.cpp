@@ -40,7 +40,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     ErrorCode enqueueError;
 
     // Get database
-    Fp::Db* database = mCore.getFlashpointInstall().database();
+    Fp::Db* database = mCore.fpInstall().database();
 
     searchError = database->queryEntryById(searchResult, targetID);
     if(searchError.isValid())
@@ -164,9 +164,9 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
 
         // Enqueue game
         QString gamePath = searchResult.result.value(Fp::Db::Table_Game::COL_APP_PATH).toString();
-        gamePath = mCore.getFlashpointInstall().resolveAppPathOverrides(gamePath);
+        gamePath = mCore.fpInstall().resolveAppPathOverrides(gamePath);
         QString gameArgs = searchResult.result.value(Fp::Db::Table_Game::COL_LAUNCH_COMMAND).toString();
-        QFileInfo gameInfo(mCore.getFlashpointInstall().fullPath() + '/' + gamePath);
+        QFileInfo gameInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
 
         TExec* gameTask = new TExec(&mCore);
         gameTask->setStage(Task::Stage::Primary);
@@ -196,7 +196,7 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::St
     assert(addAppResult.source == Fp::Db::Table_Add_App::NAME);
 
     QString appPath = addAppResult.result.value(Fp::Db::Table_Add_App::COL_APP_PATH).toString();
-    appPath = mCore.getFlashpointInstall().resolveAppPathOverrides(appPath);
+    appPath = mCore.fpInstall().resolveAppPathOverrides(appPath);
     QString appArgs = addAppResult.result.value(Fp::Db::Table_Add_App::COL_LAUNCH_COMMAND).toString();
     bool waitForExit = addAppResult.result.value(Fp::Db::Table_Add_App::COL_WAIT_EXIT).toInt() != 0;
 
@@ -213,13 +213,13 @@ ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::St
     {
         TExtra* extraTask = new TExtra(&mCore);
         extraTask->setStage(taskStage);
-        extraTask->setDirectory(QDir(mCore.getFlashpointInstall().extrasDirectory().absolutePath() + "/" + appArgs));
+        extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + "/" + appArgs));
 
         mCore.enqueueSingleTask(extraTask);
     }
     else
     {
-        QFileInfo addAppInfo(mCore.getFlashpointInstall().fullPath() + '/' + appPath);
+        QFileInfo addAppInfo(mCore.fpInstall().fullPath() + '/' + appPath);
 
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setStage(taskStage);
@@ -253,7 +253,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::D
     QSqlError searchError;
 
     // Get database
-    Fp::Db* database = mCore.getFlashpointInstall().database();
+    Fp::Db* database = mCore.fpInstall().database();
 
     // Query all main games
     Fp::Db::QueryBuffer mainGameIDQuery;
@@ -342,7 +342,7 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     QSqlError searchError;
 
     // Get database
-    Fp::Db* database = mCore.getFlashpointInstall().database();
+    Fp::Db* database = mCore.fpInstall().database();
 
     // Get main entry info
     Fp::Db::QueryBuffer mainGameQuery;

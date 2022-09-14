@@ -53,7 +53,7 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     QSqlError sqlError;
 
     bool titleUsesDataPack;
-    if((sqlError = mCore.getFlashpointInstall().database()->entryUsesDataPack(titleUsesDataPack, id)).isValid())
+    if((sqlError = mCore.fpInstall().database()->entryUsesDataPack(titleUsesDataPack, id)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
         return ErrorCode::SQL_ERROR;
