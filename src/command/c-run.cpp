@@ -54,9 +54,11 @@ ErrorCode CRun::process(const QStringList& commandLine)
     mCore.enqueueSingleTask(runTask);
     mCore.setStatus(STATUS_RUN, runTask->filename());
 
+#ifdef _WIN32
     // Add wait task if required
     if((errorStatus = mCore.enqueueConditionalWaitTask(inputInfo)))
         return errorStatus;
+#endif
 
     // Return success
     return ErrorCode::NO_ERR;

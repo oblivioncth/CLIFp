@@ -176,7 +176,9 @@ public:
     // Common
     ErrorCode enqueueStartupTasks();
     void enqueueShutdownTasks();
+#ifdef _WIN32
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
+#endif
     ErrorCode enqueueDataPackTasks(QUuid targetId);
     void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.

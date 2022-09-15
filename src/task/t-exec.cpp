@@ -219,7 +219,7 @@ void TExec::postBlockingProcess()
 {
     // Ensure all is well
     if(!mBlockingProcess)
-        throw std::runtime_error(Q_FUNC_INFO " called with when the main blocking process pointer was null.");
+        throw std::runtime_error(std::string(Q_FUNC_INFO) + " called with when the main blocking process pointer was null.");
 
     // Handle process cleanup
     logProcessEnd(mBlockingProcess, ProcessType::Blocking);

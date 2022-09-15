@@ -276,10 +276,12 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, Task::Stage task
 
         mCore.enqueueSingleTask(addAppTask);
 
+#ifdef _WIN32
         // Add wait task if required
         ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(fulladdAppPathInfo);
         if(enqueueError)
             return enqueueError;
+#endif
     }
 
     // Return success
@@ -301,10 +303,12 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
     mCore.enqueueSingleTask(gameTask);
     mCore.setStatus(STATUS_PLAY, game.title());
 
+#ifdef _WIN32
     // Add wait task if required
     ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(fullGamePathInfo);
     if(enqueueError)
         return enqueueError;
+#endif
 
     // Return success
     return ErrorCode::NO_ERR;

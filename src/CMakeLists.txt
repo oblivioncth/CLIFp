@@ -57,8 +57,6 @@ set(CXX_SOURCES
     task/t-message.cpp
     task/t-mount.h
     task/t-mount.cpp
-    task/t-wait.h
-    task/t-wait.cpp
     tools/logger.h
     tools/logger.cpp
     tools/mounter.h
@@ -118,6 +116,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     # Sources
     target_sources(${MAIN_TARGET_NAME}
         PRIVATE
+            task/t-wait.h
+            task/t-wait.cpp
             tools/processwaiter.h
             tools/processwaiter.cpp
     )

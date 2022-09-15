@@ -14,7 +14,9 @@
 #include "task/t-exec.h"
 #include "task/t-extract.h"
 #include "task/t-mount.h"
-#include "task/t-wait.h"
+#ifdef _WIN32
+    #include "task/t-wait.h"
+#endif
 #include "utility.h"
 
 //===============================================================================================================
@@ -324,6 +326,7 @@ void Core::enqueueShutdownTasks()
     }
 }
 
+#ifdef _WIN32
 ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 {
     // Add wait for apps that involve secure player
@@ -350,6 +353,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 
     // Possible future waits...
 }
+#endif
 
 ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
 {
