@@ -4,6 +4,9 @@
 // Qt Includes
 #include <QApplication>
 
+// Qx Includes
+#include <qx/core/qx-regularexpression.h>
+
 // Project Includes
 #include "../task/t-exec.h"
 #include "../task/t-message.h"
@@ -25,6 +28,66 @@
 //-Constructor-------------------------------------------------------------
 //Public:
 CPlay::CPlay(Core& coreRef) : Command(coreRef) {}
+
+//-Class Functions---------------------------------------------------------------
+//Private:
+Fp::AddApp CPlay::buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult)
+{
+    // Ensure query result is additional app
+    assert(addAppResult.source == Fp::Db::Table_Add_App::NAME);
+
+    /* Form additional app from record
+     *
+     * Most of the descriptive fields here are not required for this app, but include them anyway in case it's later
+     * desired to use them for something like logging.
+     */
+    Fp::AddApp::Builder fpAab;
+    fpAab.wId(addAppResult.result.value(Fp::Db::Table_Add_App::COL_ID).toString());
+    fpAab.wAppPath(addAppResult.result.value(Fp::Db::Table_Add_App::COL_APP_PATH).toString());
+    fpAab.wAutorunBefore(addAppResult.result.value(Fp::Db::Table_Add_App::COL_AUTORUN).toString());
+    fpAab.wLaunchCommand(addAppResult.result.value(Fp::Db::Table_Add_App::COL_LAUNCH_COMMAND).toString());
+    fpAab.wName(addAppResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpAab.wWaitExit(addAppResult.result.value(Fp::Db::Table_Add_App::COL_WAIT_EXIT).toString());
+    fpAab.wParentId(addAppResult.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString());
+
+    return fpAab.build();
+}
+
+Fp::Game CPlay::buildGame(const Fp::Db::QueryBuffer& gameResult)
+{
+    // Ensure query result is game
+    assert(gameResult.source == Fp::Db::Table_Game::NAME);
+
+    /* Form game from record
+     *
+     * Most of the  descriptive fields here are not required for this app, but include them anyway in case it's later
+     * desired to use them for something like logging.
+     */
+    Fp::Game::Builder fpGb;
+    fpGb.wId(gameResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
+    fpGb.wTitle(gameResult.result.value(Fp::Db::Table_Game::COL_TITLE).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wSeries(gameResult.result.value(Fp::Db::Table_Game::COL_SERIES).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wDeveloper(gameResult.result.value(Fp::Db::Table_Game::COL_DEVELOPER).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wPublisher(gameResult.result.value(Fp::Db::Table_Game::COL_PUBLISHER).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wDateAdded(gameResult.result.value(Fp::Db::Table_Game::COL_DATE_ADDED).toString());
+    fpGb.wDateModified(gameResult.result.value(Fp::Db::Table_Game::COL_DATE_MODIFIED).toString());
+    fpGb.wPlatform(gameResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString());
+    fpGb.wBroken(gameResult.result.value(Fp::Db::Table_Game::COL_BROKEN).toString());
+    fpGb.wPlayMode(gameResult.result.value(Fp::Db::Table_Game::COL_PLAY_MODE).toString());
+    fpGb.wStatus(gameResult.result.value(Fp::Db::Table_Game::COL_STATUS).toString());
+    fpGb.wNotes(gameResult.result.value(Fp::Db::Table_Game::COL_NOTES).toString());
+    fpGb.wSource(gameResult.result.value(Fp::Db::Table_Game::COL_SOURCE).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wAppPath(gameResult.result.value(Fp::Db::Table_Game::COL_APP_PATH).toString());
+    fpGb.wLaunchCommand(gameResult.result.value(Fp::Db::Table_Game::COL_LAUNCH_COMMAND).toString());
+    fpGb.wReleaseDate(gameResult.result.value(Fp::Db::Table_Game::COL_RELEASE_DATE).toString());
+    fpGb.wVersion(gameResult.result.value(Fp::Db::Table_Game::COL_VERSION).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wOriginalDescription(gameResult.result.value(Fp::Db::Table_Game::COL_ORIGINAL_DESC).toString());
+    fpGb.wLanguage(gameResult.result.value(Fp::Db::Table_Game::COL_LANGUAGE).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wOrderTitle(gameResult.result.value(Fp::Db::Table_Game::COL_ORDER_TITLE).toString().remove(Qx::RegularExpression::LINE_BREAKS));
+    fpGb.wLibrary(gameResult.result.value(Fp::Db::Table_Game::COL_LIBRARY).toString());
+
+    return fpGb.build();
+}
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -105,7 +168,9 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
                 return enqueueError;
         }
 
-        enqueueError = enqueueAdditionalApp(searchResult, Task::Stage::Primary);
+        // Build and enqueue
+        Fp::AddApp addApp = buildAdditionalApp(searchResult);
+        enqueueError = enqueueAdditionalApp(addApp, Task::Stage::Primary);
         mCore.setStatus(STATUS_PLAY, searchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString());
 
         if(enqueueError)
@@ -152,35 +217,23 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
             // Go to next record
             addAppSearchResult.result.next();
 
+            // Build
+            Fp::AddApp addApp = buildAdditionalApp(addAppSearchResult);
+
             // Enqueue if autorun before
-            if(addAppSearchResult.result.value(Fp::Db::Table_Add_App::COL_AUTORUN).toInt() != 0)
+            if(addApp.isAutorunBefore())
             {
-                mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addAppSearchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString()));
-                enqueueError = enqueueAdditionalApp(addAppSearchResult, Task::Stage::Auxiliary);
+                mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
+                enqueueError = enqueueAdditionalApp(addApp, Task::Stage::Auxiliary);
                 if(enqueueError)
                     return enqueueError;
             }
         }
 
         // Enqueue game
-        QString gamePath = searchResult.result.value(Fp::Db::Table_Game::COL_APP_PATH).toString();
-        gamePath = mCore.fpInstall().resolveAppPathOverrides(gamePath);
-        QString gameArgs = searchResult.result.value(Fp::Db::Table_Game::COL_LAUNCH_COMMAND).toString();
-        QFileInfo gameInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
-
-        TExec* gameTask = new TExec(&mCore);
-        gameTask->setStage(Task::Stage::Primary);
-        gameTask->setPath(gameInfo.absolutePath());
-        gameTask->setFilename(gameInfo.fileName());
-        gameTask->setParameters(QStringList());
-        gameTask->setNativeParameters(gameArgs);
-        gameTask->setProcessType(TExec::ProcessType::Blocking);
-
-        mCore.enqueueSingleTask(gameTask);
-        mCore.setStatus(STATUS_PLAY, searchResult.result.value(Fp::Db::Table_Game::COL_TITLE).toString());
-
-        // Add wait task if required
-        if((enqueueError = mCore.enqueueConditionalWaitTask(gameInfo)))
+        Fp::Game game = buildGame(searchResult);
+        enqueueError = enqueueGame(game, Task::Stage::Primary);
+        if(enqueueError)
             return enqueueError;
     }
     else
@@ -190,52 +243,68 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     return ErrorCode::NO_ERR;
 }
 
-ErrorCode CPlay::enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::Stage taskStage)
+ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, Task::Stage taskStage)
 {
-    // Ensure query result is additional app
-    assert(addAppResult.source == Fp::Db::Table_Add_App::NAME);
-
-    QString appPath = addAppResult.result.value(Fp::Db::Table_Add_App::COL_APP_PATH).toString();
-    appPath = mCore.fpInstall().resolveAppPathOverrides(appPath);
-    QString appArgs = addAppResult.result.value(Fp::Db::Table_Add_App::COL_LAUNCH_COMMAND).toString();
-    bool waitForExit = addAppResult.result.value(Fp::Db::Table_Add_App::COL_WAIT_EXIT).toInt() != 0;
-
-    if(appPath == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
+    if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
     {
         TMessage* messageTask = new TMessage(&mCore);
         messageTask->setStage(taskStage);
-        messageTask->setMessage(appArgs);
-        messageTask->setModal(waitForExit || taskStage == Task::Stage::Primary);
+        messageTask->setMessage(addApp.launchCommand());
+        messageTask->setModal(addApp.isWaitExit() || taskStage == Task::Stage::Primary);
 
         mCore.enqueueSingleTask(messageTask);
     }
-    else if(appPath == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
+    else if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
     {
         TExtra* extraTask = new TExtra(&mCore);
         extraTask->setStage(taskStage);
-        extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + "/" + appArgs));
+        extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + "/" + addApp.launchCommand()));
 
         mCore.enqueueSingleTask(extraTask);
     }
     else
     {
-        QFileInfo addAppInfo(mCore.fpInstall().fullPath() + '/' + appPath);
+        QString addAppPath = mCore.fpInstall().resolveAppPathOverrides(addApp.appPath());
+        QFileInfo fulladdAppPathInfo(mCore.fpInstall().fullPath() + '/' + addAppPath);
 
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setStage(taskStage);
-        addAppTask->setPath(addAppInfo.absolutePath());
-        addAppTask->setFilename(addAppInfo.fileName());
-        addAppTask->setParameters(QStringList());
-        addAppTask->setNativeParameters(appArgs);
-        addAppTask->setProcessType(waitForExit || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
+        addAppTask->setPath(fulladdAppPathInfo.absolutePath());
+        addAppTask->setFilename(fulladdAppPathInfo.fileName());
+        addAppTask->setNativeParameters(addApp.launchCommand());
+        addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
 
         mCore.enqueueSingleTask(addAppTask);
 
         // Add wait task if required
-        ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(addAppInfo);
+        ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(fulladdAppPathInfo);
         if(enqueueError)
             return enqueueError;
     }
+
+    // Return success
+    return ErrorCode::NO_ERR;
+}
+
+ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
+{
+    QString gamePath = mCore.fpInstall().resolveAppPathOverrides(game.appPath());
+    QFileInfo fullGamePathInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
+
+    TExec* gameTask = new TExec(&mCore);
+    gameTask->setStage(taskStage);
+    gameTask->setPath(fullGamePathInfo.absolutePath());
+    gameTask->setFilename(fullGamePathInfo.fileName());
+    gameTask->setNativeParameters(game.launchCommand());
+    gameTask->setProcessType(TExec::ProcessType::Blocking);
+
+    mCore.enqueueSingleTask(gameTask);
+    mCore.setStatus(STATUS_PLAY, game.title());
+
+    // Add wait task if required
+    ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(fullGamePathInfo);
+    if(enqueueError)
+        return enqueueError;
 
     // Return success
     return ErrorCode::NO_ERR;

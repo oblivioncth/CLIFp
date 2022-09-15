@@ -80,11 +80,21 @@ public:
 public:
     CPlay(Core& coreRef);
 
+//-Class Functions------------------------------------------------------------------------------------------------------
+private:
+    // Helper
+    static Fp::AddApp buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult);
+    static Fp::Game buildGame(const Fp::Db::QueryBuffer& gameResult);
+
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
+    // Queue
      //TODO: Eventually rework to return via ref arg a list of tasks and a bool if app is message/extra so that startup tasks can be enq afterwords and queue clearing is unneccesary
     ErrorCode enqueueAutomaticTasks(bool&wasStandalone, QUuid targetID);
-    ErrorCode enqueueAdditionalApp(Fp::Db::QueryBuffer addAppResult, Task::Stage taskStage);
+    ErrorCode enqueueAdditionalApp(const Fp::AddApp& addApp, Task::Stage taskStage);
+    ErrorCode enqueueGame(const Fp::Game& game, Task::Stage taskStage);
+
+    // Helper
     ErrorCode randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::Db::LibraryFilter lbFilter);
     ErrorCode getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid subID);
 

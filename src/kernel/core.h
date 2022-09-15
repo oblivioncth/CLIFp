@@ -166,11 +166,14 @@ private:
     void showVersion();
 
 public:
+    // Setup
     ErrorCode initialize(QStringList& commandLine);
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
+    // Helper
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 
+    // Common
     ErrorCode enqueueStartupTasks();
     void enqueueShutdownTasks();
     ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
@@ -178,6 +181,7 @@ public:
     void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
+    // Notifications/Logging
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
     void logError(QString src, Qx::GenericError error);
@@ -188,6 +192,7 @@ public:
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
 
+    // Member access
     Fp::Install& fpInstall();
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
@@ -195,6 +200,7 @@ public:
     Task* frontTask();
     void removeFrontTask();
 
+    // Status
     QString statusHeading();
     QString statusMessage();
     void setStatus(QString heading, QString message);
