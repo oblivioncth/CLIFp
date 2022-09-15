@@ -31,6 +31,7 @@ set(CXX_SOURCES
     task/t-download.cpp
     task/t-exec.h
     task/t-exec.cpp
+    task/t-exec_win.cpp
     task/t-extra.h
     task/t-extra.cpp
     task/t-extract.h

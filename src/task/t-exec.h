@@ -26,7 +26,6 @@ private:
     static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
     static inline const QString LOG_EVENT_END_PROCESS = "%1 process %2 finished";
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
-    static inline const QString LOG_EVENT_BASILISK_EXCEPTION = NAME + " calls for Basilisk-Portable. Swapping for FPNavigator";
     static inline const QString LOG_EVENT_STOPPING_MAIN_PROCESS = "Stopping primary execution process...";
 
     // Errors
@@ -34,13 +33,10 @@ private:
     static inline const QString ERR_EXE_NOT_STARTED = "Could not start %1!";
     static inline const QString ERR_EXE_NOT_VALID = "%1 is not an executable file!";
 
-    // Suffixes
-    static inline const QString BAT_SUFX = "bat";
-    static inline const QString EXE_SUFX = "exe";
-
-    // Processing constants
-    static inline const QString CMD_EXE = "cmd.exe";
-    static inline const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
+    // Extensions
+    static inline const QString SHELL_EXT_WIN = "bat";
+    static inline const QString SHELL_EXT_LINUX = "sh";
+    static inline const QString EXECUTABLE_EXT_WIN = "exe";
 
     // Deferred Processes
     static inline QList<QProcess*> smActiveChildProcesses;
@@ -53,8 +49,7 @@ private:
     // Data
     QString mPath;
     QString mFilename;
-    QStringList mParameters;
-    QString mNativeParameters;
+    std::variant<QString, QStringList> mParameters;
     ProcessType mProcessType;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
@@ -70,28 +65,31 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    QString escapeNativeArgsForCMD(QString nativeArgs);
+    // Helpers
+    QProcess* prepareDirectProcess();
+    QProcess* prepareShellProcess();
     bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
 
+    // Logging
     void logProcessStart(const QProcess* process, ProcessType type);
     void logProcessEnd(const QProcess* process, ProcessType type);
 
 public:
+    // Member access
     QString name() const override;
     QStringList members() const override;
 
     QString path() const;
     QString filename() const;
-    const QStringList& parameters() const;
-    QString nativeParameters() const;
+    const std::variant<QString, QStringList>& parameters() const;
     ProcessType processType() const;
 
     void setPath(QString path);
     void setFilename(QString filename);
-    void setParameters(const QStringList& parameters);
-    void setNativeParameters(QString nativeParameters);
+    void setParameters(const std::variant<QString, QStringList>& parameters);
     void setProcessType(ProcessType processType);
 
+    // Run
     void perform() override;
     void stop() override;
 

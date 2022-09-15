@@ -48,8 +48,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
     runTask->setStage(Task::Stage::Primary);
     runTask->setPath(inputInfo.absolutePath());
     runTask->setFilename(inputInfo.fileName());
-    runTask->setParameters(QStringList());
-    runTask->setNativeParameters(mParser.value(CL_OPTION_PARAM));
+    runTask->setParameters(mParser.value(CL_OPTION_PARAM));
     runTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(runTask);

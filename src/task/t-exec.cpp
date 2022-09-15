@@ -41,31 +41,15 @@ QStringList TExec::closeChildProcesses()
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-QString TExec::escapeNativeArgsForCMD(QString nativeArgs)
-{
-    static const QSet<QChar> escapeChars{'^','&','<','>','|'};
-    QString escapedNativeArgs;
-    bool inQuotes = false;
-
-    for(int i = 0; i < nativeArgs.size(); i++)
-    {
-        const QChar& chr = nativeArgs.at(i);
-        if(chr== '"' && (inQuotes || i != nativeArgs.lastIndexOf('"')))
-            inQuotes = !inQuotes;
-
-        escapedNativeArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
-    }
-
-    if(nativeArgs != escapedNativeArgs)
-        emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(nativeArgs, escapedNativeArgs));
-
-    return escapedNativeArgs;
-}
-
 bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
 {
     // Start process and confirm
+    const QString currentDirPath = QDir::currentPath();
+    QDir::setCurrent(mPath);
+    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(mPath)));
     process->start();
+    QDir::setCurrent(currentDirPath);
+    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
     if(!process->waitForStarted())
     {
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical,
@@ -101,22 +85,22 @@ QStringList TExec::members() const
     QStringList ml = Task::members();
     ml.append(".path() = \"" + QDir::toNativeSeparators(mPath) + "\"");
     ml.append(".filename() = \"" + mFilename + "\"");
-    ml.append(".parameters() = {\"" + mParameters.join(R"(", ")") + "\"}");
-    ml.append(".nativeParameters() = \"" + mNativeParameters + "\"");
+    if(std::holds_alternative<QString>(mParameters))
+        ml.append(".parameters() = \"" + std::get<QString>(mParameters) + "\"");
+    else
+        ml.append(".parameters() = {\"" + std::get<QStringList>(mParameters).join(R"(", ")") + "\"}");
     ml.append(".processType() = " + ENUM_NAME(mProcessType));
     return ml;
 }
 
 QString TExec::path() const { return mPath; }
 QString TExec::filename() const { return mFilename; }
-const QStringList& TExec::parameters() const { return mParameters; }
-QString TExec::nativeParameters() const { return mNativeParameters; }
+const std::variant<QString, QStringList>& TExec::parameters() const { return mParameters; }
 TExec::ProcessType TExec::processType() const { return mProcessType; }
 
 void TExec::setPath(QString path) { mPath = path; }
 void TExec::setFilename(QString filename) { mFilename = filename; }
-void TExec::setParameters(const QStringList& parameters) { mParameters = parameters; }
-void TExec::setNativeParameters(QString nativeParameters) { mNativeParameters = nativeParameters; }
+void TExec::setParameters(const std::variant<QString, QStringList>& parameters) { mParameters = parameters; }
 void TExec::setProcessType(ProcessType processType) { mProcessType = processType; }
 
 void TExec::perform()
@@ -140,19 +124,17 @@ void TExec::perform()
         return;
     }
 
-    // Move to executable directory
-    QDir::setCurrent(mPath);
-    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(mPath)));
-
-    // Check if task is a batch file
-    bool batchTask = QFileInfo(mFilename).suffix() == BAT_SUFX;
+    // Check if task requires a shell
+    bool requiresShell = executableInfo.suffix() == SHELL_EXT_WIN || executableInfo.suffix() == SHELL_EXT_LINUX;
 
     // Create process handle
-    QProcess* taskProcess = new QProcess();
-    taskProcess->setProgram(batchTask ? CMD_EXE : mFilename);
-    taskProcess->setArguments(mParameters);
-    taskProcess->setNativeArguments(batchTask ? CMD_ARG_TEMPLATE.arg(mFilename, escapeNativeArgsForCMD(mNativeParameters))
-                                              : mNativeParameters);
+    QProcess* taskProcess;
+    if(requiresShell)
+        taskProcess = prepareShellProcess();
+    else
+        taskProcess = prepareDirectProcess();
+
+    // Set common process properties
     taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inherit console window
     taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inherit console window
 
@@ -187,6 +169,8 @@ void TExec::perform()
             break;
 
         case ProcessType::Detached:
+            // TODO: Test if a parent can be set in this case instead of leaving taskProcess completely dangling.
+            // It's that way for now because IIRC even when using startDetached(), the QProcess destructor still stops the process
             if(!taskProcess->startDetached())
             {
                 emit complete(ErrorCode::PROCESS_START_FAIL);
