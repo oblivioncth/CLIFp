@@ -48,7 +48,6 @@ set(CXX_SOURCES
     task/t-download.cpp
     task/t-exec.h
     task/t-exec.cpp
-    task/t-exec_win.cpp
     task/t-extra.h
     task/t-extra.cpp
     task/t-extract.h
@@ -116,6 +115,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     # Sources
     target_sources(${MAIN_TARGET_NAME}
         PRIVATE
+            task/t-exec_win.cpp
             task/t-wait.h
             task/t-wait.cpp
             tools/processwaiter.h
@@ -148,7 +148,11 @@ endif()
 
 ################# Linux Build #################
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-
+    # Sources
+    target_sources(${MAIN_TARGET_NAME}
+        PRIVATE
+            task/t-exec_linux.cpp
+    )
 endif()
 
 

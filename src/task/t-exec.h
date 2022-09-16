@@ -26,6 +26,8 @@ private:
     static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
     static inline const QString LOG_EVENT_END_PROCESS = "%1 process %2 finished";
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
+    static inline const QString LOG_EVENT_FORCED_BASH = "Forced use of 'sh' from Windows 'bat'";
+    static inline const QString LOG_EVENT_FORCED_WIN = "Forced use of WINE from Windows 'exe'";
     static inline const QString LOG_EVENT_STOPPING_MAIN_PROCESS = "Stopping primary execution process...";
 
     // Errors
@@ -58,6 +60,7 @@ public:
 
 //-Class Functions-----------------------------------------------------------------------------------------------------
 private:
+    static QString collapseArguments(const QStringList& args);
     static QString createCloseProcessString(const QProcess* process, ProcessType type);
 
 public:
@@ -66,6 +69,7 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     // Helpers
+    QString createEscapedShellArguments();
     QProcess* prepareDirectProcess();
     QProcess* prepareShellProcess();
     bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);

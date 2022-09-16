@@ -1,6 +1,9 @@
 // Unit Include
 #include "t-exec.h"
 
+// Qx Includes
+#include <qx/core/qx-regularexpression.h>
+
 // Project Includes
 #include "utility.h"
 
@@ -17,6 +20,28 @@ TExec::TExec(QObject* parent) :
 
 //-Class Functions----------------------------------------------------------------
 //Private:
+QString TExec::collapseArguments(const QStringList& args)
+{
+    QString reduction;
+    for(int i = 0; i < args.size(); i++)
+    {
+        const QString& param = args[i];
+        if(!param.isEmpty())
+        {
+            if(param.contains(Qx::RegularExpression::WHITESPACE) && !(param.front() == '\"' && param.back() == '\"'))
+                reduction += '\"' + param + '\"';
+            else
+                reduction += param;
+
+            if(i != args.size() - 1)
+                reduction += ' ';
+        }
+
+    }
+
+    return reduction;
+}
+
 QString TExec::createCloseProcessString(const QProcess* process, ProcessType type)
 {
     return LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), process->program());
@@ -60,17 +85,6 @@ bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
 
     // Return success
     return true;
-}
-
-void TExec::logProcessStart(const QProcess* process, ProcessType type)
-{
-    QString eventStr = process->program();
-    if(!process->arguments().isEmpty())
-        eventStr += " " + process->arguments().join(" ");
-    if(!process->nativeArguments().isEmpty())
-        eventStr += " " + process->nativeArguments();
-
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), eventStr));
 }
 
 void TExec::logProcessEnd(const QProcess* process, ProcessType type)
