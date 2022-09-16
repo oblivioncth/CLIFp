@@ -49,6 +49,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
     runTask->setPath(inputInfo.absolutePath());
     runTask->setFilename(inputInfo.fileName());
     runTask->setParameters(mParser.value(CL_OPTION_PARAM));
+    runTask->setEnvironment(mCore.childTitleProcessEnvironment());
     runTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(runTask);

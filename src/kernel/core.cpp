@@ -174,6 +174,29 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 {
     // Capture install
     mFlashpointInstall = std::move(flashpointInstall);
+
+    // Initialize child process env var
+    mChildTitleProcEnv = QProcessEnvironment::systemEnvironment();
+
+    // Add FP root var
+    mChildTitleProcEnv.insert("FP_PATH", mFlashpointInstall->fullPath());
+
+#ifdef __linux__
+    // Add HTTTP proxy var
+    QString baseProxy = mFlashpointInstall->preferences().browserModeProxy;
+    if(!baseProxy.isEmpty())
+    {
+        QString fullProxy = "http://" + baseProxy + '/';
+        mChildTitleProcEnv.insert("http_proxy", fullProxy);
+        mChildTitleProcEnv.insert("HTTP_PROXY", fullProxy);
+    }
+
+    /* NOTE: It's called "browserModeProxy" but it seems to be used everywhere and not just
+     * for the vanilla launcher's browser mode. The launcher comments refer to it being created
+     * in "BackgroundServices.ts" but that file doesnt exist so it's either a leftover (hopefully)
+     * or a future feature (hopefully not). Either way it just points to the PHP server port.
+     */
+#endif
 }
 
 QString Core::resolveTrueAppPath(QString appPath, const QString& platform)
@@ -612,6 +635,7 @@ int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMess
 void Core::postMessage(QString msg) { emit message(msg); }
 
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
+const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }

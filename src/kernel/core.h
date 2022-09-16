@@ -155,6 +155,9 @@ private:
     QString mStatusHeading;
     QString mStatusMessage;
 
+    // Other
+    QProcessEnvironment mChildTitleProcEnv;
+
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
     explicit Core(QObject* parent);
@@ -197,6 +200,7 @@ public:
 
     // Member access
     Fp::Install& fpInstall();
+    const QProcessEnvironment& childTitleProcessEnvironment();
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;

@@ -52,6 +52,7 @@ private:
     QString mPath;
     QString mFilename;
     std::variant<QString, QStringList> mParameters;
+    QProcessEnvironment mEnvironment;
     ProcessType mProcessType;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
@@ -86,11 +87,13 @@ public:
     QString path() const;
     QString filename() const;
     const std::variant<QString, QStringList>& parameters() const;
+    const QProcessEnvironment& environment() const;
     ProcessType processType() const;
 
     void setPath(QString path);
     void setFilename(QString filename);
     void setParameters(const std::variant<QString, QStringList>& parameters);
+    void setEnvironment(const QProcessEnvironment& environment);
     void setProcessType(ProcessType processType);
 
     // Run

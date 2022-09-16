@@ -110,11 +110,14 @@ QStringList TExec::members() const
 QString TExec::path() const { return mPath; }
 QString TExec::filename() const { return mFilename; }
 const std::variant<QString, QStringList>& TExec::parameters() const { return mParameters; }
+const QProcessEnvironment& TExec::environment() const { return mEnvironment; }
+
 TExec::ProcessType TExec::processType() const { return mProcessType; }
 
 void TExec::setPath(QString path) { mPath = path; }
 void TExec::setFilename(QString filename) { mFilename = filename; }
 void TExec::setParameters(const std::variant<QString, QStringList>& parameters) { mParameters = parameters; }
+void TExec::setEnvironment(const QProcessEnvironment& environment) { mEnvironment = environment; }
 void TExec::setProcessType(ProcessType processType) { mProcessType = processType; }
 
 void TExec::perform()
@@ -149,6 +152,7 @@ void TExec::perform()
         taskProcess = prepareDirectProcess();
 
     // Set common process properties
+    taskProcess->setProcessEnvironment(mEnvironment);
     taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inherit console window
     taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inherit console window
 

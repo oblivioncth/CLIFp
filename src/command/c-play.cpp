@@ -287,6 +287,7 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
         addAppTask->setPath(fulladdAppPathInfo.absolutePath());
         addAppTask->setFilename(fulladdAppPathInfo.fileName());
         addAppTask->setParameters(addApp.launchCommand());
+        addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
         addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
 
         mCore.enqueueSingleTask(addAppTask);
@@ -313,6 +314,7 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
     gameTask->setPath(fullGamePathInfo.absolutePath());
     gameTask->setFilename(fullGamePathInfo.fileName());
     gameTask->setParameters(game.launchCommand());
+    gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(gameTask);
