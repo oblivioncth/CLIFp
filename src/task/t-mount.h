@@ -21,9 +21,10 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
-    Mounter mMounter;
+    Mounter* mMounter; // TODO: Probably should change mounter to have setters for its ports so this can be on stack
 
     // Data
+    bool mSkipQemu;
     QUuid mTitleId;
     QString mPath;
 
@@ -36,9 +37,11 @@ public:
     QString name() const override;
     QStringList members() const override;
 
+    bool isSkipQemu() const;
     QUuid titleId() const;
     QString path() const;
 
+    void setSkipQemu(bool skip);
     void setTitleId(QUuid titleId);
     void setPath(QString path);
 

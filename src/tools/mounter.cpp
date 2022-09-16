@@ -20,12 +20,12 @@
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverPort, QObject* parent) :
+Mounter::Mounter(quint16 webserverPort, quint16 qemuMountPort, quint16 qemuProdPort, QObject* parent) :
     QObject(parent),
     mMounting(false),
     mErrorStatus(ErrorCode::NO_ERR),
     mQemuMounter(QHostAddress::LocalHost, qemuMountPort, this),
-    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this),
+    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this), // Currently not used
     mCompletedQemuCommands(0)
 {
     // Setup Network Access Manager
@@ -262,11 +262,15 @@ void Mounter::mount(QUuid titleId, QString filePath)
     Qx::Base85 driveSerial = Qx::Base85::encode(rawTitleId, &encoding);
     mCurrentMountInfo.driveSerial = driveSerial.toString();
 
-    // Connect to QEMU instance
-    emit eventOccured(EVENT_CONNECTING_TO_QEMU);
-    mQemuMounter.connectToHost();
-
-    // Await readyForCommands() signal...
+    // Connect to QEMU instance, or go straight to web server portion if bypassing
+    if(mQemuMounter.port() != 0)
+    {
+        emit eventOccured(EVENT_CONNECTING_TO_QEMU);
+        mQemuMounter.connectToHost();
+        // Await readyForCommands() signal...
+    }
+    else
+        setMountOnServer();
 }
 
 void Mounter::abort()

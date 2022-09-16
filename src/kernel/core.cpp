@@ -481,10 +481,25 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
+        // Determine if QEMU is involved
+        bool qemuUsed = false;
+        auto fpDaemons = mFlashpointInstall->services().daemons;
+        for(auto it = fpDaemons.constBegin(); it != fpDaemons.constEnd(); it++)
+        {
+            if(it->filename.contains("qemu", Qt::CaseInsensitive) ||
+               it->name.contains("qemu", Qt::CaseInsensitive))
+            {
+                qemuUsed = true;
+                break;
+            }
+        }
+
+        // Create task
         TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(targetId);
         mountTask->setPath(packDestFolderPath + "/" + packFileName);
+        mountTask->setSkipQemu(!qemuUsed);
 
         mTaskQueue.push(mountTask);
         logTask(NAME, mountTask);
