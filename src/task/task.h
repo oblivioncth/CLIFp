@@ -26,6 +26,11 @@ protected:
 public:
     Task(QObject* parent); // Require tasks to have a parent
 
+//-Destructor----------------------------------------------------------------------------------------------------------
+public:
+    virtual ~Task() = default;
+
+
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:
     virtual QString name() const = 0;

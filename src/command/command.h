@@ -64,6 +64,10 @@ protected:
 protected:
     Command(Core& coreRef);
 
+//-Destructor----------------------------------------------------------------------------------------------------------
+public:
+    virtual ~Command() = default;
+
 //-Class Functions----------------------------------------------------------------------------------------------------------
 private:
     static QMap<QString, Entry>& registry();
