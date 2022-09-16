@@ -115,6 +115,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     # Sources
     target_sources(${MAIN_TARGET_NAME}
         PRIVATE
+            command/c-link_win.cpp
             task/t-exec_win.cpp
             task/t-wait.h
             task/t-wait.cpp
@@ -151,6 +152,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     # Sources
     target_sources(${MAIN_TARGET_NAME}
         PRIVATE
+            command/c-link_linux.cpp
             task/t-exec_linux.cpp
     )
 endif()
