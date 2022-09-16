@@ -41,7 +41,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
     if((errorStatus = mCore.enqueueStartupTasks()))
         return errorStatus;
 
-    QString inputPath = mCore.fpInstall().resolveAppPathOverrides(mParser.value(CL_OPTION_APP));
+    QString inputPath = mCore.resolveTrueAppPath(mParser.value(CL_OPTION_APP), ""); // No way of knowing platform
     QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
 
     TExec* runTask = new TExec(&mCore);

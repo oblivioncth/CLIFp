@@ -171,6 +171,7 @@ public:
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     // Helper
+    QString resolveTrueAppPath(QString appPath, const QString& platform);
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 
     // Common

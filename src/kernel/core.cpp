@@ -176,6 +176,28 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     mFlashpointInstall = std::move(flashpointInstall);
 }
 
+QString Core::resolveTrueAppPath(QString appPath, const QString& platform)
+{
+    // Works will full or partial paths
+    QString fpPath = mFlashpointInstall->fullPath();
+    bool isFpAbsolute = appPath.startsWith(fpPath);
+    if(isFpAbsolute)
+    {
+        // Temporarily remove FP root and separator
+        appPath.remove(fpPath);
+        if(!appPath.isEmpty() && appPath.front() == '/' || appPath.front() == '\\')
+            appPath = appPath.mid(1);
+    }
+
+    QString truePath = mFlashpointInstall->resolveExecSwaps(appPath, platform);
+    truePath = mFlashpointInstall->resolveAppPathOverrides(truePath);
+
+    if(isFpAbsolute)
+        truePath = fpPath + '/' + truePath;
+
+    return QDir::toNativeSeparators(truePath);
+}
+
 ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
 {
     // Clear return buffer

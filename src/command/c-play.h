@@ -91,7 +91,7 @@ private:
     // Queue
      //TODO: Eventually rework to return via ref arg a list of tasks and a bool if app is message/extra so that startup tasks can be enq afterwords and queue clearing is unneccesary
     ErrorCode enqueueAutomaticTasks(bool&wasStandalone, QUuid targetID);
-    ErrorCode enqueueAdditionalApp(const Fp::AddApp& addApp, Task::Stage taskStage);
+    ErrorCode enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& platform, Task::Stage taskStage);
     ErrorCode enqueueGame(const Fp::Game& game, Task::Stage taskStage);
 
     // Helper
