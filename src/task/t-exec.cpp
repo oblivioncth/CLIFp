@@ -66,6 +66,38 @@ QStringList TExec::closeChildProcesses()
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+QString TExec::createEscapedShellArguments()
+{
+    // Determine arguments
+    QString escapedArgs;
+    if(std::holds_alternative<QString>(mParameters))
+    {
+        // Escape
+        QString args = std::get<QString>(mParameters);
+        escapedArgs = escapeForShell(args);
+        if(args != escapedArgs)
+            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
+    }
+    else
+    {
+        // Collapse
+        QStringList parameters = std::get<QStringList>(mParameters);
+        QString collapsedParameters = collapseArguments(parameters);
+
+        // Escape
+        escapedArgs = escapeForShell(collapsedParameters);
+
+        QStringList rebuild = QProcess::splitCommand(escapedArgs);
+        if(rebuild != parameters)
+        {
+            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg("{\"" + parameters.join(R"(", ")") + "\"}",
+                                                                "{\"" + rebuild.join(R"(", ")") + "\"}"));
+        }
+    }
+
+    return escapedArgs;
+}
+
 bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
 {
     // Start process and confirm

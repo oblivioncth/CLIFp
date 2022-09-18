@@ -70,6 +70,7 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     // Helpers
+    QString escapeForShell(const QString& argStr);
     QString createEscapedShellArguments();
     QProcess* prepareDirectProcess();
     QProcess* prepareShellProcess();

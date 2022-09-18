@@ -7,10 +7,13 @@
 // Project Includes
 #include "utility.h"
 
-namespace // Unit only definitions
-{
+//===============================================================================================================
+// TExec
+//===============================================================================================================
 
-QString escapeForShell(QString argStr)
+//-Instance Functions-------------------------------------------------------------
+//Private:
+QString TExec::escapeForShell(const QString& argStr)
 {
     static const QSet<QChar> stdOutQuotesEscapes{
         '~','`','#','$','&','*','(',')','\\','|','[',']','{','}',';','<','>','?','!'
@@ -35,46 +38,6 @@ QString escapeForShell(QString argStr)
             escapedArgs.append(stdInQuotesEscapes.contains(chr) ? '^' + chr : chr);
         else
             escapedArgs.append(curOutQuotesEscapes.contains(chr) ? '^' + chr : chr);
-    }
-
-    return escapedArgs;
-}
-
-}
-
-//===============================================================================================================
-// TExec
-//===============================================================================================================
-
-//-Instance Functions-------------------------------------------------------------
-//Private:
-QString TExec::createEscapedShellArguments()
-{
-    // Determine arguments
-    QString escapedArgs;
-    if(std::holds_alternative<QString>(mParameters))
-    {
-        // Escape
-        QString args = std::get<QString>(mParameters);
-        escapedArgs = escapeForShell(args);
-        if(args != escapedArgs)
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
-    }
-    else
-    {
-        // Collapse
-        QStringList parameters = std::get<QStringList>(mParameters);
-        QString collapsedParameters = collapseArguments(parameters);
-
-        // Escape
-        escapedArgs = escapeForShell(collapsedParameters);
-
-        QStringList rebuild = QProcess::splitCommand(escapedArgs);
-        if(rebuild != parameters)
-        {
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg("{\"" + parameters.join(R"(", ")") + "\"}",
-                                                                "{\"" + rebuild.join(R"(", ")") + "\"}"));
-        }
     }
 
     return escapedArgs;
