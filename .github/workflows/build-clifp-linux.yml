@@ -81,8 +81,8 @@ jobs:
       run: 7z x ${{ env.qt_install_dest }} -o${{ env.qt_install_dir }}
     - name: Install OpenGL lib
       run: sudo apt-get install libglu1-mesa-dev
-    - name: Install XCB-XKB
-      run: sudo apt-get install libxkbcommon-dev libxcb-xkb-dev
+    - name: Install XCB Related libs
+      run: sudo apt-get install libx11-xcb-dev libxkbcommon-dev libxcb-xkb-dev
     - name: Install Ninja
       run: sudo apt-get install ninja-build
     - name: Checkout CLIFp
