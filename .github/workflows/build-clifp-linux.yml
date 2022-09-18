@@ -82,7 +82,7 @@ jobs:
     - name: Install OpenGL lib
       run: sudo apt-get install libglu1-mesa-dev
     - name: Install XCB Related libs
-      run: sudo apt-get install libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xkb-dev
+      run: sudo apt-get install xcb libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xkb-dev
     - name: Install libdrm
       run: sudo apt-get install libdrm-dev
     - name: Install Ninja
