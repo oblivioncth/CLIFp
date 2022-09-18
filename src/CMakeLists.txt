@@ -95,7 +95,6 @@ target_link_libraries(${MAIN_TARGET_NAME}
 
 # Configure target properties
 set_target_properties(${MAIN_TARGET_NAME} PROPERTIES
-    VERSION ${PROJECT_VERSION}
     OUTPUT_NAME "${PROJECT_NAME}"
     EXPORT_NAME "${PROJECT_NAME}"
 )
@@ -127,6 +126,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     target_link_libraries(${MAIN_TARGET_NAME}
         PRIVATE
             Qx::Windows
+    )
+
+    # Target properties
+    # Only set the target version on Windows because on Linux it
+    # causes the executable to have the version number as a suffix
+    # (doesn't seem like this can be disabled). The number is set
+    # on the target primarily for posterity anyway as it only tags
+    # the binary with the version in a place that doesn't seem to
+    # be user visible or really used in any significant way
+    set_target_properties(${MAIN_TARGET_NAME} PROPERTIES
+        VERSION ${PROJECT_VERSION}
     )
 
     # Set target exe details
