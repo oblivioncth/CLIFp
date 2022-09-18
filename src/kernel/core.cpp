@@ -436,10 +436,10 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         if(checksumReport.isFailure())
             logError(NAME, Qx::GenericError(Qx::GenericError::Error, checksumReport.outcome(), checksumReport.outcomeInfo()));
 
-        if(!checksumMatches)
+        if(checksumMatches)
+            logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
+        else
             postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
-
-        logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
     }
     else
         logEvent(NAME, LOG_EVENT_DATA_PACK_MISS);
