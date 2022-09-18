@@ -35,10 +35,12 @@ ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
         // Ensure path exists
         iconDestBaseDir.mkpath("./" + resSpecificSubPath);
 
-        // Copy image
+        // Determine paths
         QString fullSrcPath = iconSrcBasePath + '/' + res + '/' + iconName;
         QString fullDestPath = iconDestBaseDir.absolutePath() + '/' + resSpecificSubPath + '/' + iconName;
-        if(!QFile::copy(fullSrcPath, fullDestPath))
+
+        // Remove exiting file if it exists (icon could need to be updated), then copy the new icon
+        if((QFile::exists(fullDestPath) && !QFile::remove(fullDestPath) ) || !QFile::copy(fullSrcPath, fullDestPath))
         {
             static const QString iconErr = QStringLiteral("Failed to install shortcut icons.");
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, iconErr));
