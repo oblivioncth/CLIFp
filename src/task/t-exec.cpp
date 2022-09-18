@@ -1,6 +1,9 @@
 // Unit Include
 #include "t-exec.h"
 
+// Qt Includes
+#include <QStandardPaths>
+
 // Qx Includes
 #include <qx/core/qx-regularexpression.h>
 
@@ -111,7 +114,8 @@ bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
     if(!process->waitForStarted())
     {
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical,
-                                 ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(exeInfo.absoluteFilePath()))));
+                                 ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(exeInfo.absoluteFilePath())),
+                                 ENUM_NAME(process->error())));
         delete process; // Clear finished process handle from heap
         return false;
     }
@@ -155,15 +159,21 @@ void TExec::setProcessType(ProcessType processType) { mProcessType = processType
 
 void TExec::perform()
 {
-    // Ensure executable exists
-    QFileInfo executableInfo(mPath + "/" + mFilename);
-    if(!executableInfo.exists() || !executableInfo.isFile())
+    // Ensure executable exists (check system paths first, mainly for Linux)
+    QString executablePath = QStandardPaths::findExecutable(mFilename);
+    if(executablePath.isEmpty())
+        executablePath = QStandardPaths::findExecutable(mFilename, {mPath});
+
+    if(executablePath.isEmpty())
     {
         emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                  ERR_EXE_NOT_FOUND.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
+                                                  ERR_EXE_NOT_FOUND.arg(mFilename)));
         emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
         return;
     }
+
+    // TODO: Probably can remove this since findExecutable is being used now, as it likely won't return non executable results
+    QFileInfo executableInfo(executablePath);
 
     // Ensure executable is valid
     if(!executableInfo.isExecutable())
@@ -178,6 +188,8 @@ void TExec::perform()
     bool requiresShell = executableInfo.suffix() == SHELL_EXT_WIN || executableInfo.suffix() == SHELL_EXT_LINUX;
 
     // Create process handle
+    // TODO: May want to pass in 'executablePath' to these two functions and use that directly instead of QProcess performing essentially the
+    //       same search again when given just the filename
     QProcess* taskProcess;
     if(requiresShell)
         taskProcess = prepareShellProcess();
