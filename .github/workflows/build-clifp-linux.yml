@@ -10,6 +10,7 @@ on:
         description: "CLIFp (Qt static) build artifact"
         value: ${{ jobs.build-clifp.outputs.qt_static_artifact_name }}
 env:
+  general_download_dir: ${{ github.workspace }}/Download
   qt_install_dir: ${{ github.workspace }}/Qt/Install
   qt_download_dir: ${{ github.workspace }}/Qt/Download
   clifp_src_suffix: CLIFp/Source
