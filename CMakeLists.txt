@@ -95,7 +95,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(OB/FetchQx)
-fetch_qx("61892d2582f47c6888e9860bf1e33edab84debf3")
+fetch_qx("e42eabcaede45007d0eb8901999e3a8f609fb402")
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)

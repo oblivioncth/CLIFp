@@ -41,7 +41,7 @@ That being said, it is perfectly possible to use CLIFp in any manner one sees fi
 It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
 ### General
-**NOTE: Do not run CLIFp as an administrator as some titles may not work correctly or run at all**
+**NOTE: Do not run CLIFp as an administrator/root as some titles may not work correctly or run at all**
 
 CLIFp uses the following syntax scheme:
 
@@ -106,13 +106,16 @@ Requires:
 
 Notes: 
 
-On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
+ - On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
 
-For example, when specifying:
-    
-    CLIFp link -p "~/Desktop/Cool Name.desktop" ...
 
-the display name of the desktop entry will be set to "Cool Name".
+
+   For example, when specifying:
+   
+       CLIFp link -p "~/Desktop/Cool Name.desktop" ...
+
+   the display name of the desktop entry will be set to "Cool Name".
+ - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
 
 --------------------------------------------------------------------------------
 
