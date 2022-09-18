@@ -91,7 +91,6 @@ jobs:
         fetch-depth: 0 # Required for verbose versioning to work correctly
     - name: Build/Install CLIFp
       working-directory: ${{ env.clifp_src_dir }}
-      shell: cmd
       run: |
         echo Configuring CMake...
         "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D CMAKE_CXX_COMPILER="$cxx_comp" -D CMAKE_C_COMPILER="$c_comp"
