@@ -89,6 +89,7 @@ public:
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
     static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of title %1 determined to be %2";
+    static inline const QString LOG_EVENT_APP_PATH_ALT = "App path \"%1\" maps to alternative \"%2\".";
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";
@@ -174,7 +175,7 @@ public:
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     // Helper
-    QString resolveTrueAppPath(QString appPath, const QString& platform);
+    QString resolveTrueAppPath(const QString& appPath, const QString& platform);
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 
     // Common

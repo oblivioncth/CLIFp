@@ -199,24 +199,29 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 #endif
 }
 
-QString Core::resolveTrueAppPath(QString appPath, const QString& platform)
+QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform)
 {
     // Works will full or partial paths
+    QString resolvedPath = appPath;
+
     QString fpPath = mFlashpointInstall->fullPath();
-    bool isFpAbsolute = appPath.startsWith(fpPath);
+    bool isFpAbsolute = resolvedPath.startsWith(fpPath);
     if(isFpAbsolute)
     {
         // Temporarily remove FP root and separator
-        appPath.remove(fpPath);
-        if(!appPath.isEmpty() && appPath.front() == '/' || appPath.front() == '\\')
-            appPath = appPath.mid(1);
+        resolvedPath.remove(fpPath);
+        if(!resolvedPath.isEmpty() && resolvedPath.front() == '/' || resolvedPath.front() == '\\')
+            resolvedPath = resolvedPath.mid(1);
     }
 
-    QString truePath = mFlashpointInstall->resolveExecSwaps(appPath, platform);
+    QString truePath = mFlashpointInstall->resolveExecSwaps(resolvedPath, platform);
     truePath = mFlashpointInstall->resolveAppPathOverrides(truePath);
 
     if(isFpAbsolute)
         truePath = fpPath + '/' + truePath;
+
+    if(resolvedPath != appPath)
+        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, resolvedPath));
 
     return QDir::toNativeSeparators(truePath);
 }
