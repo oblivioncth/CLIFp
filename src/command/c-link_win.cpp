@@ -18,7 +18,7 @@ ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
 {
     // Create shortcut properties
     Qx::ShortcutProperties sp;
-    sp.target = CLIFP_DIR_PATH + "/" + PROJECT_EXECUTABLE_BASE_NAME + ".exe";
+    sp.target = CLIFP_DIR_PATH + "/" + CLIFP_CUR_APP_FILENAME;
     sp.targetArgs = CPlay::NAME + " -" + CPlay::CL_OPT_ID_S_NAME + " " + id.toString(QUuid::WithoutBraces);
     sp.comment = name;
 
