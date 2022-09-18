@@ -99,10 +99,20 @@ though this isn't required as long as quotation and space use is carefully emplo
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
  -  **-t | --title:** Title to  make a shortcut for
- -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
+ -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
 
 Requires:
 **-i** or **-t** 
+
+Notes: 
+
+On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
+
+For example, when specifying:
+    
+    CLIFp link -p "~/Desktop/Cool Name.desktop" ...
+
+the display name of the desktop entry will be set to "Cool Name".
 
 --------------------------------------------------------------------------------
 
