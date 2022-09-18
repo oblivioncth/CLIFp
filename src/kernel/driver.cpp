@@ -235,7 +235,7 @@ void Driver::drive()
     mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
     if(mCore->hasTasks())
     {
-        // Process app task queue
+        // Process task queue
         mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
         startNextTask();
     }

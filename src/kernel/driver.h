@@ -32,15 +32,15 @@ private:
     static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = R"(Checking if "%1" is flashpoint root)";
     static inline const QString LOG_EVENT_FLASHPOINT_LINK = R"(Linked to Flashpoint install at: "%1")";
     static inline const QString LOG_EVENT_TASK_COUNT = "%1 task(s) to perform";
-    static inline const QString LOG_EVENT_QUEUE_START = "Processing App Task queue";
+    static inline const QString LOG_EVENT_QUEUE_START = "Processing Task queue";
     static inline const QString LOG_EVENT_TASK_START = "Handling task %1 [%2] (%3)";
     static inline const QString LOG_EVENT_TASK_FINISH = "End of task %1";
     static inline const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
-    static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing App Task queue";
+    static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing Task queue";
     static inline const QString LOG_EVENT_ENDING_CHILD_PROCESSES = "Closing deferred processes...";
     static inline const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
-    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = "App Task skipped due to previous errors";
-    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = "App Task skipped because the application is quitting";
+    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = "Task skipped due to previous errors";
+    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = "Task skipped because the application is quitting";
     static inline const QString LOG_EVENT_QUIT_REQUEST = "Received quit request";
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = "Received redundant quit request";
 
