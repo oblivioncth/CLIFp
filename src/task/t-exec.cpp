@@ -105,6 +105,7 @@ bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
     QDir::setCurrent(mPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(mPath)));
     process->start();
+    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(exeInfo.fileName()));
     QDir::setCurrent(currentDirPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
     if(!process->waitForStarted())

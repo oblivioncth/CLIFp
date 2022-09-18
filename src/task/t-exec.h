@@ -23,6 +23,7 @@ private:
 
     // Logging
     static inline const QString LOG_EVENT_CD = "Changed current directory to: %1";
+    static inline const QString LOG_EVENT_INIT_PROCESS = "Starting %1...";
     static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
     static inline const QString LOG_EVENT_END_PROCESS = "%1 process %2 finished";
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
