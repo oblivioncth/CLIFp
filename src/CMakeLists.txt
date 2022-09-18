@@ -155,6 +155,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
             command/c-link_linux.cpp
             task/t-exec_linux.cpp
     )
+
+    # Links
+    target_link_libraries(${MAIN_TARGET_NAME}
+        PRIVATE
+            Qx::Linux
+    )
 endif()
 
 
