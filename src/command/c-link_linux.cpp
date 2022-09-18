@@ -70,6 +70,8 @@ ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
         return ErrorCode::INVALID_SHORTCUT_PARAM;
     }
 
+    mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullEntryPath)));
+
     // Return success
     return ErrorCode::NO_ERR;
 }
