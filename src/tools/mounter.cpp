@@ -24,6 +24,7 @@ Mounter::Mounter(quint16 webserverPort, quint16 qemuMountPort, quint16 qemuProdP
     QObject(parent),
     mMounting(false),
     mErrorStatus(ErrorCode::NO_ERR),
+    mWebserverPort(webserverPort),
     mQemuMounter(QHostAddress::LocalHost, qemuMountPort, this),
     mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this), // Currently not used
     mCompletedQemuCommands(0)
@@ -130,7 +131,7 @@ void Mounter::setMountOnServer()
     QUrl mountUrl;
     mountUrl.setScheme("http");
     mountUrl.setHost("127.0.0.1");
-    mountUrl.setPort(22500);
+    mountUrl.setPort(mWebserverPort);
     mountUrl.setPath("/mount.php");
     mountUrl.setQuery({{"file", QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial)}});
 

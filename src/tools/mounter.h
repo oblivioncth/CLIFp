@@ -59,6 +59,7 @@ private:
     Qx::SetOnce<ErrorCode> mErrorStatus;
     MountInfo mCurrentMountInfo;
 
+    int mWebserverPort;
     Qmpi mQemuMounter;
     Qmpi mQemuProdder; // Not used until switching to FP 11
     int mCompletedQemuCommands;
