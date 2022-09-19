@@ -1,10 +1,13 @@
-// Unit Includes
+﻿// Unit Includes
 #include "mounter.h"
 
 // Qt Includes
 #include <QAuthenticator>
 #include <QRandomGenerator>
 #include <QUrlQuery>
+#ifdef __linux__
+    #include <QFileInfo>
+#endif
 
 // Qx Includes
 #include <qx/core/qx-json.h>
@@ -133,7 +136,17 @@ void Mounter::setMountOnServer()
     mountUrl.setHost("127.0.0.1");
     mountUrl.setPort(mWebserverPort);
     mountUrl.setPath("/mount.php");
-    mountUrl.setQuery({{"file", QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial)}});
+
+    QUrlQuery query;
+    QString queryKey = "file";
+#if defined _WIN32
+    QString queryValue = QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial);
+#elif defined __linux__
+    // FP Launcher uses "basename" but Node.js basename is actually filename
+    QString queryValue = QUrl::toPercentEncoding(QFileInfo(mCurrentMountInfo.filePath).fileName());
+#endif
+    query.addQueryItem(queryKey, queryValue);
+    mountUrl.setQuery(query);
 
     QNetworkRequest mountReq(mountUrl);
 
