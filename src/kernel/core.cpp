@@ -363,7 +363,7 @@ ErrorCode Core::enqueueStartupTasks()
     dockerWait->setStage(Task::Stage::Startup);
     // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
     dockerWait->setImageName("gamezip");
-    dockerWait->setTimeout(5000);
+    dockerWait->setTimeout(10000);
 
     mTaskQueue.push(dockerWait);
     logTask(NAME, dockerWait);
