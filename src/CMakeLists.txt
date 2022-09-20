@@ -56,6 +56,8 @@ set(CXX_SOURCES
     task/t-message.cpp
     task/t-mount.h
     task/t-mount.cpp
+    task/t-sleep.h
+    task/t-sleep.cpp
     tools/logger.h
     tools/logger.cpp
     tools/mounter.h
