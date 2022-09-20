@@ -11,6 +11,7 @@ TSleep::TSleep(QObject* parent) :
     Task(parent)
 {
     // Setup timer
+    mSleeper.setSingleShot(true);
     connect(&mSleeper, &QTimer::timeout, this, &TSleep::timerFinished);
 }
 
