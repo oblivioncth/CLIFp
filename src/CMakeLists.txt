@@ -162,6 +162,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_sources(${MAIN_TARGET_NAME}
         PRIVATE
             command/c-link_linux.cpp
+            task/t-awaitdocker.h
+            task/t-awaitdocker.cpp
             task/t-exec_linux.cpp
     )
 

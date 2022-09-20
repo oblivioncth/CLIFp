@@ -17,6 +17,9 @@
 #ifdef _WIN32
     #include "task/t-wait.h"
 #endif
+#ifdef __linux__
+    #include "task/t-awaitdocker.h"
+#endif
 #include "utility.h"
 
 //===============================================================================================================
@@ -353,6 +356,18 @@ ErrorCode Core::enqueueStartupTasks()
         mTaskQueue.push(currentTask);
         logTask(NAME, currentTask);
     }
+
+#ifdef __linux__
+    // On Linux the startup tasks take a while so make sure the docker image is actually running before proceeding
+    TAwaitDocker* dockerWait = new TAwaitDocker(this);
+    dockerWait->setStage(Task::Stage::Startup);
+    // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
+    dockerWait->setImageName("gamezip");
+    dockerWait->setTimeout(5000);
+
+    mTaskQueue.push(dockerWait);
+    logTask(NAME, dockerWait);
+#endif
 
     // Return success
     return ErrorCode::NO_ERR;
