@@ -26,6 +26,8 @@ TAwaitDocker::TAwaitDocker(QObject* parent) :
     });
 
     connect(&mEventListener, &QProcess::readyReadStandardOutput, this, &TAwaitDocker::eventDataReceived);
+
+    mTimeoutTimer.setSingleShot(true);
     connect(&mTimeoutTimer, &QTimer::timeout, this, &TAwaitDocker::timeoutOccurred);
 }
 
