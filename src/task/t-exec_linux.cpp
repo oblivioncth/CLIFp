@@ -100,7 +100,7 @@ QProcess* TExec::prepareShellProcess()
     childProcess->setProgram("/bin/sh");
 
     // Set arguments
-    QString bashCommand = '"' + mFilename + ' ' + createEscapedShellArguments() + '"';
+    QString bashCommand = mFilename + ' ' + createEscapedShellArguments();
     childProcess->setArguments({"-c", bashCommand});
 
     return childProcess;
