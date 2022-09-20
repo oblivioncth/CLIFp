@@ -30,7 +30,7 @@
  * handle the quit upon its next event loop cycle.
  */
 
-class ProcessWaiter : public QThread
+class ProcessBider : public QThread
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -40,11 +40,11 @@ private:
     static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting, the title will likely not work correctly.";
 
     // Status Messages
-    static inline const QString LOG_EVENT_WAIT_GRACE = "Waiting %1 seconds for process %2 to be running";
-    static inline const QString LOG_EVENT_WAIT_RUNNING = "Wait-on process %1 is running";
-    static inline const QString LOG_EVENT_WAIT_ON = "Waiting for process %1 to finish";
-    static inline const QString LOG_EVENT_WAIT_QUIT = "Wait-on process %1 has finished";
-    static inline const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running after the grace period";
+    static inline const QString LOG_EVENT_BIDE_GRACE = "Waiting %1 seconds for process %2 to be running";
+    static inline const QString LOG_EVENT_BIDE_RUNNING = "Wait-on process %1 is running";
+    static inline const QString LOG_EVENT_BIDE_ON = "Waiting for process %1 to finish";
+    static inline const QString LOG_EVENT_BIDE_QUIT = "Wait-on process %1 has finished";
+    static inline const QString LOG_EVENT_BIDE_FINISHED = "Wait-on process %1 was not running after the grace period";
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
@@ -58,7 +58,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    ProcessWaiter(QObject* parent = nullptr, uint respawnGrace = 30000);
+    ProcessBider(QObject* parent = nullptr, uint respawnGrace = 30000);
 
 //-Class Functions---------------------------------------------------------------------------------------------------------
 private:
@@ -81,7 +81,7 @@ public slots:
 signals:
     void statusChanged(QString statusMessage);
     void errorOccured(Qx::GenericError errorMessage);
-    void waitFinished(ErrorCode errorCode);
+    void bideFinished(ErrorCode errorCode);
 };
 
 #endif // PROCESSWAITER_H

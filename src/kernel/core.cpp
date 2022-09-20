@@ -15,7 +15,7 @@
 #include "task/t-extract.h"
 #include "task/t-mount.h"
 #ifdef _WIN32
-    #include "task/t-wait.h"
+    #include "task/t-bideprocess.h"
 #endif
 #ifdef __linux__
     #include "task/t-awaitdocker.h"
@@ -418,7 +418,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 
     if(involvesSecurePlayer)
     {
-        TWait* waitTask = new TWait(this);
+        TBideProcess* waitTask = new TBideProcess(this);
         waitTask->setStage(Task::Stage::Auxiliary);
         waitTask->setProcessName(Fp::Install::SECURE_PLAYER_INFO.fileName());
 

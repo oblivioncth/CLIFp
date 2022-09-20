@@ -209,9 +209,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
 | 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
 | 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 11    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
-| 12    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
-| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
+| 11    | BIDE_PROCESS_NOT_HANDLED | A handle to a "bide-on" process (usually for .bat based titles) could not be obtained                     |
+| 12    | BIDE_PROCESS_NOT_HOOKED  | A bide task returned before its "bide-on" process (usually for .bat based titles) finished executing      |
+| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "bide-on" process                    |
 | 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
 | 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
 | 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |

@@ -115,10 +115,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
         PRIVATE
             command/c-link_win.cpp
             task/t-exec_win.cpp
-            task/t-wait.h
-            task/t-wait.cpp
-            tools/processwaiter.h
-            tools/processwaiter.cpp
+            task/t-bideprocess.h
+            task/t-bideprocess.cpp
+            tools/processbider.h
+            tools/processbider.cpp
     )
 
     # Links
