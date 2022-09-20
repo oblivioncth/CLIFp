@@ -374,6 +374,19 @@ void Core::enqueueShutdownTasks()
         mTaskQueue.push(shutdownTask);
         logTask(NAME, shutdownTask);
     }
+
+#ifdef __linux__
+    // On Linux php doesn't close when the shell script that started it is terminated, so it must be closed manually
+    TExec* phpKillTask = new TExec(this);
+    phpKillTask->setStage(Task::Stage::Shutdown);
+    phpKillTask->setPath(mFlashpointInstall->fullPath());
+    phpKillTask->setFilename("killall");
+    phpKillTask->setParameters({"php"});
+    phpKillTask->setProcessType(TExec::ProcessType::Blocking);
+
+    mTaskQueue.push(phpKillTask);
+    logTask(NAME, phpKillTask);
+#endif
 }
 
 #ifdef _WIN32
