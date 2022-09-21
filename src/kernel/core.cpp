@@ -19,6 +19,7 @@
 #endif
 #ifdef __linux__
     #include "task/t-awaitdocker.h"
+    #include "task/t-sleep.h"
 #endif
 #include "utility.h"
 
@@ -367,6 +368,16 @@ ErrorCode Core::enqueueStartupTasks()
 
     mTaskQueue.push(dockerWait);
     logTask(NAME, dockerWait);
+
+    /* Additionally, even once docker is started, the mount server inside seems to take an extra moment to initialize (gives
+     * "Connection Closed" if a mount attempt is made right away), so an additional delay must be added
+     */
+    TSleep* delayForDocker = new TSleep(this);
+    delayForDocker->setStage(Task::Stage::Startup);
+    delayForDocker->setDuration(1500); // NOTE: Might need to be made longer
+
+    mTaskQueue.push(delayForDocker);
+    logTask(NAME, delayForDocker);
 #endif
 
     // Return success
