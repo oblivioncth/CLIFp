@@ -303,6 +303,20 @@ ErrorCode Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
+#ifdef __linux__
+    // On Linux X11 Server needs to be temporarily be set to allow connections from root for docker
+    TExec* xhostSet = new TExec(this);
+    xhostSet->setIdentifier("xhost Set");
+    xhostSet->setStage(Task::Stage::Startup);
+    xhostSet->setPath(mFlashpointInstall->fullPath());
+    xhostSet->setFilename("xhost");
+    xhostSet->setParameters({"+SI:localuser:root"});
+    xhostSet->setProcessType(TExec::ProcessType::Blocking);
+
+    mTaskQueue.push(xhostSet);
+    logTask(NAME, xhostSet);
+#endif
+
     // Get settings
     Fp::Json::Services fpServices = mFlashpointInstall->services();
     Fp::Json::Config fpConfig = mFlashpointInstall->config();
@@ -417,6 +431,18 @@ void Core::enqueueShutdownTasks()
 
     mTaskQueue.push(phpKillTask);
     logTask(NAME, phpKillTask);
+
+    // Undo xhost permissions modifications
+    TExec* xhostClear = new TExec(this);
+    xhostClear->setIdentifier("xhost Clear");
+    xhostClear->setStage(Task::Stage::Shutdown);
+    xhostClear->setPath(mFlashpointInstall->fullPath());
+    xhostClear->setFilename("xhost");
+    xhostClear->setParameters({"-SI:localuser:root"});
+    xhostClear->setProcessType(TExec::ProcessType::Blocking);
+
+    mTaskQueue.push(xhostClear);
+    logTask(NAME, xhostClear);
 #endif
 }
 
