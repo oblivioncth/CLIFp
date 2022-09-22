@@ -283,6 +283,7 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
         QFileInfo fulladdAppPathInfo(mCore.fpInstall().fullPath() + '/' + addAppPath);
 
         TExec* addAppTask = new TExec(&mCore);
+        addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
         addAppTask->setPath(fulladdAppPathInfo.absolutePath());
         addAppTask->setFilename(fulladdAppPathInfo.fileName());
@@ -310,6 +311,7 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
     QFileInfo fullGamePathInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
 
     TExec* gameTask = new TExec(&mCore);
+    gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
     gameTask->setPath(fullGamePathInfo.absolutePath());
     gameTask->setFilename(fullGamePathInfo.fileName());

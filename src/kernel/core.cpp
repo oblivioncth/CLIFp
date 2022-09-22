@@ -311,6 +311,7 @@ ErrorCode Core::enqueueStartupTasks()
     for(const Fp::Json::StartStop& startEntry : qAsConst(fpServices.starts))
     {
         TExec* currentTask = new TExec(this);
+        currentTask->setIdentifier(startEntry.filename);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setPath(mFlashpointInstall->fullPath() + '/' + startEntry.path);
         currentTask->setFilename(startEntry.filename);
@@ -333,6 +334,7 @@ ErrorCode Core::enqueueStartupTasks()
         Fp::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
         TExec* serverTask = new TExec(this);
+        serverTask->setIdentifier("Server");
         serverTask->setStage(Task::Stage::Startup);
         serverTask->setPath(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
         serverTask->setFilename(configuredServer.filename);
@@ -348,6 +350,7 @@ ErrorCode Core::enqueueStartupTasks()
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
         TExec* currentTask = new TExec(this);
+        currentTask->setIdentifier("Daemon");
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setPath(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
         currentTask->setFilename(daemonIt.value().filename);
@@ -391,6 +394,7 @@ void Core::enqueueShutdownTasks()
     for(const Fp::Json::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
     {
         TExec* shutdownTask = new TExec(this);
+        shutdownTask->setIdentifier(stopEntry.filename);
         shutdownTask->setStage(Task::Stage::Shutdown);
         shutdownTask->setPath(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
         shutdownTask->setFilename(stopEntry.filename);
@@ -404,6 +408,7 @@ void Core::enqueueShutdownTasks()
 #ifdef __linux__
     // On Linux php doesn't close when the shell script that started it is terminated, so it must be closed manually
     TExec* phpKillTask = new TExec(this);
+    phpKillTask->setIdentifier("PHP Kill");
     phpKillTask->setStage(Task::Stage::Shutdown);
     phpKillTask->setPath(mFlashpointInstall->fullPath());
     phpKillTask->setFilename("killall");

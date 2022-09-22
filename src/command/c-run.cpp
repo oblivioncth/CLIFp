@@ -45,6 +45,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
     QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
 
     TExec* runTask = new TExec(&mCore);
+    runTask->setIdentifier(NAME + " program");
     runTask->setStage(Task::Stage::Primary);
     runTask->setPath(inputInfo.absolutePath());
     runTask->setFilename(inputInfo.fileName());
