@@ -58,7 +58,7 @@ ErrorCode CRun::process(const QStringList& commandLine)
 
 #ifdef _WIN32
     // Add wait task if required
-    if((errorStatus = mCore.enqueueConditionalWaitTask(inputInfo)))
+    if((errorStatus = mCore.conditionallyEnqueueBideTask(inputInfo)))
         return errorStatus;
 #endif
 

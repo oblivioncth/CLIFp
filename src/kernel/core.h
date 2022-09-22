@@ -182,7 +182,7 @@ public:
     ErrorCode enqueueStartupTasks();
     void enqueueShutdownTasks();
 #ifdef _WIN32
-    ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
+    ErrorCode conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
 #endif
     ErrorCode enqueueDataPackTasks(QUuid targetId);
     void enqueueSingleTask(Task* task);

@@ -421,7 +421,7 @@ void Core::enqueueShutdownTasks()
 }
 
 #ifdef _WIN32
-ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
+ErrorCode Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
 {
     // Add wait for apps that involve secure player
     bool involvesSecurePlayer;

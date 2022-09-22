@@ -295,7 +295,7 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 
 #ifdef _WIN32
         // Add wait task if required
-        ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(fulladdAppPathInfo);
+        ErrorCode enqueueError = mCore.conditionallyEnqueueBideTask(fulladdAppPathInfo);
         if(enqueueError)
             return enqueueError;
 #endif
@@ -324,7 +324,7 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
 
 #ifdef _WIN32
     // Add wait task if required
-    ErrorCode enqueueError = mCore.enqueueConditionalWaitTask(fullGamePathInfo);
+    ErrorCode enqueueError = mCore.conditionallyEnqueueBideTask(fullGamePathInfo);
     if(enqueueError)
         return enqueueError;
 #endif
