@@ -46,7 +46,8 @@ QString TExec::collapseArguments(const QStringList& args)
 }
 
 //Public:
-DeferredProcessManager* TExec::deferredProcessManager() { return &smDeferredProcessManager; }
+void TExec::installDeferredProcessManager(DeferredProcessManager* manager) { smDeferredProcessManager = manager; }
+DeferredProcessManager* TExec::deferredProcessManager() { return smDeferredProcessManager; }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -216,7 +217,10 @@ void TExec::perform()
             }
             logProcessStart(taskProcess, ProcessType::Deferred);
 
-            smDeferredProcessManager.manage(mIdentifier, taskProcess); // Add process to list for deferred termination
+            if(smDeferredProcessManager)
+                smDeferredProcessManager->manage(mIdentifier, taskProcess); // Add process to list for deferred termination
+            else
+                qWarning("Deferred process started without a deferred process manager installed!");
             break;
 
         case ProcessType::Detached:

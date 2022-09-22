@@ -43,7 +43,7 @@ private:
     static inline const QString EXECUTABLE_EXT_WIN = "exe";
 
     // Deferred Processes
-    static inline DeferredProcessManager smDeferredProcessManager;
+    static inline DeferredProcessManager* smDeferredProcessManager;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -67,6 +67,7 @@ private:
     static QString collapseArguments(const QStringList& args);
 
 public:
+    static void installDeferredProcessManager(DeferredProcessManager* manager);
     static DeferredProcessManager* deferredProcessManager();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------

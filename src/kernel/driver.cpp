@@ -36,11 +36,20 @@ void Driver::init()
     connect(mCore, &Core::blockingErrorOccured, this, &Driver::blockingErrorOccured);
     connect(mCore, &Core::message, this, &Driver::message);
 
-    //-Connect to deferred process manager notifiers
-    connect(TExec::deferredProcessManager(), &DeferredProcessManager::eventOccurred, mCore, &Core::logEvent);
-
-    // Only log (don't post) these errors
-    connect(TExec::deferredProcessManager(), &DeferredProcessManager::errorOccurred, mCore, &Core::logError);
+    //-Setup deferred process manager------
+    /* NOTE: It looks like the manager should just be a stack member of TExec that is constructed
+     * during program initialization, but it can't be, as since it's a QObject it would belong
+     * to the default thread, when it needs to belong to the thread that Driver gets moved to. So,
+     * instead we create it during Driver init (post thread move) and install it into TExec as a
+     * static pointer member. An alternative could have been making TExec internally use a
+     * "construct on first use" getter function and the "rule" simply being don't perform a TExec
+     * task except from the correct thread (which would only ever happen anyway), but then that
+     * would make deleting the object slightly tricky. This way it can just be parented to core
+     */
+    DeferredProcessManager* dpm = new DeferredProcessManager(mCore);
+    connect(dpm, &DeferredProcessManager::eventOccurred, mCore, &Core::logEvent);
+    connect(dpm, &DeferredProcessManager::errorOccurred, mCore, &Core::logError);
+    TExec::installDeferredProcessManager(dpm);
 }
 
 void Driver::startNextTask()
