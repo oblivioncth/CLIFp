@@ -59,8 +59,13 @@ void DeferredProcessManager::closeProcesses()
         mClosingClients = true;
         for(auto itr = mManagedProcesses.constBegin(); itr != mManagedProcesses.constEnd(); itr++)
         {
-            itr.key()->close();
-            itr.key()->waitForFinished();
+            QProcess* proc = itr.key();
+            proc->terminate(); // Try nice closure first
+            if(!(proc->waitForFinished(2000)))
+            {
+                proc->kill();
+                proc->waitForFinished();
+            }
         }
         mClosingClients = false;
     }
