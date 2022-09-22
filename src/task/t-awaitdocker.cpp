@@ -61,6 +61,7 @@ ErrorCode TAwaitDocker::imageRunningCheck(bool& running)
     if(!dockerPs.waitForFinished(1000))
     {
         dockerPs.kill(); // Force close
+        dockerPs.waitForFinished();
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DIRECT_QUERY));
         return ErrorCode::CANT_QUERY_DOCKER;
     }
@@ -93,6 +94,7 @@ void TAwaitDocker::finishEventListening(ErrorCode taskCode)
 
     // Just kill it, clean shutdown isn't needed
     mEventListener.kill();
+    mEventListener.waitForFinished();
 
     emit complete(taskCode);
 }
