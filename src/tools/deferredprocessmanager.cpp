@@ -58,7 +58,10 @@ void DeferredProcessManager::closeProcesses()
     {
         mClosingClients = true;
         for(auto itr = mManagedProcesses.constBegin(); itr != mManagedProcesses.constEnd(); itr++)
+        {
             itr.key()->close();
+            itr.key()->waitForFinished();
+        }
         mClosingClients = false;
     }
 }
