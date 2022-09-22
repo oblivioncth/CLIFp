@@ -76,7 +76,6 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
 
     // Assemble details
     QString program = process->program();
-    QString pid = QString::number(process->processId());
     QString status = ENUM_NAME(exitStatus);
     QString code = QString::number(exitCode);
 
@@ -85,9 +84,9 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
 
     // Emit message based on whether the process was expected to be closed
     if(mClosingClients)
-        signalEvent(LOG_EVENT_PROCCESS_CLOSED.arg(identifier, program, pid, status, code));
+        signalEvent(LOG_EVENT_PROCCESS_CLOSED.arg(identifier, program, status, code));
     else
-        signalError(Qx::GenericError(Qx::GenericError::Warning, ERR_PROCESS_END_PREMATURE.arg(identifier, program, pid, status, code)));
+        signalError(Qx::GenericError(Qx::GenericError::Warning, ERR_PROCESS_END_PREMATURE.arg(identifier, program, status, code)));
 }
 
 void DeferredProcessManager::processStandardOutHandler()
