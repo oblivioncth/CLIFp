@@ -72,5 +72,5 @@ void TExec::logProcessStart(const QProcess* process, ProcessType type)
     if(!process->nativeArguments().isEmpty())
         eventStr += " " + process->nativeArguments();
 
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), eventStr));
+    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
 }

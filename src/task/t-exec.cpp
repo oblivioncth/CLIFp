@@ -45,27 +45,8 @@ QString TExec::collapseArguments(const QStringList& args)
     return reduction;
 }
 
-QString TExec::createCloseProcessString(const QProcess* process, ProcessType type)
-{
-    return LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), process->program());
-}
-
 //Public:
-QStringList TExec::closeChildProcesses()
-{
-    // Ended processes
-    QStringList logStrings;
-
-    // Close each remaining child process
-    for(QProcess* childProcess : qAsConst(smActiveChildProcesses))
-    {
-        childProcess->close();
-        logStrings << createCloseProcessString(childProcess, ProcessType::Deferred);
-        delete childProcess;
-    }
-
-    return logStrings;
-}
+DeferredProcessManager* TExec::deferredProcessManager() { return &smDeferredProcessManager; }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -108,7 +89,7 @@ bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
     QDir::setCurrent(mPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(mPath)));
     process->start();
-    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(exeInfo.fileName()));
+    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(mIdentifier, exeInfo.fileName()));
     QDir::setCurrent(currentDirPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
     if(!process->waitForStarted())
@@ -124,9 +105,15 @@ bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
     return true;
 }
 
-void TExec::logProcessEnd(const QProcess* process, ProcessType type)
+void TExec::logProcessEnd(QProcess* process, ProcessType type)
 {
-    emit eventOccurred(NAME, createCloseProcessString(process, type));
+    QString output = process->readAll();
+
+    // Don't print extra linebreak
+    if(!output.isEmpty() && output.back() == '\n')
+        output.chop(1);
+
+    emit eventOccurred(NAME, LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), mIdentifier, process->program(), output));
 }
 
 //Public:
@@ -141,6 +128,7 @@ QStringList TExec::members() const
     else
         ml.append(".parameters() = {\"" + std::get<QStringList>(mParameters).join(R"(", ")") + "\"}");
     ml.append(".processType() = " + ENUM_NAME(mProcessType));
+    ml.append(".identifier() = \"" + mIdentifier + "\"");
     return ml;
 }
 
@@ -148,14 +136,15 @@ QString TExec::path() const { return mPath; }
 QString TExec::filename() const { return mFilename; }
 const std::variant<QString, QStringList>& TExec::parameters() const { return mParameters; }
 const QProcessEnvironment& TExec::environment() const { return mEnvironment; }
-
 TExec::ProcessType TExec::processType() const { return mProcessType; }
+QString TExec::identifier() const { return mIdentifier; }
 
 void TExec::setPath(QString path) { mPath = path; }
 void TExec::setFilename(QString filename) { mFilename = filename; }
 void TExec::setParameters(const std::variant<QString, QStringList>& parameters) { mParameters = parameters; }
 void TExec::setEnvironment(const QProcessEnvironment& environment) { mEnvironment = environment; }
 void TExec::setProcessType(ProcessType processType) { mProcessType = processType; }
+void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
 void TExec::perform()
 {
@@ -198,8 +187,7 @@ void TExec::perform()
 
     // Set common process properties
     taskProcess->setProcessEnvironment(mEnvironment);
-    taskProcess->setStandardOutputFile(QProcess::nullDevice()); // Don't inherit console window
-    taskProcess->setStandardErrorFile(QProcess::nullDevice()); // Don't inherit console window
+    taskProcess->setProcessChannelMode(QProcess::MergedChannels);
 
     // Cover each process type
     switch(mProcessType)
@@ -228,7 +216,7 @@ void TExec::perform()
             }
             logProcessStart(taskProcess, ProcessType::Deferred);
 
-            smActiveChildProcesses.append(taskProcess); // Add process to list for deferred termination
+            smDeferredProcessManager.manage(mIdentifier, taskProcess); // Add process to list for deferred termination
             break;
 
         case ProcessType::Detached:

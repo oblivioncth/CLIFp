@@ -35,6 +35,12 @@ void Driver::init()
     connect(mCore, &Core::errorOccured, this, &Driver::errorOccured);
     connect(mCore, &Core::blockingErrorOccured, this, &Driver::blockingErrorOccured);
     connect(mCore, &Core::message, this, &Driver::message);
+
+    //-Connect to deferred process manager notifiers
+    connect(TExec::deferredProcessManager(), &DeferredProcessManager::eventOccurred, mCore, &Core::logEvent);
+
+    // Only log (don't post) these errors
+    connect(TExec::deferredProcessManager(), &DeferredProcessManager::errorOccurred, mCore, &Core::logError);
 }
 
 void Driver::startNextTask()
@@ -98,11 +104,11 @@ void Driver::startNextTask()
 
 void Driver::cleanup()
 {
+    mCore->logEvent(NAME, LOG_EVENT_CLEANUP_START);
+
     // Close each remaining child process
     mCore->logEvent(NAME, LOG_EVENT_ENDING_CHILD_PROCESSES);
-    const QStringList logStatements = TExec::closeChildProcesses();
-    for(const QString& statement : logStatements)
-        mCore->logEvent(NAME, statement);
+    TExec::deferredProcessManager()->closeProcesses();
 
     mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
 }

@@ -38,6 +38,7 @@ private:
     static inline const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
     static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing Task queue";
     static inline const QString LOG_EVENT_ENDING_CHILD_PROCESSES = "Closing deferred processes...";
+    static inline const QString LOG_EVENT_CLEANUP_START = "Cleaning up...";
     static inline const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
     static inline const QString LOG_EVENT_TASK_SKIP_ERROR = "Task skipped due to previous errors";
     static inline const QString LOG_EVENT_TASK_SKIP_QUIT = "Task skipped because the application is quitting";

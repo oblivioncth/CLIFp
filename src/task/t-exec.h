@@ -3,6 +3,7 @@
 
 // Project Includes
 #include "task/task.h"
+#include "tools/deferredprocessmanager.h"
 
 // Qt Includes
 #include <QProcess>
@@ -23,9 +24,9 @@ private:
 
     // Logging
     static inline const QString LOG_EVENT_CD = "Changed current directory to: %1";
-    static inline const QString LOG_EVENT_INIT_PROCESS = "Starting %1...";
-    static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process: %2";
-    static inline const QString LOG_EVENT_END_PROCESS = "%1 process %2 finished";
+    static inline const QString LOG_EVENT_INIT_PROCESS = "Starting '%1' (%2)...";
+    static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process '%2': %3";
+    static inline const QString LOG_EVENT_END_PROCESS = "%1 process '%2'(%3) finished.\nOutput:\n%4";
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
     static inline const QString LOG_EVENT_FORCED_BASH = "Forced use of 'sh' from Windows 'bat'";
     static inline const QString LOG_EVENT_FORCED_WIN = "Forced use of WINE from Windows 'exe'";
@@ -42,7 +43,7 @@ private:
     static inline const QString EXECUTABLE_EXT_WIN = "exe";
 
     // Deferred Processes
-    static inline QList<QProcess*> smActiveChildProcesses;
+    static inline DeferredProcessManager smDeferredProcessManager;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -55,6 +56,7 @@ private:
     std::variant<QString, QStringList> mParameters;
     QProcessEnvironment mEnvironment;
     ProcessType mProcessType;
+    QString mIdentifier;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -63,10 +65,9 @@ public:
 //-Class Functions-----------------------------------------------------------------------------------------------------
 private:
     static QString collapseArguments(const QStringList& args);
-    static QString createCloseProcessString(const QProcess* process, ProcessType type);
 
 public:
-    static QStringList closeChildProcesses();
+    static DeferredProcessManager* deferredProcessManager();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
@@ -79,7 +80,7 @@ private:
 
     // Logging
     void logProcessStart(const QProcess* process, ProcessType type);
-    void logProcessEnd(const QProcess* process, ProcessType type);
+    void logProcessEnd(QProcess* process, ProcessType type);
 
 public:
     // Member access
@@ -91,12 +92,14 @@ public:
     const std::variant<QString, QStringList>& parameters() const;
     const QProcessEnvironment& environment() const;
     ProcessType processType() const;
+    QString identifier() const;
 
     void setPath(QString path);
     void setFilename(QString filename);
     void setParameters(const std::variant<QString, QStringList>& parameters);
     void setEnvironment(const QProcessEnvironment& environment);
     void setProcessType(ProcessType processType);
+    void setIdentifier(QString identifier);
 
     // Run
     void perform() override;

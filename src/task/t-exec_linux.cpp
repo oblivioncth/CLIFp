@@ -112,5 +112,5 @@ void TExec::logProcessStart(const QProcess* process, ProcessType type)
     if(!process->arguments().isEmpty())
         eventStr += " {\"" + process->arguments().join(R"(", ")") + "\"}";
 
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), eventStr));
+    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
 }
