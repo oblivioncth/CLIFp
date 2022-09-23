@@ -1,9 +1,8 @@
 // Unit Include
 #include "deferredprocessmanager.h"
 
-// Qt Includes
-
 // Qx Includes
+#include <qx/core/qx-system.h>
 
 // Project Includes
 #include "utility.h"
@@ -60,6 +59,16 @@ void DeferredProcessManager::closeProcesses()
         for(auto itr = mManagedProcesses.constBegin(); itr != mManagedProcesses.constEnd(); itr++)
         {
             QProcess* proc = itr.key();
+
+            /* Kill children of the process, as here the whole tree should be killed
+             * A "clean" kill is used for this as the vanilia Launcher uses Node.js process.kill()
+             * without a signal argument, which maps to SIGTERM (on linux), which is a clean kill.
+             */
+            QList<quint32> children = Qx::processChildren(proc->processId(), true);
+            for(quint32 cPid : children)
+                Qx::cleanKillProcess(cPid);
+
+            // Kill the main process itself
             proc->terminate(); // Try nice closure first
             if(!(proc->waitForFinished(2000)))
             {
