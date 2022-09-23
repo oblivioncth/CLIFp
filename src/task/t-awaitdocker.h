@@ -36,7 +36,6 @@ private:
     // Functional
     QProcess mEventListener;
     QTimer mTimeoutTimer;
-    bool mFinishedListening;
 
     // Data
     QString mImageName;
@@ -50,7 +49,7 @@ public:
 private:
     ErrorCode imageRunningCheck(bool& running);
     ErrorCode startEventListener();
-    void finishEventListening(ErrorCode taskCode);
+    void stopEventListening();
 
 public:
     QString name() const override;

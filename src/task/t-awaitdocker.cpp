@@ -10,8 +10,7 @@
 //-Constructor--------------------------------------------------------------------
 //Public:
 TAwaitDocker::TAwaitDocker(QObject* parent) :
-    Task(parent),
-    mFinishedListening(false)
+    Task(parent)
 {
     // Setup event listener
     mEventListener.setProgram(DOCKER);
@@ -87,17 +86,13 @@ ErrorCode TAwaitDocker::startEventListener()
     return ErrorCode::NO_ERR;
 }
 
-void TAwaitDocker::finishEventListening(ErrorCode taskCode)
+void TAwaitDocker::stopEventListening()
 {
     emit eventOccurred(NAME, LOG_EVENT_STOPPING_LISTENER);
 
-    mFinishedListening = true; // Guards against late events, or multiple image starts
-
     // Just kill it, clean shutdown isn't needed
-    mEventListener.kill();
+    mEventListener.close();
     mEventListener.waitForFinished();
-
-    emit complete(taskCode);
 }
 
 //Public:
@@ -146,7 +141,8 @@ void TAwaitDocker::stop()
     if(mEventListener.state() != QProcess::NotRunning)
     {
         mTimeoutTimer.stop();
-        finishEventListening(ErrorCode::DOCKER_DIDNT_START);
+        stopEventListening();
+        emit complete(ErrorCode::DOCKER_DIDNT_START);
     }
 }
 
@@ -155,7 +151,7 @@ void TAwaitDocker::stop()
 void TAwaitDocker::eventDataReceived()
 {
     // Read when full message has been received
-    if(!mFinishedListening && mEventListener.canReadLine())
+    if(mEventListener.canReadLine())
     {
         // Check event, should just contain image name due to filter/format options
         QString eventData = QString::fromLatin1(mEventListener.readLine());
@@ -163,13 +159,17 @@ void TAwaitDocker::eventDataReceived()
         if(eventData == mImageName)
         {
             emit eventOccurred(NAME, LOG_EVENT_START_RECEIVED);
-            finishEventListening(ErrorCode::NO_ERR);
+            mTimeoutTimer.stop();
+            stopEventListening();
+            emit complete(ErrorCode::NO_ERR);
         }
     }
 }
 
 void TAwaitDocker::timeoutOccurred()
 {
+    stopEventListening();
+
     // Check one last time directly in case the listener was starting up while the image started
     bool running;
     imageRunningCheck(running); // If this errors here, just assume that the image didn't start
@@ -177,11 +177,11 @@ void TAwaitDocker::timeoutOccurred()
     if(running)
     {
         emit eventOccurred(NAME, LOG_EVENT_FINAL_CHECK_PASS);
-        finishEventListening(ErrorCode::NO_ERR);
+        emit complete(ErrorCode::NO_ERR);
     }
     else
     {
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DOCKER_DIDNT_START.arg(mImageName)));
-        finishEventListening(ErrorCode::DOCKER_DIDNT_START);
+        emit complete(ErrorCode::DOCKER_DIDNT_START);
     }
 }
