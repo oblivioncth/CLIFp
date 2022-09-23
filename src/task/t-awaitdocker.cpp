@@ -68,6 +68,7 @@ ErrorCode TAwaitDocker::imageRunningCheck(bool& running)
 
     // Check result, should just contain image name due to filter/format options
     QString queryResult = QString::fromLatin1(dockerPs.readAllStandardOutput());
+    queryResult.chop(1); // Remove '\n'
     running = queryResult == mImageName;
 
     return ErrorCode::NO_ERR;
