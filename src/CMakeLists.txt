@@ -100,7 +100,6 @@ target_link_libraries(${MAIN_TARGET_NAME}
 
 # Configure target properties
 set_target_properties(${MAIN_TARGET_NAME} PROPERTIES
-    OUTPUT_NAME "${PROJECT_NAME}"
     EXPORT_NAME "${PROJECT_NAME}"
 )
 
@@ -143,6 +142,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
         VERSION ${PROJECT_VERSION}
     )
 
+    # Configure target properties
+    set_target_properties(${MAIN_TARGET_NAME} PROPERTIES
+        OUTPUT_NAME "${PROJECT_NAME}"
+    )
+
     # Set target exe details
     include(OB/WinExecutableDetails)
     set_win_executable_details(${MAIN_TARGET_NAME}
@@ -176,6 +180,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_link_libraries(${MAIN_TARGET_NAME}
         PRIVATE
             Qx::Linux
+    )
+
+    # Configure target properties
+    set_target_properties(${MAIN_TARGET_NAME} PROPERTIES
+        OUTPUT_NAME "${PROJECT_NAME_LC}"
     )
 endif()
 

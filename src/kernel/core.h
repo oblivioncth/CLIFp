@@ -74,7 +74,7 @@ public:
     static inline const QString COMMAND_OPT_LABEL = "Command Options: %1";
 
     // Logging - Primary Values
-    static inline const QString LOG_FILE_NAME = "CLIFp.log";
+    static inline const QString LOG_FILE_EXT = "log";
     static inline const QString LOG_HEADER = "CLIFp Execution Log";
     static inline const QString LOG_NO_PARAMS = "*None*";
     static inline const int LOG_MAX_ENTRIES = 50;

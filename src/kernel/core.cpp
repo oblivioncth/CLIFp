@@ -127,7 +127,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
     commandLine.removeFirst();
 
     // Create logger instance
-    QString logPath = CLIFP_DIR_PATH + '/' + LOG_FILE_NAME;
+    QString logPath = CLIFP_DIR_PATH + '/' + CLIFP_CUR_APP_FILENAME  + '.' + LOG_FILE_EXT;
     mLogger = std::make_unique<Logger>(logPath, commandLine.isEmpty() ? LOG_NO_PARAMS : commandLine.join(" "), globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
 
     // Open log
