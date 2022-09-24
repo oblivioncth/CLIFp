@@ -152,7 +152,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
         if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, ERR_INVALID_PATH));
-            return ErrorCode::INVALID_SHORTCUT_PARAM;
+            return ErrorCode::CANT_CREATE_SHORTCUT;
         }
         mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));
     }

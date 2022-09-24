@@ -229,7 +229,7 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 28    | DOCKER_DIDNT_START       | The gamezip Docker container never started                                                                |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
-| 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |
+| 201   | CANT_CREATE_SHORTCUT     | Failed to create a shortcut. Usually due to an invalid path or permissions error                          |
 
 ## Limitations
 

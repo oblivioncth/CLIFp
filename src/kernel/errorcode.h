@@ -43,7 +43,7 @@ enum ErrorCode{
     PARENT_INVALID = 102,
 
     // CLink
-    INVALID_SHORTCUT_PARAM = 201,
+    CANT_CREATE_SHORTCUT = 201,
 };
 
 #endif // ERRORCODE_H

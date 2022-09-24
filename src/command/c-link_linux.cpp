@@ -21,7 +21,7 @@ ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     {
         static const QString iconErr = QStringLiteral("Failed to install shortcut icons.");
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, iconErr));
-        return ErrorCode::INVALID_SHORTCUT_PARAM;
+        return ErrorCode::CANT_CREATE_SHORTCUT;
     }
 
     // Setup desktop entry
@@ -43,7 +43,7 @@ ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     if(writeReport.isFailure())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, writeReport.outcomeInfo()));
-        return ErrorCode::INVALID_SHORTCUT_PARAM;
+        return ErrorCode::CANT_CREATE_SHORTCUT;
     }
 
     mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullEntryPath)));
