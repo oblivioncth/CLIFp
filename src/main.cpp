@@ -4,6 +4,7 @@
 // Project Includes
 #include "kernel/core.h"
 #include "controller.h"
+#include "utility.h"
 #include "project_vars.h"
 
 int main(int argc, char *argv[])
@@ -15,8 +16,13 @@ int main(int argc, char *argv[])
     app.setQuitOnLastWindowClosed(false);
 
     // Set application name
-    QCoreApplication::setApplicationName(PROJECT_APP_NAME);
-    QCoreApplication::setApplicationVersion(PROJECT_VERSION_STR);
+    app.setApplicationName(PROJECT_APP_NAME);
+    app.setApplicationVersion(PROJECT_VERSION_STR);
+
+#ifdef __linux__
+    // Set application icon
+    app.setWindowIcon(Utility::appIconFromResources());
+#endif
 
     // Register metatypes
     qRegisterMetaType<Core::Error>();

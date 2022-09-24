@@ -68,8 +68,9 @@ set(CXX_SOURCES
     frontend/statusrelay.cpp
     controller.h
     controller.cpp
-    main.cpp
     utility.h
+    utility.cpp
+    main.cpp
 )
 
 # Add sources to target

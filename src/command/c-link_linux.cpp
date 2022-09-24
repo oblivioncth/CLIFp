@@ -17,35 +17,11 @@
 ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
 {
     // Add/update CLIFp icon set
-    static const QString iconName = QStringLiteral(PROJECT_SHORT_NAME ".png");
-    static const QString iconSrcBasePath = QStringLiteral(":/app");
-    static const QStringList iconSizes = {
-        "16x16",
-        "32x32",
-        "48x48",
-        "256x256"
-    };
-    static const QDir iconDestBaseDir(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
-            QStringLiteral("/icons/hicolor"));
-
-    for(const QString& res : iconSizes)
+    if(!Utility::installAppIconForUser())
     {
-        QString resSpecificSubPath = res + "/apps";
-
-        // Ensure path exists
-        iconDestBaseDir.mkpath("./" + resSpecificSubPath);
-
-        // Determine paths
-        QString fullSrcPath = iconSrcBasePath + '/' + res + '/' + iconName;
-        QString fullDestPath = iconDestBaseDir.absolutePath() + '/' + resSpecificSubPath + '/' + iconName;
-
-        // Remove exiting file if it exists (icon could need to be updated), then copy the new icon
-        if((QFile::exists(fullDestPath) && !QFile::remove(fullDestPath) ) || !QFile::copy(fullSrcPath, fullDestPath))
-        {
-            static const QString iconErr = QStringLiteral("Failed to install shortcut icons.");
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, iconErr));
-            return ErrorCode::INVALID_SHORTCUT_PARAM;
-        }
+        static const QString iconErr = QStringLiteral("Failed to install shortcut icons.");
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, iconErr));
+        return ErrorCode::INVALID_SHORTCUT_PARAM;
     }
 
     // Setup desktop entry
