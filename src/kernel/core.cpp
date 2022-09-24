@@ -697,6 +697,18 @@ int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMess
 
 void Core::postMessage(QString msg) { emit message(msg); }
 
+QString Core::requestSaveFilePath(const SaveFileRequest& request)
+{
+    // Response holder
+    QSharedPointer<QString> file = QSharedPointer<QString>::create();
+
+    // Emit and get response
+    emit saveFileRequested(file, request);
+
+    // Return response
+    return *file;
+}
+
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }

@@ -111,6 +111,7 @@ signals:
     void errorOccured(const Core::Error& error);
     void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void message(const QString& message);
+    void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
 
     // Long task
     void longTaskProgressChanged(quint64 progress);

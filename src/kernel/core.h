@@ -11,6 +11,7 @@
 #include <QUrl>
 #include <QCommandLineParser>
 #include <QMessageBox>
+#include <QFileDialog>
 
 // libfp Includes
 #include <fp/flashpoint/fp-install.h>
@@ -41,6 +42,15 @@ public:
         Qx::GenericError errorInfo;
         QMessageBox::StandardButtons choices;
         QMessageBox::StandardButton defaultChoice;
+    };
+
+    struct SaveFileRequest
+    {
+        QString caption;
+        QString dir;
+        QString filter;
+        QString* selectedFilter = nullptr;
+        QFileDialog::Options options;
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -198,6 +208,7 @@ public:
     void postError(QString src, Qx::GenericError error, bool log = true);
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
+    QString requestSaveFilePath(const SaveFileRequest& req);
 
     // Member access
     Fp::Install& fpInstall();
@@ -218,6 +229,7 @@ signals:
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
     void errorOccured(const Core::Error& error);
     void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
+    void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void message(const QString& message);
 };
 

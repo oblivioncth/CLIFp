@@ -1,9 +1,6 @@
 // Unit Include
 #include "c-link.h"
 
-// Qt Includes
-#include <QFileDialog>
-
 // Project Includes
 
 //===============================================================================================================
@@ -123,10 +120,15 @@ ErrorCode CLink::process(const QStringList& commandLine)
     else
     {
         mCore.logEvent(NAME, LOG_EVENT_NO_PATH);
-        QString selectedPath = QFileDialog::getSaveFileName(nullptr,
-                                                            DIAG_CAPTION,
-                                                            QDir::homePath() + "/Desktop/" + shortcutName,
-                                                            "Shortcuts (*. " + shortcutExtension() + ")");
+
+        // Prompt user for path
+        Core::SaveFileRequest sfr{
+            .caption = DIAG_CAPTION,
+            .dir = QDir::homePath() + "/Desktop/" + shortcutName,
+            .filter = "Shortcuts (*. " + shortcutExtension() + ")"
+        };
+        QString selectedPath = mCore.requestSaveFilePath(sfr);
+
         if(selectedPath.isEmpty())
         {
             mCore.logEvent(NAME, LOG_EVENT_DIAG_CANCEL);
