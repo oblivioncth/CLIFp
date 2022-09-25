@@ -30,7 +30,7 @@ ErrorCode CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     if(shortcutError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, shortcutError.primaryInfo()));
-        return ErrorCode::INVALID_SHORTCUT_PARAM;
+        return ErrorCode::CANT_CREATE_SHORTCUT;
     }
     else
         mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullShortcutPath)));
