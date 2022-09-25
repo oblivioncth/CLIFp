@@ -187,7 +187,8 @@ void TExec::perform()
         taskProcess = prepareDirectProcess();
 
     // Set common process properties
-    taskProcess->setProcessEnvironment(mEnvironment);
+    if(!mEnvironment.isEmpty()) // Don't override the QProcess default (use system env.) if no custom env. was set
+        taskProcess->setProcessEnvironment(mEnvironment);
     taskProcess->setProcessChannelMode(QProcess::MergedChannels);
 
     // Cover each process type
