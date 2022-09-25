@@ -77,7 +77,7 @@ private:
     QString createEscapedShellArguments();
     QProcess* prepareDirectProcess();
     QProcess* prepareShellProcess();
-    bool cleanStartProcess(QProcess* process, QFileInfo exeInfo);
+    bool cleanStartProcess(QProcess* process);
 
     // Logging
     void logProcessStart(const QProcess* process, ProcessType type);

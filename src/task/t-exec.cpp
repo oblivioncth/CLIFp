@@ -83,20 +83,20 @@ QString TExec::createEscapedShellArguments()
     return escapedArgs;
 }
 
-bool TExec::cleanStartProcess(QProcess* process, QFileInfo exeInfo)
+bool TExec::cleanStartProcess(QProcess* process)
 {
     // Start process and confirm
     const QString currentDirPath = QDir::currentPath();
     QDir::setCurrent(mPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(mPath)));
     process->start();
-    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(mIdentifier, exeInfo.fileName()));
+    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(mIdentifier, mFilename));
     QDir::setCurrent(currentDirPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
     if(!process->waitForStarted())
     {
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical,
-                                 ERR_EXE_NOT_STARTED.arg(QDir::toNativeSeparators(exeInfo.absoluteFilePath())),
+                                 ERR_EXE_NOT_STARTED.arg(mFilename),
                                  ENUM_NAME(process->error())));
         delete process; // Clear finished process handle from heap
         return false;
@@ -149,33 +149,36 @@ void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
 void TExec::perform()
 {
-    // Ensure executable exists (check system paths first, mainly for Linux)
-    QString executablePath = QStandardPaths::findExecutable(mFilename);
-    if(executablePath.isEmpty())
-        executablePath = QStandardPaths::findExecutable(mFilename, {mPath});
-
-    if(executablePath.isEmpty())
+    // Ensure executable exists
+    QFileInfo execInfo(mPath + '/' + mFilename);
+    if(execInfo.exists())
     {
-        emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                  ERR_EXE_NOT_FOUND.arg(mFilename)));
-        emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
-        return;
+        // Ensure executable is valid (force check Windows extensions in case this is for WINE on Linux)
+        if(!(execInfo.isExecutable() || execInfo.suffix() == EXECUTABLE_EXT_WIN || execInfo.suffix() == SHELL_EXT_WIN))
+        {
+            emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                                                     ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(execInfo.absoluteFilePath()))));
+            emit complete(ErrorCode::EXECUTABLE_NOT_VALID);
+            return;
+        }
     }
-
-    // TODO: Probably can remove this since findExecutable is being used now, as it likely won't return non executable results
-    QFileInfo executableInfo(executablePath);
-
-    // Ensure executable is valid
-    if(!executableInfo.isExecutable())
+    else
     {
-        emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                 ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(executableInfo.absoluteFilePath()))));
-        emit complete(ErrorCode::EXECUTABLE_NOT_VALID);
-        return;
+        /* Check system paths as a fallback. If found, the path isn't actually used, it's existence is just
+         * checked for to ensure that QProcess will be able to start the named executable
+         */
+        QString systemExec = QStandardPaths::findExecutable(mFilename);
+        if(systemExec.isEmpty())
+        {
+            emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                                                      ERR_EXE_NOT_FOUND.arg(mFilename)));
+            emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
+            return;
+        }
     }
 
     // Check if task requires a shell
-    bool requiresShell = executableInfo.suffix() == SHELL_EXT_WIN || executableInfo.suffix() == SHELL_EXT_LINUX;
+    bool requiresShell = execInfo.suffix() == SHELL_EXT_WIN || execInfo.suffix() == SHELL_EXT_LINUX;
 
     // Create process handle
     // TODO: May want to pass in 'executablePath' to these two functions and use that directly instead of QProcess performing essentially the
@@ -196,7 +199,7 @@ void TExec::perform()
     {
         case ProcessType::Blocking:
             taskProcess->setParent(this);
-            if(!cleanStartProcess(taskProcess, executableInfo))
+            if(!cleanStartProcess(taskProcess))
             {
                 emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
@@ -211,7 +214,7 @@ void TExec::perform()
         case ProcessType::Deferred:
              // Can't use 'this' as parent since process will outlive this instance, so use parent of task
             taskProcess->setParent(this->parent());
-            if(!cleanStartProcess(taskProcess, executableInfo))
+            if(!cleanStartProcess(taskProcess))
             {
                 emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
