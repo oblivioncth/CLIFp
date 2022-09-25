@@ -537,7 +537,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         // Advance result to only record
         searchResult.result.next();
 
-        // Get title's Data Pack sub-URL
+        // Get title's Data Pack sub-URL (the replace here is because there once was an errant entry in DB using '\')
         QString packSubUrl = searchResult.result.value(Fp::Db::Table_Source_Data::COL_URL_PATH).toString().replace('\\','/');
 
         TDownload* downloadTask = new TDownload(this);
