@@ -285,11 +285,7 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
-#if defined _WIN32
-        addAppTask->setExecutable(fulladdAppPathInfo.fileName());
-#elif defined __linux__
-        addAppTask->setExecutable("./" + fulladdAppPathInfo.fileName());
-#endif
+        addAppTask->setExecutable(fulladdAppPathInfo.canonicalFilePath());
         addAppTask->setDirectory(fulladdAppPathInfo.absoluteDir());
         addAppTask->setParameters(addApp.launchCommand());
         addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
