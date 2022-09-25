@@ -82,11 +82,14 @@ QString TExec::resolveExecutablePath()
     if(execInfo.suffix() == SHELL_EXT_WIN)
         execInfo.setFile(mExecutable.chopped(sizeof(SHELL_EXT_WIN)) + SHELL_EXT_LINUX);
 
-    // Mostly standard processing. canonicalFilePath() returns empty by default if file DNE.
+    // Mostly standard processing
     if(execInfo.isAbsolute())
-        return execInfo.canonicalFilePath();
+        return execInfo.isExecutable() || execInfo.suffix() == EXECUTABLE_EXT_WIN ? execInfo.canonicalFilePath() : QString();
     else if(execInfo.filePath().contains('/')) // Relative, but not plain name
-        return QFileInfo(mDirectory.absoluteFilePath(execInfo.filePath())).canonicalFilePath();
+    {
+        QFileInfo absolutePath(mDirectory.absoluteFilePath(execInfo.filePath()));
+        return absolutePath.isExecutable() || absolutePath.suffix() == EXECUTABLE_EXT_WIN ? absolutePath.canonicalFilePath() : QString();
+    }
     else // Plain name
         return QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
 }
