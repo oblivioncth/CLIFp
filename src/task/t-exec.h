@@ -51,8 +51,8 @@ private:
     QProcess* mBlockingProcess;
 
     // Data
-    QString mPath;
-    QString mFilename;
+    QString mExecutable;
+    QDir mDirectory;
     std::variant<QString, QStringList> mParameters;
     QProcessEnvironment mEnvironment;
     ProcessType mProcessType;
@@ -73,10 +73,10 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     // Helpers
+    QString resolveExecutablePath();
     QString escapeForShell(const QString& argStr);
     QString createEscapedShellArguments();
-    QProcess* prepareDirectProcess();
-    QProcess* prepareShellProcess();
+    QProcess* prepareProcess(const QFileInfo& execInfo);
     bool cleanStartProcess(QProcess* process);
 
     // Logging
@@ -88,15 +88,15 @@ public:
     QString name() const override;
     QStringList members() const override;
 
-    QString path() const;
-    QString filename() const;
+    QString executable() const;
+    QDir directory() const;
     const std::variant<QString, QStringList>& parameters() const;
     const QProcessEnvironment& environment() const;
     ProcessType processType() const;
     QString identifier() const;
 
-    void setPath(QString path);
-    void setFilename(QString filename);
+    void setExecutable(QString executable);
+    void setDirectory(QDir directory);
     void setParameters(const std::variant<QString, QStringList>& parameters);
     void setEnvironment(const QProcessEnvironment& environment);
     void setProcessType(ProcessType processType);

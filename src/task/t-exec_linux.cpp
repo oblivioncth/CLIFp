@@ -1,11 +1,65 @@
 // Unit Include
 #include "t-exec.h"
 
+// Qt Includes
+#include <QStandardPaths>
+
 // Qx Includes
 #include <qx/core/qx-algorithm.h>
 
 // Project Includes
 #include "utility.h"
+
+namespace // Unit helper functions
+{
+
+QProcess* setupExeProcess(const QString& exePath, const QString& exeArgs)
+{
+    QProcess* process = new QProcess();
+
+    // Force WINE
+    process->setProgram("wine");
+
+    // Set arguments
+    process->setArguments({
+        "start",
+        "/wait",
+        "/unix",
+        exePath,
+        exeArgs
+    });
+
+    return process;
+}
+
+QProcess* setupShellScriptProcess(const QString& scriptPath, const QString& scriptArgs)
+{
+    QProcess* process = new QProcess();
+
+    // Set program
+    process->setProgram("/bin/sh");
+
+    // Set arguments
+    QString bashCommand = "'" + scriptPath + "' " + scriptArgs;
+    process->setArguments({"-c", bashCommand});
+
+    return process;
+}
+
+QProcess* setupNativeProcess(const QString& execPath, const QStringList& execArgs)
+{
+    QProcess* process = new QProcess();
+
+    // Set program
+    process->setProgram(execPath);
+
+    // Set arguments
+    process->setArguments(execArgs);
+
+    return process;
+}
+
+}
 
 //===============================================================================================================
 // TExec
@@ -13,6 +67,30 @@
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+QString TExec::resolveExecutablePath()
+{
+    /* Mimic how Linux (and QProcess on Linux) search for an executable, with some exceptions
+     * See: https://doc.qt.io/qt-6/qprocess.html#finding-the-executable
+     *
+     * The exceptions largely are that relative paths are always resolved relative to mDir instead
+     * of how the system would handle it.
+     */
+
+    // Exception: If a windows batch script is called for (shouldn't happen), see if there is a matching shell script
+    // as a last resort
+    QFileInfo execInfo(mExecutable);
+    if(execInfo.suffix() == SHELL_EXT_WIN)
+        execInfo.setFile(mExecutable.chopped(sizeof(SHELL_EXT_WIN)) + SHELL_EXT_LINUX);
+
+    // Mostly standard processing. canonicalFilePath() returns empty by default if file DNE.
+    if(execInfo.isAbsolute())
+        return execInfo.canonicalFilePath();
+    else if(execInfo.filePath().contains('/')) // Relative, but not plain name
+        return QFileInfo(mDirectory.absoluteFilePath(execInfo.filePath())).canonicalFilePath();
+    else // Plain name
+        return QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
+}
+
 QString TExec::escapeForShell(const QString& argStr)
 {
     static const QSet<QChar> stdOutQuotesEscapes{
@@ -43,72 +121,34 @@ QString TExec::escapeForShell(const QString& argStr)
     return escapedArgs;
 }
 
-QProcess* TExec::prepareDirectProcess()
+QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 {
-    QProcess* childProcess = new QProcess();
-    QFileInfo fileInfo(mFilename);
-
-
-    // Force WINE if windows app made it through to this point (probably won't happen)
-    if(fileInfo.suffix() == EXECUTABLE_EXT_WIN)
+    if(execInfo.suffix() == EXECUTABLE_EXT_WIN)
     {
         emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
-
-        // Set program
-        childProcess->setProgram("wine");
 
         // Resolve passed parameters
         QString exeParam = std::holds_alternative<QStringList>(mParameters) ?
                            collapseArguments(std::get<QStringList>(mParameters)) :
                            std::get<QString>(mParameters);
 
-        // Set arguments
-        childProcess->setArguments({
-            "start",
-            "/wait",
-            "/unix",
-            mFilename,
-            exeParam
-        });
-
+        return setupExeProcess(execInfo.filePath(), exeParam);
+    }
+    else if(execInfo.suffix() == SHELL_EXT_LINUX)
+    {
+        // Resolve passed parameters
+        QString scriptParam = createEscapedShellArguments();
+        return setupShellScriptProcess(execInfo.filePath(), scriptParam);
     }
     else
     {
-        // Set program
-        childProcess->setProgram(mFilename);
+        // Resolve passed parameters
+        QStringList execParam = std::holds_alternative<QString>(mParameters) ?
+                                QProcess::splitCommand(std::get<QString>(mParameters)) :
+                                std::get<QStringList>(mParameters);
 
-        // Set arguments
-        if(std::holds_alternative<QString>(mParameters))
-            childProcess->setArguments(QProcess::splitCommand(std::get<QString>(mParameters)));
-        else
-            childProcess->setArguments(std::get<QStringList>(mParameters));
+        return setupNativeProcess(execInfo.filePath(), execParam);
     }
-
-    return childProcess;
-}
-
-QProcess* TExec::prepareShellProcess()
-{
-    QProcess* childProcess = new QProcess();
-
-    QFileInfo fileInfo(mFilename);
-    QString finalFile = mFilename;
-
-    // Force shell script if windows BAT made it through to this point (probably won't happen)
-    if(fileInfo.suffix() == SHELL_EXT_WIN)
-    {
-        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
-        finalFile.replace('.' + SHELL_EXT_WIN, '.' + SHELL_EXT_LINUX);
-    }
-
-    // Set program
-    childProcess->setProgram("/bin/sh");
-
-    // Set arguments
-    QString bashCommand = "'" + mFilename + "' " + createEscapedShellArguments();
-    childProcess->setArguments({"-c", bashCommand});
-
-    return childProcess;
 }
 
 void TExec::logProcessStart(const QProcess* process, ProcessType type)

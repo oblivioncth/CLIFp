@@ -310,8 +310,8 @@ ErrorCode Core::enqueueStartupTasks()
     TExec* xhostSet = new TExec(this);
     xhostSet->setIdentifier("xhost Set");
     xhostSet->setStage(Task::Stage::Startup);
-    xhostSet->setPath(mFlashpointInstall->fullPath());
-    xhostSet->setFilename("xhost");
+    xhostSet->setExecutable("xhost");
+    xhostSet->setDirectory(mFlashpointInstall->fullPath());
     xhostSet->setParameters({"+SI:localuser:root"});
     xhostSet->setProcessType(TExec::ProcessType::Blocking);
 
@@ -329,8 +329,8 @@ ErrorCode Core::enqueueStartupTasks()
         TExec* currentTask = new TExec(this);
         currentTask->setIdentifier(startEntry.filename);
         currentTask->setStage(Task::Stage::Startup);
-        currentTask->setPath(mFlashpointInstall->fullPath() + '/' + startEntry.path);
-        currentTask->setFilename(startEntry.filename);
+        currentTask->setExecutable(startEntry.filename);
+        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + startEntry.path);
         currentTask->setParameters(startEntry.arguments);
         currentTask->setProcessType(TExec::ProcessType::Blocking);
 
@@ -352,8 +352,8 @@ ErrorCode Core::enqueueStartupTasks()
         TExec* serverTask = new TExec(this);
         serverTask->setIdentifier("Server");
         serverTask->setStage(Task::Stage::Startup);
-        serverTask->setPath(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
-        serverTask->setFilename(configuredServer.filename);
+        serverTask->setExecutable(configuredServer.filename);
+        serverTask->setDirectory(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
         serverTask->setParameters(configuredServer.arguments);
         serverTask->setProcessType(configuredServer.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
@@ -368,8 +368,8 @@ ErrorCode Core::enqueueStartupTasks()
         TExec* currentTask = new TExec(this);
         currentTask->setIdentifier("Daemon");
         currentTask->setStage(Task::Stage::Startup);
-        currentTask->setPath(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
-        currentTask->setFilename(daemonIt.value().filename);
+        currentTask->setExecutable(daemonIt.value().filename);
+        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
         currentTask->setParameters(daemonIt.value().arguments);
         currentTask->setProcessType(daemonIt.value().kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
@@ -412,8 +412,8 @@ void Core::enqueueShutdownTasks()
         TExec* shutdownTask = new TExec(this);
         shutdownTask->setIdentifier(stopEntry.filename);
         shutdownTask->setStage(Task::Stage::Shutdown);
-        shutdownTask->setPath(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
-        shutdownTask->setFilename(stopEntry.filename);
+        shutdownTask->setExecutable(stopEntry.filename);
+        shutdownTask->setDirectory(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
         shutdownTask->setParameters(stopEntry.arguments);
         shutdownTask->setProcessType(TExec::ProcessType::Blocking);
 
@@ -426,8 +426,8 @@ void Core::enqueueShutdownTasks()
     TExec* xhostClear = new TExec(this);
     xhostClear->setIdentifier("xhost Clear");
     xhostClear->setStage(Task::Stage::Shutdown);
-    xhostClear->setPath(mFlashpointInstall->fullPath());
-    xhostClear->setFilename("xhost");
+    xhostClear->setExecutable("xhost");
+    xhostClear->setDirectory(mFlashpointInstall->fullPath());
     xhostClear->setParameters({"-SI:localuser:root"});
     xhostClear->setProcessType(TExec::ProcessType::Blocking);
 

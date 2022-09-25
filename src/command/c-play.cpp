@@ -285,8 +285,12 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
-        addAppTask->setPath(fulladdAppPathInfo.absolutePath());
-        addAppTask->setFilename(fulladdAppPathInfo.fileName());
+#if defined _WIN32
+        addAppTask->setExecutable(fulladdAppPathInfo.fileName());
+#elif defined __linux__
+        addAppTask->setExecutable("./" + fulladdAppPathInfo.fileName());
+#endif
+        addAppTask->setDirectory(fulladdAppPathInfo.absoluteDir());
         addAppTask->setParameters(addApp.launchCommand());
         addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
         addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
@@ -313,8 +317,8 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
     TExec* gameTask = new TExec(&mCore);
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
-    gameTask->setPath(fullGamePathInfo.absolutePath());
-    gameTask->setFilename(fullGamePathInfo.fileName());
+    gameTask->setExecutable(fullGamePathInfo.canonicalFilePath());
+    gameTask->setDirectory(fullGamePathInfo.absoluteDir());
     gameTask->setParameters(game.launchCommand());
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);

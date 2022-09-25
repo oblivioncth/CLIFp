@@ -207,26 +207,25 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 6     | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
 | 7     | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
 | 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
-| 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
-| 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 11    | BIDE_PROCESS_NOT_HANDLED | A handle to a "bide-on" process (usually for .bat based titles) could not be obtained                     |
-| 12    | BIDE_PROCESS_NOT_HOOKED  | A bide task returned before its "bide-on" process (usually for .bat based titles) finished executing      |
-| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "bide-on" process                    |
-| 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
-| 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
-| 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
-| 17    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
-| 18    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
-| 19    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
-| 20    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
-| 21    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
-| 22    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
-| 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
-| 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
-| 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
-| 26    | CANT_QUERY_DOCKER        | The status of the Docker daemon could not be checked                                                      |
-| 27    | CANT_LISTEN_DOCKER       | The event interface of the Docker daemon could not be connected to                                        |
-| 28    | DOCKER_DIDNT_START       | The gamezip Docker container never started                                                                |
+| 9     | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
+| 10    | BIDE_PROCESS_NOT_HANDLED | A handle to a "bide-on" process (usually for .bat based titles) could not be obtained                     |
+| 11    | BIDE_PROCESS_NOT_HOOKED  | A bide task returned before its "bide-on" process (usually for .bat based titles) finished executing      |
+| 12    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "bide-on" process                    |
+| 13    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
+| 14    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
+| 15    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
+| 16    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
+| 17    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
+| 18    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
+| 19    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
+| 20    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
+| 21    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
+| 22    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
+| 23    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
+| 24    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
+| 25    | CANT_QUERY_DOCKER        | The status of the Docker daemon could not be checked                                                      |
+| 26    | CANT_LISTEN_DOCKER       | The event interface of the Docker daemon could not be connected to                                        |
+| 27    | DOCKER_DIDNT_START       | The gamezip Docker container never started                                                                |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
 | 201   | CANT_CREATE_SHORTCUT     | Failed to create a shortcut. Usually due to an invalid path or permissions error                          |

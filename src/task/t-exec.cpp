@@ -1,9 +1,6 @@
 // Unit Include
 #include "t-exec.h"
 
-// Qt Includes
-#include <QStandardPaths>
-
 // Qx Includes
 #include <qx/core/qx-regularexpression.h>
 
@@ -85,18 +82,27 @@ QString TExec::createEscapedShellArguments()
 
 bool TExec::cleanStartProcess(QProcess* process)
 {
-    // Start process and confirm
+    // Note directories
     const QString currentDirPath = QDir::currentPath();
-    QDir::setCurrent(mPath);
-    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(mPath)));
+    const QString newDirPath = mDirectory.absolutePath();
+
+    // Go to working directory
+    QDir::setCurrent(newDirPath);
+    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(newDirPath)));
+
+    // Start process
     process->start();
-    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(mIdentifier, mFilename));
+    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(mIdentifier, mExecutable));
+
+    // Return to previous working directory
     QDir::setCurrent(currentDirPath);
     emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
+
+    // Make sure process starts
     if(!process->waitForStarted())
     {
         emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical,
-                                 ERR_EXE_NOT_STARTED.arg(mFilename),
+                                 ERR_EXE_NOT_STARTED.arg(mExecutable),
                                  ENUM_NAME(process->error())));
         delete process; // Clear finished process handle from heap
         return false;
@@ -122,8 +128,8 @@ QString TExec::name() const { return NAME; }
 QStringList TExec::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".path() = \"" + QDir::toNativeSeparators(mPath) + "\"");
-    ml.append(".filename() = \"" + mFilename + "\"");
+    ml.append(".executable() = \"" + mExecutable + "\"");
+    ml.append(".directory() = \"" + mDirectory.absolutePath() + "\"");
     if(std::holds_alternative<QString>(mParameters))
         ml.append(".parameters() = \"" + std::get<QString>(mParameters) + "\"");
     else
@@ -133,15 +139,15 @@ QStringList TExec::members() const
     return ml;
 }
 
-QString TExec::path() const { return mPath; }
-QString TExec::filename() const { return mFilename; }
+QString TExec::executable() const { return mExecutable; }
+QDir TExec::directory() const { return mDirectory; }
 const std::variant<QString, QStringList>& TExec::parameters() const { return mParameters; }
 const QProcessEnvironment& TExec::environment() const { return mEnvironment; }
 TExec::ProcessType TExec::processType() const { return mProcessType; }
 QString TExec::identifier() const { return mIdentifier; }
 
-void TExec::setPath(QString path) { mPath = path; }
-void TExec::setFilename(QString filename) { mFilename = filename; }
+void TExec::setExecutable(QString executable) { mExecutable = executable; }
+void TExec::setDirectory(QDir directory) { mDirectory = directory; }
 void TExec::setParameters(const std::variant<QString, QStringList>& parameters) { mParameters = parameters; }
 void TExec::setEnvironment(const QProcessEnvironment& environment) { mEnvironment = environment; }
 void TExec::setProcessType(ProcessType processType) { mProcessType = processType; }
@@ -149,45 +155,18 @@ void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
 void TExec::perform()
 {
-    // Ensure executable exists
-    QFileInfo execInfo(mPath + '/' + mFilename);
-    if(execInfo.exists())
+    // Get final executable path
+    QString execPath = resolveExecutablePath();
+    if(execPath.isEmpty())
     {
-        // Ensure executable is valid (force check Windows extensions in case this is for WINE on Linux)
-        if(!(execInfo.isExecutable() || execInfo.suffix() == EXECUTABLE_EXT_WIN || execInfo.suffix() == SHELL_EXT_WIN))
-        {
-            emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                     ERR_EXE_NOT_VALID.arg(QDir::toNativeSeparators(execInfo.absoluteFilePath()))));
-            emit complete(ErrorCode::EXECUTABLE_NOT_VALID);
-            return;
-        }
-    }
-    else
-    {
-        /* Check system paths as a fallback. If found, the path isn't actually used, it's existence is just
-         * checked for to ensure that QProcess will be able to start the named executable
-         */
-        QString systemExec = QStandardPaths::findExecutable(mFilename);
-        if(systemExec.isEmpty())
-        {
-            emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                      ERR_EXE_NOT_FOUND.arg(mFilename)));
-            emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
-            return;
-        }
+        emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
+                                                  ERR_EXE_NOT_FOUND.arg(mExecutable)));
+        emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
+        return;
     }
 
-    // Check if task requires a shell
-    bool requiresShell = execInfo.suffix() == SHELL_EXT_WIN || execInfo.suffix() == SHELL_EXT_LINUX;
-
-    // Create process handle
-    // TODO: May want to pass in 'executablePath' to these two functions and use that directly instead of QProcess performing essentially the
-    //       same search again when given just the filename
-    QProcess* taskProcess;
-    if(requiresShell)
-        taskProcess = prepareShellProcess();
-    else
-        taskProcess = prepareDirectProcess();
+    // Prepare process
+    QProcess* taskProcess = prepareProcess(QFileInfo(execPath));
 
     // Set common process properties
     if(!mEnvironment.isEmpty()) // Don't override the QProcess default (use system env.) if no custom env. was set
