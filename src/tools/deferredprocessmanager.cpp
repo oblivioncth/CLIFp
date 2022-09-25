@@ -44,7 +44,7 @@ void DeferredProcessManager::manage(const QString& identifier, QProcess* process
 {
     // Connect signals
     connect(process, &QProcess::finished, this, &DeferredProcessManager::processFinishedHandler);
-    connect(process, &QProcess::readyReadStandardError, this, &DeferredProcessManager::processStandardOutHandler);
+    connect(process, &QProcess::readyReadStandardOutput, this, &DeferredProcessManager::processStandardOutHandler);
     connect(process, &QProcess::readyReadStandardError, this, &DeferredProcessManager::processStandardErrorHandler);
 
     // Store
