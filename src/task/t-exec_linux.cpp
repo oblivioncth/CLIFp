@@ -57,13 +57,18 @@ QProcess* TExec::prepareDirectProcess()
         // Set program
         childProcess->setProgram("wine");
 
+        // Resolve passed parameters
+        QString exeParam = std::holds_alternative<QStringList>(mParameters) ?
+                           collapseArguments(std::get<QStringList>(mParameters)) :
+                           std::get<QString>(mParameters);
+
         // Set arguments
         childProcess->setArguments({
             "start",
             "/wait",
             "/unix",
             mFilename,
-            createEscapedShellArguments()
+            exeParam
         });
 
     }
