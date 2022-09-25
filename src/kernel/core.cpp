@@ -203,6 +203,7 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 #endif
 }
 
+// TODO: Might make sense to make this a function in libfp
 QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform)
 {
     // Works will full or partial paths
@@ -227,7 +228,8 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
     if(resolvedPath != appPath)
         logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, resolvedPath));
 
-    return QDir::toNativeSeparators(truePath);
+    // Convert Windows seperators to universal '/'
+    return truePath.replace('\\','/');
 }
 
 ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
