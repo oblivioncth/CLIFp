@@ -55,22 +55,27 @@ QProcess* setupNativeProcess(const QString& exePath, std::variant<QString, QStri
 //Private:
 QString TExec::resolveExecutablePath()
 {
-    /* Mimic how Linux (and QProcess on Windows) search for an executable, with some exceptions
+    /* Mimic how Windows (and QProcess on Windows) search for an executable, with some exceptions
      * See: https://doc.qt.io/qt-6/qprocess.html#finding-the-executable
      *
-     * The exceptions largely are that relative paths are always resolved relative to mDir instead
+     * The exceptions largely are that relative paths are always resolved relative to mDirectory instead
      * of how the system would handle it.
+     *
+     * On windows you can start an appliation (.exe/.bat) with just it's filename, so the use of
+     * QStandardPaths::findExecutable() with a second argument here ensures that both extensions are checked for.
      */
     QFileInfo execInfo(mExecutable);
 
     // Mostly standard processing
     if(execInfo.isAbsolute())
-        return execInfo.isExecutable() ? execInfo.canonicalFilePath() : QString();
+        return QStandardPaths::findExecutable(execInfo.fileName(), {execInfo.absolutePath()});
     else // Relative
     {
+        // First check relative to mDirectory
         QFileInfo absolutePath(mDirectory.absoluteFilePath(execInfo.filePath()));
-        QString resolvedPath = absolutePath.isExecutable() ? absolutePath.canonicalFilePath() : QString();
+        QString resolvedPath = QStandardPaths::findExecutable(absolutePath.fileName(), {absolutePath.absolutePath()});
 
+        // Then, if the path is a plain filename, check system paths
         if(resolvedPath.isEmpty() && !execInfo.filePath().contains('/')) // Plain name relative
             resolvedPath = QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
 

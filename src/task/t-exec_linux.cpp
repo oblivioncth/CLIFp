@@ -72,7 +72,7 @@ QString TExec::resolveExecutablePath()
     /* Mimic how Linux (and QProcess on Linux) search for an executable, with some exceptions
      * See: https://doc.qt.io/qt-6/qprocess.html#finding-the-executable
      *
-     * The exceptions largely are that relative paths are always resolved relative to mDir instead
+     * The exceptions largely are that relative paths are always resolved relative to mDirectory instead
      * of how the system would handle it.
      */
 
