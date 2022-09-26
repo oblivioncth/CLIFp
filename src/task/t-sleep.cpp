@@ -31,7 +31,7 @@ void TSleep::setDuration(uint msecs) { mDuration = msecs; }
 
 void TSleep::perform()
 {
-    emit eventOccurred(NAME, LOG_EVENT_START_SLEEP);
+    emit eventOccurred(NAME, LOG_EVENT_START_SLEEP.arg(mDuration));
     mSleeper.start(mDuration);
 }
 
