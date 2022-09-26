@@ -14,15 +14,6 @@ TAwaitDocker::TAwaitDocker(QObject* parent) :
 {
     // Setup event listener
     mEventListener.setProgram(DOCKER);
-    mEventListener.setArguments({
-        "events",
-        "--filter",
-        "container=" + mImageName,
-        "--filter",
-        "event=start",
-        "--format",
-        "{{.Actor.Attributes.name}}",
-    });
 
     connect(&mEventListener, &QProcess::readyReadStandardOutput, this, &TAwaitDocker::eventDataReceived);
 
@@ -75,6 +66,17 @@ ErrorCode TAwaitDocker::imageRunningCheck(bool& running)
 
 ErrorCode TAwaitDocker::startEventListener()
 {
+    // Arguments set here instead of ctor. since they depend on mImageName
+    mEventListener.setArguments({
+        "events",
+        "--filter",
+        "container=" + mImageName,
+        "--filter",
+        "event=start",
+        "--format",
+        "{{.Actor.Attributes.name}}",
+    });
+
     mEventListener.start();
     if(!mEventListener.waitForStarted(1000))
     {
@@ -158,8 +160,8 @@ void TAwaitDocker::eventDataReceived()
         eventData.chop(1); // Remove '\n'
         if(eventData == mImageName)
         {
-            emit eventOccurred(NAME, LOG_EVENT_START_RECEIVED);
             mTimeoutTimer.stop();
+            emit eventOccurred(NAME, LOG_EVENT_START_RECEIVED);
             stopEventListening();
             emit complete(ErrorCode::NO_ERR);
         }
