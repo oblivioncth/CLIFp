@@ -207,8 +207,8 @@ void TExec::perform()
             break;
 
         case ProcessType::Detached:
-            // TODO: Test if a parent can be set in this case instead of leaving taskProcess completely dangling.
-            // It's that way for now because IIRC even when using startDetached(), the QProcess destructor still stops the process
+            // The parent here doesn't really matter since the program is detached, so just make it the same as deferred
+            taskProcess->setParent(this->parent());
 
             // startDetached causes parent shell to be inherited, which isn't desired here, so manually disconnect them
             taskProcess->setStandardOutputFile(QProcess::nullDevice());
