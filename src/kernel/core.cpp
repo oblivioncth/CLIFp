@@ -206,30 +206,32 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 // TODO: Might make sense to make this a function in libfp
 QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform)
 {
-    // Works will full or partial paths
-    QString resolvedPath = appPath;
+    // If appPath is absolute, convert it to relative temporarily
+    QString workingPath = appPath;
 
     QString fpPath = mFlashpointInstall->fullPath();
-    bool isFpAbsolute = resolvedPath.startsWith(fpPath);
+    bool isFpAbsolute = workingPath.startsWith(fpPath);
     if(isFpAbsolute)
     {
-        // Temporarily remove FP root and separator
-        resolvedPath.remove(fpPath);
-        if(!resolvedPath.isEmpty() && resolvedPath.front() == '/' || resolvedPath.front() == '\\')
-            resolvedPath = resolvedPath.mid(1);
+        // Remove FP root and separator
+        workingPath.remove(fpPath);
+        if(!workingPath.isEmpty() && workingPath.front() == '/' || workingPath.front() == '\\')
+            workingPath = workingPath.mid(1);
     }
 
-    QString truePath = mFlashpointInstall->resolveExecSwaps(resolvedPath, platform);
-    truePath = mFlashpointInstall->resolveAppPathOverrides(truePath);
+    // Resolve both swap types
+    workingPath = mFlashpointInstall->resolveExecSwaps(workingPath, platform);
+    workingPath = mFlashpointInstall->resolveAppPathOverrides(workingPath);
 
+    // Rebuild full path if applicable
     if(isFpAbsolute)
-        truePath = fpPath + '/' + truePath;
+        workingPath = fpPath + '/' + workingPath;
 
-    if(resolvedPath != appPath)
-        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, resolvedPath));
+    if(workingPath != appPath)
+        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, workingPath));
 
     // Convert Windows seperators to universal '/'
-    return truePath.replace('\\','/');
+    return workingPath.replace('\\','/');
 }
 
 ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
