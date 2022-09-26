@@ -56,9 +56,17 @@ void DeferredProcessManager::closeProcesses()
     if(!mClosingClients)
     {
         mClosingClients = true;
-        for(auto itr = mManagedProcesses.constBegin(); itr != mManagedProcesses.constEnd(); itr++)
+
+        /* Can't iterate over the hash here as when a process finishes 'processFinishedHandler' gets called
+         * which removes the QProcess handle from the hash, potentially invalidating the iterator. Even if it
+         * coincidentally works some of the time, this is undefined behavior and should be avoided. Instead
+         * simply check if the hash is empty on each iteration
+         */
+
+        while(!mManagedProcesses.isEmpty())
         {
-            QProcess* proc = itr.key();
+            // Get first key from hash
+            QProcess* proc = mManagedProcesses.constBegin().key();
 
             /* Kill children of the process, as here the whole tree should be killed
              * A "clean" kill is used for this as the vanilia Launcher uses Node.js process.kill()
