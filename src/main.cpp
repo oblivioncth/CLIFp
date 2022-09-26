@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<Core::BlockingError>();
 
     // Create application controller
-    Controller appController(qApp->instance());
+    Controller appController(&app);
 
     // Start driver
     appController.run();
