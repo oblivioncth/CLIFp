@@ -61,7 +61,7 @@ Controller::~Controller()
 //Private:
 bool Controller::windowsAreOpen()
 {
-    // Based on Qt's down check here: https://code.qt.io/cgit/qt/qtbase.git/tree/src/gui/kernel/qwindow.cpp?h=5.15.2#n2710
+    // Based on Qt's own check here: https://code.qt.io/cgit/qt/qtbase.git/tree/src/gui/kernel/qwindow.cpp?h=5.15.2#n2710
     // and here: https://code.qt.io/cgit/qt/qtbase.git/tree/src/gui/kernel/qguiapplication.cpp?h=5.15.2#n3629
     QWindowList topWindows = QApplication::topLevelWindows();
     for(const QWindow* window : qAsConst(topWindows))
