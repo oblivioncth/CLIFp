@@ -219,6 +219,15 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
             workingPath = workingPath.mid(1);
     }
 
+    /* TODO: If this is made into a libfp function, isolate this part of it so it stays here
+     *
+     * CLIFp doesn't support the Launcher's built in browser (obviously), so manually
+     * override it with Basilisk. Basilisk was removed in FP11 but the app path overrides
+     * contains an entry for it that's appropriate on both platforms.
+     */
+    if(workingPath == ":browser-mode:")
+        workingPath = "FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe";
+
     // Resolve both swap types
     workingPath = mFlashpointInstall->resolveExecSwaps(workingPath, platform);
     workingPath = mFlashpointInstall->resolveAppPathOverrides(workingPath);
