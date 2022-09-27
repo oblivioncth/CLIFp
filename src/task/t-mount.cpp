@@ -12,19 +12,8 @@
 //Public:
 TMount::TMount(QObject* parent) :
     Task(parent),
-    mMounter(22501, 0, 22500) // Prod port not used yet
-{
-    //-Setup Mounter------------------------------------
-    connect(&mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
-        emit errorOccurred(NAME, errorMsg);
-    });
-    connect(&mMounter, &Mounter::eventOccured, this, [this](QString event){
-        emit eventOccurred(NAME, event);
-    });
-    connect(&mMounter, &Mounter::mountProgressMaximumChanged, this, &Task::longTaskTotalChanged);
-    connect(&mMounter, &Mounter::mountProgress, this, &Task::longTaskProgressChanged);
-    connect(&mMounter, &Mounter::mountFinished, this, &TMount::postMount);
-}
+    mMounter(nullptr)
+{}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
@@ -37,9 +26,11 @@ QStringList TMount::members() const
     return ml;
 }
 
+bool TMount::isSkipQemu() const { return mSkipQemu; }
 QUuid TMount::titleId() const { return mTitleId; }
 QString TMount::path() const { return mPath; }
 
+void TMount::setSkipQemu(bool skip) { mSkipQemu = skip; }
 void TMount::setTitleId(QUuid titleId) { mTitleId = titleId; }
 void TMount::setPath(QString path) { mPath = path; }
 
@@ -49,17 +40,30 @@ void TMount::perform()
     QFileInfo packFileInfo(mPath);
     QString label = LOG_EVENT_MOUNTING_DATA_PACK.arg(packFileInfo.fileName());
 
+    //-Setup Mounter------------------------------------
+    mMounter = new Mounter(22500, mSkipQemu ? 0 : 22501, 0, this);
+
+    connect(mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
+        emit errorOccurred(NAME, errorMsg);
+    });
+    connect(mMounter, &Mounter::eventOccured, this, [this](QString event){
+        emit eventOccurred(NAME, event);
+    });
+    connect(mMounter, &Mounter::mountProgressMaximumChanged, this, &Task::longTaskTotalChanged);
+    connect(mMounter, &Mounter::mountProgress, this, &Task::longTaskProgressChanged);
+    connect(mMounter, &Mounter::mountFinished, this, &TMount::postMount);
+
     // Start mount
     emit longTaskStarted(label);
-    mMounter.mount(mTitleId, mPath);
+    mMounter->mount(mTitleId, mPath);
 }
 
 void TMount::stop()
 {
-    if(mMounter.isMounting())
+    if(mMounter && mMounter->isMounting())
     {
         emit eventOccurred(NAME, LOG_EVENT_STOPPING_MOUNT);
-        mMounter.abort();
+        mMounter->abort();
     }
 }
 

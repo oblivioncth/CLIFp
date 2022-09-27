@@ -13,6 +13,9 @@ TDownload::TDownload(QObject* parent) :
     // Setup download manager
     mDownloadManager.setOverwrite(true);
 
+    // Since this is only for one download, the size will be adjusted to the correct total as soon as the download starts
+    mDownloadManager.setSkipEnumeration(true);
+
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::GenericError errorMsg, bool* ignore) {
         int choice;

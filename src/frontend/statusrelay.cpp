@@ -86,6 +86,12 @@ void StatusRelay::messageHandler(const QString& message)
     msg->show();
 }
 
+void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request)
+{
+    *file = QFileDialog::getSaveFileName(nullptr, request.caption, request.dir,
+                                         request.filter, request.selectedFilter, request.options);
+}
+
 void StatusRelay::longTaskProgressHandler(quint64 progress)
 {
     mLongTaskProgressDialog.setValue(progress);

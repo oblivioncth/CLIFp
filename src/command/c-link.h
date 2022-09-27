@@ -12,7 +12,6 @@ private:
     static inline const QString STATUS_LINK = "Linking";
 
     // General
-    static inline const QString LNK_EXT = "lnk";
     static inline const QString DIAG_CAPTION = "Select a shortcut destination...";
 
     // Error Messages - Prep
@@ -63,6 +62,10 @@ public:
     CLink(Core& coreRef);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
+private:
+    ErrorCode createShortcut(const QString& name, const QDir& dir, QUuid id);
+    QString shortcutExtension() const;
+
 protected:
     const QList<const QCommandLineOption*> options();
     const QString name();

@@ -35,13 +35,29 @@ void Driver::init()
     connect(mCore, &Core::errorOccured, this, &Driver::errorOccured);
     connect(mCore, &Core::blockingErrorOccured, this, &Driver::blockingErrorOccured);
     connect(mCore, &Core::message, this, &Driver::message);
+    connect(mCore, &Core::saveFileRequested, this, &Driver::saveFileRequested);
+
+    //-Setup deferred process manager------
+    /* NOTE: It looks like the manager should just be a stack member of TExec that is constructed
+     * during program initialization, but it can't be, as since it's a QObject it would belong
+     * to the default thread, when it needs to belong to the thread that Driver gets moved to. So,
+     * instead we create it during Driver init (post thread move) and install it into TExec as a
+     * static pointer member. An alternative could have been making TExec internally use a
+     * "construct on first use" getter function and the "rule" simply being don't perform a TExec
+     * task except from the correct thread (which would only ever happen anyway), but then that
+     * would make deleting the object slightly tricky. This way it can just be parented to core
+     */
+    DeferredProcessManager* dpm = new DeferredProcessManager(mCore);
+    connect(dpm, &DeferredProcessManager::eventOccurred, mCore, &Core::logEvent);
+    connect(dpm, &DeferredProcessManager::errorOccurred, mCore, &Core::logError);
+    TExec::installDeferredProcessManager(dpm);
 }
 
 void Driver::startNextTask()
 {
     // Ensure tasks exist
     if(!mCore->hasTasks())
-        throw std::runtime_error(Q_FUNC_INFO " called with no tasks remaining.");
+        throw std::runtime_error(std::string(Q_FUNC_INFO) + " called with no tasks remaining.");
 
     // Take task at front of queue
     mCurrentTask = mCore->frontTask();
@@ -98,11 +114,11 @@ void Driver::startNextTask()
 
 void Driver::cleanup()
 {
+    mCore->logEvent(NAME, LOG_EVENT_CLEANUP_START);
+
     // Close each remaining child process
     mCore->logEvent(NAME, LOG_EVENT_ENDING_CHILD_PROCESSES);
-    const QStringList logStatements = TExec::closeChildProcesses();
-    for(const QString& statement : logStatements)
-        mCore->logEvent(NAME, statement);
+    TExec::deferredProcessManager()->closeProcesses();
 
     mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
 }
@@ -184,7 +200,7 @@ void Driver::drive()
     }
 
     // Ensure Flashpoint Launcher isn't running
-    if(Qx::processIsRunning(Fp::Install::LAUNCHER_INFO.fileName()))
+    if(Qx::processIsRunning(Fp::Install::LAUNCHER_NAME))
     {
         mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
         mErrorStatus = ErrorCode::LAUNCHER_OPEN;
@@ -235,7 +251,7 @@ void Driver::drive()
     mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
     if(mCore->hasTasks())
     {
-        // Process app task queue
+        // Process task queue
         mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
         startNextTask();
     }

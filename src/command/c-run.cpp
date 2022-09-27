@@ -41,22 +41,26 @@ ErrorCode CRun::process(const QStringList& commandLine)
     if((errorStatus = mCore.enqueueStartupTasks()))
         return errorStatus;
 
-    QString inputPath = mCore.fpInstall().resolveAppPathOverrides(mParser.value(CL_OPTION_APP));
+    QString inputPath = mCore.resolveTrueAppPath(mParser.value(CL_OPTION_APP), ""); // No way of knowing platform
     QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
 
     TExec* runTask = new TExec(&mCore);
+    runTask->setIdentifier(NAME + " program");
     runTask->setStage(Task::Stage::Primary);
-    runTask->setPath(inputInfo.absolutePath());
-    runTask->setFilename(inputInfo.fileName());
+    runTask->setExecutable(inputInfo.canonicalFilePath());
+    runTask->setDirectory(inputInfo.canonicalPath());
     runTask->setParameters(mParser.value(CL_OPTION_PARAM));
+    runTask->setEnvironment(mCore.childTitleProcessEnvironment());
     runTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(runTask);
-    mCore.setStatus(STATUS_RUN, runTask->filename());
+    mCore.setStatus(STATUS_RUN, inputInfo.fileName());
 
+#ifdef _WIN32
     // Add wait task if required
-    if((errorStatus = mCore.enqueueConditionalWaitTask(inputInfo)))
+    if((errorStatus = mCore.conditionallyEnqueueBideTask(inputInfo)))
         return errorStatus;
+#endif
 
     // Return success
     return ErrorCode::NO_ERR;

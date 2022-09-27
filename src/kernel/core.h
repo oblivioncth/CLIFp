@@ -11,6 +11,7 @@
 #include <QUrl>
 #include <QCommandLineParser>
 #include <QMessageBox>
+#include <QFileDialog>
 
 // libfp Includes
 #include <fp/flashpoint/fp-install.h>
@@ -43,6 +44,15 @@ public:
         QMessageBox::StandardButton defaultChoice;
     };
 
+    struct SaveFileRequest
+    {
+        QString caption;
+        QString dir;
+        QString filter;
+        QString* selectedFilter = nullptr;
+        QFileDialog::Options options;
+    };
+
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
     // Status
@@ -64,7 +74,7 @@ public:
     static inline const QString COMMAND_OPT_LABEL = "Command Options: %1";
 
     // Logging - Primary Values
-    static inline const QString LOG_FILE_NAME = "CLIFp.log";
+    static inline const QString LOG_FILE_EXT = "log";
     static inline const QString LOG_HEADER = "CLIFp Execution Log";
     static inline const QString LOG_NO_PARAMS = "*None*";
     static inline const int LOG_MAX_ENTRIES = 50;
@@ -89,6 +99,7 @@ public:
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
     static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of title %1 determined to be %2";
+    static inline const QString LOG_EVENT_APP_PATH_ALT = "App path \"%1\" maps to alternative \"%2\".";
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";
@@ -155,6 +166,9 @@ private:
     QString mStatusHeading;
     QString mStatusMessage;
 
+    // Other
+    QProcessEnvironment mChildTitleProcEnv;
+
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
     explicit Core(QObject* parent);
@@ -171,12 +185,15 @@ public:
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     // Helper
+    QString resolveTrueAppPath(const QString& appPath, const QString& platform);
     ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
 
     // Common
     ErrorCode enqueueStartupTasks();
     void enqueueShutdownTasks();
-    ErrorCode enqueueConditionalWaitTask(QFileInfo precedingAppInfo);
+#ifdef _WIN32
+    ErrorCode conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
+#endif
     ErrorCode enqueueDataPackTasks(QUuid targetId);
     void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
@@ -191,9 +208,11 @@ public:
     void postError(QString src, Qx::GenericError error, bool log = true);
     int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
+    QString requestSaveFilePath(const SaveFileRequest& req);
 
     // Member access
     Fp::Install& fpInstall();
+    const QProcessEnvironment& childTitleProcessEnvironment();
     NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;
@@ -210,6 +229,7 @@ signals:
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
     void errorOccured(const Core::Error& error);
     void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
+    void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void message(const QString& message);
 };
 

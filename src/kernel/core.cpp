@@ -14,7 +14,13 @@
 #include "task/t-exec.h"
 #include "task/t-extract.h"
 #include "task/t-mount.h"
-#include "task/t-wait.h"
+#ifdef _WIN32
+    #include "task/t-bideprocess.h"
+#endif
+#ifdef __linux__
+    #include "task/t-awaitdocker.h"
+    #include "task/t-sleep.h"
+#endif
 #include "utility.h"
 
 //===============================================================================================================
@@ -121,7 +127,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
     commandLine.removeFirst();
 
     // Create logger instance
-    QString logPath = CLIFP_DIR_PATH + '/' + LOG_FILE_NAME;
+    QString logPath = CLIFP_DIR_PATH + '/' + CLIFP_CUR_APP_BASENAME  + '.' + LOG_FILE_EXT;
     mLogger = std::make_unique<Logger>(logPath, commandLine.isEmpty() ? LOG_NO_PARAMS : commandLine.join(" "), globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
 
     // Open log
@@ -172,6 +178,69 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 {
     // Capture install
     mFlashpointInstall = std::move(flashpointInstall);
+
+    // Initialize child process env var
+    mChildTitleProcEnv = QProcessEnvironment::systemEnvironment();
+
+    // Add FP root var
+    mChildTitleProcEnv.insert("FP_PATH", mFlashpointInstall->fullPath());
+
+#ifdef __linux__
+    // Add HTTTP proxy var
+    QString baseProxy = mFlashpointInstall->preferences().browserModeProxy;
+    if(!baseProxy.isEmpty())
+    {
+        QString fullProxy = "http://" + baseProxy + '/';
+        mChildTitleProcEnv.insert("http_proxy", fullProxy);
+        mChildTitleProcEnv.insert("HTTP_PROXY", fullProxy);
+    }
+
+    /* NOTE: It's called "browserModeProxy" but it seems to be used everywhere and not just
+     * for the vanilla launcher's browser mode. The launcher comments refer to it being created
+     * in "BackgroundServices.ts" but that file doesnt exist so it's either a leftover (hopefully)
+     * or a future feature (hopefully not). Either way it just points to the PHP server port.
+     */
+#endif
+}
+
+// TODO: Might make sense to make this a function in libfp
+QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform)
+{
+    // If appPath is absolute, convert it to relative temporarily
+    QString workingPath = appPath;
+
+    QString fpPath = mFlashpointInstall->fullPath();
+    bool isFpAbsolute = workingPath.startsWith(fpPath);
+    if(isFpAbsolute)
+    {
+        // Remove FP root and separator
+        workingPath.remove(fpPath);
+        if(!workingPath.isEmpty() && workingPath.front() == '/' || workingPath.front() == '\\')
+            workingPath = workingPath.mid(1);
+    }
+
+    /* TODO: If this is made into a libfp function, isolate this part of it so it stays here
+     *
+     * CLIFp doesn't support the Launcher's built in browser (obviously), so manually
+     * override it with Basilisk. Basilisk was removed in FP11 but the app path overrides
+     * contains an entry for it that's appropriate on both platforms.
+     */
+    if(workingPath == ":browser-mode:")
+        workingPath = "FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe";
+
+    // Resolve both swap types
+    workingPath = mFlashpointInstall->resolveExecSwaps(workingPath, platform);
+    workingPath = mFlashpointInstall->resolveAppPathOverrides(workingPath);
+
+    // Rebuild full path if applicable
+    if(isFpAbsolute)
+        workingPath = fpPath + '/' + workingPath;
+
+    if(workingPath != appPath)
+        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, workingPath));
+
+    // Convert Windows seperators to universal '/'
+    return workingPath.replace('\\','/');
 }
 
 ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
@@ -247,6 +316,20 @@ ErrorCode Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
+#ifdef __linux__
+    // On Linux X11 Server needs to be temporarily be set to allow connections from root for docker
+    TExec* xhostSet = new TExec(this);
+    xhostSet->setIdentifier("xhost Set");
+    xhostSet->setStage(Task::Stage::Startup);
+    xhostSet->setExecutable("xhost");
+    xhostSet->setDirectory(mFlashpointInstall->fullPath());
+    xhostSet->setParameters({"+SI:localuser:root"});
+    xhostSet->setProcessType(TExec::ProcessType::Blocking);
+
+    mTaskQueue.push(xhostSet);
+    logTask(NAME, xhostSet);
+#endif
+
     // Get settings
     Fp::Json::Services fpServices = mFlashpointInstall->services();
     Fp::Json::Config fpConfig = mFlashpointInstall->config();
@@ -255,9 +338,10 @@ ErrorCode Core::enqueueStartupTasks()
     for(const Fp::Json::StartStop& startEntry : qAsConst(fpServices.starts))
     {
         TExec* currentTask = new TExec(this);
+        currentTask->setIdentifier(startEntry.filename);
         currentTask->setStage(Task::Stage::Startup);
-        currentTask->setPath(mFlashpointInstall->fullPath() + '/' + startEntry.path);
-        currentTask->setFilename(startEntry.filename);
+        currentTask->setExecutable(startEntry.filename);
+        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + startEntry.path);
         currentTask->setParameters(startEntry.arguments);
         currentTask->setProcessType(TExec::ProcessType::Blocking);
 
@@ -277,9 +361,10 @@ ErrorCode Core::enqueueStartupTasks()
         Fp::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
         TExec* serverTask = new TExec(this);
+        serverTask->setIdentifier("Server");
         serverTask->setStage(Task::Stage::Startup);
-        serverTask->setPath(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
-        serverTask->setFilename(configuredServer.filename);
+        serverTask->setExecutable(configuredServer.filename);
+        serverTask->setDirectory(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
         serverTask->setParameters(configuredServer.arguments);
         serverTask->setProcessType(configuredServer.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
@@ -292,15 +377,38 @@ ErrorCode Core::enqueueStartupTasks()
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
         TExec* currentTask = new TExec(this);
+        currentTask->setIdentifier("Daemon");
         currentTask->setStage(Task::Stage::Startup);
-        currentTask->setPath(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
-        currentTask->setFilename(daemonIt.value().filename);
+        currentTask->setExecutable(daemonIt.value().filename);
+        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
         currentTask->setParameters(daemonIt.value().arguments);
         currentTask->setProcessType(daemonIt.value().kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(currentTask);
         logTask(NAME, currentTask);
     }
+
+#ifdef __linux__
+    // On Linux the startup tasks take a while so make sure the docker image is actually running before proceeding
+    TAwaitDocker* dockerWait = new TAwaitDocker(this);
+    dockerWait->setStage(Task::Stage::Startup);
+    // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
+    dockerWait->setImageName("gamezip");
+    dockerWait->setTimeout(10000);
+
+    mTaskQueue.push(dockerWait);
+    logTask(NAME, dockerWait);
+
+    /* Additionally, even once docker is started, the mount server inside seems to take an extra moment to initialize (gives
+     * "Connection Closed" if a mount attempt is made right away), so an additional delay must be added
+     */
+    TSleep* delayForDocker = new TSleep(this);
+    delayForDocker->setStage(Task::Stage::Startup);
+    delayForDocker->setDuration(1500); // NOTE: Might need to be made longer
+
+    mTaskQueue.push(delayForDocker);
+    logTask(NAME, delayForDocker);
+#endif
 
     // Return success
     return ErrorCode::NO_ERR;
@@ -313,18 +421,34 @@ void Core::enqueueShutdownTasks()
     for(const Fp::Json::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
     {
         TExec* shutdownTask = new TExec(this);
+        shutdownTask->setIdentifier(stopEntry.filename);
         shutdownTask->setStage(Task::Stage::Shutdown);
-        shutdownTask->setPath(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
-        shutdownTask->setFilename(stopEntry.filename);
+        shutdownTask->setExecutable(stopEntry.filename);
+        shutdownTask->setDirectory(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
         shutdownTask->setParameters(stopEntry.arguments);
         shutdownTask->setProcessType(TExec::ProcessType::Blocking);
 
         mTaskQueue.push(shutdownTask);
         logTask(NAME, shutdownTask);
     }
+
+#ifdef __linux__
+    // Undo xhost permissions modifications
+    TExec* xhostClear = new TExec(this);
+    xhostClear->setIdentifier("xhost Clear");
+    xhostClear->setStage(Task::Stage::Shutdown);
+    xhostClear->setExecutable("xhost");
+    xhostClear->setDirectory(mFlashpointInstall->fullPath());
+    xhostClear->setParameters({"-SI:localuser:root"});
+    xhostClear->setProcessType(TExec::ProcessType::Blocking);
+
+    mTaskQueue.push(xhostClear);
+    logTask(NAME, xhostClear);
+#endif
 }
 
-ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
+#ifdef _WIN32
+ErrorCode Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
 {
     // Add wait for apps that involve secure player
     bool involvesSecurePlayer;
@@ -337,7 +461,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 
     if(involvesSecurePlayer)
     {
-        TWait* waitTask = new TWait(this);
+        TBideProcess* waitTask = new TBideProcess(this);
         waitTask->setStage(Task::Stage::Auxiliary);
         waitTask->setProcessName(Fp::Install::SECURE_PLAYER_INFO.fileName());
 
@@ -350,6 +474,7 @@ ErrorCode Core::enqueueConditionalWaitTask(QFileInfo precedingAppInfo)
 
     // Possible future waits...
 }
+#endif
 
 ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
 {
@@ -387,10 +512,10 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         if(checksumReport.isFailure())
             logError(NAME, Qx::GenericError(Qx::GenericError::Error, checksumReport.outcome(), checksumReport.outcomeInfo()));
 
-        if(!checksumMatches)
+        if(checksumMatches)
+            logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
+        else
             postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
-
-        logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
     }
     else
         logEvent(NAME, LOG_EVENT_DATA_PACK_MISS);
@@ -423,7 +548,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         // Advance result to only record
         searchResult.result.next();
 
-        // Get title's Data Pack sub-URL
+        // Get title's Data Pack sub-URL (the replace here is because there once was an errant entry in DB using '\')
         QString packSubUrl = searchResult.result.value(Fp::Db::Table_Source_Data::COL_URL_PATH).toString().replace('\\','/');
 
         TDownload* downloadTask = new TDownload(this);
@@ -455,10 +580,25 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
+        // Determine if QEMU is involved
+        bool qemuUsed = false;
+        auto fpDaemons = mFlashpointInstall->services().daemons;
+        for(auto it = fpDaemons.constBegin(); it != fpDaemons.constEnd(); it++)
+        {
+            if(it->filename.contains("qemu", Qt::CaseInsensitive) ||
+               it->name.contains("qemu", Qt::CaseInsensitive))
+            {
+                qemuUsed = true;
+                break;
+            }
+        }
+
+        // Create task
         TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(targetId);
         mountTask->setPath(packDestFolderPath + "/" + packFileName);
+        mountTask->setSkipQemu(!qemuUsed);
 
         mTaskQueue.push(mountTask);
         logTask(NAME, mountTask);
@@ -570,7 +710,20 @@ int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMess
 
 void Core::postMessage(QString msg) { emit message(msg); }
 
+QString Core::requestSaveFilePath(const SaveFileRequest& request)
+{
+    // Response holder
+    QSharedPointer<QString> file = QSharedPointer<QString>::create();
+
+    // Emit and get response
+    emit saveFileRequested(file, request);
+
+    // Return response
+    return *file;
+}
+
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
+const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }

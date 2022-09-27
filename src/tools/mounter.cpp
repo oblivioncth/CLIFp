@@ -1,10 +1,13 @@
-// Unit Includes
+﻿// Unit Includes
 #include "mounter.h"
 
 // Qt Includes
 #include <QAuthenticator>
 #include <QRandomGenerator>
 #include <QUrlQuery>
+#ifdef __linux__
+    #include <QFileInfo>
+#endif
 
 // Qx Includes
 #include <qx/core/qx-json.h>
@@ -20,12 +23,13 @@
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverPort, QObject* parent) :
+Mounter::Mounter(quint16 webserverPort, quint16 qemuMountPort, quint16 qemuProdPort, QObject* parent) :
     QObject(parent),
     mMounting(false),
     mErrorStatus(ErrorCode::NO_ERR),
+    mWebserverPort(webserverPort),
     mQemuMounter(QHostAddress::LocalHost, qemuMountPort, this),
-    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this),
+    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this), // Currently not used
     mCompletedQemuCommands(0)
 {
     // Setup Network Access Manager
@@ -130,9 +134,19 @@ void Mounter::setMountOnServer()
     QUrl mountUrl;
     mountUrl.setScheme("http");
     mountUrl.setHost("127.0.0.1");
-    mountUrl.setPort(22500);
+    mountUrl.setPort(mWebserverPort);
     mountUrl.setPath("/mount.php");
-    mountUrl.setQuery({{"file", QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial)}});
+
+    QUrlQuery query;
+    QString queryKey = "file";
+#if defined _WIN32
+    QString queryValue = QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial);
+#elif defined __linux__
+    // FP Launcher uses "basename" but Node.js basename is actually filename
+    QString queryValue = QUrl::toPercentEncoding(QFileInfo(mCurrentMountInfo.filePath).fileName());
+#endif
+    query.addQueryItem(queryKey, queryValue);
+    mountUrl.setQuery(query);
 
     QNetworkRequest mountReq(mountUrl);
 
@@ -262,11 +276,15 @@ void Mounter::mount(QUuid titleId, QString filePath)
     Qx::Base85 driveSerial = Qx::Base85::encode(rawTitleId, &encoding);
     mCurrentMountInfo.driveSerial = driveSerial.toString();
 
-    // Connect to QEMU instance
-    emit eventOccured(EVENT_CONNECTING_TO_QEMU);
-    mQemuMounter.connectToHost();
-
-    // Await readyForCommands() signal...
+    // Connect to QEMU instance, or go straight to web server portion if bypassing
+    if(mQemuMounter.port() != 0)
+    {
+        emit eventOccured(EVENT_CONNECTING_TO_QEMU);
+        mQemuMounter.connectToHost();
+        // Await readyForCommands() signal...
+    }
+    else
+        setMountOnServer();
 }
 
 void Mounter::abort()

@@ -41,7 +41,7 @@ That being said, it is perfectly possible to use CLIFp in any manner one sees fi
 It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
 ### General
-**NOTE: Do not run CLIFp as an administrator as some titles may not work correctly or run at all**
+**NOTE: Do not run CLIFp as an administrator/root as some titles may not work correctly or run at all**
 
 CLIFp uses the following syntax scheme:
 
@@ -99,10 +99,23 @@ though this isn't required as long as quotation and space use is carefully emplo
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
  -  **-t | --title:** Title to  make a shortcut for
- -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
+ -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
 
 Requires:
 **-i** or **-t** 
+
+Notes: 
+
+ - On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
+
+
+
+   For example, when specifying:
+   
+       CLIFp link -p "~/Desktop/Cool Name.desktop" ...
+
+   the display name of the desktop entry will be set to "Cool Name".
+ - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
 
 --------------------------------------------------------------------------------
 
@@ -194,26 +207,28 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 6     | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
 | 7     | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
 | 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
-| 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
-| 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 11    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
-| 12    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
-| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
-| 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
-| 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
-| 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
-| 17    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
-| 18    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
-| 19    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
-| 20    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
-| 21    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
-| 22    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
-| 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
-| 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
-| 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
+| 9     | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
+| 10    | BIDE_PROCESS_NOT_HANDLED | A handle to a "bide-on" process (usually for .bat based titles) could not be obtained                     |
+| 11    | BIDE_PROCESS_NOT_HOOKED  | A bide task returned before its "bide-on" process (usually for .bat based titles) finished executing      |
+| 12    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "bide-on" process                    |
+| 13    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
+| 14    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
+| 15    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
+| 16    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
+| 17    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
+| 18    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
+| 19    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
+| 20    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
+| 21    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
+| 22    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
+| 23    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
+| 24    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
+| 25    | CANT_QUERY_DOCKER        | The status of the Docker daemon could not be checked                                                      |
+| 26    | CANT_LISTEN_DOCKER       | The event interface of the Docker daemon could not be connected to                                        |
+| 27    | DOCKER_DIDNT_START       | The gamezip Docker container never started                                                                |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
-| 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |
+| 201   | CANT_CREATE_SHORTCUT     | Failed to create a shortcut. Usually due to an invalid path or permissions error                          |
 
 ## Limitations
 

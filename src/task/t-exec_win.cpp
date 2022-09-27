@@ -1,28 +1,48 @@
 // Unit Include
 #include "t-exec.h"
 
+// Qt Includes
+#include <QStandardPaths>
+
 // Qx Includes
 #include <qx/core/qx-regularexpression.h>
 
-namespace // Unit only definitions
+// Project Includes
+#include "utility.h"
+
+namespace // Unit helper functions
 {
 
-QString escapeForShell(QString args)
+QProcess* setupBatchScriptProcess(const QString& scriptPath, const QString& scriptArgs)
 {
-    static const QSet<QChar> escapeChars{'^','&','<','>','|'};
-    QString escapedArgs;
-    bool inQuotes = false;
+    static const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
 
-    for(int i = 0; i < args.size(); i++)
-    {
-        const QChar& chr = args.at(i);
-        if(chr== '"' && (inQuotes || i != args.lastIndexOf('"')))
-            inQuotes = !inQuotes;
+    QProcess* childProcess = new QProcess();
 
-        escapedArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
-    }
+    // Set program
+    childProcess->setProgram("cmd.exe");
 
-    return escapedArgs;
+    // Set arguments
+    QString cmdCommand = CMD_ARG_TEMPLATE.arg(scriptPath, scriptArgs);
+    childProcess->setNativeArguments(cmdCommand);
+
+    return childProcess;
+}
+
+QProcess* setupNativeProcess(const QString& exePath, std::variant<QString, QStringList> exeArgs)
+{
+    QProcess* childProcess = new QProcess();
+
+    // Set program
+    childProcess->setProgram(exePath);
+
+    // Set arguments
+    if(std::holds_alternative<QString>(exeArgs))
+        childProcess->setNativeArguments(std::get<QString>(exeArgs));
+    else
+        childProcess->setArguments(std::get<QStringList>(exeArgs));
+
+    return childProcess;
 }
 
 }
@@ -33,77 +53,71 @@ QString escapeForShell(QString args)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-QProcess* TExec::prepareDirectProcess()
+QString TExec::resolveExecutablePath()
 {
-    QProcess* childProcess = new QProcess();
+    /* Mimic how Windows (and QProcess on Windows) search for an executable, with some exceptions
+     * See: https://doc.qt.io/qt-6/qprocess.html#finding-the-executable
+     *
+     * The exceptions largely are that relative paths are always resolved relative to mDirectory instead
+     * of how the system would handle it.
+     *
+     * On windows you can start an appliation (.exe/.bat) with just it's filename, so the use of
+     * QStandardPaths::findExecutable() with a second argument here ensures that both extensions are checked for.
+     */
+    QFileInfo execInfo(mExecutable);
 
-    // Set program
-    childProcess->setProgram(mFilename);
+    // Mostly standard processing
+    if(execInfo.isAbsolute())
+        return QStandardPaths::findExecutable(execInfo.fileName(), {execInfo.absolutePath()});
+    else // Relative
+    {
+        // First check relative to mDirectory
+        QFileInfo absolutePath(mDirectory.absoluteFilePath(execInfo.filePath()));
+        QString resolvedPath = QStandardPaths::findExecutable(absolutePath.fileName(), {absolutePath.absolutePath()});
 
-    // Set arguments
-    if(std::holds_alternative<QString>(mParameters))
-        childProcess->setNativeArguments(std::get<QString>(mParameters));
-    else
-        childProcess->setArguments(std::get<QStringList>(mParameters));
+        // Then, if the path is a plain filename, check system paths
+        if(resolvedPath.isEmpty() && !execInfo.filePath().contains('/')) // Plain name relative
+            resolvedPath = QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
 
-    return childProcess;
+        return resolvedPath;
+    }
 }
 
-QProcess* TExec::prepareShellProcess()
+QString TExec::escapeForShell(const QString& argStr)
 {
-    // This ain't for Linux son
-    assert(QFileInfo(mFilename).suffix() != SHELL_EXT_LINUX);
+    static const QSet<QChar> escapeChars{'^','&','<','>','|'};
+    QString escapedArgs;
+    bool inQuotes = false;
 
-    QProcess* childProcess = new QProcess();
-
-    // Set program
-    childProcess->setProgram("cmd.exe");
-
-    // Set arguments
-    static const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
-    if(std::holds_alternative<QString>(mParameters))
+    for(int i = 0; i < argStr.size(); i++)
     {
-        // Escape
-        QString args = std::get<QString>(mParameters);
-        QString escapedArgs = escapeForShell(args);
-        if(args != escapedArgs)
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
+        const QChar& chr = argStr.at(i);
+        if(chr== '"' && (inQuotes || i != argStr.lastIndexOf('"')))
+            inQuotes = !inQuotes;
 
-        // Set
-        childProcess->setNativeArguments(CMD_ARG_TEMPLATE.arg(mFilename, escapedArgs));
+        escapedArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
+    }
+
+    return escapedArgs;
+}
+
+QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
+{
+    if(execInfo.suffix() == SHELL_EXT_WIN)
+    {
+        // Resolve passed parameters
+        QString scriptParam = createEscapedShellArguments();
+        return setupBatchScriptProcess(execInfo.filePath(), scriptParam);
     }
     else
-    {
-        // Collapse
-        QStringList parameters = std::get<QStringList>(mParameters);
-        QString reduction;
-        for(const QString& param : parameters)
-        {
-            if(!param.isEmpty())
-            {
-                reduction += ' ';
+        return setupNativeProcess(execInfo.filePath(), mParameters);
+}
 
-                if(param.contains(Qx::RegularExpression::WHITESPACE) && !(param.front() == '\"' && param.back() == '\"'))
-                    reduction += '\"' + param + '\"';
-                else
-                    reduction += param;
-            }
+void TExec::logProcessStart(const QProcess* process, ProcessType type)
+{
+    QString eventStr = process->program();
+    if(!process->nativeArguments().isEmpty())
+        eventStr += " " + process->nativeArguments();
 
-        }
-
-        // Escape
-        QString escapedArgs = escapeForShell(reduction);
-
-        QStringList rebuild = QProcess::splitCommand(escapedArgs);
-        if(rebuild != parameters)
-        {
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg("{\"" + parameters.join(R"(", ")") + "\"}",
-                                                                "{\"" + rebuild.join(R"(", ")") + "\"}"));
-        }
-
-        // Set
-        childProcess->setNativeArguments(CMD_ARG_TEMPLATE.arg(mFilename, escapedArgs));
-    }
-
-    return childProcess;
+    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
 }

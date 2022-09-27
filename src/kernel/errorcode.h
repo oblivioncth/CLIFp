@@ -1,8 +1,10 @@
 #ifndef ERRORCODE_H
 #define ERRORCODE_H
 
-// TODO: Now that some error codes are a part of Task derivatives, probably should reindex them so that each
-// task has its own base number just like commands do, instead of sharing Core's base of 0.
+/* TODO: Now that some error codes are a part of Task derivatives, probably should reindex them so that each
+ * task has its own base number just like commands do, instead of sharing Core's base of 0, especially now
+ * that both docker and QEMU are checked.
+ */
 
 enum ErrorCode{
     // Common
@@ -15,30 +17,32 @@ enum ErrorCode{
     SQL_ERROR = 6,
     SQL_MISMATCH = 7,
     EXECUTABLE_NOT_FOUND = 8,
-    EXECUTABLE_NOT_VALID = 9,
-    PROCESS_START_FAIL = 10,
-    WAIT_PROCESS_NOT_HANDLED = 11,
-    WAIT_PROCESS_NOT_HOOKED = 12,
-    CANT_READ_BAT_FILE = 13,
-    ID_NOT_VALID = 14,
-    ID_NOT_FOUND = 15,
-    ID_DUPLICATE = 16,
-    TITLE_NOT_FOUND = 17,
-    CANT_OBTAIN_DATA_PACK = 18,
-    DATA_PACK_INVALID = 19,
-    EXTRA_NOT_FOUND = 20,
-    QMP_CONNECTION_FAIL = 21,
-    QMP_COMMUNICATION_FAIL = 22,
-    QMP_COMMAND_FAIL = 23,
-    PHP_MOUNT_FAIL = 24,
-    PACK_EXTRACT_FAIL = 25,
+    PROCESS_START_FAIL = 9,
+    BIDE_PROCESS_NOT_HANDLED = 10,
+    BIDE_PROCESS_NOT_HOOKED = 11,
+    CANT_READ_BAT_FILE = 12,
+    ID_NOT_VALID = 13,
+    ID_NOT_FOUND = 14,
+    ID_DUPLICATE = 15,
+    TITLE_NOT_FOUND = 16,
+    CANT_OBTAIN_DATA_PACK = 17,
+    DATA_PACK_INVALID = 18,
+    EXTRA_NOT_FOUND = 19,
+    QMP_CONNECTION_FAIL = 20,
+    QMP_COMMUNICATION_FAIL = 21,
+    QMP_COMMAND_FAIL = 22,
+    PHP_MOUNT_FAIL = 23,
+    PACK_EXTRACT_FAIL = 24,
+    CANT_QUERY_DOCKER = 25,
+    CANT_LISTEN_DOCKER = 26,
+    DOCKER_DIDNT_START = 27,
 
     // CPlay
     RAND_FILTER_NOT_VALID = 101,
     PARENT_INVALID = 102,
 
     // CLink
-    INVALID_SHORTCUT_PARAM = 201
+    CANT_CREATE_SHORTCUT = 201,
 };
 
 #endif // ERRORCODE_H

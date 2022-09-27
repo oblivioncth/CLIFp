@@ -11,3 +11,9 @@ jobs:
     uses: ./.github/workflows/build-clifp-windows.yml
     secrets:
       qt_static_dec_key: ${{ secrets.QT_WINDOWS_STATIC_DECRYPT_KEY }}
+      
+  trigger-linux-build:
+    name: Build CLIFp (Linux)
+    uses: ./.github/workflows/build-clifp-linux.yml
+    secrets:
+      qt_static_dec_key: ${{ secrets.QT_LINUX_STATIC_DECRYPT_KEY }}
