@@ -81,12 +81,21 @@ void DeferredProcessManager::closeProcesses()
             QProcess* proc = mManagedProcesses.constBegin().key();
 
             /* Kill children of the process, as here the whole tree should be killed
-             * A "clean" kill is used for this as the vanilia Launcher uses Node.js process.kill()
+             * A "clean" kill is used for this on Linux as the vanilia Launcher uses Node.js process.kill()
              * without a signal argument, which maps to SIGTERM (on linux), which is a clean kill.
+             *
+             * However on Windows, its likely that the children are console processes that won't respond to a
+             * clean kill, so here we opt for a force kill.
              */
             QList<quint32> children = Qx::processChildren(proc->processId(), true);
             for(quint32 cPid : children)
+            {
+#if defined __linux__
                 Qx::cleanKillProcess(cPid);
+#elif defined _WIN32
+                Qx::forceKillProcess(cPid);
+#endif
+            }
 
             // Kill the main process itself
             proc->terminate(); // Try nice closure first
