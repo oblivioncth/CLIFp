@@ -32,7 +32,9 @@ void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const 
     QString output = QString::fromLocal8Bit(process->readAll());
 
     // Don't print extra linebreak
-    if(!output.isEmpty() && output.back() == '\n')
+    if(output.endsWith('\n'))
+        output.chop(1);;
+    if(output.endsWith('\r'))
         output.chop(1);
 
     // Signal data
