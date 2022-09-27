@@ -171,7 +171,6 @@ void TExec::perform()
             connect(mBlockingProcessManager, &BlockingProcessManager::finished, this, &TExec::postBlockingProcess);
 
             // Setup and start process
-            taskProcess->setProcessChannelMode(QProcess::MergedChannels);
             if(!cleanStartProcess(taskProcess))
             {
                 emit complete(ErrorCode::PROCESS_START_FAIL);
