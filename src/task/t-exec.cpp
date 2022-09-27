@@ -15,7 +15,7 @@
 //Public:
 TExec::TExec(QObject* parent) :
     Task(parent),
-    mBlockingProcess(nullptr)
+    mBlockingProcessManager(nullptr)
 {}
 
 //-Class Functions----------------------------------------------------------------
@@ -112,18 +112,6 @@ bool TExec::cleanStartProcess(QProcess* process)
     return true;
 }
 
-void TExec::logBlockingProcessEnd(QProcess* process, ProcessType type)
-{
-    // Assumes that the processes channels are merged
-    QString output = process->readAll();
-
-    // Don't print extra linebreak
-    if(!output.isEmpty() && output.back() == '\n')
-        output.chop(1);
-
-    emit eventOccurred(NAME, LOG_EVENT_END_PROCESS.arg(ENUM_NAME(type), mIdentifier, process->program(), output));
-}
-
 //Public:
 QString TExec::name() const { return NAME; }
 QStringList TExec::members() const
@@ -177,7 +165,12 @@ void TExec::perform()
     switch(mProcessType)
     {
         case ProcessType::Blocking:
-            taskProcess->setParent(this);
+            // Setup blocking process manager (it adopts the process)
+            mBlockingProcessManager = new BlockingProcessManager(taskProcess, mIdentifier, this);
+            connect(mBlockingProcessManager, &BlockingProcessManager::eventOccurred, this, &TExec::eventOccurred);
+            connect(mBlockingProcessManager, &BlockingProcessManager::finished, this, &TExec::postBlockingProcess);
+
+            // Setup and start process
             taskProcess->setProcessChannelMode(QProcess::MergedChannels);
             if(!cleanStartProcess(taskProcess))
             {
@@ -186,9 +179,7 @@ void TExec::perform()
             }
             logProcessStart(taskProcess, ProcessType::Blocking);
 
-            // Now wait on the process asynchronously
-            mBlockingProcess = taskProcess;
-            connect(mBlockingProcess, &QProcess::finished, this, &TExec::postBlockingProcess);
+            // Now wait on the process asynchronously...
             return;
 
         case ProcessType::Deferred:
@@ -229,30 +220,10 @@ void TExec::perform()
 
 void TExec::stop()
 {
-    if(mBlockingProcess)
+    if(mBlockingProcessManager)
     {
-        emit eventOccurred(NAME, LOG_EVENT_STOPPING_MAIN_PROCESS);
-        // NOTE: Careful in this function, once the process is dead and the finishedBlockingExecutionHandler
-        // slot has been invoked, mMainBlockingProcess gets reset to nullptr
-
-        // Try soft kill
-        mBlockingProcess->terminate();
-        bool closed = mBlockingProcess->waitForFinished(2000); // Allow up to 2 seconds to close
-        /* NOTE: Initially there was concern that the above has a race condition in that the app could
-         * finish closing after terminate was invoked, but before the portion of waitForFinished
-         * that checks if the process is still running (since it returns false if it isn't) is reached.
-         * This would make the return value misleading (it would appear as if the process is still running
-         * (I think this behavior of waitForFinished is silly but that's an issue for another time); however,
-         * debug testing showed that after sitting at a break point before waitForFinished, but after terminate
-         * for a significant amount of time and then executing waitForFinished it still initially treated the
-         * process as if it was running. Likely QProcess isn't made aware that the app stopped until some kind
-         * of event is processed after it ends that is processed within waitForFinished, meaning there is no
-         * race condition
-         */
-
-        // Hard kill if necessary
-        if(!closed)
-            mBlockingProcess->kill(); // Hard kill
+        emit eventOccurred(NAME, LOG_EVENT_STOPPING_BLOCKING_PROCESS.arg(mIdentifier));
+        mBlockingProcessManager->closeProcess();
     }
 }
 
@@ -260,14 +231,9 @@ void TExec::stop()
 //Private Slots:
 void TExec::postBlockingProcess()
 {
-    // Ensure all is well
-    if(!mBlockingProcess)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " called with when the main blocking process pointer was null.");
-
-    // Handle process cleanup
-    logBlockingProcessEnd(mBlockingProcess, ProcessType::Blocking);
-    mBlockingProcess->deleteLater(); // Clear finished process handle from heap when possible
-    mBlockingProcess = nullptr;
+    // The BPM will get deleted automatically when this destructs since it's a child,
+    // but drop the pointer to it now anyway just to avoid shenanigans with "stop()".
+    mBlockingProcessManager = nullptr;
 
     // Return success
     emit complete(ErrorCode::NO_ERR);

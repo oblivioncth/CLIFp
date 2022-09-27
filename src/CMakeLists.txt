@@ -58,6 +58,8 @@ set(CXX_SOURCES
     task/t-mount.cpp
     task/t-sleep.h
     task/t-sleep.cpp
+    tools/blockingprocessmanager.h
+    tools/blockingprocessmanager.cpp
     tools/deferredprocessmanager.h
     tools/deferredprocessmanager.cpp
     tools/logger.h

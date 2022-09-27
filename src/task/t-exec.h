@@ -3,6 +3,7 @@
 
 // Project Includes
 #include "task/task.h"
+#include "tools/blockingprocessmanager.h"
 #include "tools/deferredprocessmanager.h"
 
 // Qt Includes
@@ -26,11 +27,10 @@ private:
     static inline const QString LOG_EVENT_CD = "Changed current directory to: %1";
     static inline const QString LOG_EVENT_INIT_PROCESS = "Starting '%1' (%2)...";
     static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process '%2': %3";
-    static inline const QString LOG_EVENT_END_PROCESS = "%1 process '%2'(%3) finished.\nOutput:\n%4";
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
     static inline const QString LOG_EVENT_FORCED_BASH = "Forced use of 'sh' from Windows 'bat'";
     static inline const QString LOG_EVENT_FORCED_WIN = "Forced use of WINE from Windows 'exe'";
-    static inline const QString LOG_EVENT_STOPPING_MAIN_PROCESS = "Stopping primary execution process...";
+    static inline const QString LOG_EVENT_STOPPING_BLOCKING_PROCESS = "Stopping blocking process '%1'...";
 
     // Errors
     static inline const QString ERR_EXE_NOT_FOUND = "Could not find %1!";
@@ -48,7 +48,7 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
-    QProcess* mBlockingProcess;
+    BlockingProcessManager* mBlockingProcessManager;
 
     // Data
     QString mExecutable;
@@ -81,7 +81,6 @@ private:
 
     // Logging
     void logProcessStart(const QProcess* process, ProcessType type);
-    void logBlockingProcessEnd(QProcess* process, ProcessType type);
 
 public:
     // Member access
