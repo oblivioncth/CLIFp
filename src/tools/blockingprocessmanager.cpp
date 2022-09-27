@@ -49,7 +49,7 @@ void BlockingProcessManager::closeProcess()
 {
     // Try soft kill
     mProcess->terminate();
-    bool closed = mProcess->waitForFinished(2000); // Allow up to 2 seconds to close
+    bool closed = mProcess->waitForFinished(1000); // Allow up to 1 second to close
     /* NOTE: Initially there was concern that the above has a race condition in that the app could
      * finish closing after terminate was invoked, but before the portion of waitForFinished
      * that checks if the process is still running (since it returns false if it isn't) is reached.

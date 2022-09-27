@@ -99,7 +99,7 @@ void DeferredProcessManager::closeProcesses()
 
             // Kill the main process itself
             proc->terminate(); // Try nice closure first
-            if(!(proc->waitForFinished(2000)))
+            if(!(proc->waitForFinished(800)))
             {
                 proc->kill();
                 proc->waitForFinished();
