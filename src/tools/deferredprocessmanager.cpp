@@ -29,7 +29,7 @@ void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const 
     QString identifier = mManagedProcesses.value(process);
     QString program = process->program();
     QString pid = QString::number(process->processId());
-    QString output = QString::fromLocal8Bit(process->readAllStandardOutput());
+    QString output = QString::fromLocal8Bit(process->readAll());
 
     // Don't print extra linebreak
     if(!output.isEmpty() && output.back() == '\n')
@@ -37,6 +37,16 @@ void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const 
 
     // Signal data
     signalEvent(msgTemplate.arg(identifier, program, pid, output));
+}
+
+void DeferredProcessManager::signalProcessStdOutMessage(QProcess* process)
+{
+    signalProcessDataReceived(process, LOG_EVENT_PROCCESS_STDOUT);
+}
+
+void DeferredProcessManager::signalProcessStdErrMessage(QProcess* process)
+{
+    signalProcessDataReceived(process, LOG_EVENT_PROCCESS_STDERR);
 }
 
 // Public:
@@ -99,6 +109,14 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
     QString identifier = mManagedProcesses.value(process);
     mManagedProcesses.remove(process);
 
+    // Flush incomplete messages
+    process->setReadChannel(QProcess::StandardOutput);
+    if(!process->atEnd())
+        signalProcessStdOutMessage(process);
+    process->setReadChannel(QProcess::StandardError);
+    if(!process->atEnd())
+        signalProcessStdErrMessage(process);
+
     // Assemble details
     QString program = process->program();
     QString status = ENUM_NAME(exitStatus);
@@ -121,8 +139,10 @@ void DeferredProcessManager::processStandardOutHandler()
     if(!process)
         throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
 
-    // Signal data
-    signalProcessDataReceived(process, LOG_EVENT_PROCCESS_STDOUT);
+    // Signal data if complete message is in buffer
+    process->setReadChannel(QProcess::StandardOutput);
+    if(process->canReadLine())
+        signalProcessStdOutMessage(process);
 }
 
 void DeferredProcessManager::processStandardErrorHandler()
@@ -132,6 +152,8 @@ void DeferredProcessManager::processStandardErrorHandler()
     if(!process)
         throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
 
-    // Signal data
-    signalProcessDataReceived(process, LOG_EVENT_PROCCESS_STDERR);
+    // Signal data if complete message is in buffer
+    process->setReadChannel(QProcess::StandardError);
+    if(process->canReadLine())
+        signalProcessStdErrMessage(process);
 }

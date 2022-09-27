@@ -112,8 +112,9 @@ bool TExec::cleanStartProcess(QProcess* process)
     return true;
 }
 
-void TExec::logProcessEnd(QProcess* process, ProcessType type)
+void TExec::logBlockingProcessEnd(QProcess* process, ProcessType type)
 {
+    // Assumes that the processes channels are merged
     QString output = process->readAll();
 
     // Don't print extra linebreak
@@ -171,13 +172,13 @@ void TExec::perform()
     // Set common process properties
     if(!mEnvironment.isEmpty()) // Don't override the QProcess default (use system env.) if no custom env. was set
         taskProcess->setProcessEnvironment(mEnvironment);
-    taskProcess->setProcessChannelMode(QProcess::MergedChannels);
 
     // Cover each process type
     switch(mProcessType)
     {
         case ProcessType::Blocking:
             taskProcess->setParent(this);
+            taskProcess->setProcessChannelMode(QProcess::MergedChannels);
             if(!cleanStartProcess(taskProcess))
             {
                 emit complete(ErrorCode::PROCESS_START_FAIL);
@@ -264,7 +265,7 @@ void TExec::postBlockingProcess()
         throw std::runtime_error(std::string(Q_FUNC_INFO) + " called with when the main blocking process pointer was null.");
 
     // Handle process cleanup
-    logProcessEnd(mBlockingProcess, ProcessType::Blocking);
+    logBlockingProcessEnd(mBlockingProcess, ProcessType::Blocking);
     mBlockingProcess->deleteLater(); // Clear finished process handle from heap when possible
     mBlockingProcess = nullptr;
 

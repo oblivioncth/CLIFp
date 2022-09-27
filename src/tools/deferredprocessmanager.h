@@ -38,6 +38,8 @@ private:
     void signalEvent(const QString& event);
     void signalError(const Qx::GenericError& error);
     void signalProcessDataReceived(QProcess* process, const QString& msgTemplate);
+    void signalProcessStdOutMessage(QProcess* process);
+    void signalProcessStdErrMessage(QProcess* process);
 
 public:
     void manage(const QString& identifier, QProcess* process);

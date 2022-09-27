@@ -81,7 +81,7 @@ private:
 
     // Logging
     void logProcessStart(const QProcess* process, ProcessType type);
-    void logProcessEnd(QProcess* process, ProcessType type);
+    void logBlockingProcessEnd(QProcess* process, ProcessType type);
 
 public:
     // Member access
