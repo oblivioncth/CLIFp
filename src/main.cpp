@@ -4,7 +4,9 @@
 // Project Includes
 #include "kernel/core.h"
 #include "controller.h"
-#include "utility.h"
+#ifdef __linux__
+    #include "utility.h"
+#endif
 #include "project_vars.h"
 
 int main(int argc, char *argv[])
