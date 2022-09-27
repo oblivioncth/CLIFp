@@ -122,8 +122,9 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
     QString status = ENUM_NAME(exitStatus);
     QString code = QString::number(exitCode);
 
-    // Delete handle
-    delete process;
+    // Schedule handle for deletion
+    process->close(); // Wipe IO buffers for posterity
+    process->deleteLater();
 
     // Emit message based on whether the process was expected to be closed
     if(mClosingClients)
