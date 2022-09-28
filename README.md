@@ -22,7 +22,7 @@ All Flashpoint features are supported, other than editing the local database and
 While testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection. Games are slightly prioritized when it comes to testing the application however.
 
 ### Version Matching
-Each release of this application targets a specific version series of BlueMaxima’s Flashpoint, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
+Each release of this application targets a specific version series of BlueMaxima’s Flashpoint, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of Flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
 
 Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however**, given its design, CLIFp is likely to continue working with newer versions of FP that are released without requiring an update, unless that new version contains significant technical changes.
 
@@ -62,7 +62,7 @@ Alternatively, the **-t** switch can be used, followed by the exact title of an 
 
     CLIFp play -t "Interactive Buddy"
 
-Or if feeling spontanious, use the **-r** switch, followed by a library filter to select a title randomly:
+Or if feeling spontaneous, use the **-r** switch, followed by a library filter to select a title randomly:
 
     CLIFp play -r game
 
@@ -192,8 +192,15 @@ The functionality of the tray icon may be expanded upon in future releases.
 ## Exit Codes
 Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
 
+**Windows:**
+
     start /wait CLIFp.exe [parameters]
     echo %errorlevel%
+
+**Linux:**
+
+    ./clifp [parameters]
+    echo $?
 
 
 | Value | Code                     | Description                                                                                               |
@@ -207,28 +214,26 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 6     | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
 | 7     | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
 | 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
-| 9     | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 10    | BIDE_PROCESS_NOT_HANDLED | A handle to a "bide-on" process (usually for .bat based titles) could not be obtained                     |
-| 11    | BIDE_PROCESS_NOT_HOOKED  | A bide task returned before its "bide-on" process (usually for .bat based titles) finished executing      |
-| 12    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "bide-on" process                    |
-| 13    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
-| 14    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
-| 15    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
-| 16    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
-| 17    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
-| 18    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
-| 19    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
-| 20    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
-| 21    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
-| 22    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
-| 23    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
-| 24    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
-| 25    | CANT_QUERY_DOCKER        | The status of the Docker daemon could not be checked                                                      |
-| 26    | CANT_LISTEN_DOCKER       | The event interface of the Docker daemon could not be connected to                                        |
-| 27    | DOCKER_DIDNT_START       | The gamezip Docker container never started                                                                |
+| 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
+| 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
+| 11    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
+| 12    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
+| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
+| 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
+| 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
+| 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
+| 17    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
+| 18    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
+| 19    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
+| 20    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
+| 21    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
+| 22    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
+| 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
+| 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
+| 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
-| 201   | CANT_CREATE_SHORTCUT     | Failed to create a shortcut. Usually due to an invalid path or permissions error                          |
+| 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |
 
 ## Limitations
 
@@ -240,7 +245,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 
  - C++20
  - CMake 3.21.1
- - Targets Windows 10 and above
+ - Targets:
+	 - Windows 10+
+	 - Linux (Tested on Ubuntu 20.04)
 
 ### Dependencies
 - Qt6
@@ -251,7 +258,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 - [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
 
 ### Builds
-Tested with MSVC2022.
+Tested with:
+ - Windows: MSVC2022
+ - Linux: Clang 12
 
 ### Details
 The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.
