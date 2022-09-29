@@ -36,7 +36,6 @@ jobs:
         map: |
           {
             "static": {
-              "qt_install_name": "qt-Production-6.3.1-win32-msvc-x64-static-release.7z",
               "qt_install_url": "${{ secrets.qt_static_url }}",
               "artifact_output_var": "qt_static_artifact_name"
             }
@@ -44,7 +43,6 @@ jobs:
         export_to: env,log
     - name: Set derived variables with shell because GitHub Actions env context sucks
       run: |
-        echo "qt_install_dest=${{ env.qt_download_dir }}/${{ env.qt_install_name }}" >> $Env:GITHUB_ENV
         echo "clifp_package_path=${{ env.clifp_build_dir }}/out/dist" >> $Env:GITHUB_ENV
         $clifp_install_path="${{ env.clifp_build_dir }}/out/install"
         echo "clifp_install_path=$clifp_install_path" >> $Env:GITHUB_ENV
@@ -64,6 +62,11 @@ jobs:
     - name: Download Qt Install
       if: steps.cache-qt.outputs.cache-hit != 'true'
       run: megatools dl "${Env:qt_install_url}" --path "${{ env.qt_download_dir }}"
+    - name: Determine Qt Install Package Name
+      if: steps.cache-qt.outputs.cache-hit != 'true'
+      run: |
+        $qt_install_name=(Get-ChildItem -Path "${{ env.qt_download_dir }}" -Name -Filter qt-*.7z)
+        echo "qt_install_dest=${{ env.qt_download_dir }}/${qt_install_name}" >> $Env:GITHUB_ENV
     - name: Extract Qt Install
       if: steps.cache-qt.outputs.cache-hit != 'true'
       run: 7z x ${{ env.qt_install_dest }} -o${{ env.qt_install_dir }}
