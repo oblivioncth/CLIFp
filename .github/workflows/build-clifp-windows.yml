@@ -1,9 +1,9 @@
-name: Build CLIFp - Windows (Qt 6.3.1)
+name: Build CLIFp - Windows
 on:
   workflow_call:
     secrets:
-      qt_static_dec_key:
-        description: 'MEGA decryption key for Qt static install archive URL'
+      qt_static_url:
+        description: 'MEGA Qt static install archive URL'
         required: true
     outputs:
       qt_static_artifact_name:
@@ -37,8 +37,7 @@ jobs:
           {
             "static": {
               "qt_install_name": "qt-Production-6.3.1-win32-msvc-x64-static-release.7z",
-              "qt_install_url": "https://mega.nz/file/QupBFJrC",
-              "qt_install_url_key": "${{ secrets.qt_static_dec_key }}",
+              "qt_install_url": "${{ secrets.qt_static_url }}",
               "artifact_output_var": "qt_static_artifact_name"
             }
           }
@@ -64,7 +63,7 @@ jobs:
       run: New-Item -Path "${{ env.qt_download_dir }}" -ItemType "directory"
     - name: Download Qt Install
       if: steps.cache-qt.outputs.cache-hit != 'true'
-      run: megatools dl "${Env:qt_install_url}#${Env:qt_install_url_key}" --path "${{ env.qt_download_dir }}"
+      run: megatools dl "${Env:qt_install_url}" --path "${{ env.qt_download_dir }}"
     - name: Extract Qt Install
       if: steps.cache-qt.outputs.cache-hit != 'true'
       run: 7z x ${{ env.qt_install_dest }} -o${{ env.qt_install_dir }}
