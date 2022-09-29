@@ -56,7 +56,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ env.qt_install_dir }}
-        key: ${{ env.qt_install_name }}
+        key: ${{ env.qt_install_url }}
     - name: Install megatools
       if: steps.cache-qt.outputs.cache-hit != 'true'
       env:
