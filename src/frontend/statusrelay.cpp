@@ -7,7 +7,6 @@
 
 // Qx Includes
 #include <qx/widgets/qx-common-widgets.h>
-#include <qx/widgets/qx-logindialog.h>
 
 //===============================================================================================================
 // STATUS RELAY
@@ -18,8 +17,11 @@ StatusRelay::StatusRelay(QObject* parent) :
     QObject(parent)
 {
     setupTrayIcon();
+    setupProgressDialog();
 }
 
+//-Instance Functions--------------------------------------------------------------------------------------------------
+//Private:
 void StatusRelay::setupTrayIcon()
 {
     // Set Icon
@@ -42,6 +44,18 @@ void StatusRelay::setupTrayIcon()
 
     // Display Icon
     mTrayIcon.show();
+}
+
+void StatusRelay::setupProgressDialog()
+{
+    // Initialize dialog
+    mLongTaskProgressDialog.setCancelButtonText("Cancel");
+    mLongTaskProgressDialog.setWindowModality(Qt::NonModal);
+    mLongTaskProgressDialog.setMinimumDuration(0);
+    mLongTaskProgressDialog.setAutoClose(true);
+    mLongTaskProgressDialog.setAutoReset(false);
+    mLongTaskProgressDialog.reset(); // Stops the auto-show timer that is started by QProgressDialog's ctor
+    connect(&mLongTaskProgressDialog, &QProgressDialog::canceled, this, &StatusRelay::longTaskCanceled);
 }
 
 //-Signals & Slots-------------------------------------------------------------
@@ -72,67 +86,33 @@ void StatusRelay::messageHandler(const QString& message)
     msg->show();
 }
 
-void StatusRelay::authenticationHandler(QString prompt, QAuthenticator* authenticator)
+void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request)
 {
-    Qx::LoginDialog ld;
-    ld.setPrompt(prompt);
-
-    int choice = ld.exec();
-
-    if(choice == QDialog::Accepted)
-    {
-        authenticator->setUser(ld.username());
-        authenticator->setPassword(ld.password());
-    }
+    *file = QFileDialog::getSaveFileName(nullptr, request.caption, request.dir,
+                                         request.filter, request.selectedFilter, request.options);
 }
 
 void StatusRelay::longTaskProgressHandler(quint64 progress)
 {
-    if(mLongTaskProgressDialog)
-    {
-        mLongTaskProgressDialog->setValue(progress);
-    }
+    mLongTaskProgressDialog.setValue(progress);
 }
 
 void StatusRelay::longTaskTotalHandler(quint64 total)
 {
-    if(mLongTaskProgressDialog)
-    {
-        mLongTaskProgressDialog->setMaximum(total);
-    }
+    mLongTaskProgressDialog.setMaximum(total);
 }
 
 void StatusRelay::longTaskStartedHandler(QString task)
 {
-    // Create progress dialog
-    mLongTaskProgressDialog = new QProgressDialog(task, "Cancel", 0, 0);
-
-    // Initialize dialog
-    mLongTaskProgressDialog->setWindowModality(Qt::NonModal);
-    mLongTaskProgressDialog->setMinimumDuration(0);
-    mLongTaskProgressDialog->setAutoClose(false);
-    mLongTaskProgressDialog->setAutoReset(false);
-    connect(mLongTaskProgressDialog, &QProgressDialog::canceled, this, &StatusRelay::longTaskCanceled);
+    // Set label
+    mLongTaskProgressDialog.setLabelText(task);
 
     // Show right away
-    mLongTaskProgressDialog->setValue(0);
+    mLongTaskProgressDialog.setValue(0);
 }
 
 void StatusRelay::longTaskFinishedHandler()
 {
-    if(mLongTaskProgressDialog)
-    {
-        if(mLongTaskProgressDialog->isVisible()) // Is already closed if canceled
-            mLongTaskProgressDialog->close();
-
-        mLongTaskProgressDialog->deleteLater(); // May still have pending events from setValue, so can't delete immediately
-        mLongTaskProgressDialog = nullptr;
-        /*
-         * NOTE: It may have been from accidentally running the app without copying the new build into the FP directory,
-         * and therefore deleteLater wasn't actually used on that run, but one time when testing this deleteLater still
-         * deleted the progress dialog too early (before previous call to setValue finished (see stack), causing an access
-         * violation crash. This only applies if mDownloadProgressDialog is set to be modal, which at this time is not the
-         * case, but be aware of this if that is ever changed.
-        */
-    }
+    if(mLongTaskProgressDialog.isVisible()) // Is already closed if canceled
+        mLongTaskProgressDialog.reset();
 }

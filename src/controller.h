@@ -5,8 +5,8 @@
 #include <QObject>
 
 // Project Includes
-#include "statusrelay.h"
-#include "core.h"
+#include "frontend/statusrelay.h"
+#include "kernel/core.h"
 
 class Controller : public QObject
 {
@@ -15,6 +15,7 @@ class Controller : public QObject
 private:
     QThread mWorkerThread;
     StatusRelay mStatusRelay;
+    ErrorCode mExitCode;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
@@ -33,12 +34,12 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
+    void driverFinishedHandler(ErrorCode code);
     void quitRequestHandler();
-    void finisher(ErrorCode errorCode);
+    void finisher();
 
 signals:
     void quit();
-    void operate();
 };
 
 #endif // CONTROLLER_H

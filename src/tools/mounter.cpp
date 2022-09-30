@@ -1,13 +1,21 @@
-// Unit Includes
+﻿// Unit Includes
 #include "mounter.h"
 
 // Qt Includes
 #include <QAuthenticator>
+#include <QRandomGenerator>
+#include <QUrlQuery>
+#ifdef __linux__
+    #include <QFileInfo>
+#endif
 
 // Qx Includes
 #include <qx/core/qx-json.h>
 #include <qx/core/qx-base85.h>
 #include <qx/core/qx-string.h>
+
+// Project Includes
+#include "utility.h"
 
 //===============================================================================================================
 // Mounter
@@ -15,12 +23,13 @@
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-Mounter::Mounter(quint16 qemuMountPort, quint16 qemuProdPort, quint16 webserverPort, QObject* parent) :
+Mounter::Mounter(quint16 webserverPort, quint16 qemuMountPort, quint16 qemuProdPort, QObject* parent) :
     QObject(parent),
     mMounting(false),
-    mErrorStatus(Core::ErrorCodes::NO_ERR),
+    mErrorStatus(ErrorCode::NO_ERR),
+    mWebserverPort(webserverPort),
     mQemuMounter(QHostAddress::LocalHost, qemuMountPort, this),
-    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this),
+    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this), // Currently not used
     mCompletedQemuCommands(0)
 {
     // Setup Network Access Manager
@@ -125,9 +134,19 @@ void Mounter::setMountOnServer()
     QUrl mountUrl;
     mountUrl.setScheme("http");
     mountUrl.setHost("127.0.0.1");
-    mountUrl.setPort(22500);
+    mountUrl.setPort(mWebserverPort);
     mountUrl.setPath("/mount.php");
-    mountUrl.setQuery({{"file", QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial)}});
+
+    QUrlQuery query;
+    QString queryKey = "file";
+#if defined _WIN32
+    QString queryValue = QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial);
+#elif defined __linux__
+    // FP Launcher uses "basename" but Node.js basename is actually filename
+    QString queryValue = QUrl::toPercentEncoding(QFileInfo(mCurrentMountInfo.filePath).fileName());
+#endif
+    query.addQueryItem(queryKey, queryValue);
+    mountUrl.setQuery(query);
 
     QNetworkRequest mountReq(mountUrl);
 
@@ -174,7 +193,7 @@ void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
     // FP (as of 11) is currently bugged and is expected to give an internal server error so it must be ignored
     if(reply->error() != QNetworkReply::NoError && reply->error() != QNetworkReply::InternalServerError)
     {
-        mErrorStatus = Core::ErrorCodes::PHP_MOUNT_FAIL;
+        mErrorStatus = ErrorCode::PHP_MOUNT_FAIL;
         Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, reply->errorString());
         emit errorOccured(errMsg);
         finish();
@@ -188,7 +207,7 @@ void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
 
 void Mounter::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
 {
-    mErrorStatus = Core::ErrorCodes::QMP_CONNECTION_FAIL;
+    mErrorStatus = ErrorCode::QMP_CONNECTION_FAIL;
     QString errStr = ENUM_NAME(error);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(errStr));
     emit errorOccured(errMsg);
@@ -196,7 +215,7 @@ void Mounter::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
 
 void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
 {
-    mErrorStatus = Core::ErrorCodes::QMP_COMMUNICATION_FAIL;
+    mErrorStatus = ErrorCode::QMP_COMMUNICATION_FAIL;
     QString errStr = ENUM_NAME(error);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_COMMUNICATION.arg(errStr));
     emit errorOccured(errMsg);
@@ -204,7 +223,7 @@ void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
 
 void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, std::any context)
 {
-    mErrorStatus = Core::ErrorCodes::QMP_COMMAND_FAIL;
+    mErrorStatus = ErrorCode::QMP_COMMAND_FAIL;
     QString commandErr = ERR_QMP_COMMAND.arg(std::any_cast<QString>(context), errorClass, description);
     Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, commandErr);
     emit errorOccured(errMsg);
@@ -257,11 +276,15 @@ void Mounter::mount(QUuid titleId, QString filePath)
     Qx::Base85 driveSerial = Qx::Base85::encode(rawTitleId, &encoding);
     mCurrentMountInfo.driveSerial = driveSerial.toString();
 
-    // Connect to QEMU instance
-    emit eventOccured(EVENT_CONNECTING_TO_QEMU);
-    mQemuMounter.connectToHost();
-
-    // Await readyForCommands() signal...
+    // Connect to QEMU instance, or go straight to web server portion if bypassing
+    if(mQemuMounter.port() != 0)
+    {
+        emit eventOccured(EVENT_CONNECTING_TO_QEMU);
+        mQemuMounter.connectToHost();
+        // Await readyForCommands() signal...
+    }
+    else
+        setMountOnServer();
 }
 
 void Mounter::abort()
@@ -269,7 +292,7 @@ void Mounter::abort()
     if(mQemuMounter.isConnectionActive())
     {
         // Aborting this doesn't cause an error so we must set one here manually.
-        mErrorStatus = Core::ErrorCodes::QMP_CONNECTION_FAIL;
+        mErrorStatus = ErrorCode::QMP_CONNECTION_FAIL;
         Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(ERR_QMP_CONNECTION_ABORT));
         emit errorOccured(errMsg);
         mQemuMounter.abort(); // Call last here because it causes finished signal to emit immediately

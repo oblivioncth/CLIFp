@@ -9,7 +9,7 @@
 #include <qx/windows/qx-common-windows.h>
 
 // Project Includes
-#include "core.h"
+#include "kernel/errorcode.h"
 
 /* This uses the approach of sub-classing QThread instead of the worker/object model. This means that by default there is no event
  * loop running in the new thread (not needed with current setup), and that only the contents of run() take place in the new thread,
@@ -30,7 +30,7 @@
  * handle the quit upon its next event loop cycle.
  */
 
-class ProcessWaiter : public QThread
+class ProcessBider : public QThread
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -40,11 +40,11 @@ private:
     static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting, the title will likely not work correctly.";
 
     // Status Messages
-    static inline const QString LOG_EVENT_WAIT_GRACE = "Waiting %1 seconds for process %2 to be running";
-    static inline const QString LOG_EVENT_WAIT_RUNNING = "Wait-on process %1 is running";
-    static inline const QString LOG_EVENT_WAIT_ON = "Waiting for process %1 to finish";
-    static inline const QString LOG_EVENT_WAIT_QUIT = "Wait-on process %1 has finished";
-    static inline const QString LOG_EVENT_WAIT_FINISHED = "Wait-on process %1 was not running after the grace period";
+    static inline const QString LOG_EVENT_BIDE_GRACE = "Waiting %1 seconds for process %2 to be running";
+    static inline const QString LOG_EVENT_BIDE_RUNNING = "Wait-on process %1 is running";
+    static inline const QString LOG_EVENT_BIDE_ON = "Waiting for process %1 to finish";
+    static inline const QString LOG_EVENT_BIDE_QUIT = "Wait-on process %1 has finished";
+    static inline const QString LOG_EVENT_BIDE_FINISHED = "Wait-on process %1 was not running after the grace period";
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
@@ -58,7 +58,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    ProcessWaiter(QString processName, uint respawnGrace, QObject* parent = nullptr);
+    ProcessBider(QObject* parent = nullptr, uint respawnGrace = 30000);
 
 //-Class Functions---------------------------------------------------------------------------------------------------------
 private:
@@ -70,16 +70,18 @@ private:
     void run() override;
 
 public:
+    void setRespawnGrace(uint respawnGrace);
+
     bool closeProcess();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 public slots:
-    void start();
+    void start(QString processName);
 
 signals:
     void statusChanged(QString statusMessage);
     void errorOccured(Qx::GenericError errorMessage);
-    void waitFinished(ErrorCode errorCode);
+    void bideFinished(ErrorCode errorCode);
 };
 
 #endif // PROCESSWAITER_H

@@ -2,11 +2,14 @@
 #include <QApplication>
 
 // Project Includes
-#include "core.h"
+#include "kernel/core.h"
 #include "controller.h"
+#ifdef __linux__
+    #include "utility.h"
+#endif
 #include "project_vars.h"
 
-ErrorCode main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     //-Basic Application Setup-------------------------------------------------------------
 
@@ -15,15 +18,20 @@ ErrorCode main(int argc, char *argv[])
     app.setQuitOnLastWindowClosed(false);
 
     // Set application name
-    QCoreApplication::setApplicationName(PROJECT_APP_NAME);
-    QCoreApplication::setApplicationVersion(PROJECT_VERSION_STR);
+    app.setApplicationName(PROJECT_APP_NAME);
+    app.setApplicationVersion(PROJECT_VERSION_STR);
+
+#ifdef __linux__
+    // Set application icon
+    app.setWindowIcon(Utility::appIconFromResources());
+#endif
 
     // Register metatypes
     qRegisterMetaType<Core::Error>();
     qRegisterMetaType<Core::BlockingError>();
 
     // Create application controller
-    Controller appController(qApp->instance());
+    Controller appController(&app);
 
     // Start driver
     appController.run();

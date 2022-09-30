@@ -28,4 +28,9 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: enhancement
+      - name: Label backend PR
+        if:  startsWith(github.head_ref, 'backend/')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: backend
     

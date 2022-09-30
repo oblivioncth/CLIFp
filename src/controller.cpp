@@ -6,32 +6,30 @@
 #include <QWindow>
 
 // Project Includes
-#include "driver.h"
-
-// Windows Includes
-#include <qx_windows.h>
-#include <processenv.h>
+#include "kernel/driver.h"
 
 //===============================================================================================================
 // CONTROLLER
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
-Controller::Controller(QObject* parent)
-    : QObject(parent),
-    mStatusRelay(this)
+Controller::Controller(QObject* parent) :
+    QObject(parent),
+    mStatusRelay(this),
+    mExitCode(ErrorCode::NO_ERR)
 {
     // Create driver
-    Driver* driver = new Driver(QApplication::arguments(), QString::fromStdWString(std::wstring(GetCommandLineW())));
+    Driver* driver = new Driver(QApplication::arguments());
     driver->moveToThread(&mWorkerThread);
 
     // Connect driver - Operation
-    connect(&mWorkerThread, &QThread::finished, driver, &QObject::deleteLater);
-    connect(this, &Controller::operate, driver, &Driver::drive);
-    connect(driver, &Driver::finished, this, &Controller::finisher, Qt::QueuedConnection);
-    // This is in main thread so let event loop finish its current cycle before finishing with QueuedConnection
+    connect(&mWorkerThread, &QThread::started, driver, &Driver::drive); // Thread start causes driver start
+    connect(driver, &Driver::finished, this, &Controller::driverFinishedHandler); // Result handling
+    connect(driver, &Driver::finished, driver, &QObject::deleteLater); // Have driver clean up itself
+    connect(driver, &Driver::finished, &mWorkerThread, &QThread::quit); // Have driver finish cause thread finish
+    connect(&mWorkerThread, &QThread::finished, this, &Controller::finisher); // Finish execution when thread quits
 
-    // Connect driver - Status (QueuedConnection is implicit)
+    // Connect driver - Status
     connect(driver, &Driver::statusChanged, &mStatusRelay, &StatusRelay::statusChangeHandler);
     connect(driver, &Driver::errorOccured, &mStatusRelay, &StatusRelay::errorHandler);
     connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler);
@@ -43,29 +41,29 @@ Controller::Controller(QObject* parent)
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
     connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
-    connect(driver, &Driver::authenticationRequired, &mStatusRelay, &StatusRelay::authenticationHandler, Qt::BlockingQueuedConnection);
+    connect(driver, &Driver::saveFileRequested, &mStatusRelay, &StatusRelay::saveFileRequestHandler, Qt::BlockingQueuedConnection);
 
     // Connect quit handler
     connect(&mStatusRelay, &StatusRelay::quitRequested, this, &Controller::quitRequestHandler);
     connect(this, &Controller::quit, driver, &Driver::quitNow);
-
-    // Start thread
-    mWorkerThread.start();
 }
 
-//-Desctructor-------------------------------------------------------------
+//-Destructor-------------------------------------------------------------
 Controller::~Controller()
 {
-    // Stop thread
-    mWorkerThread.quit();
-    mWorkerThread.wait();
+    // Just to be safe, but never should be the case
+    if(mWorkerThread.isRunning())
+    {
+        mWorkerThread.quit();
+        mWorkerThread.wait();
+    }
 }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
 bool Controller::windowsAreOpen()
 {
-    // Based on Qt's down check here: https://code.qt.io/cgit/qt/qtbase.git/tree/src/gui/kernel/qwindow.cpp?h=5.15.2#n2710
+    // Based on Qt's own check here: https://code.qt.io/cgit/qt/qtbase.git/tree/src/gui/kernel/qwindow.cpp?h=5.15.2#n2710
     // and here: https://code.qt.io/cgit/qt/qtbase.git/tree/src/gui/kernel/qguiapplication.cpp?h=5.15.2#n3629
     QWindowList topWindows = QApplication::topLevelWindows();
     for(const QWindow* window : qAsConst(topWindows))
@@ -78,10 +76,12 @@ bool Controller::windowsAreOpen()
 
 
 //Public:
-void Controller::run() { emit operate(); }
+void Controller::run() { mWorkerThread.start(); }
 
 //-Slots--------------------------------------------------------------------------------
 //Private:
+void Controller::driverFinishedHandler(ErrorCode code) { mExitCode = code; }
+
 void Controller::quitRequestHandler()
 {
     // Notify driver to quit if it still exists
@@ -91,11 +91,11 @@ void Controller::quitRequestHandler()
     qApp->closeAllWindows();
 }
 
-void Controller::finisher(ErrorCode errorCode)
+void Controller::finisher()
 {
     // Quit once no windows remain
     if(windowsAreOpen())
-        connect(qApp, &QGuiApplication::lastWindowClosed, [errorCode]() { QApplication::exit(errorCode); });
+        connect(qApp, &QGuiApplication::lastWindowClosed, this, [this]() { QApplication::exit(mExitCode); });
     else
-        QApplication::exit(errorCode);
+        QApplication::exit(mExitCode);
 }

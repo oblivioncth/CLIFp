@@ -8,6 +8,7 @@ env:
   ci_bot_username: ObyBotCI
   ci_bot_email: 104651589+ObyBotCI@users.noreply.github.com
   clifp_qts_win_artifact_path: ${{ github.workspace }}/CLIFpQtSWin
+  clifp_qts_linux_artifact_path: ${{ github.workspace }}/CLIFpQtSLinux
   
 jobs:
   tag_master_and_sync_dev:
@@ -78,25 +79,40 @@ jobs:
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/build-clifp-windows.yml
     secrets:
-      qt_static_dec_key: ${{ secrets.QT_WINDOWS_STATIC_DECRYPT_KEY }}
+      qt_static_url: ${{ secrets.QT_WINDOWS_STATIC_URL }}
+      
+  build_clifp_release_linux:
+    name: Build CLIFp Release (Linux)
+    needs: tag_master_and_sync_dev
+    if: github.event.pull_request.merged == true
+    uses: ./.github/workflows/build-clifp-linux.yml
+    secrets:
+      qt_static_url: ${{ secrets.QT_LINUX_STATIC_URL }}
 
   create-release:
     name: Create GitHub release
-    needs: [build_clifp_release_windows, tag_master_and_sync_dev]
+    needs: [build_clifp_release_windows, build_clifp_release_linux, tag_master_and_sync_dev]
     if: github.event.pull_request.merged == true
     runs-on: windows-latest
     steps:
     - name: Set release artifact names
       run: |
         echo "release_qts_win_package_name=${{ needs.build_clifp_release_windows.outputs.qt_static_artifact_name }}" >> $Env:GITHUB_ENV
+        echo "release_qts_linux_package_name=${{ needs.build_clifp_release_linux.outputs.qt_static_artifact_name }}" >> $Env:GITHUB_ENV
     - name: Download built static CLIFp artifact (Windows)
       uses: actions/download-artifact@v3
       with:
         name: ${{ env.release_qts_win_package_name }}
         path: ${{ env.clifp_qts_win_artifact_path }}
+    - name: Download built static CLIFp artifact (Linux)
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.release_qts_linux_package_name }}
+        path: ${{ env.clifp_qts_linux_artifact_path }}
     - name: Zip up release artifacts
       run: |
         7z a "${{ env.release_qts_win_package_name }}.zip" "${{ env.clifp_qts_win_artifact_path }}/*"
+        7z a "${{ env.release_qts_linux_package_name }}.zip" "${{ env.clifp_qts_linux_artifact_path }}/*"
     - name: Generate release
       uses: softprops/action-gh-release@v1
       with:
@@ -106,5 +122,6 @@ jobs:
         generate_release_notes: true
         files: |
           ${{ env.release_qts_win_package_name }}.zip
+          ${{ env.release_qts_linux_package_name }}.zip
     
         

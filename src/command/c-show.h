@@ -2,7 +2,7 @@
 #define CSHOW_H
 
 // Project Includes
-#include "../command.h"
+#include "command/command.h"
 
 class CShow : public Command
 {

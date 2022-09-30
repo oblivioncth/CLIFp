@@ -1,29 +1,28 @@
 // Unit Include
-#include "processwaiter.h"
+#include "processbider.h"
 
 // Qx Includes
 #include <qx_windows.h>
+#include <qx/core/qx-system.h>
 
 // Windows Include
 #include <shellapi.h>
 
-
 //===============================================================================================================
-// ProcessWaiter
+// ProcessBider
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Public:
-ProcessWaiter::ProcessWaiter(QString processName, uint respawnGrace, QObject* parent) :
+ProcessBider::ProcessBider(QObject* parent, uint respawnGrace) :
     QThread(parent),
-    mProcessName(processName),
     mRespawnGrace(respawnGrace),
     mProcessHandle(nullptr)
 {}
 
 //-Class Functions-------------------------------------------------------------
 //Private:
-bool ProcessWaiter::closeAdminProcess(DWORD processId, bool force)
+bool ProcessBider::closeAdminProcess(DWORD processId, bool force)
 {
     /* Killing an elevated process from this process while it is unelevated requires (without COM non-sense) starting
      * a new process as admin to do the job. While a special purpose executable could be made, taskkill already
@@ -75,7 +74,7 @@ bool ProcessWaiter::closeAdminProcess(DWORD processId, bool force)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-ErrorCode ProcessWaiter::doWait()
+ErrorCode ProcessBider::doWait()
 {
     // Lock other threads from interaction while managing process handle
     QMutexLocker handleLocker(&mProcessHandleMutex);
@@ -85,7 +84,7 @@ ErrorCode ProcessWaiter::doWait()
     do
     {
         // Yield for grace period
-        emit statusChanged(LOG_EVENT_WAIT_GRACE.arg(mRespawnGrace).arg(mProcessName));
+        emit statusChanged(LOG_EVENT_BIDE_GRACE.arg(mRespawnGrace).arg(mProcessName));
         if(mRespawnGrace > 0)
             QThread::sleep(mRespawnGrace);
 
@@ -95,7 +94,7 @@ ErrorCode ProcessWaiter::doWait()
         // Check that process was found (is running)
         if(spProcessID)
         {
-            emit statusChanged(LOG_EVENT_WAIT_RUNNING.arg(mProcessName));
+            emit statusChanged(LOG_EVENT_BIDE_RUNNING.arg(mProcessName));
 
             // Get process handle and see if it is valid
             DWORD rights = PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE;
@@ -105,11 +104,11 @@ ErrorCode ProcessWaiter::doWait()
 
                 emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(mProcessName),
                                                    nativeError.primaryInfo()));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HANDLED;
+                return ErrorCode::BIDE_PROCESS_NOT_HANDLED;
             }
 
             // Attempt to wait on process to terminate
-            emit statusChanged(LOG_EVENT_WAIT_ON.arg(mProcessName));
+            emit statusChanged(LOG_EVENT_BIDE_ON.arg(mProcessName));
             handleLocker.unlock(); // Allow interaction while waiting
             DWORD waitError = WaitForSingleObject(mProcessHandle, INFINITE);
             handleLocker.relock(); // Explicitly lock again
@@ -127,25 +126,28 @@ ErrorCode ProcessWaiter::doWait()
 
                 emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(mProcessName),
                                                    nativeError.primaryInfo()));
-                return Core::ErrorCodes::WAIT_PROCESS_NOT_HOOKED;
+                return ErrorCode::BIDE_PROCESS_NOT_HOOKED;
             }
-            emit statusChanged(LOG_EVENT_WAIT_QUIT.arg(mProcessName));
+            emit statusChanged(LOG_EVENT_BIDE_QUIT.arg(mProcessName));
         }
     }
     while(spProcessID);
 
     // Return success
-    emit statusChanged(LOG_EVENT_WAIT_FINISHED.arg(mProcessName));
-    return Core::ErrorCodes::NO_ERR;
+    emit statusChanged(LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
+    return ErrorCode::NO_ERR;
 }
 
-void ProcessWaiter::run()
+void ProcessBider::run()
 {
     ErrorCode status = doWait();
-    emit waitFinished(status);
+    emit bideFinished(status);
 }
 
-bool ProcessWaiter::closeProcess()
+//Public:
+void ProcessBider::setRespawnGrace(uint respawnGrace) { mRespawnGrace = respawnGrace; }
+
+bool ProcessBider::closeProcess()
 {
     if(!mProcessHandle)
         return false;
@@ -190,9 +192,12 @@ bool ProcessWaiter::closeProcess()
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Public Slots:
-void ProcessWaiter::start()
+void ProcessBider::start(QString processName)
 {
     // Start new thread for waiting
     if(!isRunning())
+    {
+        mProcessName = processName;
         QThread::start();
+    }
 }

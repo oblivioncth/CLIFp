@@ -22,7 +22,7 @@ All Flashpoint features are supported, other than editing the local database and
 While testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection. Games are slightly prioritized when it comes to testing the application however.
 
 ### Version Matching
-Each release of this application targets a specific version series of BlueMaxima’s Flashpoint, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
+Each release of this application targets a specific version series of BlueMaxima’s Flashpoint, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of Flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
 
 Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however**, given its design, CLIFp is likely to continue working with newer versions of FP that are released without requiring an update, unless that new version contains significant technical changes.
 
@@ -41,7 +41,7 @@ That being said, it is perfectly possible to use CLIFp in any manner one sees fi
 It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
 ### General
-**NOTE: Do not run CLIFp as an administrator as some titles may not work correctly or run at all**
+**NOTE: Do not run CLIFp as an administrator/root as some titles may not work correctly or run at all**
 
 CLIFp uses the following syntax scheme:
 
@@ -62,7 +62,7 @@ Alternatively, the **-t** switch can be used, followed by the exact title of an 
 
     CLIFp play -t "Interactive Buddy"
 
-Or if feeling spontanious, use the **-r** switch, followed by a library filter to select a title randomly:
+Or if feeling spontaneous, use the **-r** switch, followed by a library filter to select a title randomly:
 
     CLIFp play -r game
 
@@ -99,10 +99,23 @@ though this isn't required as long as quotation and space use is carefully emplo
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
  -  **-t | --title:** Title to  make a shortcut for
- -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
+ -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
 
 Requires:
 **-i** or **-t** 
+
+Notes: 
+
+ - On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
+
+
+
+   For example, when specifying:
+   
+       CLIFp link -p "~/Desktop/Cool Name.desktop" ...
+
+   the display name of the desktop entry will be set to "Cool Name".
+ - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
 
 --------------------------------------------------------------------------------
 
@@ -179,8 +192,15 @@ The functionality of the tray icon may be expanded upon in future releases.
 ## Exit Codes
 Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
 
+**Windows:**
+
     start /wait CLIFp.exe [parameters]
     echo %errorlevel%
+
+**Linux:**
+
+    ./clifp [parameters]
+    echo $?
 
 
 | Value | Code                     | Description                                                                                               |
@@ -225,7 +245,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 
  - C++20
  - CMake 3.21.1
- - Targets Windows 10 and above
+ - Targets:
+	 - Windows 10+
+	 - Linux (Tested on Ubuntu 20.04)
 
 ### Dependencies
 - Qt6
@@ -236,7 +258,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 - [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
 
 ### Builds
-Tested with MSVC2022.
+Tested with:
+ - Windows: MSVC2022
+ - Linux: Clang 12
 
 ### Details
 The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.

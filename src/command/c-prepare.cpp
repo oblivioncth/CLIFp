@@ -25,7 +25,7 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
 
     // Handle standard options
     if(checkStandardOptions())
-        return Core::ErrorCodes::NO_ERR;
+        return ErrorCode::NO_ERR;
 
     // Get ID to prepare
     QUuid id;
@@ -35,7 +35,7 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
         if((id = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
-            return Core::ErrorCodes::ID_NOT_VALID;
+            return ErrorCode::ID_NOT_VALID;
         }    
     }
     else if(mParser.isSet(CL_OPTION_TITLE))
@@ -46,17 +46,17 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     else
     {
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
-        return Core::ErrorCodes::INVALID_ARGS;
+        return ErrorCode::INVALID_ARGS;
     }
 
     // Enqueue prepare task
     QSqlError sqlError;
 
     bool titleUsesDataPack;
-    if((sqlError = mCore.getFlashpointInstall().database()->entryUsesDataPack(titleUsesDataPack, id)).isValid())
+    if((sqlError = mCore.fpInstall().database()->entryUsesDataPack(titleUsesDataPack, id)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
-        return Core::ErrorCodes::SQL_ERROR;
+        return ErrorCode::SQL_ERROR;
     }
 
     if(titleUsesDataPack)
@@ -70,5 +70,5 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
         mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
 
     // Return success
-    return Core::ErrorCodes::NO_ERR;
+    return ErrorCode::NO_ERR;
 }

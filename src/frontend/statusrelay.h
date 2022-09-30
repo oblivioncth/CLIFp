@@ -9,7 +9,7 @@
 #include <QAuthenticator>
 
 // Project Includes
-#include "core.h"
+#include "kernel/core.h"
 
 class StatusRelay : public QObject
 {
@@ -21,7 +21,7 @@ public:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 public:
-    QProgressDialog* mLongTaskProgressDialog;
+    QProgressDialog mLongTaskProgressDialog;
     QString mStatusHeading;
     QString mStatusMessage;
 
@@ -35,6 +35,7 @@ public:
 //-Instance Functions--------------------------------------------------------------------------------------------------
 private:
     void setupTrayIcon();
+    void setupProgressDialog();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------
 public slots:
@@ -43,9 +44,7 @@ public slots:
     void errorHandler(Core::Error error);
     void blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError);
     void messageHandler(const QString& message);
-
-    // Network
-    void authenticationHandler(QString prompt, QAuthenticator* authenticator);
+    void saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request);
 
     // Long Job
     void longTaskProgressHandler(quint64 progress);

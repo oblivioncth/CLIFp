@@ -1,6 +1,12 @@
 <RCC>
     <qresource prefix="/">
         <file>app/CLIFp.ico</file>
-		<file>tray/Exit.png</file>
+        <file>tray/Exit.png</file>
+        <file>app/256x256/CLIFp.png</file>
+        <file>app/128x128/CLIFp.png</file>
+        <file>app/64x64/CLIFp.png</file>
+        <file>app/48x48/CLIFp.png</file>
+        <file>app/32x32/CLIFp.png</file>
+        <file>app/16x16/CLIFp.png</file>
     </qresource>
 </RCC>
