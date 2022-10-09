@@ -62,8 +62,6 @@ set(CXX_SOURCES
     tools/blockingprocessmanager.cpp
     tools/deferredprocessmanager.h
     tools/deferredprocessmanager.cpp
-    tools/logger.h
-    tools/logger.cpp
     tools/mounter.h
     tools/mounter.cpp
     frontend/statusrelay.h
