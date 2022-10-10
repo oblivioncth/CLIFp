@@ -14,8 +14,8 @@
 class StatusRelay : public QObject
 {
     Q_OBJECT
-//-Instance Variables------------------------------------------------------------------------------------------------------
-public:
+//-Class Variables------------------------------------------------------------------------------------------------------
+private:
     // System Messages
     static inline const QString SYS_TRAY_STATUS = "CLIFp is running";
 
