@@ -22,6 +22,7 @@
     #include "task/t-sleep.h"
 #endif
 #include "utility.h"
+#include "project_vars.h"
 
 //===============================================================================================================
 // CORE
@@ -128,7 +129,11 @@ ErrorCode Core::initialize(QStringList& commandLine)
 
     // Create logger instance
     QString logPath = CLIFP_DIR_PATH + '/' + CLIFP_CUR_APP_BASENAME  + '.' + LOG_FILE_EXT;
-    mLogger = std::make_unique<Logger>(logPath, commandLine.isEmpty() ? LOG_NO_PARAMS : commandLine.join(" "), globalOptions, LOG_HEADER, LOG_MAX_ENTRIES);
+    mLogger = std::make_unique<Qx::ApplicationLogger>(logPath);
+    mLogger->setApplicationName(PROJECT_SHORT_NAME);
+    mLogger->setApplicationVersion(PROJECT_VERSION_STR);
+    mLogger->setApplicationArguments(commandLine);
+    mLogger->setMaximumEntries(LOG_MAX_ENTRIES);
 
     // Open log
     Qx::IoOpReport logOpen = mLogger->openLog();
@@ -137,6 +142,9 @@ ErrorCode Core::initialize(QStringList& commandLine)
 
     // Log initialization step
     logEvent(NAME, LOG_EVENT_INIT);
+
+    // Log global options
+    logEvent(NAME, LOG_EVENT_GLOBAL_OPT.arg(globalOptions));
 
     // Check for valid arguments
     if(validArgs)

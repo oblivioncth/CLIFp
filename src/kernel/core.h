@@ -13,12 +13,14 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
+// Qx Includes
+#include <qx/io/qx-applicationlogger.h>
+
 // libfp Includes
 #include <fp/flashpoint/fp-install.h>
 
 // Project Includes
 #include "task/task.h"
-#include "tools/logger.h"
 #include "project_vars.h"
 
 class Core : public QObject
@@ -75,9 +77,8 @@ public:
 
     // Logging - Primary Values
     static inline const QString LOG_FILE_EXT = "log";
-    static inline const QString LOG_HEADER = "CLIFp Execution Log";
     static inline const QString LOG_NO_PARAMS = "*None*";
-    static inline const int LOG_MAX_ENTRIES = 50;
+    static const int LOG_MAX_ENTRIES = 50;
 
     // Logging - Errors
     static inline const QString LOG_ERR_INVALID_PARAM = "Invalid parameters provided";
@@ -85,6 +86,7 @@ public:
 
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = "Initializing CLIFp...";
+    static inline const QString LOG_EVENT_GLOBAL_OPT = "Global Options: %1";
     static inline const QString LOG_EVENT_G_HELP_SHOWN = "Displayed general help information";
     static inline const QString LOG_EVENT_VER_SHOWN = "Displayed version information";
     static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = "Notification Level is: %1";
@@ -155,7 +157,7 @@ public:
 private:
     // Handles
     std::unique_ptr<Fp::Install> mFlashpointInstall;
-    std::unique_ptr<Logger> mLogger;
+    std::unique_ptr<Qx::ApplicationLogger> mLogger;
 
     // Processing
     bool mCriticalErrorOccured;

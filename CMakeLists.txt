@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
-set(CLIFP_BASE_VERSION 0.9.1) # Required for CI/CD
+set(CLIFP_BASE_VERSION 0.9.1.1) # Required for CI/CD
 project(CLIFp
     VERSION ${CLIFP_BASE_VERSION}
     LANGUAGES CXX
@@ -95,7 +95,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
 include(OB/FetchQx)
-fetch_qx("v0.4")
+fetch_qx("f1b1eb0962734f9b6a7bb55fc6a908b3a13862fe")
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)

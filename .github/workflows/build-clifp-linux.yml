@@ -115,7 +115,7 @@ jobs:
       run: |
         cpack_name=$(find * -type f -name "*.zip")
         artifact_name=$(basename "$cpack_name" .zip)
-        echo "::set-output name=${{ env.artifact_output_var }}::$artifact_name"
+        echo "${{ env.artifact_output_var }}=$artifact_name" >> $GITHUB_OUTPUT
     - name: Upload CLIFp build artifact
       uses: actions/upload-artifact@v3
       with:
