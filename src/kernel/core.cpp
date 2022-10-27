@@ -14,12 +14,12 @@
 #include "task/t-exec.h"
 #include "task/t-extract.h"
 #include "task/t-mount.h"
+#include "task/t-sleep.h"
 #ifdef _WIN32
     #include "task/t-bideprocess.h"
 #endif
 #ifdef __linux__
     #include "task/t-awaitdocker.h"
-    #include "task/t-sleep.h"
 #endif
 #include "utility.h"
 #include "project_vars.h"
@@ -407,16 +407,19 @@ ErrorCode Core::enqueueStartupTasks()
     mTaskQueue.push(dockerWait);
     logTask(NAME, dockerWait);
 
-    /* Additionally, even once docker is started, the mount server inside seems to take an extra moment to initialize (gives
-     * "Connection Closed" if a mount attempt is made right away), so an additional delay must be added
-     */
-    TSleep* delayForDocker = new TSleep(this);
-    delayForDocker->setStage(Task::Stage::Startup);
-    delayForDocker->setDuration(1500); // NOTE: Might need to be made longer
-
-    mTaskQueue.push(delayForDocker);
-    logTask(NAME, delayForDocker);
 #endif
+
+    /* Make sure that all startup processes have fully initialized.
+     *
+     * This is especially important for docker, as the mount server inside seems to take an extra moment to initialize (gives
+     * "Connection Closed" if a mount attempt is made right away).
+     */
+    TSleep* initDelay = new TSleep(this);
+    initDelay->setStage(Task::Stage::Startup);
+    initDelay->setDuration(1500); // NOTE: Might need to be made longer
+
+    mTaskQueue.push(initDelay);
+    logTask(NAME, initDelay);
 
     // Return success
     return ErrorCode::NO_ERR;
