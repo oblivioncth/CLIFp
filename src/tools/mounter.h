@@ -51,7 +51,7 @@ private:
 
     // Connections
     static const int QMP_TRANSACTION_TIMEOUT = 5000; // ms
-    static const int PHP_TRANSFER_TIMEOUT = 5000; // ms
+    static const int PHP_TRANSFER_TIMEOUT = 30000; // ms
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:

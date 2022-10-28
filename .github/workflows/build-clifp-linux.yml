@@ -32,7 +32,7 @@ jobs:
       qt_static_artifact_name: ${{ steps.get_artifact_name.outputs.qt_static_artifact_name }}
     steps:
     - name: Set matrix derived variables
-      uses: kanga333/variable-mapper@v0.2.2
+      uses: kanga333/variable-mapper@v0.3.0
       with:
         key: ${{ matrix.qt_linkage }}
         map: |
