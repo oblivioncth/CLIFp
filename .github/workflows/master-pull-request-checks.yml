@@ -11,6 +11,3 @@ jobs:
     steps:
     - name: Ensure higher version
       uses: oblivioncth/actions/cmake/ensure-project-version-gt-tag@dev
-      with:
-        ver_match_start: set\(CLIFP_BASE_VERSION
-        ver_match_end: \)
