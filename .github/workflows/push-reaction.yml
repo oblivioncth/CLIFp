@@ -10,10 +10,10 @@ jobs:
     name: Build CLIFp (Windows)
     uses: ./.github/workflows/build-clifp-windows.yml
     secrets:
-      qt_static_url: ${{ secrets.QT_WINDOWS_STATIC_URL }}
+      qt_ffynnon_cred: ${{ secrets.OBYBOT_FFYNNON_CREDS }}
       
   trigger-linux-build:
     name: Build CLIFp (Linux)
     uses: ./.github/workflows/build-clifp-linux.yml
     secrets:
-      qt_static_url: ${{ secrets.QT_LINUX_STATIC_URL }}
+      qt_ffynnon_cred: ${{ secrets.OBYBOT_FFYNNON_CREDS }}
