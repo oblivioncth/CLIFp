@@ -325,7 +325,11 @@ ErrorCode Core::enqueueStartupTasks()
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
 #ifdef __linux__
-    // On Linux X11 Server needs to be temporarily be set to allow connections from root for docker
+    /* On Linux X11 Server needs to be temporarily be set to allow connections from root for docker
+     *
+     * TODO: It should be OK to skip this (and the corresponding shutdown task that reverses it),
+     * if docker isn't used, but leaving for now.
+     */
     TExec* xhostSet = new TExec(this);
     xhostSet->setIdentifier("xhost Set");
     xhostSet->setStage(Task::Stage::Startup);
@@ -398,15 +402,17 @@ ErrorCode Core::enqueueStartupTasks()
 
 #ifdef __linux__
     // On Linux the startup tasks take a while so make sure the docker image is actually running before proceeding
-    TAwaitDocker* dockerWait = new TAwaitDocker(this);
-    dockerWait->setStage(Task::Stage::Startup);
-    // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
-    dockerWait->setImageName("gamezip");
-    dockerWait->setTimeout(10000);
+    if(mFlashpointInstall->services().recognizedDaemons.testFlag(Fp::KnownDaemon::Docker))
+    {
+        TAwaitDocker* dockerWait = new TAwaitDocker(this);
+        dockerWait->setStage(Task::Stage::Startup);
+        // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
+        dockerWait->setImageName("gamezip");
+        dockerWait->setTimeout(10000);
 
-    mTaskQueue.push(dockerWait);
-    logTask(NAME, dockerWait);
-
+        mTaskQueue.push(dockerWait);
+        logTask(NAME, dockerWait);
+    }
 #endif
 
     /* Make sure that all startup processes have fully initialized.
@@ -592,17 +598,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
         // Determine if QEMU is involved
-        bool qemuUsed = false;
-        auto fpDaemons = mFlashpointInstall->services().daemons;
-        for(auto it = fpDaemons.constBegin(); it != fpDaemons.constEnd(); it++)
-        {
-            if(it->filename.contains("qemu", Qt::CaseInsensitive) ||
-               it->name.contains("qemu", Qt::CaseInsensitive))
-            {
-                qemuUsed = true;
-                break;
-            }
-        }
+        bool qemuUsed = mFlashpointInstall->services().recognizedDaemons.testFlag(Fp::KnownDaemon::Qemu);
 
         // Create task
         TMount* mountTask = new TMount(this);
