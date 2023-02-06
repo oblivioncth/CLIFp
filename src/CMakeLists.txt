@@ -104,12 +104,15 @@ set_target_properties(${MAIN_TARGET_NAME} PROPERTIES
 )
 
 ## Forward select project variables to C++ code
-include(OB/ProjectVars)
-set_cxx_project_vars(${MAIN_TARGET_NAME}
-    VERSION_STR "\"${PROJECT_VERSION}\""
-    SHORT_NAME "\"${PROJECT_NAME}\""
-    TARGET_FP_VER_PFX_STR "\"${TARGET_FP_VERSION_PREFIX}\""
-    APP_NAME "\"${FORMAL_NAME}\""
+include(OB/CppVars)
+add_cpp_vars(${MAIN_TARGET_NAME}
+    NAME "project_vars"
+    PREFIX "PROJECT_"
+    VARS
+        VERSION_STR "\"${PROJECT_VERSION}\""
+        SHORT_NAME "\"${PROJECT_NAME}\""
+        TARGET_FP_VER_PFX_STR "\"${TARGET_FP_VERSION_PREFIX}\""
+        APP_NAME "\"${FORMAL_NAME}\""
 )
 
 ################# Windows Build #################
