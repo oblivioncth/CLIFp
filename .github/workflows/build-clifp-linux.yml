@@ -77,7 +77,7 @@ jobs:
     - name: Get CLIFp artifact name
       id: get_artifact_name
       run: |
-        cpack_name=$(find * -type f -name "*.zip")
+        cpack_name=$(find "${{ env.clifp_package_path }}" -type f -name "*.zip")
         artifact_name=$(basename "$cpack_name" .zip)
         echo "clifp_current_artifact_name=$artifact_name" >> $GITHUB_ENV
         echo "qt_${{ matrix.qt_linkage }}_artifact_name=$artifact_name" >> $GITHUB_OUTPUT
