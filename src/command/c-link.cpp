@@ -50,7 +50,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     }
     else
     {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
+        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
         return ErrorCode::INVALID_ARGS;
     }
 
