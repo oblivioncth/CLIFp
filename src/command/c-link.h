@@ -42,7 +42,7 @@ private:
 
     static inline const QString CL_OPT_PATH_S_NAME = "p";
     static inline const QString CL_OPT_PATH_L_NAME = "path";
-    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with "".lnk"" will be interpreted as a named shortcut file. "
+    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with "".lnk""//"".desktop"" will be interpreted as a named shortcut file. "
                                                    "Any other path will be interpreted as a directory and the title will automatically be used "
                                                    "as the filename";
 
