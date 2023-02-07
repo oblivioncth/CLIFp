@@ -7,6 +7,7 @@
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QAuthenticator>
+#include <QInputDialog>
 
 // Project Includes
 #include "kernel/core.h"
@@ -45,6 +46,7 @@ public slots:
     void blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError);
     void messageHandler(const QString& message);
     void saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request);
+    void itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
 
     // Long Job
     void longTaskProgressHandler(quint64 progress);

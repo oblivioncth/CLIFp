@@ -92,6 +92,16 @@ void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::Sav
                                          request.filter, request.selectedFilter, request.options);
 }
 
+void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request)
+{
+    /* TODO: Either implement a custom dialog that doesn't have a cancel button, or handle use of the cancel button.
+     * In order to avoid needing a second return argument for the "ok" value of the dialog, simply set 'item' to
+     * a null string if ok==false (cancel was pressed), and check for that in the caller. This would be similar
+     * to how cancellation is handled for save file requests.
+     */
+    *item = QInputDialog::getItem(nullptr, request.caption, request.label, request.items, 0, false);
+}
+
 void StatusRelay::longTaskProgressHandler(quint64 progress)
 {
     mLongTaskProgressDialog.setValue(progress);
