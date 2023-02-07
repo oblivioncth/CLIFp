@@ -104,6 +104,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     list(APPEND QX_FETCH_COMPONENTS Windows)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    list(APPEND QX_FETCH_COMPONENTS Linux)
+endif()
+
 include(OB/FetchQx)
 fetch_qx(
     REF "v0.4.2"
