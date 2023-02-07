@@ -10,7 +10,7 @@
 namespace // Unit helper functions
 {
 
-QProcess* setupExeProcess(const QString& exePath, const QString& exeArgs)
+QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
 {
     QProcess* process = new QProcess();
 
@@ -18,13 +18,15 @@ QProcess* setupExeProcess(const QString& exePath, const QString& exeArgs)
     process->setProgram("wine");
 
     // Set arguments
-    process->setArguments({
+    QStringList fullArgs{
         "start",
         "/wait",
-        "/unix",
-        exePath,
-        exeArgs
-    });
+        "/unix"
+    };
+    fullArgs.append(exePath);
+    fullArgs.append(exeArgs);
+
+    process->setArguments(fullArgs);
 
     return process;
 }
@@ -131,9 +133,9 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
         emit eventOccurred(NAME, LOG_EVENT_FORCED_WIN);
 
         // Resolve passed parameters
-        QString exeParam = std::holds_alternative<QStringList>(mParameters) ?
-                           collapseArguments(std::get<QStringList>(mParameters)) :
-                           std::get<QString>(mParameters);
+        QStringList exeParam = std::holds_alternative<QString>(mParameters) ?
+                               QProcess::splitCommand(std::get<QString>(mParameters)) :
+                               std::get<QStringList>(mParameters);
 
         return setupExeProcess(execInfo.filePath(), exeParam);
     }
