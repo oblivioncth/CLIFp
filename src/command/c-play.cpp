@@ -252,7 +252,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
             return enqueueError;
     }
     else
-        throw std::runtime_error("Auto ID search result source must be 'game' or 'additional_app'");
+        qFatal("Auto ID search result source must be 'game' or 'additional_app'");
 
     // Return success
     return ErrorCode::NO_ERR;

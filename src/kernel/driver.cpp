@@ -58,7 +58,7 @@ void Driver::startNextTask()
 {
     // Ensure tasks exist
     if(!mCore->hasTasks())
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " called with no tasks remaining.");
+        qFatal("Called with no tasks remaining.");
 
     // Take task at front of queue
     mCurrentTask = mCore->frontTask();

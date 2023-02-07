@@ -119,7 +119,7 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
     // Get calling process
     QProcess* process = qobject_cast<QProcess*>(sender());
     if(!process)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
+        qFatal("A non-QProcess called this slot!");
 
     // Remove from managed set
     mManagedProcesses.remove(process);
@@ -154,7 +154,7 @@ void DeferredProcessManager::processStandardOutHandler()
     // Get process
     QProcess* process = qobject_cast<QProcess*>(sender());
     if(!process)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
+        qFatal("A non-QProcess called this slot!");
 
     // Signal data if complete message is in buffer
     process->setReadChannel(QProcess::StandardOutput);
@@ -167,7 +167,7 @@ void DeferredProcessManager::processStandardErrorHandler()
     // Get process
     QProcess* process = qobject_cast<QProcess*>(sender());
     if(!process)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
+        qFatal("A non-QProcess called this slot!");
 
     // Signal data if complete message is in buffer
     process->setReadChannel(QProcess::StandardError);
