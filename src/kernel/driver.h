@@ -112,6 +112,7 @@ signals:
     void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void message(const QString& message);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
+    void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
 
     // Long task
     void longTaskProgressChanged(quint64 progress);

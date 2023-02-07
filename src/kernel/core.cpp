@@ -3,7 +3,6 @@
 
 // Qt Includes
 #include <QApplication>
-#include <QInputDialog>
 
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
@@ -310,7 +309,12 @@ ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
         }
 
         // Get user choice
-        QString userChoice = QInputDialog::getItem(nullptr, MULTI_TITLE_SEL_CAP, MULTI_TITLE_SEL_LABEL, idChoices);
+        Core::ItemSelectionRequest isr{
+            .caption = MULTI_TITLE_SEL_CAP,
+            .label = MULTI_TITLE_SEL_LABEL,
+            .items = idChoices
+        };
+        QString userChoice = requestItemSelection(isr);
 
         // Set return buffer
         returnBuffer = idMap.value(userChoice);
@@ -727,6 +731,18 @@ QString Core::requestSaveFilePath(const SaveFileRequest& request)
 
     // Return response
     return *file;
+}
+
+QString Core::requestItemSelection(const ItemSelectionRequest& request)
+{
+    // Response holder
+    QSharedPointer<QString> item = QSharedPointer<QString>::create();
+
+    // Emit and get response
+    emit itemSelectionRequested(item, request);
+
+    // Return response
+    return *item;
 }
 
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }

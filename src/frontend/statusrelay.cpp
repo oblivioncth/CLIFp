@@ -73,7 +73,10 @@ void StatusRelay::errorHandler(Core::Error error)
 
 void StatusRelay::blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError)
 {
-    *response = Qx::postBlockingError(blockingError.errorInfo, blockingError.choices, blockingError.defaultChoice);
+    if(response)
+        *response = Qx::postBlockingError(blockingError.errorInfo, blockingError.choices, blockingError.defaultChoice);
+    else
+        qFatal("No response argument provided!");
 }
 
 void StatusRelay::messageHandler(const QString& message)
@@ -88,8 +91,26 @@ void StatusRelay::messageHandler(const QString& message)
 
 void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request)
 {
-    *file = QFileDialog::getSaveFileName(nullptr, request.caption, request.dir,
-                                         request.filter, request.selectedFilter, request.options);
+    if(file)
+    {
+        *file = QFileDialog::getSaveFileName(nullptr, request.caption, request.dir,
+                                             request.filter, request.selectedFilter, request.options);
+    }
+    else
+        qFatal("No response argument provided!");
+}
+
+void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request)
+{
+    /* TODO: Either implement a custom dialog that doesn't have a cancel button, or handle use of the cancel button.
+     * In order to avoid needing a second return argument for the "ok" value of the dialog, simply set 'item' to
+     * a null string if ok==false (cancel was pressed), and check for that in the caller. This would be similar
+     * to how cancellation is handled for save file requests.
+     */
+    if(item)
+        *item = QInputDialog::getItem(nullptr, request.caption, request.label, request.items, 0, false);
+    else
+        qFatal("No response argument provided!");
 }
 
 void StatusRelay::longTaskProgressHandler(quint64 progress)
