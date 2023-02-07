@@ -34,7 +34,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
 
 # Get helper scripts
 include(CLIFp/FetchOBCMake)
-fetch_ob_cmake("100e0e42f85024f051eebbe800af9b1e213180d3")
+fetch_ob_cmake("v0.2")
 
 # General Variables
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -110,18 +110,18 @@ endif()
 
 include(OB/FetchQx)
 fetch_qx(
-    REF "v0.4.2"
+    REF "v0.4.3"
     COMPONENTS
         ${QX_FETCH_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-fetch_libfp("8e84e46ace9817992e4cdcf3cd9a183598ba7dc5")
+fetch_libfp("v0.1.5")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-fetch_qi_qmp("0e74aecf7915774ac9505239aa7a5e76534f4c73")
+fetch_qi_qmp("v0.1.4")
 
 # Fetch QuaZip (build and import from source)
 include (OB/FetchQuaZip)
