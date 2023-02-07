@@ -92,7 +92,7 @@ bool TExec::cleanStartProcess(QProcess* process)
 
     // Start process
     process->start();
-    emit eventOccurred(NAME, LOG_EVENT_INIT_PROCESS.arg(mIdentifier, mExecutable));
+    emit eventOccurred(NAME, LOG_EVENT_STARTING.arg(mIdentifier, process->program()));
 
     // Return to previous working directory
     QDir::setCurrent(currentDirPath);
@@ -109,6 +109,7 @@ bool TExec::cleanStartProcess(QProcess* process)
     }
 
     // Return success
+    emit eventOccurred(NAME, LOG_EVENT_STARTED_PROCESS.arg(mIdentifier));
     return true;
 }
 
@@ -144,6 +145,8 @@ void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
 void TExec::perform()
 {
+    emit eventOccurred(NAME, LOG_EVENT_PREPARING_PROCESS.arg(ENUM_NAME(mProcessType), mIdentifier, mExecutable));
+
     // Get final executable path
     QString execPath = resolveExecutablePath();
     if(execPath.isEmpty())
@@ -154,8 +157,9 @@ void TExec::perform()
         return;
     }
 
-    // Prepare process
+    // Prepare process object
     QProcess* taskProcess = prepareProcess(QFileInfo(execPath));
+    logPreparedProcess(taskProcess);
 
     // Set common process properties
     if(!mEnvironment.isEmpty()) // Don't override the QProcess default (use system env.) if no custom env. was set
@@ -176,7 +180,6 @@ void TExec::perform()
                 emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
             }
-            logProcessStart(taskProcess, ProcessType::Blocking);
 
             // Now wait on the process asynchronously...
             return;
@@ -189,7 +192,6 @@ void TExec::perform()
                 emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
             }
-            logProcessStart(taskProcess, ProcessType::Deferred);
 
             if(smDeferredProcessManager)
                 smDeferredProcessManager->manage(mIdentifier, taskProcess); // Add process to list for deferred termination
@@ -209,7 +211,6 @@ void TExec::perform()
                 emit complete(ErrorCode::PROCESS_START_FAIL);
                 return;
             }
-            logProcessStart(taskProcess, ProcessType::Detached);
             break;
     }
 

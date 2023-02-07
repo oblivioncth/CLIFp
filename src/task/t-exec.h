@@ -23,13 +23,21 @@ private:
     // Meta
     static inline const QString NAME = QStringLiteral("TExec");
 
-    // Logging
-    static inline const QString LOG_EVENT_CD = "Changed current directory to: %1";
-    static inline const QString LOG_EVENT_INIT_PROCESS = "Starting '%1' (%2)...";
-    static inline const QString LOG_EVENT_START_PROCESS = "Started %1 process '%2': %3";
+    // Logging - Process Prep
+    static inline const QString LOG_EVENT_PREPARING_PROCESS = "Preparing %1 process '%2' (%3)...";
+    static inline const QString LOG_EVENT_FINAL_EXECUTABLE = "Final Executable: %1";
+    static inline const QString LOG_EVENT_FINAL_PARAMETERS = "Final Parameters: %1";
+
+    // Logging - Process Attribute Modification
     static inline const QString LOG_EVENT_ARGS_ESCAPED = "CMD arguments escaped from [[%1]] to [[%2]]";
     static inline const QString LOG_EVENT_FORCED_BASH = "Forced use of 'sh' from Windows 'bat'";
     static inline const QString LOG_EVENT_FORCED_WIN = "Forced use of WINE from Windows 'exe'";
+
+
+    // Logging - Process Management
+    static inline const QString LOG_EVENT_CD = "Changed current directory to: %1";
+    static inline const QString LOG_EVENT_STARTING = "Starting '%1' (%2)";
+    static inline const QString LOG_EVENT_STARTED_PROCESS = "Started '%1'";
     static inline const QString LOG_EVENT_STOPPING_BLOCKING_PROCESS = "Stopping blocking process '%1'...";
 
     // Errors
@@ -80,7 +88,7 @@ private:
     bool cleanStartProcess(QProcess* process);
 
     // Logging
-    void logProcessStart(const QProcess* process, ProcessType type);
+    void logPreparedProcess(const QProcess* process);
 
 public:
     // Member access

@@ -7,9 +7,6 @@
 // Qx Includes
 #include <qx/core/qx-algorithm.h>
 
-// Project Includes
-#include "utility.h"
-
 namespace // Unit helper functions
 {
 
@@ -157,11 +154,10 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
     }
 }
 
-void TExec::logProcessStart(const QProcess* process, ProcessType type)
+void TExec::logPreparedProcess(const QProcess* process)
 {
-    QString eventStr = process->program();
-    if(!process->arguments().isEmpty())
-        eventStr += " {\"" + process->arguments().join(R"(", ")") + "\"}";
-
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->arguments().isEmpty() ?
+                                                            "{\"" + process->arguments().join(R"(", ")") + "\"}" :
+                                                            ""));
 }
