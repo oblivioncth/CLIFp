@@ -4,6 +4,7 @@
 // Qt Includes
 #include <QObject>
 #include <QProcess>
+#include <QSet>
 
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
@@ -26,7 +27,7 @@ private:
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
-    QHash<QProcess*, QString> mManagedProcesses;
+    QSet<QProcess*> mManagedProcesses;
     bool mClosingClients;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
