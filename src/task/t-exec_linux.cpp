@@ -80,7 +80,10 @@ QString TExec::resolveExecutablePath()
     // as a last resort
     QFileInfo execInfo(mExecutable);
     if(execInfo.suffix() == SHELL_EXT_WIN)
+    {
         execInfo.setFile(mExecutable.chopped(sizeof(SHELL_EXT_WIN)) + SHELL_EXT_LINUX);
+        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+    }
 
     // Mostly standard processing
     if(execInfo.isAbsolute())
@@ -128,7 +131,7 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 {
     if(execInfo.suffix() == EXECUTABLE_EXT_WIN)
     {
-        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+        emit eventOccurred(NAME, LOG_EVENT_FORCED_WIN);
 
         // Resolve passed parameters
         QString exeParam = std::holds_alternative<QStringList>(mParameters) ?
