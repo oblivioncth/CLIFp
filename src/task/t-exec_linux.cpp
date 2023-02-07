@@ -7,13 +7,10 @@
 // Qx Includes
 #include <qx/core/qx-algorithm.h>
 
-// Project Includes
-#include "utility.h"
-
 namespace // Unit helper functions
 {
 
-QProcess* setupExeProcess(const QString& exePath, const QString& exeArgs)
+QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
 {
     QProcess* process = new QProcess();
 
@@ -21,13 +18,15 @@ QProcess* setupExeProcess(const QString& exePath, const QString& exeArgs)
     process->setProgram("wine");
 
     // Set arguments
-    process->setArguments({
+    QStringList fullArgs{
         "start",
         "/wait",
-        "/unix",
-        exePath,
-        exeArgs
-    });
+        "/unix"
+    };
+    fullArgs.append(exePath);
+    fullArgs.append(exeArgs);
+
+    process->setArguments(fullArgs);
 
     return process;
 }
@@ -80,7 +79,10 @@ QString TExec::resolveExecutablePath()
     // as a last resort
     QFileInfo execInfo(mExecutable);
     if(execInfo.suffix() == SHELL_EXT_WIN)
+    {
         execInfo.setFile(mExecutable.chopped(sizeof(SHELL_EXT_WIN)) + SHELL_EXT_LINUX);
+        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+    }
 
     // Mostly standard processing
     if(execInfo.isAbsolute())
@@ -128,12 +130,12 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 {
     if(execInfo.suffix() == EXECUTABLE_EXT_WIN)
     {
-        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+        emit eventOccurred(NAME, LOG_EVENT_FORCED_WIN);
 
         // Resolve passed parameters
-        QString exeParam = std::holds_alternative<QStringList>(mParameters) ?
-                           collapseArguments(std::get<QStringList>(mParameters)) :
-                           std::get<QString>(mParameters);
+        QStringList exeParam = std::holds_alternative<QString>(mParameters) ?
+                               QProcess::splitCommand(std::get<QString>(mParameters)) :
+                               std::get<QStringList>(mParameters);
 
         return setupExeProcess(execInfo.filePath(), exeParam);
     }
@@ -154,11 +156,10 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
     }
 }
 
-void TExec::logProcessStart(const QProcess* process, ProcessType type)
+void TExec::logPreparedProcess(const QProcess* process)
 {
-    QString eventStr = process->program();
-    if(!process->arguments().isEmpty())
-        eventStr += " {\"" + process->arguments().join(R"(", ")") + "\"}";
-
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->arguments().isEmpty() ?
+                                                            "{\"" + process->arguments().join(R"(", ")") + "\"}" :
+                                                            ""));
 }
