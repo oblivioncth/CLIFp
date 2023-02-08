@@ -5,10 +5,6 @@ on:
       qt_ffynnon_cred:
         description: 'Credentials for getting Qt from Ffynnon'
         required: true
-    outputs:
-      qt_static_artifact_name:
-        description: "CLIFp (Qt static) build artifact"
-        value: ${{ jobs.build-clifp.outputs.qt_static_artifact_name }}
 env:
   qt_install_dir: ${{ github.workspace }}/Qt/Install
   qt_download_dir: ${{ github.workspace }}/Qt/Download
@@ -26,8 +22,6 @@ jobs:
     env:
       vs_dir: C:/Program Files/Microsoft Visual Studio/2022/Enterprise
       cmake_gen: Ninja Multi-Config
-    outputs:
-      qt_static_artifact_name: ${{ steps.get_artifact_name.outputs.qt_static_artifact_name }}
     steps:
     - name: Set derived variables with shell because GitHub Actions env context sucks
       run: |
@@ -70,11 +64,10 @@ jobs:
       id: get_artifact_name
       run: |
         $artifact_name=$((Get-ChildItem -Path "${{ env.clifp_package_path }}" -Filter *.zip)[0].BaseName)
-        echo "clifp_current_artifact_name=$artifact_name" >> $Env:GITHUB_ENV
-        echo "qt_${{ matrix.qt_linkage }}_artifact_name=$artifact_name" >> $Env:GITHUB_OUTPUT
+        echo "current_artifact_name=$artifact_name" >> $Env:GITHUB_ENV
     - name: Upload CLIFp build artifact
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.clifp_current_artifact_name }}
+        name: ${{ env.current_artifact_name }}
         path: ${{ env.clifp_install_path }}
         if-no-files-found: error
