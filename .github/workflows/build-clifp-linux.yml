@@ -39,7 +39,9 @@ jobs:
         compiler: clang
         linkage: ${{ matrix.qt_linkage }}
         path: ${{ env.qt_install_dir }}
-        credentials: ${{ secrets.qt_ffynnon_cred }}    
+        credentials: ${{ secrets.qt_ffynnon_cred }}
+    - name: Update package index
+      run: sudo apt-get update
     - name: Install OpenGL lib
       run: sudo apt-get install libglu1-mesa-dev
     - name: Install XCB Related libs
@@ -50,9 +52,9 @@ jobs:
       run: sudo apt-get install ninja-build
     - name: Install Harfbuzz
       run: sudo apt-get install libharfbuzz-dev
-    - name: Install EGL (22.04)
+    - name: Install EGL [22.04]
       if: matrix.os == 'ubuntu-22.04'
-      run: sudo apt-get install libegl1
+      run: sudo apt-get install libegl1-mesa-dev
     - name: Checkout CLIFp
       uses: actions/checkout@v3
       with:
@@ -62,7 +64,7 @@ jobs:
       working-directory: ${{ env.clifp_src_dir }}
       run: |
         echo Configuring CMake...
-        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D CMAKE_CXX_COMPILER="$cxx_comp" -D CMAKE_C_COMPILER="$c_comp"
+        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D CMAKE_CXX_COMPILER="$cxx_comp" -D CMAKE_C_COMPILER="$c_comp" --debug-find-pkg=EGL
         echo Changing to build directory...
         cd "$clifp_build_dir"
         echo Building CLIFp Release...
