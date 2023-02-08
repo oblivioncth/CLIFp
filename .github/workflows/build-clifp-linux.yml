@@ -21,10 +21,26 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     env:
-      c_comp: clang-12
-      cxx_comp: clang++-12
       cmake_gen: Ninja Multi-Config
     steps:
+    - name: Set matrix derived variables
+      uses: kanga333/variable-mapper@v0.3.0
+      with:
+        key: ${{ matrix.os }}
+        map: |
+          {
+            "ubuntu-20.04": {
+              "c_comp": "clang-12",
+              "cxx_comp": "clang++-12",
+              "qt_version": "6.4.0"
+            },
+            "ubuntu-22.04": {
+              "c_comp": "clang-14",
+              "cxx_comp": "clang++-14",
+              "qt_version": "6.4.2"
+            }
+          }
+        export_to: env,log
     - name: Set derived variables with shell because GitHub Actions env context sucks
       run: |  
         echo "clifp_package_path=${{ env.clifp_build_dir }}/out/dist" >> $GITHUB_ENV
@@ -34,7 +50,7 @@ jobs:
     - name: Install Qt (custom build)
       uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
-        version: 6.4.0
+        version: ${{ env.qt_version }}
         os: linux
         compiler: clang
         linkage: ${{ matrix.qt_linkage }}
@@ -55,6 +71,9 @@ jobs:
     - name: Install EGL [22.04]
       if: matrix.os == 'ubuntu-22.04'
       run: sudo apt-get install libegl1-mesa-dev
+    - name: Install EGL [22.04]
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install libegl1-mesa-dev
     - name: Checkout CLIFp
       uses: actions/checkout@v3
       with:
@@ -64,7 +83,7 @@ jobs:
       working-directory: ${{ env.clifp_src_dir }}
       run: |
         echo Configuring CMake...
-        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D CMAKE_CXX_COMPILER="$cxx_comp" -D CMAKE_C_COMPILER="$c_comp" --debug-find-pkg=EGL
+        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D CMAKE_CXX_COMPILER="$cxx_comp" -D CMAKE_C_COMPILER="$c_comp"
         echo Changing to build directory...
         cd "$clifp_build_dir"
         echo Building CLIFp Release...
