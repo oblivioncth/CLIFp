@@ -7,8 +7,8 @@ on:
 env:
   ci_bot_username: ObyBotCI
   ci_bot_email: 104651589+ObyBotCI@users.noreply.github.com
-  clifp_qts_win_artifact_path: ${{ github.workspace }}/CLIFpQtSWin
-  clifp_qts_linux_artifact_path: ${{ github.workspace }}/CLIFpQtSLinux
+  artifacts_path: ${{ github.workspace }}/Artifacts
+  zips_path: ${{ github.workspace }}/Zips
   
 jobs:
   tag_master_and_sync_dev:
@@ -94,24 +94,19 @@ jobs:
     if: github.event.pull_request.merged == true
     runs-on: windows-latest
     steps:
-    - name: Set release artifact names
-      run: |
-        echo "release_qts_win_package_name=${{ needs.build_clifp_release_windows.outputs.qt_static_artifact_name }}" >> $Env:GITHUB_ENV
-        echo "release_qts_linux_package_name=${{ needs.build_clifp_release_linux.outputs.qt_static_artifact_name }}" >> $Env:GITHUB_ENV
-    - name: Download built static CLIFp artifact (Windows)
+    - name: Download built CLIFp artifacts
       uses: actions/download-artifact@v3
       with:
-        name: ${{ env.release_qts_win_package_name }}
-        path: ${{ env.clifp_qts_win_artifact_path }}
-    - name: Download built static CLIFp artifact (Linux)
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ env.release_qts_linux_package_name }}
-        path: ${{ env.clifp_qts_linux_artifact_path }}
+        path: ${{ env.artifacts_path }}
     - name: Zip up release artifacts
       run: |
-        7z a "${{ env.release_qts_win_package_name }}.zip" "${{ env.clifp_qts_win_artifact_path }}/*"
-        7z a "${{ env.release_qts_linux_package_name }}.zip" "${{ env.clifp_qts_linux_artifact_path }}/*"
+        $artifact_folders = Get-ChildItem -Directory -Path "${{ env.artifacts_path }}"
+        foreach($art_dir in $artifact_folders)
+        {
+          $name = $art_dir.name
+          $path = $art_dir.fullname
+          7z a "${{ env.zips_path }}/${name}.zip" "${path}/*"
+        }
     - name: Generate release
       uses: softprops/action-gh-release@v1
       with:
@@ -120,7 +115,6 @@ jobs:
         fail_on_unmatched_files: true
         generate_release_notes: true
         files: |
-          ${{ env.release_qts_win_package_name }}.zip
-          ${{ env.release_qts_linux_package_name }}.zip
+          ${{ env.zips_path }}/*.zip
     
         

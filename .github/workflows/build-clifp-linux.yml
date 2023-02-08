@@ -5,10 +5,6 @@ on:
       qt_ffynnon_cred:
         description: 'Credentials for getting Qt from Ffynnon'
         required: true
-    outputs:
-      qt_static_artifact_name:
-        description: "CLIFp (Qt static) build artifact"
-        value: ${{ jobs.build-clifp.outputs.qt_static_artifact_name }}
 env:
   general_download_dir: ${{ github.workspace }}/Download
   qt_install_dir: ${{ github.workspace }}/Qt/Install
@@ -28,8 +24,6 @@ jobs:
       c_comp: clang-12
       cxx_comp: clang++-12
       cmake_gen: Ninja Multi-Config
-    outputs:
-      qt_static_artifact_name: ${{ steps.get_artifact_name.outputs.qt_static_artifact_name }}
     steps:
     - name: Set derived variables with shell because GitHub Actions env context sucks
       run: |  
@@ -80,11 +74,10 @@ jobs:
       run: |
         cpack_name=$(find "${{ env.clifp_package_path }}" -type f -name "*.zip")
         artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.os }}]"
-        echo "clifp_current_artifact_name=$artifact_name" >> $GITHUB_ENV
-        echo "qt_${{ matrix.qt_linkage }}_artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+        echo "current_artifact_name=$artifact_name" >> $GITHUB_ENV
     - name: Upload CLIFp build artifact
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.clifp_current_artifact_name }}
+        name: ${{ env.current_artifact_name }}
         path: ${{ env.clifp_install_path }}
         if-no-files-found: error
