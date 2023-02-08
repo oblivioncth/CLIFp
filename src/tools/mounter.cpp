@@ -5,9 +5,7 @@
 #include <QAuthenticator>
 #include <QRandomGenerator>
 #include <QUrlQuery>
-#ifdef __linux__
-    #include <QFileInfo>
-#endif
+#include <QFileInfo>
 
 // Qx Includes
 #include <qx/core/qx-json.h>
@@ -140,12 +138,8 @@ void Mounter::setMountOnServer()
 
     QUrlQuery query;
     QString queryKey = "file";
-#if defined _WIN32
-    QString queryValue = QUrl::toPercentEncoding(mCurrentMountInfo.driveSerial);
-#elif defined __linux__
-    // FP Launcher uses "basename" but Node.js basename is actually filename
-    QString queryValue = QUrl::toPercentEncoding(QFileInfo(mCurrentMountInfo.filePath).fileName());
-#endif
+    QString queryValue = QUrl::toPercentEncoding(mQemuEnabled ? mCurrentMountInfo.driveSerial :
+                                                                QFileInfo(mCurrentMountInfo.filePath).fileName());
     query.addQueryItem(queryKey, queryValue);
     mountUrl.setQuery(query);
 
