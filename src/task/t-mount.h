@@ -21,7 +21,7 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
-    Mounter* mMounter; // TODO: Probably should change mounter to have setters for its ports so this can be on stack
+    Mounter mMounter;
 
     // Data
     bool mSkipQemu;

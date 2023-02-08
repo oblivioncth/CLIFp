@@ -12,8 +12,19 @@
 //Public:
 TMount::TMount(QObject* parent) :
     Task(parent),
-    mMounter(nullptr)
-{}
+    mMounter()
+{
+    // Connect mounter signals
+    connect(&mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
+        emit errorOccurred(NAME, errorMsg);
+    });
+    connect(&mMounter, &Mounter::eventOccured, this, [this](QString event){
+        emit eventOccurred(NAME, event);
+    });
+    connect(&mMounter, &Mounter::mountProgressMaximumChanged, this, &Task::longTaskTotalChanged);
+    connect(&mMounter, &Mounter::mountProgress, this, &Task::longTaskProgressChanged);
+    connect(&mMounter, &Mounter::mountFinished, this, &TMount::postMount);
+}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
@@ -41,29 +52,22 @@ void TMount::perform()
     QString label = LOG_EVENT_MOUNTING_DATA_PACK.arg(packFileInfo.fileName());
 
     //-Setup Mounter------------------------------------
-    mMounter = new Mounter(22500, mSkipQemu ? 0 : 22501, 0, this);
-
-    connect(mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
-        emit errorOccurred(NAME, errorMsg);
-    });
-    connect(mMounter, &Mounter::eventOccured, this, [this](QString event){
-        emit eventOccurred(NAME, event);
-    });
-    connect(mMounter, &Mounter::mountProgressMaximumChanged, this, &Task::longTaskTotalChanged);
-    connect(mMounter, &Mounter::mountProgress, this, &Task::longTaskProgressChanged);
-    connect(mMounter, &Mounter::mountFinished, this, &TMount::postMount);
+    mMounter.setWebServerPort(22500);
+    mMounter.setQemuMountPort(22501);
+    mMounter.setQemuProdPort(0);
+    mMounter.setQemuEnabled(!mSkipQemu);
 
     // Start mount
     emit longTaskStarted(label);
-    mMounter->mount(mTitleId, mPath);
+    mMounter.mount(mTitleId, mPath);
 }
 
 void TMount::stop()
 {
-    if(mMounter && mMounter->isMounting())
+    if(mMounter.isMounting())
     {
         emit eventOccurred(NAME, LOG_EVENT_STOPPING_MOUNT);
-        mMounter->abort();
+        mMounter.abort();
     }
 }
 
