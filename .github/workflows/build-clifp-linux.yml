@@ -50,6 +50,9 @@ jobs:
       run: sudo apt-get install ninja-build
     - name: Install Harfbuzz
       run: sudo apt-get install libharfbuzz-dev
+    - name: Install EGL (22.04)
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install libegl1
     - name: Checkout CLIFp
       uses: actions/checkout@v3
       with:
