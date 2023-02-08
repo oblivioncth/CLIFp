@@ -23,13 +23,14 @@
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-Mounter::Mounter(quint16 webserverPort, quint16 qemuMountPort, quint16 qemuProdPort, QObject* parent) :
+Mounter::Mounter(QObject* parent) :
     QObject(parent),
     mMounting(false),
     mErrorStatus(ErrorCode::NO_ERR),
-    mWebserverPort(webserverPort),
-    mQemuMounter(QHostAddress::LocalHost, qemuMountPort, this),
-    mQemuProdder(QHostAddress::LocalHost, qemuProdPort, this), // Currently not used
+    mWebServerPort(0),
+    mQemuMounter(QHostAddress::LocalHost, 0),
+    mQemuProdder(QHostAddress::LocalHost, 0), // Currently not used
+    mQemuEnabled(true),
     mCompletedQemuCommands(0)
 {
     // Setup Network Access Manager
@@ -134,7 +135,7 @@ void Mounter::setMountOnServer()
     QUrl mountUrl;
     mountUrl.setScheme("http");
     mountUrl.setHost("127.0.0.1");
-    mountUrl.setPort(mWebserverPort);
+    mountUrl.setPort(mWebServerPort);
     mountUrl.setPath("/mount.php");
 
     QUrlQuery query;
@@ -164,6 +165,16 @@ void Mounter::notePhpMountResponse(const QString& response)
 
 //Public:
 bool Mounter::isMounting() { return mMounting; }
+
+quint16 Mounter::webServerPort() const { return mWebServerPort; }
+quint16 Mounter::qemuMountPort() const { return mQemuMounter.port(); }
+quint16 Mounter::qemuProdPort() const { return mQemuProdder.port(); }
+bool Mounter::isQemuEnabled() const { return mQemuEnabled; }
+
+void Mounter::setWebServerPort(quint16 port) { mWebServerPort = port; }
+void Mounter::setQemuMountPort(quint16 port) { mQemuMounter.setPort(port); }
+void Mounter::setQemuProdPort(quint16 port) { mQemuProdder.setPort(port); }
+void Mounter::setQemuEnabled(bool enabled) { mQemuEnabled = enabled; }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Private Slots:
