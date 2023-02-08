@@ -44,8 +44,8 @@ Mounter::Mounter(QObject* parent) :
     connect(&mNam, &QNetworkAccessManager::finished, this, &Mounter::phpMountFinishedHandler);
 
     // Connections - Error
-    connect(&mQemuMounter, &Qmpi::connectionErrorOccured, this, &Mounter::qmpiConnectionErrorHandler);
-    connect(&mQemuMounter, &Qmpi::communicationErrorOccured, this, &Mounter::qmpiCommunicationErrorHandler);
+    connect(&mQemuMounter, &Qmpi::connectionErrorOccurred, this, &Mounter::qmpiConnectionErrorHandler);
+    connect(&mQemuMounter, &Qmpi::communicationErrorOccurred, this, &Mounter::qmpiCommunicationErrorHandler);
     connect(&mQemuMounter, &Qmpi::errorResponseReceived, this, &Mounter::qmpiCommandErrorHandler);
 
     // Connections - Log
