@@ -14,7 +14,7 @@ jobs:
     if: github.event.pull_request.merged == true
     runs-on: windows-latest
     outputs:
-      version_tag: ${{ steps.tag_master.outputs.new_tag }}
+      new_version: ${{ steps.get-proj-ver.outputs.version }}
       target_fp_version: ${{ steps.check_target_fp.outputs.fp_version }}
     steps:
     - name: Get project version
@@ -39,36 +39,19 @@ jobs:
         $target_version = "v$($Matches[1].Trim())"
         echo "fp_version=$target_version" >> $Env:GITHUB_OUTPUT
     - name: Tag master with new version tag
-      id: tag_master
-      working-directory: ${{ steps.proj-checkout.outputs.path }}
-      env:
-        new_version: ${{ steps.get-proj-ver.outputs.version }}
-      run: |
-        $new_tag = "v${Env:new_version}"
-        echo "new_tag=$new_tag" >> $Env:GITHUB_OUTPUT
-        git tag -a $new_tag -m "Release $new_tag"
-        git push --tags
+      uses: oblivioncth/actions/git/tag@dev
+      with:
+        tag: 'v${{ steps.get-proj-ver.outputs.version }}'
+        message: 'Release v${{ steps.get-proj-ver.outputs.version }}'
     - name: Move 'latest' tag
-      working-directory: ${{ steps.proj-checkout.outputs.path }}
-      run: |
-        echo "Checking for 'latest' tag..."
-        if(git tag -l latest){
-          echo "Removing previous 'latest' tag..."
-          git tag -d latest # Delete tag locally
-          git push origin :refs/tags/latest # Delete tag remotely
-        }
-        else{
-          echo "No tag to remove."
-        }
-        git tag -a latest -m "Latest Release"
-        git push origin latest
+      uses: oblivioncth/actions/git/move-latest-tag@dev
     - name: Fast-forward merge master into to dev
       if: always()
-      working-directory: ${{ steps.proj-checkout.outputs.path }}
-      run: |
-        git checkout dev
-        git merge master --ff-only
-        git push
+      uses: oblivioncth/actions/git/merge-branches@dev
+      with:
+        source_branch: master
+        target_branch: dev
+        ff: only
   
   build_clifp_release_windows:
     name: Build CLIFp Release (Windows)
@@ -108,8 +91,8 @@ jobs:
     - name: Generate release
       uses: softprops/action-gh-release@v1
       with:
-        name: "CLIFp Release ${{ needs.tag_master_and_sync_dev.outputs.version_tag }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
-        tag_name: "${{ needs.tag_master_and_sync_dev.outputs.version_tag }}"
+        name: "CLIFp Release v${{ needs.tag_master_and_sync_dev.outputs.version_tag }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
+        tag_name: "v${{ needs.tag_master_and_sync_dev.outputs.version_tag }}"
         fail_on_unmatched_files: true
         generate_release_notes: true
         files: |
