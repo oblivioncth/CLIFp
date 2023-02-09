@@ -5,8 +5,6 @@ on:
     branches:
     - 'master'
 env:
-  ci_bot_username: ObyBotCI
-  ci_bot_email: 104651589+ObyBotCI@users.noreply.github.com
   artifacts_path: ${{ github.workspace }}/Artifacts
   zips_path: ${{ github.workspace }}/Zips
   

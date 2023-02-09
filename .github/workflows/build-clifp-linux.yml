@@ -6,7 +6,6 @@ on:
         description: 'Credentials for getting Qt from Ffynnon'
         required: true
 env:
-  general_download_dir: ${{ github.workspace }}/Download
   qt_install_dir: ${{ github.workspace }}/Qt/Install
   clifp_src_suffix: CLIFp/Source
   clifp_src_dir: ${{ github.workspace }}/CLIFp/Source
@@ -91,7 +90,6 @@ jobs:
         cpack -C "Debug;Release"
         echo Build complete.
     - name: Get CLIFp artifact name
-      id: get_artifact_name
       run: |
         cpack_name=$(find "${{ env.clifp_package_path }}" -type f -name "*.zip")
         artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.os }}]"
