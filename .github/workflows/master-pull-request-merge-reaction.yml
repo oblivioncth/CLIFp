@@ -91,8 +91,8 @@ jobs:
     - name: Generate release
       uses: softprops/action-gh-release@v1
       with:
-        name: "CLIFp Release v${{ needs.tag_master_and_sync_dev.outputs.version_tag }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
-        tag_name: "v${{ needs.tag_master_and_sync_dev.outputs.version_tag }}"
+        name: "CLIFp Release v${{ needs.tag_master_and_sync_dev.outputs.new_version }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
+        tag_name: "v${{ needs.tag_master_and_sync_dev.outputs.new_version }}"
         fail_on_unmatched_files: true
         generate_release_notes: true
         files: |
