@@ -12,6 +12,20 @@ namespace // Unit helper functions
 
 QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
 {
+    /* TODO: Although fallback to this function is rare, there is a noteworthy limitation
+     * with the current implementation of this. The existence of the executable in question
+     * will have already been checked at this point, which means that after the swap the
+     * new executable, Wine, is not checked. Because of this, if the user doesn't have
+     * Wine on their system they will get a "failed to start error" that notes the
+     * original executable name, which doesn't make it clear that the error was due
+     * to missing wine.
+     *
+     * Currently this function has no way to fail/report errors, but at some point the
+     * overall approach should be tweaked so that if Wine is swapped to, it is also checked
+     * for in the same manner as the executable itself, with an error then returned if it
+     * could not be found.
+     */
+
     QProcess* process = new QProcess();
 
     // Force WINE
