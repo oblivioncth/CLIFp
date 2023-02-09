@@ -33,8 +33,8 @@ jobs:
       uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
         version: 6.4.0
-        os: win32
-        compiler: msvc
+        os: windows
+        compiler: msvc2022
         linkage: ${{ matrix.qt_linkage }}
         path: ${{ env.qt_install_dir }}
         credentials: ${{ secrets.qt_ffynnon_cred }}
