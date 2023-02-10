@@ -31,7 +31,7 @@ jobs:
             "ubuntu-20.04": {
               "c_comp": "clang-12",
               "cxx_comp": "clang++-12",
-              "qt_version": "6.4.0",
+              "qt_version": "6.4.2",
               "qt_compiler": "clang12"
             },
             "ubuntu-22.04": {
