@@ -73,13 +73,14 @@ jobs:
     name: Create GitHub release
     needs: [build_clifp_release_windows, build_clifp_release_linux, tag_master_and_sync_dev]
     if: github.event.pull_request.merged == true
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - name: Download built CLIFp artifacts
       uses: actions/download-artifact@v3
       with:
         path: ${{ env.artifacts_path }}
     - name: Zip up release artifacts
+      shell: pwsh
       run: |
         $artifact_folders = Get-ChildItem -Directory -Path "${{ env.artifacts_path }}"
         foreach($art_dir in $artifact_folders)
