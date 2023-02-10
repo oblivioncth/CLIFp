@@ -5,10 +5,8 @@ on:
     branches:
     - 'master'
 env:
-  ci_bot_username: ObyBotCI
-  ci_bot_email: 104651589+ObyBotCI@users.noreply.github.com
-  clifp_qts_win_artifact_path: ${{ github.workspace }}/CLIFpQtSWin
-  clifp_qts_linux_artifact_path: ${{ github.workspace }}/CLIFpQtSLinux
+  artifacts_path: ${{ github.workspace }}/Artifacts
+  zips_path: ${{ github.workspace }}/Zips
   
 jobs:
   tag_master_and_sync_dev:
@@ -16,19 +14,20 @@ jobs:
     if: github.event.pull_request.merged == true
     runs-on: windows-latest
     outputs:
-      version_tag: ${{ steps.tag_master.outputs.new_tag }}
+      new_version: ${{ steps.get-proj-ver.outputs.version }}
       target_fp_version: ${{ steps.check_target_fp.outputs.fp_version }}
     steps:
-    - name: Checkout CLIFp Master
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Setup git user for bot
-      run: |
-        git config --global user.name "${{ env.ci_bot_username }}"
-        git config --global user.email "${{ env.ci_bot_email }}"
+    - name: Get project version
+      id: get-proj-ver
+      uses: oblivioncth/actions/cmake/get-project-version@dev
+    - name: Set Git user to ObyBotCI
+      uses: oblivioncth/actions/git/set-git-user-to-oby-bot@dev
+    - name: Checkout Project
+      id: proj-checkout
+      uses: oblivioncth/actions/git/smart-checkout@dev
     - name: Get target FP version
       id: check_target_fp
+      working-directory: ${{ steps.proj-checkout.outputs.path }}
       env:
         match_start: set\(TARGET_FP_VERSION_PREFIX
         match_end: \)
@@ -40,38 +39,19 @@ jobs:
         $target_version = "v$($Matches[1].Trim())"
         echo "fp_version=$target_version" >> $Env:GITHUB_OUTPUT
     - name: Tag master with new version tag
-      id: tag_master
-      env:
-        match_start: set\(CLIFP_BASE_VERSION
-        match_end: \)
-      run: |
-        $project_lists = Get-Content -Raw CMakeLists.txt
-        if(!($project_lists -match '(?<=${{ env.match_start }})(.*)(?=${{ env.match_end }})')){
-          throw "Could not get base version!"
-        }
-        $new_tag = "v$($Matches[1].Trim())"
-        echo "new_tag=$new_tag" >> $Env:GITHUB_OUTPUT
-        git tag -a $new_tag -m "Release $new_tag"
-        git push --tags
+      uses: oblivioncth/actions/git/tag@dev
+      with:
+        tag: 'v${{ steps.get-proj-ver.outputs.version }}'
+        message: 'Release v${{ steps.get-proj-ver.outputs.version }}'
     - name: Move 'latest' tag
-      run: |
-        echo "Checking for 'latest' tag..."
-        if(git tag -l latest){
-          echo "Removing previous 'latest' tag..."
-          git tag -d latest # Delete tag locally
-          git push origin :refs/tags/latest # Delete tag remotely
-        }
-        else{
-          echo "No tag to remove."
-        }
-        git tag -a latest -m "Latest Release"
-        git push origin latest
+      uses: oblivioncth/actions/git/move-latest-tag@dev
     - name: Fast-forward merge master into to dev
       if: always()
-      run: |
-        git checkout dev
-        git merge master --ff-only
-        git push
+      uses: oblivioncth/actions/git/merge-branches@dev
+      with:
+        source_branch: master
+        target_branch: dev
+        ff: only
   
   build_clifp_release_windows:
     name: Build CLIFp Release (Windows)
@@ -79,7 +59,7 @@ jobs:
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/build-clifp-windows.yml
     secrets:
-      qt_static_url: ${{ secrets.QT_WINDOWS_STATIC_URL }}
+      qt_ffynnon_cred: ${{ secrets.OBYBOT_FFYNNON_CREDS }}
       
   build_clifp_release_linux:
     name: Build CLIFp Release (Linux)
@@ -87,41 +67,36 @@ jobs:
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/build-clifp-linux.yml
     secrets:
-      qt_static_url: ${{ secrets.QT_LINUX_STATIC_URL }}
+      qt_ffynnon_cred: ${{ secrets.OBYBOT_FFYNNON_CREDS }}
 
   create-release:
     name: Create GitHub release
     needs: [build_clifp_release_windows, build_clifp_release_linux, tag_master_and_sync_dev]
     if: github.event.pull_request.merged == true
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-    - name: Set release artifact names
-      run: |
-        echo "release_qts_win_package_name=${{ needs.build_clifp_release_windows.outputs.qt_static_artifact_name }}" >> $Env:GITHUB_ENV
-        echo "release_qts_linux_package_name=${{ needs.build_clifp_release_linux.outputs.qt_static_artifact_name }}" >> $Env:GITHUB_ENV
-    - name: Download built static CLIFp artifact (Windows)
+    - name: Download built CLIFp artifacts
       uses: actions/download-artifact@v3
       with:
-        name: ${{ env.release_qts_win_package_name }}
-        path: ${{ env.clifp_qts_win_artifact_path }}
-    - name: Download built static CLIFp artifact (Linux)
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ env.release_qts_linux_package_name }}
-        path: ${{ env.clifp_qts_linux_artifact_path }}
+        path: ${{ env.artifacts_path }}
     - name: Zip up release artifacts
+      shell: pwsh
       run: |
-        7z a "${{ env.release_qts_win_package_name }}.zip" "${{ env.clifp_qts_win_artifact_path }}/*"
-        7z a "${{ env.release_qts_linux_package_name }}.zip" "${{ env.clifp_qts_linux_artifact_path }}/*"
+        $artifact_folders = Get-ChildItem -Directory -Path "${{ env.artifacts_path }}"
+        foreach($art_dir in $artifact_folders)
+        {
+          $name = $art_dir.name
+          $path = $art_dir.fullname
+          7z a "${{ env.zips_path }}/${name}.zip" "${path}/*"
+        }
     - name: Generate release
       uses: softprops/action-gh-release@v1
       with:
-        name: "CLIFp Release ${{ needs.tag_master_and_sync_dev.outputs.version_tag }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
-        tag_name: "${{ needs.tag_master_and_sync_dev.outputs.version_tag }}"
+        name: "CLIFp Release v${{ needs.tag_master_and_sync_dev.outputs.new_version }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
+        tag_name: "v${{ needs.tag_master_and_sync_dev.outputs.new_version }}"
         fail_on_unmatched_files: true
         generate_release_notes: true
         files: |
-          ${{ env.release_qts_win_package_name }}.zip
-          ${{ env.release_qts_linux_package_name }}.zip
+          ${{ env.zips_path }}/*.zip
     
         

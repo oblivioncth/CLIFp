@@ -113,11 +113,10 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
         return setupNativeProcess(execInfo.filePath(), mParameters);
 }
 
-void TExec::logProcessStart(const QProcess* process, ProcessType type)
+void TExec::logPreparedProcess(const QProcess* process)
 {
-    QString eventStr = process->program();
-    if(!process->nativeArguments().isEmpty())
-        eventStr += " " + process->nativeArguments();
-
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->nativeArguments().isEmpty() ?
+                                                            process->nativeArguments() :
+                                                            ""));
 }

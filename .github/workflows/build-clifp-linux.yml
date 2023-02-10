@@ -2,17 +2,11 @@ name: Build CLIFp - Linux
 on:
   workflow_call:
     secrets:
-      qt_static_url:
-        description: 'MEGA Qt static install archive URL'
+      qt_ffynnon_cred:
+        description: 'Credentials for getting Qt from Ffynnon'
         required: true
-    outputs:
-      qt_static_artifact_name:
-        description: "CLIFp (Qt static) build artifact"
-        value: ${{ jobs.build-clifp.outputs.qt_static_artifact_name }}
 env:
-  general_download_dir: ${{ github.workspace }}/Download
   qt_install_dir: ${{ github.workspace }}/Qt/Install
-  qt_download_dir: ${{ github.workspace }}/Qt/Download
   clifp_src_suffix: CLIFp/Source
   clifp_src_dir: ${{ github.workspace }}/CLIFp/Source
   clifp_build_dir: ${{ github.workspace }}/CLIFp/Build
@@ -23,23 +17,28 @@ jobs:
     strategy:
       matrix:
         qt_linkage: [static]
-    runs-on: ubuntu-20.04
+        os: [ubuntu-20.04, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
     env:
-      c_comp: clang-12
-      cxx_comp: clang++-12
       cmake_gen: Ninja Multi-Config
-    outputs:
-      qt_static_artifact_name: ${{ steps.get_artifact_name.outputs.qt_static_artifact_name }}
     steps:
     - name: Set matrix derived variables
       uses: kanga333/variable-mapper@v0.3.0
       with:
-        key: ${{ matrix.qt_linkage }}
+        key: ${{ matrix.os }}
         map: |
           {
-            "static": {
-              "qt_install_url": "${{ secrets.qt_static_url }}",
-              "artifact_output_var": "qt_static_artifact_name"
+            "ubuntu-20.04": {
+              "c_comp": "clang-12",
+              "cxx_comp": "clang++-12",
+              "qt_version": "6.4.2",
+              "qt_compiler": "clang12"
+            },
+            "ubuntu-22.04": {
+              "c_comp": "clang-14",
+              "cxx_comp": "clang++-14",
+              "qt_version": "6.4.2",
+              "qt_compiler": "clang14"
             }
           }
         export_to: env,log
@@ -49,38 +48,17 @@ jobs:
         clifp_install_path="${{ env.clifp_build_dir }}/out/install"
         echo "clifp_install_path=$clifp_install_path" >> $GITHUB_ENV
         echo "qt_cmake=$qt_install_dir/bin/qt-cmake" >> $GITHUB_ENV
-    - name: Cache Qt Build
-      id: cache-qt
-      uses: actions/cache@v3
+    - name: Install Qt (custom build)
+      uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
+        version: ${{ env.qt_version }}
+        os: linux
+        compiler: ${{ env.qt_compiler }}
+        linkage: ${{ matrix.qt_linkage }}
         path: ${{ env.qt_install_dir }}
-        key: ${{ env.qt_install_url }}
-    - name: Install megatools
-      if: steps.cache-qt.outputs.cache-hit != 'true'
-      env:
-        mt_build: megatools-1.11.0.20220519-linux-x86_64
-        mt_arch_ext: tar.gz
-        mt_repo: https://megatools.megous.com/builds/builds/
-      run: |
-        curl "$mt_repo/$mt_build.$mt_arch_ext" --output "$general_download_dir/$mt_build.$mt_arch_ext" --create-dirs --location --silent --show-error
-        cd $general_download_dir
-        tar xf "$mt_build.$mt_arch_ext"
-        cd "$mt_build"
-        cp -p megatools /usr/local/bin
-    - name: Create Qt Download Directory
-      if: steps.cache-qt.outputs.cache-hit != 'true'
-      run: mkdir -p "${{ env.qt_download_dir }}"
-    - name: Download Qt Install
-      if: steps.cache-qt.outputs.cache-hit != 'true'
-      run: megatools dl "$qt_install_url" --path "${{ env.qt_download_dir }}"
-    - name: Determine Qt Install Package Name
-      if: steps.cache-qt.outputs.cache-hit != 'true'
-      run: |
-        qt_install_name=$(ls "${{ env.qt_download_dir }}" | grep "qt-.*7z")
-        echo "qt_install_dest=${{ env.qt_download_dir }}/$qt_install_name" >> $GITHUB_ENV
-    - name: Extract Qt Install
-      if: steps.cache-qt.outputs.cache-hit != 'true'
-      run: 7z x ${{ env.qt_install_dest }} -o${{ env.qt_install_dir }}
+        credentials: ${{ secrets.qt_ffynnon_cred }}
+    - name: Update package index
+      run: sudo apt-get update
     - name: Install OpenGL lib
       run: sudo apt-get install libglu1-mesa-dev
     - name: Install XCB Related libs
@@ -91,6 +69,9 @@ jobs:
       run: sudo apt-get install ninja-build
     - name: Install Harfbuzz
       run: sudo apt-get install libharfbuzz-dev
+    - name: Install EGL [22.04]
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install libegl1-mesa-dev
     - name: Checkout CLIFp
       uses: actions/checkout@v3
       with:
@@ -111,14 +92,13 @@ jobs:
         cpack -C "Debug;Release"
         echo Build complete.
     - name: Get CLIFp artifact name
-      id: get_artifact_name
       run: |
-        cpack_name=$(find * -type f -name "*.zip")
-        artifact_name=$(basename "$cpack_name" .zip)
-        echo "${{ env.artifact_output_var }}=$artifact_name" >> $GITHUB_OUTPUT
+        cpack_name=$(find "${{ env.clifp_package_path }}" -type f -name "*.zip")
+        artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.os }}]"
+        echo "current_artifact_name=$artifact_name" >> $GITHUB_ENV
     - name: Upload CLIFp build artifact
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ steps.get_artifact_name.outputs[env.artifact_output_var] }}
+        name: ${{ env.current_artifact_name }}
         path: ${{ env.clifp_install_path }}
         if-no-files-found: error

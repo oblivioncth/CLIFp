@@ -15,10 +15,10 @@ private:
     static inline const QString DIAG_CAPTION = "Select a shortcut destination...";
 
     // Error Messages - Prep
-    static inline const QString ERR_NO_TITLE = "No title to create a shortcut for was specified.";
+    static inline const QString ERR_NO_TITLE = "The title to link was not specified.";
     static inline const QString ERR_CREATE_FAILED = "Failed to create shortcut.";
     static inline const QString ERR_INVALID_PATH = "The provided shortcut path is not valid or a location where you do not have permissions to create a shortcut.";
-    static inline const QString ERR_DIFFERENT_TITLE_SRC = "The shortcut title source was expected expected to be %1 but instead was %2";
+    static inline const QString ERR_DIFFERENT_TITLE_SRC = "The shortcut title source was expected to be %1 but instead was %2";
 
     // Logging - Messages
     static inline const QString LOG_EVENT_FILE_PATH = "Shortcut path provided is for a file";
@@ -42,7 +42,7 @@ private:
 
     static inline const QString CL_OPT_PATH_S_NAME = "p";
     static inline const QString CL_OPT_PATH_L_NAME = "path";
-    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with "".lnk"" will be interpreted as a named shortcut file. "
+    static inline const QString CL_OPT_PATH_DESC = "Path to new shortcut. Path's ending with "".lnk""//"".desktop"" will be interpreted as a named shortcut file. "
                                                    "Any other path will be interpreted as a directory and the title will automatically be used "
                                                    "as the filename";
 

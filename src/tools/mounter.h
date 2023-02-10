@@ -59,9 +59,10 @@ private:
     Qx::SetOnce<ErrorCode> mErrorStatus;
     MountInfo mCurrentMountInfo;
 
-    int mWebserverPort;
+    int mWebServerPort;
     Qmpi mQemuMounter;
-    Qmpi mQemuProdder; // Not used until switching to FP 11
+    Qmpi mQemuProdder; // Not actually used; no, need unless issues with mounting are reported
+    bool mQemuEnabled;
     int mCompletedQemuCommands;
 
     QNetworkAccessManager mNam;
@@ -70,7 +71,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit Mounter(quint16 webserverPort, quint16 qemuMountPort = 0, quint16 qemuProdPort  = 0, QObject* parent = nullptr);
+    explicit Mounter(QObject* parent = nullptr);
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
@@ -81,6 +82,16 @@ private:
 
 public:
     bool isMounting();
+
+    quint16 webServerPort() const;
+    quint16 qemuMountPort() const;
+    quint16 qemuProdPort() const;
+    bool isQemuEnabled() const;
+
+    void setWebServerPort(quint16 port);
+    void setQemuMountPort(quint16 port);
+    void setQemuProdPort(quint16 port);
+    void setQemuEnabled(bool enabled);
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:

@@ -5,9 +5,8 @@ cmake_minimum_required(VERSION 3.21.1)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
-set(CLIFP_BASE_VERSION 0.9.1.2) # Required for CI/CD
 project(CLIFp
-    VERSION ${CLIFP_BASE_VERSION}
+    VERSION 0.9.2
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint"
 )
@@ -35,7 +34,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
 
 # Get helper scripts
 include(CLIFp/FetchOBCMake)
-fetch_ob_cmake("2bdcf390af3c46a15645e7bce5268255a3c48cf9")
+fetch_ob_cmake("v0.2")
 
 # General Variables
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -94,16 +93,35 @@ find_package(Qt6 REQUIRED COMPONENTS
 add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
 
 # Fetch Qx (build and import from source)
+set(QX_FETCH_COMPONENTS
+    Core
+    Io
+    Network
+    Widgets
+)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+    list(APPEND QX_FETCH_COMPONENTS Windows)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    list(APPEND QX_FETCH_COMPONENTS Linux)
+endif()
+
 include(OB/FetchQx)
-fetch_qx("f1b1eb0962734f9b6a7bb55fc6a908b3a13862fe")
+fetch_qx(
+    REF "v0.4.3"
+    COMPONENTS
+        ${QX_FETCH_COMPONENTS}
+)
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-fetch_libfp("v0.1.4")
+fetch_libfp("v0.1.5")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-fetch_qi_qmp("v0.1.3")
+fetch_qi_qmp("v0.2")
 
 # Fetch QuaZip (build and import from source)
 include (OB/FetchQuaZip)

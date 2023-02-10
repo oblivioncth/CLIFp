@@ -26,7 +26,7 @@ void DeferredProcessManager::signalError(const Qx::GenericError& error) { emit e
 void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const QString& msgTemplate)
 {
     // Assemble details
-    QString identifier = mManagedProcesses.value(process);
+    QString identifier = process->objectName();
     QString program = process->program();
     QString pid = QString::number(process->processId());
     QString output = QString::fromLocal8Bit(process->readAll());
@@ -59,8 +59,11 @@ void DeferredProcessManager::manage(const QString& identifier, QProcess* process
     connect(process, &QProcess::readyReadStandardOutput, this, &DeferredProcessManager::processStandardOutHandler);
     connect(process, &QProcess::readyReadStandardError, this, &DeferredProcessManager::processStandardErrorHandler);
 
+    // Set process identifier
+    process->setObjectName(identifier);
+
     // Store
-    mManagedProcesses[process] = identifier;
+    mManagedProcesses.insert(process);
 }
 
 void DeferredProcessManager::closeProcesses()
@@ -69,16 +72,16 @@ void DeferredProcessManager::closeProcesses()
     {
         mClosingClients = true;
 
-        /* Can't iterate over the hash here as when a process finishes 'processFinishedHandler' gets called
+        /* Can't iterate over the set here as when a process finishes 'processFinishedHandler' gets called
          * which removes the QProcess handle from the hash, potentially invalidating the iterator. Even if it
          * coincidentally works some of the time, this is undefined behavior and should be avoided. Instead
-         * simply check if the hash is empty on each iteration
+         * simply check if the set is empty on each iteration
          */
 
         while(!mManagedProcesses.isEmpty())
         {
-            // Get first key from hash
-            QProcess* proc = mManagedProcesses.constBegin().key();
+            // Get first process from set
+            QProcess* proc = *mManagedProcesses.constBegin();
 
             /* Kill children of the process, as here the whole tree should be killed
              * A "clean" kill is used for this on Linux as the vanilia Launcher uses Node.js process.kill()
@@ -113,11 +116,12 @@ void DeferredProcessManager::closeProcesses()
 //Private Slots:
 void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    // Get process and its identifier, remove it from hash
+    // Get calling process
     QProcess* process = qobject_cast<QProcess*>(sender());
     if(!process)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
-    QString identifier = mManagedProcesses.value(process);
+        qFatal("A non-QProcess called this slot!");
+
+    // Remove from managed set
     mManagedProcesses.remove(process);
 
     // Flush incomplete messages
@@ -129,6 +133,7 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
         signalProcessStdErrMessage(process);
 
     // Assemble details
+    QString identifier = process->objectName();
     QString program = process->program();
     QString status = ENUM_NAME(exitStatus);
     QString code = QString::number(exitCode);
@@ -149,7 +154,7 @@ void DeferredProcessManager::processStandardOutHandler()
     // Get process
     QProcess* process = qobject_cast<QProcess*>(sender());
     if(!process)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
+        qFatal("A non-QProcess called this slot!");
 
     // Signal data if complete message is in buffer
     process->setReadChannel(QProcess::StandardOutput);
@@ -162,7 +167,7 @@ void DeferredProcessManager::processStandardErrorHandler()
     // Get process
     QProcess* process = qobject_cast<QProcess*>(sender());
     if(!process)
-        throw std::runtime_error(std::string(Q_FUNC_INFO) + " a non-QProcess called this slot!");
+        qFatal("A non-QProcess called this slot!");
 
     // Signal data if complete message is in buffer
     process->setReadChannel(QProcess::StandardError);

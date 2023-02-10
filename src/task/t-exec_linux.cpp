@@ -7,27 +7,40 @@
 // Qx Includes
 #include <qx/core/qx-algorithm.h>
 
-// Project Includes
-#include "utility.h"
-
 namespace // Unit helper functions
 {
 
-QProcess* setupExeProcess(const QString& exePath, const QString& exeArgs)
+QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
 {
+    /* TODO: Although fallback to this function is rare, there is a noteworthy limitation
+     * with the current implementation of this. The existence of the executable in question
+     * will have already been checked at this point, which means that after the swap the
+     * new executable, Wine, is not checked. Because of this, if the user doesn't have
+     * Wine on their system they will get a "failed to start error" that notes the
+     * original executable name, which doesn't make it clear that the error was due
+     * to missing wine.
+     *
+     * Currently this function has no way to fail/report errors, but at some point the
+     * overall approach should be tweaked so that if Wine is swapped to, it is also checked
+     * for in the same manner as the executable itself, with an error then returned if it
+     * could not be found.
+     */
+
     QProcess* process = new QProcess();
 
     // Force WINE
     process->setProgram("wine");
 
     // Set arguments
-    process->setArguments({
+    QStringList fullArgs{
         "start",
         "/wait",
-        "/unix",
-        exePath,
-        exeArgs
-    });
+        "/unix"
+    };
+    fullArgs.append(exePath);
+    fullArgs.append(exeArgs);
+
+    process->setArguments(fullArgs);
 
     return process;
 }
@@ -80,7 +93,10 @@ QString TExec::resolveExecutablePath()
     // as a last resort
     QFileInfo execInfo(mExecutable);
     if(execInfo.suffix() == SHELL_EXT_WIN)
+    {
         execInfo.setFile(mExecutable.chopped(sizeof(SHELL_EXT_WIN)) + SHELL_EXT_LINUX);
+        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+    }
 
     // Mostly standard processing
     if(execInfo.isAbsolute())
@@ -128,12 +144,12 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 {
     if(execInfo.suffix() == EXECUTABLE_EXT_WIN)
     {
-        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+        emit eventOccurred(NAME, LOG_EVENT_FORCED_WIN);
 
         // Resolve passed parameters
-        QString exeParam = std::holds_alternative<QStringList>(mParameters) ?
-                           collapseArguments(std::get<QStringList>(mParameters)) :
-                           std::get<QString>(mParameters);
+        QStringList exeParam = std::holds_alternative<QString>(mParameters) ?
+                               QProcess::splitCommand(std::get<QString>(mParameters)) :
+                               std::get<QStringList>(mParameters);
 
         return setupExeProcess(execInfo.filePath(), exeParam);
     }
@@ -154,11 +170,10 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
     }
 }
 
-void TExec::logProcessStart(const QProcess* process, ProcessType type)
+void TExec::logPreparedProcess(const QProcess* process)
 {
-    QString eventStr = process->program();
-    if(!process->arguments().isEmpty())
-        eventStr += " {\"" + process->arguments().join(R"(", ")") + "\"}";
-
-    emit eventOccurred(NAME, LOG_EVENT_START_PROCESS.arg(ENUM_NAME(type), mIdentifier, eventStr));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
+    emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->arguments().isEmpty() ?
+                                                            "{\"" + process->arguments().join(R"(", ")") + "\"}" :
+                                                            ""));
 }
