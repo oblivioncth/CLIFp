@@ -118,5 +118,7 @@ void TExec::logPreparedProcess(const QProcess* process)
     emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
     emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->nativeArguments().isEmpty() ?
                                                             process->nativeArguments() :
+                                                            !process->arguments().isEmpty() ?
+                                                            "{\"" + process->arguments().join(R"(", ")") + "\"}" :
                                                             ""));
 }
