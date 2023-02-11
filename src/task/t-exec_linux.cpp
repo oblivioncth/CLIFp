@@ -132,9 +132,9 @@ QString TExec::escapeForShell(const QString& argStr)
             inQuotes = !inQuotes;
 
         if(inQuotes)
-            escapedArgs.append(stdInQuotesEscapes.contains(chr) ? '^' + chr : chr);
+            escapedArgs.append(stdInQuotesEscapes.contains(chr) ? '\\' + chr : chr);
         else
-            escapedArgs.append(curOutQuotesEscapes.contains(chr) ? '^' + chr : chr);
+            escapedArgs.append(curOutQuotesEscapes.contains(chr) ? '\\' + chr : chr);
     }
 
     return escapedArgs;
