@@ -104,7 +104,7 @@ ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, QUuid p
         .type = parent.isNull() ? Fp::Db::EntryType::Primary : Fp::Db::EntryType::AddApp,
         .parent = parent,
         .name = name,
-        .playableOnly = true
+        .playableOnly = false
     };
 
     if((searchError = mFlashpointInstall->database()->queryEntrys(searchResult, filter)).isValid())
