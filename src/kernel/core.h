@@ -105,10 +105,14 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = "Title Data Pack requires mounting";
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = "Title Data Pack requires extraction";
     static inline const QString LOG_EVENT_TASK_ENQ = "Enqueued %1: {%2}";
+    static inline const QString LOG_EVENT_APP_PATH_ALT = "App path \"%1\" maps to alternative \"%2\".";
+
+    // Logging - Title Search
+    static inline const QString LOG_EVENT_GAME_SEARCH = "Searching for game with title '%1'";
+    static inline const QString LOG_EVENT_ADD_APP_SEARCH = "Searching for additional-app with title '%1' and parent %2";
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
     static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of title %1 determined to be %2";
-    static inline const QString LOG_EVENT_APP_PATH_ALT = "App path \"%1\" maps to alternative \"%2\".";
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";
@@ -188,6 +192,9 @@ private:
     void showHelp();
     void showVersion();
 
+    // Helper
+    ErrorCode searchAndFilterEntity(QUuid& returnBuffer, QString name, QUuid parent = QUuid());
+
 public:
     // Setup
     ErrorCode initialize(QStringList& commandLine);
@@ -195,7 +202,12 @@ public:
 
     // Helper
     QString resolveTrueAppPath(const QString& appPath, const QString& platform);
-    ErrorCode getGameIDFromTitle(QUuid& returnBuffer, QString title);
+    /* TODO: These 2 functions are here because they need end up emitting a Core signal;
+     * however, it may make more sense to move them to CPlay (where they are used) and simply
+     * call the core function(s) that emit the signals from there
+     */
+    ErrorCode getGameIdFromTitle(QUuid& returnBuffer, QString title);
+    ErrorCode getAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name);
 
     // Common
     ErrorCode enqueueStartupTasks();

@@ -40,7 +40,7 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     }
     else if(mParser.isSet(CL_OPTION_TITLE))
     {
-        if((errorStatus = mCore.getGameIDFromTitle(id, mParser.value(CL_OPTION_TITLE))))
+        if((errorStatus = mCore.getGameIdFromTitle(id, mParser.value(CL_OPTION_TITLE))))
             return errorStatus;
     }
     else

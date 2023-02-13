@@ -125,7 +125,8 @@ Options:
 
  -  **-i | --id:** UUID  of  title  to  start
  -  **-t | --title:** Title  to  start
- - **-r | --random:** Select  a  random  title  from  the  database  to  start.  Must  be  followed  by  a  library  filter:  all/any,  game/arcade,  animation/theatre
+ -  **-s | --subtitle:** Name of additional-app under the title to start
+ -  **-r | --random:** Select  a  random  title  from  the  database  to  start.  Must  be  followed  by  a  library  filter:  all/any,  game/arcade,  animation/theatre
  -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
@@ -149,7 +150,7 @@ Requires:
  **run** - Start  Flashpoint's  webserver  and  then  execute  the  provided  application
 
 Options:
-  -  **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
+ -  **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
  -  **-p | --param:** Command-line parameters to use when starting the application
 
 Requires:
