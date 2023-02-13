@@ -116,6 +116,7 @@ public:
     static inline const QString LOG_EVENT_TITLE_ID_COUNT = "Found %1 ID(s) when searching for title %2";
     static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = "Prompting user to disambiguate multiple IDs...";
     static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = "ID of title %1 determined to be %2";
+    static inline const QString LOG_EVENT_TITLE_SEL_CANCELED = "Title selection was canceled by the user.";
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = "h";

@@ -549,13 +549,18 @@ ErrorCode CPlay::process(const QStringList& commandLine)
     }
     else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
     {
+        // Check title
         bool titleStrict = mParser.isSet(CL_OPTION_TITLE_STRICT);
         QString title = titleStrict ? mParser.value(CL_OPTION_TITLE_STRICT) : mParser.value(CL_OPTION_TITLE);
-
 
         if((errorStatus = mCore.findGameIdFromTitle(titleId, title, titleStrict)))
             return errorStatus;
 
+        // Bail if canceled
+        if(titleId.isNull())
+            return ErrorCode::NO_ERR;
+
+        // Check subtitle
         if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
         {
             bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
@@ -563,6 +568,10 @@ ErrorCode CPlay::process(const QStringList& commandLine)
 
             if((errorStatus = mCore.findAddAppIdFromName(addAppId, titleId, subtitle, subtitleStrict)))
                 return errorStatus;
+
+            // Bail if canceled
+            if(addAppId.isNull())
+                return ErrorCode::NO_ERR;
         }
     }
     else if(mParser.isSet(CL_OPTION_RAND))

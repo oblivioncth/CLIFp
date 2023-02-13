@@ -181,9 +181,14 @@ ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         };
         QString userChoice = requestItemSelection(isr);
 
-        // Set return buffer
-        returnBuffer = idMap.value(userChoice);
-        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
+        if(userChoice.isNull())
+            logEvent(NAME, LOG_EVENT_TITLE_SEL_CANCELED);
+        else
+        {
+            // Set return buffer
+            returnBuffer = idMap.value(userChoice); // If user choice is null, this will
+            logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
+        }
 
         return ErrorCode::NO_ERR;
     }
