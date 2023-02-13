@@ -45,7 +45,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     }
     else if(mParser.isSet(CL_OPTION_TITLE))
     {
-        if((errorStatus = mCore.getGameIdFromTitle(shortcutId, mParser.value(CL_OPTION_TITLE))))
+        if((errorStatus = mCore.findGameIdFromTitle(shortcutId, mParser.value(CL_OPTION_TITLE))))
             return errorStatus;
     }
     else

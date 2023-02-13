@@ -125,12 +125,22 @@ Options:
 
  -  **-i | --id:** UUID  of  title  to  start
  -  **-t | --title:** Title  to  start
- -  **-s | --subtitle:** Name of additional-app under the title to start
+ -  **-T | --title-strict:** Same as **-t**, but only exact matches are considered
+ -  **-s | --subtitle:** Name of additional-app under the title to start. Must be used with **-t**/**-T**
+ -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
  -  **-r | --random:** Select  a  random  title  from  the  database  to  start.  Must  be  followed  by  a  library  filter:  all/any,  game/arcade,  animation/theatre
  -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
-**-i** or **-t** or **-r** 
+**-i** or **-t** or **-r**
+
+Notes:
+
+The **-t** and **-s** switches are case-insensitive and will match any title that contains the value provided. If more than one result is found, a dialog will be presented that allows for selected the desired title; however, there is a limit to the number of matches.
+
+Using the **-T** and **-S** switches only consider exact matches and are performed slightly faster than their more flexible counterparts.
+
+Tip: You can use **-s** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
 
 --------------------------------------------------------------------------------
  
@@ -232,6 +242,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
 | 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
 | 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
+| 26    | CANT_LISTEN_DOCKER       | CLIFp could not connect to Docker to listen for the server's start signal                                 |
+| 27    | DOCKER_DIDNT_START       | The docker server never started                                                                           |
+| 28    | TOO_MANY_RESULTS         | Too many results were returned from a database query                                                      |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
 | 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |

@@ -60,9 +60,17 @@ public:
     static inline const QString CL_OPT_TITLE_L_NAME = "title";
     static inline const QString CL_OPT_TITLE_DESC = "Title to start";
 
+    static inline const QString CL_OPT_TITLE_STRICT_S_NAME = "T";
+    static inline const QString CL_OPT_TITLE_STRICT_L_NAME = "title-strict";
+    static inline const QString CL_OPT_TITLE_STRICT_DESC = "Same as -t, but exact matches only";
+
     static inline const QString CL_OPT_SUBTITLE_S_NAME = "s";
     static inline const QString CL_OPT_SUBTITLE_L_NAME = "subtitle";
-    static inline const QString CL_OPT_SUBTITLE_DESC = "Name of additional-app under the title to start";
+    static inline const QString CL_OPT_SUBTITLE_DESC = "Name of additional-app under the title to start. Must be used with -t / -T";
+
+    static inline const QString CL_OPT_SUBTITLE_STRICT_S_NAME = "S";
+    static inline const QString CL_OPT_SUBTITLE_STRICT_L_NAME = "subtitle-strict";
+    static inline const QString CL_OPT_SUBTITLE_STRICT_DESC = "Same as -s, but exact matches only";
 
     static inline const QString CL_OPT_RAND_S_NAME = "r";
     static inline const QString CL_OPT_RAND_L_NAME = "random";
@@ -72,9 +80,12 @@ private:
     // Command line options
     static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, "id"}; // Takes value
     static inline const QCommandLineOption CL_OPTION_TITLE{{CL_OPT_TITLE_S_NAME, CL_OPT_TITLE_L_NAME}, CL_OPT_TITLE_DESC, "title"}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_TITLE_STRICT{{CL_OPT_TITLE_STRICT_S_NAME, CL_OPT_TITLE_STRICT_L_NAME}, CL_OPT_TITLE_STRICT_DESC, "title-strict"}; // Takes value
     static inline const QCommandLineOption CL_OPTION_SUBTITLE{{CL_OPT_SUBTITLE_S_NAME, CL_OPT_SUBTITLE_L_NAME}, CL_OPT_SUBTITLE_DESC, "subtitle"}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_SUBTITLE_STRICT{{CL_OPT_SUBTITLE_STRICT_S_NAME, CL_OPT_SUBTITLE_STRICT_L_NAME}, CL_OPT_SUBTITLE_STRICT_DESC, "subtitle-strict"}; // Takes value
     static inline const QCommandLineOption CL_OPTION_RAND{{CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, "random"}; // Takes value
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_SUBTITLE, &CL_OPTION_RAND};
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_TITLE_STRICT,
+                                                                             &CL_OPTION_SUBTITLE, &CL_OPTION_SUBTITLE_STRICT, &CL_OPTION_RAND};
 
 public:
     // Meta
