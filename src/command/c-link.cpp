@@ -43,10 +43,22 @@ ErrorCode CLink::process(const QStringList& commandLine)
             return ErrorCode::ID_NOT_VALID;
         }
     }
-    else if(mParser.isSet(CL_OPTION_TITLE))
+    else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
     {
-        if((errorStatus = mCore.findGameIdFromTitle(shortcutId, mParser.value(CL_OPTION_TITLE))))
+        bool titleStrict = mParser.isSet(CL_OPTION_TITLE_STRICT);
+        QString title = titleStrict ? mParser.value(CL_OPTION_TITLE_STRICT) : mParser.value(CL_OPTION_TITLE);
+
+        if((errorStatus = mCore.findGameIdFromTitle(shortcutId, title, titleStrict)))
             return errorStatus;
+
+        if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
+        {
+            bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
+            QString subtitle = subtitleStrict ? mParser.value(CL_OPTION_SUBTITLE_STRICT) : mParser.value(CL_OPTION_SUBTITLE);
+
+            if((errorStatus = mCore.findAddAppIdFromName(shortcutId, shortcutId, subtitle, subtitleStrict)))
+                return errorStatus;
+        }
     }
     else
     {
