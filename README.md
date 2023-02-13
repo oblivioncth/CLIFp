@@ -103,6 +103,7 @@ Options:
  -  **-s | --subtitle:** Name of additional-app under the title to make a shortcut for. Must be used with **-t**/**-T**
  -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
  -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
+ -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-i** or **-t** 
@@ -164,6 +165,7 @@ Requires:
 Options:
  -  **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
  -  **-p | --param:** Command-line parameters to use when starting the application
+ -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-a** 
@@ -190,6 +192,7 @@ See http://www.robvanderwoude.com/escapechars.php for more information.
 Options:
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
  -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
+ -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-m** or **-e** 
