@@ -110,7 +110,7 @@ endif()
 
 include(OB/FetchQx)
 fetch_qx(
-    REF "v0.4.3"
+    REF "ae110210c06ae23f7ffb42891d45206db7fdad54"
     COMPONENTS
         ${QX_FETCH_COMPONENTS}
 )
