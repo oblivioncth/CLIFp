@@ -91,6 +91,87 @@ void Core::showVersion()
     postMessage(CL_VERSION_MESSAGE);
 }
 
+ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, QUuid parent)
+{
+    // Clear return buffer
+    returnBuffer = QUuid();
+
+    // Search database for title
+    QSqlError searchError;
+    Fp::Db::QueryBuffer searchResult;
+
+    Fp::Db::EntryFilter filter{
+        .type = parent.isNull() ? Fp::Db::EntryType::Primary : Fp::Db::EntryType::AddApp,
+        .parent = parent,
+        .name = name,
+        .playableOnly = true
+    };
+
+    if((searchError = mFlashpointInstall->database()->queryEntrys(searchResult, filter)).isValid())
+    {
+        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
+        return ErrorCode::SQL_ERROR;
+    }
+
+    logEvent(NAME, LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(name));
+
+    if(searchResult.size < 1)
+    {
+        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_TITLE_NOT_FOUND));
+        return ErrorCode::TITLE_NOT_FOUND;
+    }
+    else if(searchResult.size == 1)
+    {
+        // Advance result to only record
+        searchResult.result.next();
+
+        // Get ID
+        returnBuffer = QUuid(searchResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
+        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
+
+        return ErrorCode::NO_ERR;
+    }
+    else
+    {
+        logEvent(NAME, LOG_EVENT_TITLE_SEL_PROMNPT);
+        QHash<QString, QUuid> idMap;
+        QStringList idChoices;
+
+        for(int i = 0; i < searchResult.size; ++i)
+        {
+            // Advance result to next record
+            searchResult.result.next();
+
+            // Get ID
+            QUuid id = QUuid(searchResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
+
+            // Create choice string
+            QString choice = MULTI_TITLE_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString(),
+                                                      name,
+                                                      searchResult.result.value(Fp::Db::Table_Game::COL_DEVELOPER).toString(),
+                                                      id.toString(QUuid::WithoutBraces));
+
+            // Add to map and choice list
+            idMap[choice] = id;
+            idChoices.append(choice);
+        }
+
+        // Get user choice
+        Core::ItemSelectionRequest isr{
+            .caption = MULTI_TITLE_SEL_CAP,
+            .label = MULTI_TITLE_SEL_LABEL,
+            .items = idChoices
+        };
+        QString userChoice = requestItemSelection(isr);
+
+        // Set return buffer
+        returnBuffer = idMap.value(userChoice);
+        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
+
+        return ErrorCode::NO_ERR;
+    }
+}
+
 //Public:
 ErrorCode Core::initialize(QStringList& commandLine)
 {
@@ -250,78 +331,16 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
     return workingPath.replace('\\','/');
 }
 
-ErrorCode Core::getGameIDFromTitle(QUuid& returnBuffer, QString title)
+ErrorCode Core::getGameIdFromTitle(QUuid& returnBuffer, QString title)
 {
-    // Clear return buffer
-    returnBuffer = QUuid();
+    logEvent(NAME, LOG_EVENT_GAME_SEARCH.arg(title));
+    return searchAndFilterEntity(returnBuffer, title);
+}
 
-    // Search database for title
-    QSqlError searchError;
-    Fp::Db::QueryBuffer searchResult;
-
-    if((searchError = mFlashpointInstall->database()->queryEntriesByTitle(searchResult, title)).isValid())
-    {
-        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCode::SQL_ERROR;
-    }
-
-    logEvent(NAME, LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(title));
-
-    if(searchResult.size < 1)
-    {
-        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_TITLE_NOT_FOUND));
-        return ErrorCode::TITLE_NOT_FOUND;
-    }
-    else if(searchResult.size == 1)
-    {
-        // Advance result to only record
-        searchResult.result.next();
-
-        // Get ID
-        returnBuffer = QUuid(searchResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
-        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
-
-        return ErrorCode::NO_ERR;
-    }
-    else
-    {
-        logEvent(NAME, LOG_EVENT_TITLE_SEL_PROMNPT);
-        QHash<QString, QUuid> idMap;
-        QStringList idChoices;
-
-        for(int i = 0; i < searchResult.size; ++i)
-        {
-            // Advance result to next record
-            searchResult.result.next();
-
-            // Get ID
-            QUuid id = QUuid(searchResult.result.value(Fp::Db::Table_Game::COL_ID).toString());
-
-            // Create choice string
-            QString choice = MULTI_TITLE_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString(),
-                                                      title,
-                                                      searchResult.result.value(Fp::Db::Table_Game::COL_DEVELOPER).toString(),
-                                                      id.toString(QUuid::WithoutBraces));
-
-            // Add to map and choice list
-            idMap[choice] = id;
-            idChoices.append(choice);
-        }
-
-        // Get user choice
-        Core::ItemSelectionRequest isr{
-            .caption = MULTI_TITLE_SEL_CAP,
-            .label = MULTI_TITLE_SEL_LABEL,
-            .items = idChoices
-        };
-        QString userChoice = requestItemSelection(isr);
-
-        // Set return buffer
-        returnBuffer = idMap.value(userChoice);
-        logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(title, returnBuffer.toString(QUuid::WithoutBraces)));
-
-        return ErrorCode::NO_ERR;
-    }
+ErrorCode Core::getAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name)
+{
+    logEvent(NAME, LOG_EVENT_ADD_APP_SEARCH.arg(name, parent.toString()));
+    return searchAndFilterEntity(returnBuffer, name, parent);
 }
 
 ErrorCode Core::enqueueStartupTasks()

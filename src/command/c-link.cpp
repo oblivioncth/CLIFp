@@ -45,7 +45,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
     }
     else if(mParser.isSet(CL_OPTION_TITLE))
     {
-        if((errorStatus = mCore.getGameIDFromTitle(shortcutId, mParser.value(CL_OPTION_TITLE))))
+        if((errorStatus = mCore.getGameIdFromTitle(shortcutId, mParser.value(CL_OPTION_TITLE))))
             return errorStatus;
     }
     else
@@ -60,10 +60,12 @@ ErrorCode CLink::process(const QStringList& commandLine)
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get entry info (also confirms that ID is present in database)
+    Fp::Db::EntryFilter entryFilter{.type = Fp::Db::EntryType::PrimaryThenAddApp, .id = shortcutId};
+
     QSqlError sqlError;
     Fp::Db::QueryBuffer entryInfo;
 
-    if((sqlError = database->queryEntryById(entryInfo, shortcutId)).isValid())
+    if((sqlError = database->queryEntrys(entryInfo, entryFilter)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
         return ErrorCode::SQL_ERROR;
@@ -82,9 +84,11 @@ ErrorCode CLink::process(const QStringList& commandLine)
     else if(entryInfo.source == Fp::Db::Table_Add_App::NAME)
     {
         // Get parent info
+        QUuid parentId = QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString());
+        Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
+
         Fp::Db::QueryBuffer parentInfo;
-        if((sqlError = database->queryEntryById(parentInfo,
-            QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
+        if((sqlError = database->queryEntrys(parentInfo, parentFilter)).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
             return ErrorCode::SQL_ERROR;
