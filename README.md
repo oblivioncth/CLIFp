@@ -99,6 +99,9 @@ though this isn't required as long as quotation and space use is carefully emplo
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
  -  **-t | --title:** Title to  make a shortcut for
+ -  **-T | --title-strict:** Same as **-t**, but only exact matches are considered
+ -  **-s | --subtitle:** Name of additional-app under the title to make a shortcut for. Must be used with **-t**/**-T**
+ -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
  -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
 
 Requires:
@@ -108,14 +111,13 @@ Notes:
 
  - On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
 
-
-
    For example, when specifying:
    
        CLIFp link -p "~/Desktop/Cool Name.desktop" ...
 
    the display name of the desktop entry will be set to "Cool Name".
  - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
+ - See the **play** command notes for information regarding the **t**/**T** and **s**/**S** switches.
 
 --------------------------------------------------------------------------------
 
