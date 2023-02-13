@@ -80,7 +80,7 @@ ErrorCode ProcessBider::doWait()
     QMutexLocker handleLocker(&mProcessHandleMutex);
 
     // Wait until process has stopped running for grace period
-    DWORD spProcessID;
+    DWORD spProcessId;
     do
     {
         // Yield for grace period
@@ -89,16 +89,16 @@ ErrorCode ProcessBider::doWait()
             QThread::sleep(mRespawnGrace);
 
         // Find process ID by name
-        spProcessID = Qx::processId(mProcessName);
+        spProcessId = Qx::processId(mProcessName);
 
         // Check that process was found (is running)
-        if(spProcessID)
+        if(spProcessId)
         {
             emit statusChanged(LOG_EVENT_BIDE_RUNNING.arg(mProcessName));
 
             // Get process handle and see if it is valid
             DWORD rights = PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE;
-            if((mProcessHandle = OpenProcess(rights, FALSE, spProcessID)) == NULL)
+            if((mProcessHandle = OpenProcess(rights, FALSE, spProcessId)) == NULL)
             {
                 Qx::GenericError nativeError = Qx::translateHresult(HRESULT_FROM_WIN32(GetLastError()));
 
@@ -131,7 +131,7 @@ ErrorCode ProcessBider::doWait()
             emit statusChanged(LOG_EVENT_BIDE_QUIT.arg(mProcessName));
         }
     }
-    while(spProcessID);
+    while(spProcessId);
 
     // Return success
     emit statusChanged(LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
