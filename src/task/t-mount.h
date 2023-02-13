@@ -1,6 +1,9 @@
 #ifndef TMOUNT_H
 #define TMOUNT_H
 
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
 // Project Includes
 #include "task/task.h"
 #include "tools/mounter.h"
@@ -12,11 +15,11 @@ class TMount : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("TMount");
+    static inline const QString NAME = QSL("TMount");
 
     // Logging
-    static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = "Mounting Data Pack %1";
-    static inline const QString LOG_EVENT_STOPPING_MOUNT = "Stopping current mount(s)...";
+    static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = QSL("Mounting Data Pack %1");
+    static inline const QString LOG_EVENT_STOPPING_MOUNT = QSL("Stopping current mount(s)...");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

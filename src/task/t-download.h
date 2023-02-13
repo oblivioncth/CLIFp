@@ -3,6 +3,7 @@
 
 // Qx Includes
 #include <qx/network/qx-downloadmanager.h>
+#include <qx/utility/qx-macros.h>
 
 // Project Includes
 #include "task/task.h"
@@ -13,16 +14,16 @@ class TDownload : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("TDownload");
+    static inline const QString NAME = QSL("TDownload");
 
     // Logging
-    static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = "Downloading Data Pack %1";
-    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = "Data Pack downloaded successfully";
-    static inline const QString LOG_EVENT_DOWNLOAD_AUTH = "Data Pack download unexpectedly requires authentication (%1)";
-    static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = "Stopping current download(s)...";
+    static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = QSL("Downloading Data Pack %1");
+    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = QSL("Data Pack downloaded successfully");
+    static inline const QString LOG_EVENT_DOWNLOAD_AUTH = QSL("Data Pack download unexpectedly requires authentication (%1)");
+    static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = QSL("Stopping current download(s)...");
 
     // Errors
-    static inline const QString ERR_PACK_SUM_MISMATCH = "The title's Data Pack checksum does not match its record!";
+    static inline const QString ERR_PACK_SUM_MISMATCH = QSL("The title's Data Pack checksum does not match its record!");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

@@ -9,6 +9,9 @@
 #include <QAuthenticator>
 #include <QInputDialog>
 
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
 // Project Includes
 #include "kernel/core.h"
 
@@ -18,7 +21,7 @@ class StatusRelay : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // System Messages
-    static inline const QString SYS_TRAY_STATUS = "CLIFp is running";
+    static inline const QString SYS_TRAY_STATUS = QSL("CLIFp is running");
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 public:

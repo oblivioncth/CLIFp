@@ -8,6 +8,7 @@
 
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
+#include <qx/utility/qx-macros.h>
 
 class DeferredProcessManager : public QObject
 {
@@ -15,12 +16,12 @@ class DeferredProcessManager : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("DeferredProcessManager");
+    static inline const QString NAME = QSL("DeferredProcessManager");
 
     // Log
-    static inline const QString LOG_EVENT_PROCCESS_CLOSED = "Deferred process '%1' ( %2 ) finished. Status: '%3', Code: %4";
-    static inline const QString LOG_EVENT_PROCCESS_STDOUT = "'%1' ( %2 | %3 ) <stdout> %4";
-    static inline const QString LOG_EVENT_PROCCESS_STDERR = "'%1' ( %2 | %3 ) <stderr> %4";
+    static inline const QString LOG_EVENT_PROCCESS_CLOSED = QSL("Deferred process '%1' ( %2 ) finished. Status: '%3', Code: %4");
+    static inline const QString LOG_EVENT_PROCCESS_STDOUT = QSL("'%1' ( %2 | %3 ) <stdout> %4");
+    static inline const QString LOG_EVENT_PROCCESS_STDERR = QSL("'%1' ( %2 | %3 ) <stderr> %4");
 
     // Error
     static inline const QString ERR_PROCESS_END_PREMATURE = "Deferred process '%1' ( %2 ) unexpectedly finished. Status: '%3', Code: %4";

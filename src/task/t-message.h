@@ -1,6 +1,9 @@
 #ifndef TMESSAGE_H
 #define TMESSAGE_H
 
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
 // Project Includes
 #include "task/task.h"
 
@@ -10,10 +13,10 @@ class TMessage : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("TMessage");
+    static inline const QString NAME = QSL("TMessage");
 
     // Logging
-    static inline const QString LOG_EVENT_SHOW_MESSAGE = "Displayed message";
+    static inline const QString LOG_EVENT_SHOW_MESSAGE = QSL("Displayed message");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

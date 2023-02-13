@@ -1,6 +1,9 @@
 #ifndef CRUN_H
 #define CRUN_H
 
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
 // Project Includes
 #include "command/command.h"
 
@@ -9,23 +12,23 @@ class CRun : public Command
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
-    static inline const QString STATUS_RUN = "Running";
+    static inline const QString STATUS_RUN = QSL("Running");
 
     // Error Messages - Prep
-    static inline const QString ERR_NO_APP = "No application to run was provided.";
+    static inline const QString ERR_NO_APP = QSL("No application to run was provided.");
 
     // Logging - Messages
 
     // Logging - Errors
 
     // Command line option strings
-    static inline const QString CL_OPT_APP_S_NAME = "a";
-    static inline const QString CL_OPT_APP_L_NAME = "app";
-    static inline const QString CL_OPT_APP_DESC = "Relative (to Flashpoint directory) path of application to launch.";
+    static inline const QString CL_OPT_APP_S_NAME = QSL("a");
+    static inline const QString CL_OPT_APP_L_NAME = QSL("app");
+    static inline const QString CL_OPT_APP_DESC = QSL("Relative (to Flashpoint directory) path of application to launch.");
 
-    static inline const QString CL_OPT_PARAM_S_NAME = "p";
-    static inline const QString CL_OPT_PARAM_L_NAME = "param";
-    static inline const QString CL_OPT_PARAM_DESC = "Command-line parameters to use when starting the application.";
+    static inline const QString CL_OPT_PARAM_S_NAME = QSL("p");
+    static inline const QString CL_OPT_PARAM_L_NAME = QSL("param");
+    static inline const QString CL_OPT_PARAM_DESC = QSL("Command-line parameters to use when starting the application.");
 
     // Command line options
     static inline const QCommandLineOption CL_OPTION_APP{{CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"}; // Takes value
@@ -34,8 +37,8 @@ private:
 
 public:
     // Meta
-    static inline const QString NAME = "run";
-    static inline const QString DESCRIPTION = "Start Flashpoint's webserver and then execute the provided application";
+    static inline const QString NAME = QSL("run");
+    static inline const QString DESCRIPTION = QSL("Start Flashpoint's webserver and then execute the provided application");
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:

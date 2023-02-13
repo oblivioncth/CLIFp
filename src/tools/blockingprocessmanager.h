@@ -7,6 +7,7 @@
 
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
+#include <qx/utility/qx-macros.h>
 
 class BlockingProcessManager : public QObject
 {
@@ -17,9 +18,9 @@ private:
     static inline const QString NAME = QStringLiteral("BlockingProcessManager");
 
     // Log
-    static inline const QString LOG_EVENT_PROCCESS_CLOSED = "Blocking process '%1' ( %2 ) finished. Status: '%3', Code: %4";
-    static inline const QString LOG_EVENT_PROCCESS_STDOUT = "( %1 ) <stdout> %2";
-    static inline const QString LOG_EVENT_PROCCESS_STDERR = "( %1 ) <stderr> %2";
+    static inline const QString LOG_EVENT_PROCCESS_CLOSED = QSL("Blocking process '%1' ( %2 ) finished. Status: '%3', Code: %4");
+    static inline const QString LOG_EVENT_PROCCESS_STDOUT = QSL("( %1 ) <stdout> %2");
+    static inline const QString LOG_EVENT_PROCCESS_STDERR = QSL("( %1 ) <stderr> %2");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
