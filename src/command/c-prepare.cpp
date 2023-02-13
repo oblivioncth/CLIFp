@@ -42,6 +42,10 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     {
         if((errorStatus = mCore.findGameIdFromTitle(id, mParser.value(CL_OPTION_TITLE))))
             return errorStatus;
+
+        // Bail if canceled
+        if(id.isNull())
+            return ErrorCode::NO_ERR;
     }
     else
     {
