@@ -78,6 +78,9 @@ public:
     static inline const QString ERR_TITLE_NOT_FOUND = "The provided title was not found in the Flashpoint database.";
     static inline const QString WRN_EXIST_PACK_SUM_MISMATCH = "The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.";
 
+    // Error Messages - Helper
+    static inline const QString ERR_FIND_TOO_MANY_RESULTS = "Too many titles matched the title-based query.";
+
     // Logging - Primary Labels
     static inline const QString COMMAND_LABEL = "Command: %1";
     static inline const QString COMMAND_OPT_LABEL = "Command Options: %1";
@@ -159,7 +162,11 @@ public:
     // Input strings
     static inline const QString MULTI_TITLE_SEL_CAP = "Title Disambiguation";
     static inline const QString MULTI_TITLE_SEL_LABEL = "Title to start:";
-    static inline const QString MULTI_TITLE_SEL_TEMP = "[%1] %2 (%3) {%4}";
+    static inline const QString MULTI_GAME_SEL_TEMP = "[%1] %2 (%3) {%4}";
+    static inline const QString MULTI_ADD_APP_SEL_TEMP = "%1 {%2}";
+
+    // Helper
+    static const int FIND_ENTRY_LIMIT = 20;
 
     // Meta
     static inline const QString NAME = "core";
@@ -193,7 +200,7 @@ private:
     void showVersion();
 
     // Helper
-    ErrorCode searchAndFilterEntity(QUuid& returnBuffer, QString name, QUuid parent = QUuid());
+    ErrorCode searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
 
 public:
     // Setup
@@ -202,12 +209,8 @@ public:
 
     // Helper
     QString resolveTrueAppPath(const QString& appPath, const QString& platform);
-    /* TODO: These 2 functions are here because they need end up emitting a Core signal;
-     * however, it may make more sense to move them to CPlay (where they are used) and simply
-     * call the core function(s) that emit the signals from there
-     */
-    ErrorCode getGameIdFromTitle(QUuid& returnBuffer, QString title);
-    ErrorCode getAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name);
+    ErrorCode findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
+    ErrorCode findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
     ErrorCode enqueueStartupTasks();

@@ -36,6 +36,7 @@ enum ErrorCode{
     CANT_QUERY_DOCKER = 25,
     CANT_LISTEN_DOCKER = 26,
     DOCKER_DIDNT_START = 27,
+    TOO_MANY_RESULTS = 28,
 
     // CPlay
     RAND_FILTER_NOT_VALID = 101,
