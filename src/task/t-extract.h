@@ -1,11 +1,14 @@
 #ifndef TEXTRACT_H
 #define TEXTRACT_H
 
-// Project Includes
-#include "task/task.h"
-
 // Qt Includes
 #include <QDir>
+
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
+// Project Includes
+#include "task/task.h"
 
 class TExtract : public Task
 {
@@ -13,19 +16,19 @@ class TExtract : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("TExtract");
+    static inline const QString NAME = QSL("TExtract");
 
     // Logging
-    static inline const QString LOG_EVENT_EXTRACTING_DATA_PACK = "Extracting Data Pack %1";
+    static inline const QString LOG_EVENT_EXTRACTING_DATA_PACK = QSL("Extracting Data Pack %1");
 
     // Extract
-    static inline const QString ERR_PACK_EXTRACT = "Could not extract data pack %1.";
-    static inline const QString ERR_PACK_EXTRACT_OPEN = "Failed to open the archive.";
-    static inline const QString ERR_PACK_EXTRACT_MAKE_PATH = "Failed to create file path.";
-    static inline const QString ERR_PACK_EXTRACT_OPEN_ARCH_FILE = "Failed to open archive file (code 0x%1).";
-    static inline const QString ERR_PACK_EXTRACT_OPEN_DISK_FILE = "Failed to open disk file \"%1\".";
-    static inline const QString ERR_PACK_EXTRACT_WRITE_DISK_FILE = "Failed to write disk file \"%1\".";
-    static inline const QString ERR_PACK_EXTRACT_GENERAL_ZIP = "General zip error (code 0x%1).";
+    static inline const QString ERR_PACK_EXTRACT = QSL("Could not extract data pack %1.");
+    static inline const QString ERR_PACK_EXTRACT_OPEN = QSL("Failed to open the archive.");
+    static inline const QString ERR_PACK_EXTRACT_MAKE_PATH = QSL("Failed to create file path.");
+    static inline const QString ERR_PACK_EXTRACT_OPEN_ARCH_FILE = QSL("Failed to open archive file (code 0x%1).");
+    static inline const QString ERR_PACK_EXTRACT_OPEN_DISK_FILE = QSL("Failed to open disk file \"%1\".");
+    static inline const QString ERR_PACK_EXTRACT_WRITE_DISK_FILE = QSL("Failed to write disk file \"%1\".");
+    static inline const QString ERR_PACK_EXTRACT_GENERAL_ZIP = QSL("General zip error (code 0x%1).");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

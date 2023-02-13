@@ -45,7 +45,7 @@ ErrorCode Command::parse(const QStringList& commandLine)
     {
         if(mParser.isSet(*clOption))
         {
-            // Add switch to interp string
+            // Add switch to interpreted string
             if(!optionsStr.isEmpty())
                 optionsStr += " "; // Space after every switch except first one
 

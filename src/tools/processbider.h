@@ -7,6 +7,7 @@
 
 // Qx Includes
 #include <qx/windows/qx-common-windows.h>
+#include <qx/utility/qx-macros.h>
 
 // Project Includes
 #include "kernel/errorcode.h"
@@ -36,15 +37,15 @@ class ProcessBider : public QThread
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Error Messages
-    static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = "Could not get a wait handle to %1, the title will likely not work correctly.";
-    static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = "Could not hook %1 for waiting, the title will likely not work correctly.";
+    static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = QSL("Could not get a wait handle to %1, the title will likely not work correctly.");
+    static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = QSL("Could not hook %1 for waiting, the title will likely not work correctly.");
 
     // Status Messages
-    static inline const QString LOG_EVENT_BIDE_GRACE = "Waiting %1 seconds for process %2 to be running";
-    static inline const QString LOG_EVENT_BIDE_RUNNING = "Wait-on process %1 is running";
-    static inline const QString LOG_EVENT_BIDE_ON = "Waiting for process %1 to finish";
-    static inline const QString LOG_EVENT_BIDE_QUIT = "Wait-on process %1 has finished";
-    static inline const QString LOG_EVENT_BIDE_FINISHED = "Wait-on process %1 was not running after the grace period";
+    static inline const QString LOG_EVENT_BIDE_GRACE = QSL("Waiting %1 seconds for process %2 to be running");
+    static inline const QString LOG_EVENT_BIDE_RUNNING = QSL("Wait-on process %1 is running");
+    static inline const QString LOG_EVENT_BIDE_ON = QSL("Waiting for process %1 to finish");
+    static inline const QString LOG_EVENT_BIDE_QUIT = QSL("Wait-on process %1 has finished");
+    static inline const QString LOG_EVENT_BIDE_FINISHED = QSL("Wait-on process %1 was not running after the grace period");
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:

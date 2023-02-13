@@ -61,7 +61,7 @@ QString TExec::resolveExecutablePath()
      * The exceptions largely are that relative paths are always resolved relative to mDirectory instead
      * of how the system would handle it.
      *
-     * On windows you can start an appliation (.exe/.bat) with just it's filename, so the use of
+     * On windows you can start an application (.exe/.bat) with just it's filename, so the use of
      * QStandardPaths::findExecutable() with a second argument here ensures that both extensions are checked for.
      */
     QFileInfo execInfo(mExecutable);

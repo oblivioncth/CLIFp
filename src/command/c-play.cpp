@@ -12,15 +12,6 @@
 #include "../task/t-message.h"
 #include "../task/t-extra.h"
 
-/* TODO: Allow this command to launch additional apps by their title,
- * likely by a second switch provided in addition to '-t' that checks
- * for that Add App title under the main title. Could allow it to also
- * be used with '-i' when the ID passed is a main title, but this would
- * require checking for that and it may be best to only allow it with
- * '-t' since if '-i' is being used the ID of the Add App can be given
- * directly anyway.
- */
-
 //===============================================================================================================
 // CPLAY
 //===============================================================================================================
@@ -91,7 +82,7 @@ Fp::Game CPlay::buildGame(const Fp::Db::QueryBuffer& gameResult)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
+ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
 {
     // Clear standalone check
     wasStandalone = false;
@@ -106,7 +97,9 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
     Fp::Db* database = mCore.fpInstall().database();
 
     // Find title
-    searchError = database->queryEntryById(searchResult, targetID);
+    Fp::Db::EntryFilter mainFilter{.type = Fp::Db::EntryType::PrimaryThenAddApp, .id = targetId};
+
+    searchError = database->queryEntrys(searchResult, mainFilter);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -172,8 +165,10 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         }
 
         // Get parent info to determine platform
+        Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
+
         Fp::Db::QueryBuffer parentResult;
-        searchError = database->queryEntryById(parentResult, parentId);
+        searchError = database->queryEntrys(parentResult, parentFilter);
         if(searchError.isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -190,7 +185,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         if(enqueueError)
             return enqueueError;
     }
-    else if(searchResult.source == Fp::Db::Table_Game::NAME) // Get autorun additional apps if result is game
+    else if(searchResult.source == Fp::Db::Table_Game::NAME) // Get auto-run additional apps if result is game
     {
         // Build game
         Fp::Game game = buildGame(searchResult);
@@ -217,17 +212,19 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
         }
 
         // Get game's additional apps
+        Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = targetId};
+
         QSqlError addAppSearchError;
         Fp::Db::QueryBuffer addAppSearchResult;
 
-        addAppSearchError = database->queryEntryAddApps(addAppSearchResult, targetID);
+        addAppSearchError = database->queryEntrys(addAppSearchResult, addAppFilter);
         if(addAppSearchError.isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, addAppSearchError.text()));
             return ErrorCode::SQL_ERROR;
         }
 
-        // Enqueue autorun before apps
+        // Enqueue auto-run before apps
         for(int i = 0; i < addAppSearchResult.size; i++)
         {
             // Go to next record
@@ -236,7 +233,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetID)
             // Build
             Fp::AddApp addApp = buildAdditionalApp(addAppSearchResult);
 
-            // Enqueue if autorun before
+            // Enqueue if auto-run before
             if(addApp.isAutorunBefore())
             {
                 mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
@@ -333,13 +330,13 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
     return ErrorCode::NO_ERR;
 }
 
-ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::Db::LibraryFilter lbFilter)
+ErrorCode CPlay::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Db::LibraryFilter lbFilter)
 {
     mCore.logEvent(NAME, LOG_EVENT_SEL_RAND);
 
     // Reset buffers
-    mainIDBuffer = QUuid();
-    subIDBuffer = QUuid();
+    mainIdBuffer = QUuid();
+    subIdBuffer = QUuid();
 
     // SQL Error tracker
     QSqlError searchError;
@@ -348,39 +345,41 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::D
     Fp::Db* database = mCore.fpInstall().database();
 
     // Query all main games
-    Fp::Db::QueryBuffer mainGameIDQuery;
-    searchError = database->queryAllGameIds(mainGameIDQuery, lbFilter);
+    Fp::Db::QueryBuffer mainGameIdQuery;
+    searchError = database->queryAllGameIds(mainGameIdQuery, lbFilter);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
         return ErrorCode::SQL_ERROR;
     }
 
-    QVector<QUuid> playableIDs;
+    QVector<QUuid> playableIds;
 
     // Enumerate main game IDs
-    for(int i = 0; i < mainGameIDQuery.size; i++)
+    for(int i = 0; i < mainGameIdQuery.size; i++)
     {
         // Go to next record
-        mainGameIDQuery.result.next();
+        mainGameIdQuery.result.next();
 
         // Add ID to list
-        QString gameIDString = mainGameIDQuery.result.value(Fp::Db::Table_Game::COL_ID).toString();
-        QUuid gameID = QUuid(gameIDString);
-        if(!gameID.isNull())
-            playableIDs.append(gameID);
+        QString gameIdString = mainGameIdQuery.result.value(Fp::Db::Table_Game::COL_ID).toString();
+        QUuid gameId = QUuid(gameIdString);
+        if(!gameId.isNull())
+            playableIds.append(gameId);
         else
-            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIDString)));
+            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(gameIdString)));
     }
-    mCore.logEvent(NAME, LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIDs.size())));
+    mCore.logEvent(NAME, LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIds.size())));
 
     // Select main game
-    mainIDBuffer = playableIDs.value(QRandomGenerator::global()->bounded(playableIDs.size()));
-    mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_ID.arg(mainIDBuffer.toString(QUuid::WithoutBraces)));
+    mainIdBuffer = playableIds.value(QRandomGenerator::global()->bounded(playableIds.size()));
+    mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_ID.arg(mainIdBuffer.toString(QUuid::WithoutBraces)));
 
     // Get entry's playable additional apps
+    Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = mainIdBuffer, .playableOnly = true};
+
     Fp::Db::QueryBuffer addAppQuery;
-    searchError = database->queryEntryAddApps(addAppQuery, mainIDBuffer, true);
+    searchError = database->queryEntrys(addAppQuery, addAppFilter);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -388,7 +387,7 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::D
     }
     mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
 
-    QVector<QUuid> playableSubIDs;
+    QVector<QUuid> playableSubIds;
 
     // Enumerate entry's playable additional apps
     for(int i = 0; i < addAppQuery.size; i++)
@@ -397,30 +396,30 @@ ErrorCode CPlay::randomlySelectID(QUuid& mainIDBuffer, QUuid& subIDBuffer, Fp::D
         addAppQuery.result.next();
 
         // Add ID to list
-        QString addAppIDString = addAppQuery.result.value(Fp::Db::Table_Game::COL_ID).toString();
-        QUuid addAppID = QUuid(addAppIDString);
-        if(!addAppID.isNull())
-            playableSubIDs.append(addAppID);
+        QString addAppIdString = addAppQuery.result.value(Fp::Db::Table_Game::COL_ID).toString();
+        QUuid addAppId = QUuid(addAppIdString);
+        if(!addAppId.isNull())
+            playableSubIds.append(addAppId);
         else
-            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(addAppIDString)));
+            mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_INVALID_RAND_ID.arg(addAppIdString)));
     }
 
     // Select final ID
-    int randIndex = QRandomGenerator::global()->bounded(playableSubIDs.size() + 1);
+    int randIndex = QRandomGenerator::global()->bounded(playableSubIds.size() + 1);
 
     if(randIndex == 0)
         mCore.logEvent(NAME, LOG_EVENT_RAND_DET_PRIM);
     else
     {
-        subIDBuffer = playableSubIDs.value(randIndex - 1);
-        mCore.logEvent(NAME, LOG_EVENT_RAND_DET_ADD_APP.arg(subIDBuffer.toString(QUuid::WithoutBraces)));
+        subIdBuffer = playableSubIds.value(randIndex - 1);
+        mCore.logEvent(NAME, LOG_EVENT_RAND_DET_ADD_APP.arg(subIdBuffer.toString(QUuid::WithoutBraces)));
     }
 
     // Return success
     return ErrorCode::NO_ERR;
 }
 
-ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid subID)
+ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId, QUuid subId)
 {
     mCore.logEvent(NAME, LOG_EVENT_RAND_GET_INFO);
 
@@ -437,8 +436,10 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get main entry info
+    Fp::Db::EntryFilter mainFilter{.type = Fp::Db::EntryType::Primary, .id = mainId};
+
     Fp::Db::QueryBuffer mainGameQuery;
-    searchError = database->queryEntryById(mainGameQuery, mainID);
+    searchError = database->queryEntrys(mainGameQuery, mainFilter);
     if(searchError.isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -457,13 +458,6 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
         return ErrorCode::ID_DUPLICATE;
     }
 
-    // Ensure selection is primary app
-    if(mainGameQuery.source != Fp::Db::Table_Game::NAME)
-    {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
-        return ErrorCode::SQL_MISMATCH;
-    }
-
     // Advance result to only record
     mainGameQuery.result.next();
 
@@ -474,13 +468,15 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
                                mainGameQuery.result.value(Fp::Db::Table_Game::COL_LIBRARY).toString());
 
     // Determine variant
-    if(subID.isNull())
+    if(subId.isNull())
         infoFillTemplate = infoFillTemplate.arg("N/A");
     else
     {
         // Get sub entry info
-        Fp::Db::QueryBuffer addAppQuerry;
-        searchError = database->queryEntryById(addAppQuerry, subID);
+        Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .id = subId};
+
+        Fp::Db::QueryBuffer addAppQuery;
+        searchError = database->queryEntrys(addAppQuery, addAppFilter);
         if(searchError.isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
@@ -488,29 +484,22 @@ ErrorCode CPlay::getRandomSelectionInfo(QString& infoBuffer, QUuid mainID, QUuid
         }
 
         // Check if ID was found and that only one instance was found
-        if(addAppQuerry.size == 0)
+        if(addAppQuery.size == 0)
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND));
             return ErrorCode::ID_NOT_FOUND;
         }
-        else if(addAppQuerry.size > 1)
+        else if(addAppQuery.size > 1)
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_DUPLICATE_ENTRY_P, ERR_ID_DUPLICATE_ENTRY_S));
             return ErrorCode::ID_DUPLICATE;
         }
 
-        // Ensure selection is additional app
-        if(addAppQuerry.source != Fp::Db::Table_Add_App::NAME)
-        {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH));
-            return ErrorCode::SQL_MISMATCH;
-        }
-
         // Advance result to only record
-        addAppQuerry.result.next();
+        addAppQuery.result.next();
 
         // Populate buffer with variant info
-        infoFillTemplate = infoFillTemplate.arg(addAppQuerry.result.value(Fp::Db::Table_Add_App::COL_NAME).toString());
+        infoFillTemplate = infoFillTemplate.arg(addAppQuery.result.value(Fp::Db::Table_Add_App::COL_NAME).toString());
     }
 
     // Set filled template to buffer
@@ -538,21 +527,43 @@ ErrorCode CPlay::process(const QStringList& commandLine)
         return ErrorCode::NO_ERR;
 
     // Get ID of title to start
-    QUuid titleID;
-    QUuid secondaryID;
+    QUuid titleId;
+    QUuid addAppId;
 
     if(mParser.isSet(CL_OPTION_ID))
     {
-        if((titleID = QUuid(mParser.value(CL_OPTION_ID))).isNull())
+        if((titleId = QUuid(mParser.value(CL_OPTION_ID))).isNull())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
             return ErrorCode::ID_NOT_VALID;
         }
     }
-    else if(mParser.isSet(CL_OPTION_TITLE))
+    else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
     {
-        if((errorStatus = mCore.getGameIDFromTitle(titleID, mParser.value(CL_OPTION_TITLE))))
+        // Check title
+        bool titleStrict = mParser.isSet(CL_OPTION_TITLE_STRICT);
+        QString title = titleStrict ? mParser.value(CL_OPTION_TITLE_STRICT) : mParser.value(CL_OPTION_TITLE);
+
+        if((errorStatus = mCore.findGameIdFromTitle(titleId, title, titleStrict)))
             return errorStatus;
+
+        // Bail if canceled
+        if(titleId.isNull())
+            return ErrorCode::NO_ERR;
+
+        // Check subtitle
+        if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
+        {
+            bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
+            QString subtitle = subtitleStrict ? mParser.value(CL_OPTION_SUBTITLE_STRICT) : mParser.value(CL_OPTION_SUBTITLE);
+
+            if((errorStatus = mCore.findAddAppIdFromName(addAppId, titleId, subtitle, subtitleStrict)))
+                return errorStatus;
+
+            // Bail if canceled
+            if(addAppId.isNull())
+                return ErrorCode::NO_ERR;
+        }
     }
     else if(mParser.isSet(CL_OPTION_RAND))
     {
@@ -573,14 +584,14 @@ ErrorCode CPlay::process(const QStringList& commandLine)
         }
 
         // Get ID
-        if((errorStatus = randomlySelectID(titleID, secondaryID, randFilter)))
+        if((errorStatus = randomlySelectId(titleId, addAppId, randFilter)))
             return errorStatus;
 
         // Show selection info
         if(mCore.notifcationVerbosity() == Core::NotificationVerbosity::Full)
         {
             QString selInfo;
-            if((errorStatus = getRandomSelectionInfo(selInfo, titleID, secondaryID)))
+            if((errorStatus = getRandomSelectionInfo(selInfo, titleId, addAppId)))
                 return errorStatus;
 
             // Display selection info
@@ -598,7 +609,7 @@ ErrorCode CPlay::process(const QStringList& commandLine)
         return errorStatus;
 
     bool standaloneTask;
-    if((errorStatus = enqueueAutomaticTasks(standaloneTask, secondaryID.isNull() ? titleID : secondaryID)))
+    if((errorStatus = enqueueAutomaticTasks(standaloneTask, addAppId.isNull() ? titleId : addAppId)))
         return errorStatus;
 
     if(!standaloneTask)

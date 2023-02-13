@@ -1,6 +1,9 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
 // Project Includes 
 #include "kernel/core.h"
 
@@ -30,27 +33,27 @@ protected:
 //-Class Variables--------------------------------------------------------------------------------------------------------
 protected:
     // Help template
-    static inline const QString HELP_TEMPL = "<u>Usage:</u><br>"
-                                             "%1 &lt;options&gt;<br>"
-                                             "<br>"
-                                             "<u>Options:</u>%2";
-    static inline const QString HELP_OPT_TEMPL = "<br><b>%1:</b> &nbsp;%2";
+    static inline const QString HELP_TEMPL = QSL("<u>Usage:</u><br>"
+                                                 "%1 &lt;options&gt;<br>"
+                                                 "<br>"
+                                                 "<u>Options:</u>%2");
+    static inline const QString HELP_OPT_TEMPL = QSL("<br><b>%1:</b> &nbsp;%2");
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_C_HELP_SHOWN = "Displayed help infomration for: %1";
+    static inline const QString LOG_EVENT_C_HELP_SHOWN = QSL("Displayed help infomration for: %1");
 
     // Standard command line option strings
-    static inline const QString CL_OPT_HELP_S_NAME = "h";
-    static inline const QString CL_OPT_HELP_L_NAME = "help";
-    static inline const QString CL_OPT_HELP_E_NAME = "?";
-    static inline const QString CL_OPT_HELP_DESC = "Prints this help message.";
+    static inline const QString CL_OPT_HELP_S_NAME = QSL("h");
+    static inline const QString CL_OPT_HELP_L_NAME = QSL("help");
+    static inline const QString CL_OPT_HELP_E_NAME = QSL("?");
+    static inline const QString CL_OPT_HELP_DESC = QSL("Prints this help message.");
 
     // Standard command line options
     static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC}; // Boolean option
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_STANDARD{&CL_OPTION_HELP};
 
     // Meta
-    static inline const QString NAME = "command";
+    static inline const QString NAME = QSL("command");
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:

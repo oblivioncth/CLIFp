@@ -1,11 +1,14 @@
 #ifndef TSLEEP_H
 #define TSLEEP_H
 
-// Project Includes
-#include "task/task.h"
-
 // Qt Includes
 #include <QTimer>
+
+// Qx Includes
+#include <qx/utility/qx-macros.h>
+
+// Project Includes
+#include "task/task.h"
 
 class TSleep : public Task
 {
@@ -13,12 +16,12 @@ class TSleep : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("TSleep");
+    static inline const QString NAME = QSL("TSleep");
 
     // Logging
-    static inline const QString LOG_EVENT_START_SLEEP = "Sleeping for %1 milliseconds";
-    static inline const QString LOG_EVENT_SLEEP_INTERUPTED = "Sleep interrupted";
-    static inline const QString LOG_EVENT_FINISH_SLEEP = "Finished sleeping";
+    static inline const QString LOG_EVENT_START_SLEEP = QSL("Sleeping for %1 milliseconds");
+    static inline const QString LOG_EVENT_SLEEP_INTERUPTED = QSL("Sleep interrupted");
+    static inline const QString LOG_EVENT_FINISH_SLEEP = QSL("Finished sleeping");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

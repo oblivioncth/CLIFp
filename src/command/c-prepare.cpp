@@ -40,8 +40,12 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     }
     else if(mParser.isSet(CL_OPTION_TITLE))
     {
-        if((errorStatus = mCore.getGameIDFromTitle(id, mParser.value(CL_OPTION_TITLE))))
+        if((errorStatus = mCore.findGameIdFromTitle(id, mParser.value(CL_OPTION_TITLE))))
             return errorStatus;
+
+        // Bail if canceled
+        if(id.isNull())
+            return ErrorCode::NO_ERR;
     }
     else
     {

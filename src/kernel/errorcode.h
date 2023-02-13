@@ -1,7 +1,7 @@
 #ifndef ERRORCODE_H
 #define ERRORCODE_H
 
-/* TODO: Now that some error codes are a part of Task derivatives, probably should reindex them so that each
+/* TODO: Now that some error codes are a part of Task derivatives, probably should re-index them so that each
  * task has its own base number just like commands do, instead of sharing Core's base of 0, especially now
  * that both docker and QEMU are checked.
  */
@@ -36,6 +36,7 @@ enum ErrorCode{
     CANT_QUERY_DOCKER = 25,
     CANT_LISTEN_DOCKER = 26,
     DOCKER_DIDNT_START = 27,
+    TOO_MANY_RESULTS = 28,
 
     // CPlay
     RAND_FILTER_NOT_VALID = 101,

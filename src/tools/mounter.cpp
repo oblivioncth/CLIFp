@@ -248,7 +248,7 @@ void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime
 {
     QJsonDocument formatter(data);
     QString dataStr = formatter.toJson(QJsonDocument::Compact);
-    QString timestampStr = timestamp.toString("hh:mm:ss.zzz");
+    QString timestampStr = timestamp.toString("hh:mm:s s.zzz");
     emit eventOccured(EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
 }
 

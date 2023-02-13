@@ -7,6 +7,7 @@
 // Qx Includes
 #include <qx/core/qx-setonce.h>
 #include <qx/network/qx-downloadmanager.h>
+#include <qx/utility/qx-macros.h>
 
 // Project Includes
 #include "kernel/core.h"
@@ -17,36 +18,36 @@ class Driver : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Single Instance ID
-    static inline const QString SINGLE_INSTANCE_ID = "CLIFp_ONE_INSTANCE"; // Basically never change this
+    static inline const QString SINGLE_INSTANCE_ID = QSL("CLIFp_ONE_INSTANCE"); // Basically never change this
 
     // Error Messages
-    static inline const QString ERR_ALREADY_OPEN = "Only one instance of CLIFp can be used at a time!";
-    static inline const QString ERR_INVALID_COMMAND = R"("%1" is not a valid command)";
-    static inline const QString ERR_LAUNCHER_RUNNING_P = "The CLI cannot be used while the Flashpoint Launcher is running.";
-    static inline const QString ERR_LAUNCHER_RUNNING_S = "Please close the Launcher first.";
-    static inline const QString ERR_INSTALL_INVALID_P = "CLIFp does not appear to be deployed in a valid Flashpoint install";
-    static inline const QString ERR_INSTALL_INVALID_S = "Check its location and compatibility with your Flashpoint version.";
+    static inline const QString ERR_ALREADY_OPEN = QSL("Only one instance of CLIFp can be used at a time!");
+    static inline const QString ERR_INVALID_COMMAND = QSL(R"("%1" is not a valid command)");
+    static inline const QString ERR_LAUNCHER_RUNNING_P = QSL("The CLI cannot be used while the Flashpoint Launcher is running.");
+    static inline const QString ERR_LAUNCHER_RUNNING_S = QSL("Please close the Launcher first.");
+    static inline const QString ERR_INSTALL_INVALID_P = QSL("CLIFp does not appear to be deployed in a valid Flashpoint install");
+    static inline const QString ERR_INSTALL_INVALID_S = QSL("Check its location and compatibility with your Flashpoint version.");
 
     // Logging
-    static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = "Searching for Flashpoint root...";
-    static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = R"(Checking if "%1" is flashpoint root)";
-    static inline const QString LOG_EVENT_FLASHPOINT_LINK = R"(Linked to Flashpoint install at: "%1")";
-    static inline const QString LOG_EVENT_TASK_COUNT = "%1 task(s) to perform";
-    static inline const QString LOG_EVENT_QUEUE_START = "Processing Task queue";
-    static inline const QString LOG_EVENT_TASK_START = "Handling task %1 [%2] (%3)";
-    static inline const QString LOG_EVENT_TASK_FINISH = "End of task %1";
-    static inline const QString LOG_EVENT_TASK_FINISH_ERR = "Premature end of task %1";
-    static inline const QString LOG_EVENT_QUEUE_FINISH = "Finished processing Task queue";
-    static inline const QString LOG_EVENT_ENDING_CHILD_PROCESSES = "Closing deferred processes...";
-    static inline const QString LOG_EVENT_CLEANUP_START = "Cleaning up...";
-    static inline const QString LOG_EVENT_CLEANUP_FINISH = "Finished cleanup";
-    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = "Task skipped due to previous errors";
-    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = "Task skipped because the application is quitting";
-    static inline const QString LOG_EVENT_QUIT_REQUEST = "Received quit request";
-    static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = "Received redundant quit request";
+    static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = QSL("Searching for Flashpoint root...");
+    static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = QSL(R"(Checking if "%1" is flashpoint root)");
+    static inline const QString LOG_EVENT_FLASHPOINT_LINK = QSL(R"(Linked to Flashpoint install at: "%1")");
+    static inline const QString LOG_EVENT_TASK_COUNT = QSL("%1 task(s) to perform");
+    static inline const QString LOG_EVENT_QUEUE_START = QSL("Processing Task queue");
+    static inline const QString LOG_EVENT_TASK_START = QSL("Handling task %1 [%2] (%3)");
+    static inline const QString LOG_EVENT_TASK_FINISH = QSL("End of task %1");
+    static inline const QString LOG_EVENT_TASK_FINISH_ERR = QSL("Premature end of task %1");
+    static inline const QString LOG_EVENT_QUEUE_FINISH = QSL("Finished processing Task queue");
+    static inline const QString LOG_EVENT_ENDING_CHILD_PROCESSES = QSL("Closing deferred processes...");
+    static inline const QString LOG_EVENT_CLEANUP_START = QSL("Cleaning up...");
+    static inline const QString LOG_EVENT_CLEANUP_FINISH = QSL("Finished cleanup");
+    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = QSL("Task skipped due to previous errors");
+    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = QSL("Task skipped because the application is quitting");
+    static inline const QString LOG_EVENT_QUIT_REQUEST = QSL("Received quit request");
+    static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = QSL("Received redundant quit request");
 
     // Meta
-    static inline const QString NAME = "driver";
+    static inline const QString NAME = QSL("driver");
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:

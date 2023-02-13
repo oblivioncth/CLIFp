@@ -99,7 +99,11 @@ though this isn't required as long as quotation and space use is carefully emplo
 Options:
  -  **-i | --id:** UUID  of  title  to  make a shortcut for
  -  **-t | --title:** Title to  make a shortcut for
+ -  **-T | --title-strict:** Same as **-t**, but only exact matches are considered
+ -  **-s | --subtitle:** Name of additional-app under the title to make a shortcut for. Must be used with **-t**/**-T**
+ -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
  -  **-p | --path:** Path to new shortcut. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
+ -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-i** or **-t** 
@@ -108,14 +112,13 @@ Notes:
 
  - On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
 
-
-
    For example, when specifying:
    
        CLIFp link -p "~/Desktop/Cool Name.desktop" ...
 
    the display name of the desktop entry will be set to "Cool Name".
  - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
+ - See the **play** command notes for information regarding the **t**/**T** and **s**/**S** switches.
 
 --------------------------------------------------------------------------------
 
@@ -125,11 +128,22 @@ Options:
 
  -  **-i | --id:** UUID  of  title  to  start
  -  **-t | --title:** Title  to  start
- - **-r | --random:** Select  a  random  title  from  the  database  to  start.  Must  be  followed  by  a  library  filter:  all/any,  game/arcade,  animation/theatre
+ -  **-T | --title-strict:** Same as **-t**, but only exact matches are considered
+ -  **-s | --subtitle:** Name of additional-app under the title to start. Must be used with **-t**/**-T**
+ -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
+ -  **-r | --random:** Select  a  random  title  from  the  database  to  start.  Must  be  followed  by  a  library  filter:  all/any,  game/arcade,  animation/theatre
  -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
-**-i** or **-t** or **-r** 
+**-i** or **-t** or **-r**
+
+Notes:
+
+The **-t** and **-s** switches are case-insensitive and will match any title that contains the value provided. If more than one result is found, a dialog will be presented that allows for selected the desired title; however, there is a limit to the number of matches.
+
+Using the **-T** and **-S** switches only consider exact matches and are performed slightly faster than their more flexible counterparts.
+
+Tip: You can use **-s** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
 
 --------------------------------------------------------------------------------
  
@@ -149,8 +163,9 @@ Requires:
  **run** - Start  Flashpoint's  webserver  and  then  execute  the  provided  application
 
 Options:
-  -  **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
+ -  **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
  -  **-p | --param:** Command-line parameters to use when starting the application
+ -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-a** 
@@ -177,6 +192,7 @@ See http://www.robvanderwoude.com/escapechars.php for more information.
 Options:
  -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
  -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
+ -  **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-m** or **-e** 
@@ -231,6 +247,9 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 | 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
 | 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
 | 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
+| 26    | CANT_LISTEN_DOCKER       | CLIFp could not connect to Docker to listen for the server's start signal                                 |
+| 27    | DOCKER_DIDNT_START       | The docker server never started                                                                           |
+| 28    | TOO_MANY_RESULTS         | Too many results were returned from a database query                                                      |
 | 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
 | 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
 | 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |

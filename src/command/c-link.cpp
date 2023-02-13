@@ -43,10 +43,32 @@ ErrorCode CLink::process(const QStringList& commandLine)
             return ErrorCode::ID_NOT_VALID;
         }
     }
-    else if(mParser.isSet(CL_OPTION_TITLE))
+    else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
     {
-        if((errorStatus = mCore.getGameIDFromTitle(shortcutId, mParser.value(CL_OPTION_TITLE))))
+        // Check title
+        bool titleStrict = mParser.isSet(CL_OPTION_TITLE_STRICT);
+        QString title = titleStrict ? mParser.value(CL_OPTION_TITLE_STRICT) : mParser.value(CL_OPTION_TITLE);
+
+        if((errorStatus = mCore.findGameIdFromTitle(shortcutId, title, titleStrict)))
             return errorStatus;
+
+        // Bail if canceled
+        if(shortcutId.isNull())
+            return ErrorCode::NO_ERR;
+
+        // Check subtitle
+        if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
+        {
+            bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
+            QString subtitle = subtitleStrict ? mParser.value(CL_OPTION_SUBTITLE_STRICT) : mParser.value(CL_OPTION_SUBTITLE);
+
+            if((errorStatus = mCore.findAddAppIdFromName(shortcutId, shortcutId, subtitle, subtitleStrict)))
+                return errorStatus;
+
+            // Bail if canceled
+            if(shortcutId.isNull())
+                return ErrorCode::NO_ERR;
+        }
     }
     else
     {
@@ -60,10 +82,12 @@ ErrorCode CLink::process(const QStringList& commandLine)
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get entry info (also confirms that ID is present in database)
+    Fp::Db::EntryFilter entryFilter{.type = Fp::Db::EntryType::PrimaryThenAddApp, .id = shortcutId};
+
     QSqlError sqlError;
     Fp::Db::QueryBuffer entryInfo;
 
-    if((sqlError = database->queryEntryById(entryInfo, shortcutId)).isValid())
+    if((sqlError = database->queryEntrys(entryInfo, entryFilter)).isValid())
     {
         mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
         return ErrorCode::SQL_ERROR;
@@ -82,9 +106,11 @@ ErrorCode CLink::process(const QStringList& commandLine)
     else if(entryInfo.source == Fp::Db::Table_Add_App::NAME)
     {
         // Get parent info
+        QUuid parentId = QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString());
+        Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
+
         Fp::Db::QueryBuffer parentInfo;
-        if((sqlError = database->queryEntryById(parentInfo,
-            QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString()))).isValid())
+        if((sqlError = database->queryEntrys(parentInfo, parentFilter)).isValid())
         {
             mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
             return ErrorCode::SQL_ERROR;
