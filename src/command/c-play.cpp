@@ -12,15 +12,6 @@
 #include "../task/t-message.h"
 #include "../task/t-extra.h"
 
-/* TODO: Allow this command to launch additional apps by their title,
- * likely by a second switch provided in addition to '-t' that checks
- * for that Add App title under the main title. Could allow it to also
- * be used with '-i' when the ID passed is a main title, but this would
- * require checking for that and it may be best to only allow it with
- * '-t' since if '-i' is being used the ID of the Add App can be given
- * directly anyway.
- */
-
 //===============================================================================================================
 // CPLAY
 //===============================================================================================================

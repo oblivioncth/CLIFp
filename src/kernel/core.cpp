@@ -329,7 +329,9 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
             workingPath = workingPath.mid(1);
     }
 
-    /* TODO: If this is made into a libfp function, isolate this part of it so it stays here
+    /* TODO: If this is made into a libfp function, isolate this part of it so it stays here,
+     * or add a map argument to the libfp function that allows for passing custom "swaps"
+     * and then call it with one for the following switch.
      *
      * CLIFp doesn't support the Launcher's built in browser (obviously), so manually
      * override it with Basilisk. Basilisk was removed in FP11 but the app path overrides
