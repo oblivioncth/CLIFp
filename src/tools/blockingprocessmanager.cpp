@@ -34,7 +34,7 @@ void BlockingProcessManager::signalProcessDataReceived(const QString& msgTemplat
     QString pid = QString::number(mProcess->processId());
     QString output = QString::fromLocal8Bit(mProcess->readAll());
 
-    // Don't print extra linebreak
+    // Don't print extra line-break
     if(output.endsWith('\n'))
         output.chop(1);;
     if(output.endsWith('\r'))

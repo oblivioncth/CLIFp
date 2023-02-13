@@ -31,7 +31,7 @@ void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const 
     QString pid = QString::number(process->processId());
     QString output = QString::fromLocal8Bit(process->readAll());
 
-    // Don't print extra linebreak
+    // Don't print extra line-break
     if(output.endsWith('\n'))
         output.chop(1);;
     if(output.endsWith('\r'))
@@ -84,8 +84,8 @@ void DeferredProcessManager::closeProcesses()
             QProcess* proc = *mManagedProcesses.constBegin();
 
             /* Kill children of the process, as here the whole tree should be killed
-             * A "clean" kill is used for this on Linux as the vanilia Launcher uses Node.js process.kill()
-             * without a signal argument, which maps to SIGTERM (on linux), which is a clean kill.
+             * A "clean" kill is used for this on Linux as the vanilla Launcher uses Node.js process.kill()
+             * without a signal argument, which maps to SIGTERM (on Linux), which is a clean kill.
              *
              * However on Windows, its likely that the children are console processes that won't respond to a
              * clean kill, so here we opt for a force kill.

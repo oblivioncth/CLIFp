@@ -194,7 +194,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
         if(enqueueError)
             return enqueueError;
     }
-    else if(searchResult.source == Fp::Db::Table_Game::NAME) // Get autorun additional apps if result is game
+    else if(searchResult.source == Fp::Db::Table_Game::NAME) // Get auto-run additional apps if result is game
     {
         // Build game
         Fp::Game game = buildGame(searchResult);
@@ -233,7 +233,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
             return ErrorCode::SQL_ERROR;
         }
 
-        // Enqueue autorun before apps
+        // Enqueue auto-run before apps
         for(int i = 0; i < addAppSearchResult.size; i++)
         {
             // Go to next record
@@ -242,7 +242,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
             // Build
             Fp::AddApp addApp = buildAdditionalApp(addAppSearchResult);
 
-            // Enqueue if autorun before
+            // Enqueue if auto-run before
             if(addApp.isAutorunBefore())
             {
                 mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));

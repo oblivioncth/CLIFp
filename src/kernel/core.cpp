@@ -212,7 +212,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
     {
         if(clParser.isSet(*clOption))
         {
-            // Add switch to interp string
+            // Add switch to interpreted string
             if(!globalOptions.isEmpty())
                 globalOptions += " "; // Space after every switch except first one
 
@@ -349,7 +349,7 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
     if(workingPath != appPath)
         logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, workingPath));
 
-    // Convert Windows seperators to universal '/'
+    // Convert Windows separators to universal '/'
     return workingPath.replace('\\','/');
 }
 
