@@ -175,8 +175,11 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
             return ErrorCode::SQL_ERROR;
         }
 
+        // Advance result to only record
+        parentResult.result.next();
+
         // Determine platform (don't bother building entire game object since only one value is needed)
-        QString platform = parentResult.size != 1 ? "" : parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString();
+        QString platform = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString();
 
         // Enqueue
         enqueueError = enqueueAdditionalApp(addApp, platform, Task::Stage::Primary);
