@@ -1,7 +1,7 @@
 #================= Project Setup ==========================
 
 # CMake
-cmake_minimum_required(VERSION 3.25.0)
+cmake_minimum_required(VERSION 3.24.0)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
@@ -110,18 +110,18 @@ endif()
 
 include(OB/FetchQx)
 fetch_qx(
-    REF "34ebd9a247a8b7bef7d407199ae29d6890e05e7d"
+    REF "4661b909d8c7d2df5a45aa7786ec7f458a733d48"
     COMPONENTS
         ${QX_FETCH_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-fetch_libfp("v0.2")
+fetch_libfp("1648e92b9b2009c1bce20bf87a8440040ce1b30a")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-fetch_qi_qmp("v0.2")
+fetch_qi_qmp("9a935a848dc968518121002ecbca05a6c3474b91")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
