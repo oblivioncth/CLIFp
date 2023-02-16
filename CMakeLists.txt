@@ -34,7 +34,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
 
 # Get helper scripts
 include(CLIFp/FetchOBCMake)
-fetch_ob_cmake("2f0d673668b636bcd193241b90af88c405b3a746")
+fetch_ob_cmake("83bef21e55d9a715658d84ae08b0f5f3c76e53c4")
 
 # General Variables
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -127,7 +127,7 @@ fetch_qi_qmp("9a935a848dc968518121002ecbca05a6c3474b91")
 include(OB/FetchQuaZip)
 fetch_quazip(
     REF "v1.3"
-    QT_VER "6"
+    QT_MAJOR_VER "6"
 )
 
 # Fetch Neargye's Magic Enum
