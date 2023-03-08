@@ -89,7 +89,7 @@ jobs:
         echo Installing CLIFp Release
         cmake --build . --target install --config Release
         echo Packaging CLIFp...
-        cpack -C "Debug;Release"
+        cpack -C "Release"
         echo Build complete.
     - name: Get CLIFp artifact name
       run: |
