@@ -108,9 +108,6 @@ ob_standard_project_package_config(
     CONFIG STANDARD
         TARGET_CONFIGS
             "${PROJECT_NAMESPACE}::${APP_ALIAS_NAME}"
-        DEPENDS
-            PACKAGE "Qt6" COMPONENTS ${CLIFP_QT_COMPONENTS}
-            PACKAGE "Qx" VERSION ${Qx_VERSION} COMPONENTS ${CLIFP_QX_COMPONENTS}
 )
 
 #================= Install ==========================
