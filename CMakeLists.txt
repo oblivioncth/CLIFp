@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("4194ff9a45ab17e2805606200c48d04f668cdc3a")
+fetch_ob_cmake("af237ed1688f7854943f58a61737f011e4df9ea4")
 
 # Initialize project according to standard rules
 include(OB/Project)
