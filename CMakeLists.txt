@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.24.0...3.25.0)
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.3.1
+    VERSION 0.9.4
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint"
 )
