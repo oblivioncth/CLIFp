@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("af237ed1688f7854943f58a61737f011e4df9ea4")
+fetch_ob_cmake("202d606507f26a95c10d15ea170c7aed9e5c5341")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -72,18 +72,18 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "a290fd23bb36779aeccf2ae881b542d22d716829"
+    REF "5b184c1ccea191ae6a885ea9a240a0d15b77b08c"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("07bf0d772769e38595459d44b71e52e80ef6d972")
+ob_fetch_libfp("46d4068df217d7b6508c8b5afde10dd9a84fdfc5")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("154f06f23de084540b29a423f5e98e35fc4cc98e")
+ob_fetch_qi_qmp("44cdc63a91794142b11118418e8fb201f5267bbd")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
@@ -107,7 +107,7 @@ ob_standard_project_package_config(
     COMPATIBILITY "SameMinorVersion"
     CONFIG STANDARD
         TARGET_CONFIGS
-            "${PROJECT_NAMESPACE}::${APP_ALIAS_NAME}"
+            TARGET "${PROJECT_NAMESPACE}::${APP_ALIAS_NAME}" COMPONENT "${APP_ALIAS_NAME}" DEFAULT
 )
 
 #================= Install ==========================

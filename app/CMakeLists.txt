@@ -101,7 +101,6 @@ include(OB/Executable)
 ob_add_standard_executable(${APP_TARGET_NAME}
     NAMESPACE "${PROJECT_NAMESPACE}"
     ALIAS "${APP_ALIAS_NAME}"
-    OUTPUT_NAME "${APP_ALIAS_NAME}"
     SOURCE  ${CLIFP_SOURCE}
     RESOURCE "resources.qrc"
     LINKS ${CLIFP_LINKS}
