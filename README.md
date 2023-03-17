@@ -278,6 +278,7 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 - [QI-QMP](https://github.com/oblivioncth/QI-QMP/)
 - [QuaZip](https://github.com/stachenov/quazip)
 - [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
+- [OBCMake](https://github.com/oblivioncth/OBCmake)
 
 ### Details
 The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.
