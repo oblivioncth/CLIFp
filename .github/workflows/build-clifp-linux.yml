@@ -15,33 +15,40 @@ jobs:
   build-clifp:
     name: Build CLIFp - Linux (Release)
     strategy:
+      fail-fast: false
       matrix:
-        qt_linkage: [static]
         os: [ubuntu-20.04, ubuntu-22.04]
+        compiler: [gcc, clang]
+        lib_linkage: [shared, static]
+        include:
+          - os: ubuntu-20.04
+            compiler: gcc
+            c_comp: gcc-10
+            cxx_comp: g++-10
+            qt_comp: clang12
+          - os: ubuntu-20.04
+            compiler: clang
+            c_comp: clang-12
+            cxx_comp: clang++-12
+            qt_comp: clang12            
+          - os: ubuntu-22.04
+            compiler: gcc
+            c_comp: gcc-12
+            cxx_comp: g++-12
+            qt_comp: clang14
+          - os: ubuntu-22.04
+            compiler: clang
+            c_comp: clang-14
+            cxx_comp: clang++-14
+            qt_comp: clang14
+          - lib_linkage: shared
+            cmake_bsl: ON
+          - lib_linkage: static
+            cmake_bsl: OFF   
     runs-on: ${{ matrix.os }}
     env:
       cmake_gen: Ninja Multi-Config
     steps:
-    - name: Set matrix derived variables
-      uses: kanga333/variable-mapper@v0.3.0
-      with:
-        key: ${{ matrix.os }}
-        map: |
-          {
-            "ubuntu-20.04": {
-              "c_comp": "clang-12",
-              "cxx_comp": "clang++-12",
-              "qt_version": "6.4.2",
-              "qt_compiler": "clang12"
-            },
-            "ubuntu-22.04": {
-              "c_comp": "clang-14",
-              "cxx_comp": "clang++-14",
-              "qt_version": "6.4.2",
-              "qt_compiler": "clang14"
-            }
-          }
-        export_to: env,log
     - name: Set derived variables with shell because GitHub Actions env context sucks
       run: |  
         echo "clifp_package_path=${{ env.clifp_build_dir }}/out/dist" >> $GITHUB_ENV
@@ -51,10 +58,10 @@ jobs:
     - name: Install Qt (custom build)
       uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
-        version: ${{ env.qt_version }}
+        version: 6.4.2
         os: linux
-        compiler: ${{ env.qt_compiler }}
-        linkage: ${{ matrix.qt_linkage }}
+        compiler: ${{ matrix.qt_comp }}
+        linkage: ${{ matrix.lib_linkage }}
         path: ${{ env.qt_install_dir }}
         credentials: ${{ secrets.qt_ffynnon_cred }}
     - name: Update package index
@@ -81,20 +88,20 @@ jobs:
       working-directory: ${{ env.clifp_src_dir }}
       run: |
         echo Configuring CMake...
-        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D CMAKE_CXX_COMPILER="$cxx_comp" -D CMAKE_C_COMPILER="$c_comp"
+        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D BUILD_SHARED_LIBS="${{ matrix.cmake_bsl }}" -D CMAKE_CXX_COMPILER="${{ matrix.cxx_comp }}" -D CMAKE_C_COMPILER="${{ matrix.c_comp }}"
         echo Changing to build directory...
         cd "$clifp_build_dir"
         echo Building CLIFp Release...
         cmake --build . --target all --config Release
         echo Installing CLIFp Release
-        cmake --build . --target install --config Release
+        cmake --install . --config Release
         echo Packaging CLIFp...
-        cpack -C "Debug;Release"
+        cpack -C "Release"
         echo Build complete.
     - name: Get CLIFp artifact name
       run: |
         cpack_name=$(find "${{ env.clifp_package_path }}" -type f -name "*.zip")
-        artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.os }}]"
+        artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.cxx_comp }}]"
         echo "current_artifact_name=$artifact_name" >> $GITHUB_ENV
     - name: Upload CLIFp build artifact
       uses: actions/upload-artifact@v3

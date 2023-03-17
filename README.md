@@ -40,6 +40,9 @@ That being said, it is perfectly possible to use CLIFp in any manner one sees fi
 
 It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
+### Builds
+**In most cases you should use the 'static' builds of CLIFp on Windows or Linux.**
+
 ### General
 **NOTE: Do not run CLIFp as an administrator/root as some titles may not work correctly or run at all**
 
@@ -263,10 +266,10 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 ### Summary
 
  - C++20
- - CMake 3.21.1
+ - CMake 3.24.0
  - Targets:
 	 - Windows 10+
-	 - Linux (Tested on Ubuntu 20.04)
+	 - Linux
 
 ### Dependencies
 - Qt6
@@ -275,11 +278,7 @@ Once CLIFp has finished executing an exit code is reported that indicates the "e
 - [QI-QMP](https://github.com/oblivioncth/QI-QMP/)
 - [QuaZip](https://github.com/stachenov/quazip)
 - [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
-
-### Builds
-Tested with:
- - Windows: MSVC2022
- - Linux: Clang 12
+- [OBCMake](https://github.com/oblivioncth/OBCmake)
 
 ### Details
 The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.

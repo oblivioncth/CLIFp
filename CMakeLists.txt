@@ -1,20 +1,31 @@
 #================= Project Setup ==========================
 
 # CMake
-cmake_minimum_required(VERSION 3.21.1)
+cmake_minimum_required(VERSION 3.24.0...3.25.0)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.3.1
+    VERSION 0.9.4
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint"
 )
-set(FORMAL_NAME "CLI Flashpoint")
-string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LC)
-string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UC)
 
+# Get helper scripts
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
+fetch_ob_cmake("v0.3")
+
+# Initialize project according to standard rules
+include(OB/Project)
+ob_standard_project_setup()
+
+# Additional Project Variables
+set(PROJECT_FORMAL_NAME "CLI Flashpoint")
 set(TARGET_FP_VERSION_PREFIX 11.1)
+
+# Configuration options
+# Handled by fetched libs, but set this here formally since they aren't part of the main project
+option(BUILD_SHARED_LIBS "Build CLIFp with shared libraries" OFF)
 
 # C++
 set(CMAKE_CXX_STANDARD 20)
@@ -28,60 +39,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     enable_language("RC")
 endif()
 
-# Add local modules
-set(PROJ_SCRIPTS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_MODULE_PATH "${PROJ_SCRIPTS_PATH}/module")
-
-# Get helper scripts
-include(CLIFp/FetchOBCMake)
-fetch_ob_cmake("v0.2")
-
-# General Variables
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(TARGET_ARCH x64)
-else()
-  set(TARGET_ARCH x86)
-endif()
-
-#--------------Top Level Project Setup-------------
-
-if(${PROJECT_IS_TOP_LEVEL})
-    message(STATUS "NOTE: ${PROJECT_NAME} is being configured as a top-level project")
-
-    # Install (override the CMake default, but not a user set value)
-    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/out/install"
-               CACHE PATH "Project install path" FORCE
-        )
-    endif()
-
-    # Clean install when clean target is ran
-    set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${CMAKE_INSTALL_PREFIX}")
-else()
-    message(STATUS "NOTE: ${PROJECT_NAME} is being configured as a sub-project")
-
-    # Keep install components out of 'all' target
-    set(SUB_PROJ_EXCLUDE_FROM_ALL "EXCLUDE_FROM_ALL")
-endif()
-
-#--------------------Setup Paths-------------------
-
-# Cmake scripts
-set(FILE_TEMPLATES_PATH "${PROJ_SCRIPTS_PATH}/file_templates")
-
-# Package
-set(PACKAGE_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/out/dist")
-
-#------------Set Global Build Rules----------------
-
-# Versioning
-include(OB/VerboseVersioning)
-setup_verbose_versioning(PROJECT_VERSION_VERBOSE)
-
 #================= Build =========================
 
 # Import Qt
-find_package(Qt6 REQUIRED COMPONENTS
+set(CLIFP_QT_COMPONENTS
     Core
     Gui
     Widgets
@@ -89,11 +50,12 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
 )
 
-# Disable deprecated code
+# Find Qt package
 add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
+find_package(Qt6 REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS})
 
 # Fetch Qx (build and import from source)
-set(QX_FETCH_COMPONENTS
+set(CLIFP_QX_COMPONENTS
     Core
     Io
     Network
@@ -101,107 +63,59 @@ set(QX_FETCH_COMPONENTS
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
-    list(APPEND QX_FETCH_COMPONENTS Windows)
+    list(APPEND CLIFP_QX_COMPONENTS Windows)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    list(APPEND QX_FETCH_COMPONENTS Linux)
+    list(APPEND CLIFP_QX_COMPONENTS Linux)
 endif()
 
 include(OB/FetchQx)
-fetch_qx(
-    REF "ae110210c06ae23f7ffb42891d45206db7fdad54"
+ob_fetch_qx(
+    REF "v0.5"
     COMPONENTS
-        ${QX_FETCH_COMPONENTS}
+        ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-fetch_libfp("v0.2")
+ob_fetch_libfp("v0.3")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-fetch_qi_qmp("v0.2")
+ob_fetch_qi_qmp("v0.2.1")
 
 # Fetch QuaZip (build and import from source)
-include (OB/FetchQuaZip)
-fetch_quazip("v1.3")
+include(OB/FetchQuaZip)
+ob_fetch_quazip(
+    REF "v1.3"
+    QT_MAJOR_VER "6"
+)
 
 # Fetch Neargye's Magic Enum
 include(OB/FetchMagicEnum)
-fetch_magicenum("v0.8.0")
+ob_fetch_magicenum("v0.8.0")
 
-# Set main target name
-# Name here needs to be as unique as possible for when this project is inlcuded
-# in another via FetchContent or add_subdirectory (prevent target clashes)
-set(MAIN_TARGET_NAME ${PROJECT_NAME_LC}_${PROJECT_NAME_LC})
-
-# Process source files and create target
-add_subdirectory(src)
+# Process Targets
+set(APP_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})
+set(APP_ALIAS_NAME ${PROJECT_NAMESPACE})
+add_subdirectory(app)
 
 #--------------------Package Config-----------------------
 
-# Create config file
-configure_file("${FILE_TEMPLATES_PATH}/${PROJECT_NAME}Config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
-    @ONLY
-)
-
-# Create version config file
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMinorVersion
+ob_standard_project_package_config(
+    COMPATIBILITY "SameMinorVersion"
+    CONFIG STANDARD
+        TARGET_CONFIGS
+            TARGET "${PROJECT_NAMESPACE}::${APP_ALIAS_NAME}" COMPONENT "${APP_ALIAS_NAME}" DEFAULT
 )
 
 #================= Install ==========================
 
-set(TOP_LEVEL_INSTALL_COMPONENT ${PROJECT_NAME_LC})
-
-# Install package target export
-install(EXPORT ${PROJECT_NAME}Targets
-    CONFIGURATIONS Release
-    COMPONENT ${MAIN_TARGET_NAME}
-    FILE "${PROJECT_NAME}Targets.cmake"
-    NAMESPACE ${PROJECT_NAME}::
-    DESTINATION cmake
-    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
-)
-
-# Install package config
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
-    CONFIGURATIONS Release
-    COMPONENT ${MAIN_TARGET_NAME}
-    DESTINATION cmake
-    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
-)
-
-# Install README and LICENSE
-install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
-    "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
-    COMPONENT ${TOP_LEVEL_INSTALL_COMPONENT}
-    DESTINATION .
-    ${SUB_PROJ_EXCLUDE_FROM_ALL} # "EXCLUDE_FROM_ALL" if project is not top-level
-)
-
-#========Export For In-tree Builds =================
-# For in source builds
-export(EXPORT ${PROJECT_NAME}Targets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
-    NAMESPACE ${PROJECT_NAME}::
-)
+ob_standard_project_misc_install()
 
 #====================== CPack ==============================
 
-set(CPACK_PACKAGE_VENDOR "oblivioncth")
-set(CPACK_PACKAGE_DIRECTORY "${PACKAGE_PREFIX}")
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}_${PROJECT_VERSION_VERBOSE}_${CMAKE_SYSTEM_NAME}_${TARGET_ARCH}")
-set(CPACK_GENERATOR "ZIP")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-include(CPack)
+include(OB/Packaging)
+ob_standard_project_package(VENDOR "oblivioncth")
 
