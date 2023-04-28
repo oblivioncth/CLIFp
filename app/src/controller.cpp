@@ -16,7 +16,8 @@
 Controller::Controller(QObject* parent) :
     QObject(parent),
     mStatusRelay(this),
-    mExitCode(ErrorCode::NO_ERR)
+    mExitCode(ErrorCode::NO_ERR),
+    mReadyToExit(false)
 {
     // Create driver
     Driver* driver = new Driver(QApplication::arguments());
@@ -38,6 +39,7 @@ Controller::Controller(QObject* parent) :
     connect(driver, &Driver::longTaskStarted, &mStatusRelay, &StatusRelay::longTaskStartedHandler);
     connect(driver, &Driver::longTaskFinished, &mStatusRelay, &StatusRelay::longTaskFinishedHandler);
     connect(&mStatusRelay, &StatusRelay::longTaskCanceled, driver, &Driver::cancelActiveLongTask);
+    connect(&mStatusRelay, &StatusRelay::longTaskCanceled, this, &Controller::longTaskCanceledHandler);
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
     connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
@@ -92,11 +94,31 @@ void Controller::quitRequestHandler()
     qApp->closeAllWindows();
 }
 
+void Controller::longTaskCanceledHandler()
+{
+    /* A bit of a bodge. Pressing the Cancel button on a progress dialog
+     * doesn't count as closing it (it doesn't fire a close event) by the strict definition of
+     * QWidget, so here when the progress bar is closed we manually check to see if it was
+     * the last window if the application is ready to exit.
+     *
+     * Normally the progress bar should never still be open by that point, but this is here as
+     * a fail-safe as otherwise the application would deadlock when the progress bar is closed
+     * via the Cancel button.
+     */
+    if(mReadyToExit && !windowsAreOpen())
+        exit();
+}
+
 void Controller::finisher()
 {
     // Quit once no windows remain
     if(windowsAreOpen())
-        connect(qApp, &QGuiApplication::lastWindowClosed, this, [this]() { QApplication::exit(mExitCode); });
+    {
+        mReadyToExit = true;
+        connect(qApp, &QGuiApplication::lastWindowClosed, this, &Controller::exit);
+    }
     else
-        QApplication::exit(mExitCode);
+        exit();
 }
+
+void Controller::exit() { QApplication::exit(mExitCode); }

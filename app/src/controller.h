@@ -16,6 +16,7 @@ private:
     QThread mWorkerThread;
     StatusRelay mStatusRelay;
     ErrorCode mExitCode;
+    bool mReadyToExit;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
@@ -36,7 +37,9 @@ public:
 private slots:
     void driverFinishedHandler(ErrorCode code);
     void quitRequestHandler();
+    void longTaskCanceledHandler();
     void finisher();
+    void exit();
 
 signals:
     void quit();
