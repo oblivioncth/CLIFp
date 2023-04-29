@@ -285,7 +285,7 @@ void Mounter::mount(QUuid titleId, QString filePath)
     mCurrentMountInfo.driveSerial = driveSerial.toString();
 
     // Connect to QEMU instance, or go straight to web server portion if bypassing
-    if(mQemuMounter.port() != 0)
+    if(mQemuEnabled)
     {
         emit eventOccured(EVENT_CONNECTING_TO_QEMU);
         mQemuMounter.connectToHost();
