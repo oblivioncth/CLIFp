@@ -49,6 +49,7 @@ private:
     static inline const QString EVENT_CONNECTING_TO_QEMU = QSL("Connecting to FP QEMU instance...");
     static inline const QString EVENT_CREATING_MOUNT_POINT = QSL("Creating data pack mount point on QEMU instance...");
     static inline const QString EVENT_MOUNTING_THROUGH_SERVER = QSL("Mounting data pack via PHP server...");
+    static inline const QString EVENT_REQUEST_SENT = QSL("Sent request (%1): %2}");
 
     // Connections
     static const int QMP_TRANSACTION_TIMEOUT = 5000; // ms
@@ -99,7 +100,7 @@ private slots:
     void qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities);
     void qmpiFinishedHandler();
     void qmpiReadyForCommandsHandler();
-    void phpMountFinishedHandler(QNetworkReply *reply);
+    void phpMountFinishedHandler(QNetworkReply* reply);
 
     void qmpiConnectionErrorHandler(QAbstractSocket::SocketError error);
     void qmpiCommunicationErrorHandler(Qmpi::CommunicationError error);

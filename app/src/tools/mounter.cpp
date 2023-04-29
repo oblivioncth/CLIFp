@@ -148,6 +148,9 @@ void Mounter::setMountOnServer()
     // GET request
     mPhpMountReply = mNam.get(mountReq);
 
+    // Log request
+    emit eventOccured(EVENT_REQUEST_SENT.arg(ENUM_NAME(mPhpMountReply->operation()), mountUrl.toString()));
+
     // Await finished() signal...
 }
 
@@ -191,7 +194,7 @@ void Mounter::qmpiFinishedHandler()
 
 void Mounter::qmpiReadyForCommandsHandler() { createMountPoint(); }
 
-void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
+void Mounter::phpMountFinishedHandler(QNetworkReply* reply)
 {
     assert(reply == mPhpMountReply.get());
 
