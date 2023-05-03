@@ -148,6 +148,9 @@ void Mounter::setMountOnServer()
     // GET request
     mPhpMountReply = mNam.get(mountReq);
 
+    // Log request
+    emit eventOccured(EVENT_REQUEST_SENT.arg(ENUM_NAME(mPhpMountReply->operation()), mountUrl.toString()));
+
     // Await finished() signal...
 }
 
@@ -155,6 +158,11 @@ void Mounter::notePhpMountResponse(const QString& response)
 {
     emit eventOccured(EVENT_PHP_RESPONSE.arg(response));
     finish();
+}
+
+void Mounter::logMountInfo(const MountInfo& info)
+{
+    emit eventOccured(EVENT_MOUNT_INFO_DETERMINED.arg(info.filePath, info.driveId, info.driveSerial));
 }
 
 //Public:
@@ -191,7 +199,7 @@ void Mounter::qmpiFinishedHandler()
 
 void Mounter::qmpiReadyForCommandsHandler() { createMountPoint(); }
 
-void Mounter::phpMountFinishedHandler(QNetworkReply *reply)
+void Mounter::phpMountFinishedHandler(QNetworkReply* reply)
 {
     assert(reply == mPhpMountReply.get());
 
@@ -281,8 +289,12 @@ void Mounter::mount(QUuid titleId, QString filePath)
     Qx::Base85 driveSerial = Qx::Base85::encode(rawTitleId, &encoding);
     mCurrentMountInfo.driveSerial = driveSerial.toString();
 
+    // Log info
+    logMountInfo(mCurrentMountInfo);
+    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? "is" : "isn't"));
+
     // Connect to QEMU instance, or go straight to web server portion if bypassing
-    if(mQemuMounter.port() != 0)
+    if(mQemuEnabled)
     {
         emit eventOccured(EVENT_CONNECTING_TO_QEMU);
         mQemuMounter.connectToHost();

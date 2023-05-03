@@ -117,8 +117,9 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
     }
     else
     {
-        downloadReport.errorInfo().setErrorLevel(Qx::GenericError::Critical);
-        emit errorOccurred(NAME, downloadReport.errorInfo());
+        Qx::GenericError err = downloadReport.errorInfo();
+        err.setErrorLevel(Qx::GenericError::Critical);
+        emit errorOccurred(NAME, err);
         errorStatus = ErrorCode::CANT_OBTAIN_DATA_PACK;
     }
 

@@ -133,6 +133,9 @@ void StatusRelay::longTaskStartedHandler(QString task)
 
 void StatusRelay::longTaskFinishedHandler()
 {
-    if(mLongTaskProgressDialog.isVisible()) // Is already closed if canceled
-        mLongTaskProgressDialog.reset();
+    /* Always reset the dialog regardless of whether it is visible or not as it may not be currently visible,
+     * but queued to be visible on the next event loop iteration and therefore still needs to be hidden
+     * immediately after.
+     */
+     mLongTaskProgressDialog.reset();
 }
