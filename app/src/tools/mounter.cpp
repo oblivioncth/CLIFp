@@ -160,6 +160,11 @@ void Mounter::notePhpMountResponse(const QString& response)
     finish();
 }
 
+void Mounter::logMountInfo(const MountInfo& info)
+{
+    emit eventOccured(EVENT_MOUNT_INFO_DETERMINED.arg(info.filePath, info.driveId, info.driveSerial));
+}
+
 //Public:
 bool Mounter::isMounting() { return mMounting; }
 
@@ -283,6 +288,10 @@ void Mounter::mount(QUuid titleId, QString filePath)
     QByteArray rawTitleId = titleId.toRfc4122(); // Binary representation of UUID
     Qx::Base85 driveSerial = Qx::Base85::encode(rawTitleId, &encoding);
     mCurrentMountInfo.driveSerial = driveSerial.toString();
+
+    // Log info
+    logMountInfo(mCurrentMountInfo);
+    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? "is" : "isn't"));
 
     // Connect to QEMU instance, or go straight to web server portion if bypassing
     if(mQemuEnabled)

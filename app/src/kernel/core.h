@@ -101,6 +101,7 @@ public:
     static inline const QString LOG_EVENT_G_HELP_SHOWN = QSL("Displayed general help information");
     static inline const QString LOG_EVENT_VER_SHOWN = QSL("Displayed version information");
     static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = QSL("Notification Level is: %1");
+    static inline const QString LOG_EVENT_RECOGNIZED_DAEMONS = QSL("Recognized service daemons: %1");
     static inline const QString LOG_EVENT_ENQ_START = QSL("Enqueuing startup tasks...");
     static inline const QString LOG_EVENT_ENQ_STOP = QSL("Enqueuing shutdown tasks...");
     static inline const QString LOG_EVENT_ENQ_DATA_PACK = QSL("Enqueuing Data Pack tasks...");

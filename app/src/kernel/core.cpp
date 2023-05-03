@@ -289,6 +289,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     // Capture install
     mFlashpointInstall = std::move(flashpointInstall);
 
+    // Note install details
+    QString dmns = QString(magic_enum::enum_flags_name(static_cast<Fp::KnownDaemon>(mFlashpointInstall->services().recognizedDaemons.toInt())).data());
+    logEvent(NAME, LOG_EVENT_RECOGNIZED_DAEMONS.arg(dmns));
+
     // Initialize child process env var
     mChildTitleProcEnv = QProcessEnvironment::systemEnvironment();
 
