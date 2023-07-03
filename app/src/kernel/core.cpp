@@ -161,7 +161,7 @@ ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
 
             // Create choice string
             QString choice = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                                    MULTI_GAME_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString(),
+                                                    MULTI_GAME_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString(),
                                                                             searchResult.result.value(Fp::Db::Table_Game::COL_TITLE).toString(),
                                                                             searchResult.result.value(Fp::Db::Table_Game::COL_DEVELOPER).toString(),
                                                                             id.toString(QUuid::WithoutBraces)) :
@@ -394,11 +394,11 @@ ErrorCode Core::enqueueStartupTasks()
 #endif
 
     // Get settings
-    Fp::Json::Services fpServices = mFlashpointInstall->services();
-    Fp::Json::Config fpConfig = mFlashpointInstall->config();
+    Fp::Services fpServices = mFlashpointInstall->services();
+    Fp::Config fpConfig = mFlashpointInstall->config();
 
     // Add Start entries from services
-    for(const Fp::Json::StartStop& startEntry : qAsConst(fpServices.starts))
+    for(const Fp::StartStop& startEntry : qAsConst(fpServices.starts))
     {
         TExec* currentTask = new TExec(this);
         currentTask->setIdentifier(startEntry.filename);
@@ -421,7 +421,7 @@ ErrorCode Core::enqueueStartupTasks()
             return ErrorCode::CONFIG_SERVER_MISSING;
         }
 
-        Fp::Json::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
+        Fp::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
 
         TExec* serverTask = new TExec(this);
         serverTask->setIdentifier("Server");
@@ -436,7 +436,7 @@ ErrorCode Core::enqueueStartupTasks()
     }
 
     // Add Daemon entry from services
-    QHash<QString, Fp::Json::ServerDaemon>::const_iterator daemonIt;
+    QHash<QString, Fp::ServerDaemon>::const_iterator daemonIt;
     for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
     {
         TExec* currentTask = new TExec(this);
@@ -486,7 +486,7 @@ void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
-    for(const Fp::Json::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
+    for(const Fp::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
     {
         TExec* shutdownTask = new TExec(this);
         shutdownTask->setIdentifier(stopEntry.filename);
@@ -591,39 +591,20 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
     // Enqueue pack download if it doesn't exist or is different than expected
     if(!packFile.exists() || !checksumMatches)
     {
-        // Get Data Pack source info
-        searchError = database->queryDataPackSource(searchResult);
-        if(searchError.isValid())
+        if(!mFlashpointInstall->preferences().gameDataSources.contains("Flashpoint Project"))
         {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return ErrorCode::SQL_ERROR;
+            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_MISSING_PACK_SOURCE));
+            return ErrorCode::CANT_OBTAIN_DATA_PACK;
         }
 
-        // Advance result to only record (or first if there are more than one in future versions)
-        searchResult.result.next();
-
-        // Get Data Pack source base URL
-        QString sourceBaseUrl = searchResult.result.value(Fp::Db::Table_Source::COL_BASE_URL).toString();
-
-        // Get title specific Data Pack source info
-        searchError = database->queryEntrySourceData(searchResult, packSha256);
-        if(searchError.isValid())
-        {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-            return ErrorCode::SQL_ERROR;
-        }
-
-        // Advance result to only record
-        searchResult.result.next();
-
-        // Get title's Data Pack sub-URL (the replace here is because there once was an errant entry in DB using '\')
-        QString packSubUrl = searchResult.result.value(Fp::Db::Table_Source_Data::COL_URL_PATH).toString().replace('\\','/');
+        Fp::GameDataSource gameSource = mFlashpointInstall->preferences().gameDataSources.value("Flashpoint Project");
+        QString gameSourceBase = gameSource.arguments.value(0);
 
         TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
         downloadTask->setDestinationPath(packDestFolderPath);
         downloadTask->setDestinationFilename(packFileName);
-        downloadTask->setTargetFile(sourceBaseUrl + packSubUrl);
+        downloadTask->setTargetFile(gameSourceBase + '/' + packFileName);
         downloadTask->setSha256(packSha256);
 
         mTaskQueue.push(downloadTask);

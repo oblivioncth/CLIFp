@@ -62,7 +62,6 @@ Fp::Game CPlay::buildGame(const Fp::Db::QueryBuffer& gameResult)
     fpGb.wPublisher(gameResult.result.value(Fp::Db::Table_Game::COL_PUBLISHER).toString().remove(Qx::RegularExpression::LINE_BREAKS));
     fpGb.wDateAdded(gameResult.result.value(Fp::Db::Table_Game::COL_DATE_ADDED).toString());
     fpGb.wDateModified(gameResult.result.value(Fp::Db::Table_Game::COL_DATE_MODIFIED).toString());
-    fpGb.wPlatform(gameResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString());
     fpGb.wBroken(gameResult.result.value(Fp::Db::Table_Game::COL_BROKEN).toString());
     fpGb.wPlayMode(gameResult.result.value(Fp::Db::Table_Game::COL_PLAY_MODE).toString());
     fpGb.wStatus(gameResult.result.value(Fp::Db::Table_Game::COL_STATUS).toString());
@@ -76,6 +75,7 @@ Fp::Game CPlay::buildGame(const Fp::Db::QueryBuffer& gameResult)
     fpGb.wLanguage(gameResult.result.value(Fp::Db::Table_Game::COL_LANGUAGE).toString().remove(Qx::RegularExpression::LINE_BREAKS));
     fpGb.wOrderTitle(gameResult.result.value(Fp::Db::Table_Game::COL_ORDER_TITLE).toString().remove(Qx::RegularExpression::LINE_BREAKS));
     fpGb.wLibrary(gameResult.result.value(Fp::Db::Table_Game::COL_LIBRARY).toString());
+    fpGb.wPlatformName(gameResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString());
 
     return fpGb.build();
 }
@@ -179,10 +179,10 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
         parentResult.result.next();
 
         // Determine platform (don't bother building entire game object since only one value is needed)
-        QString platform = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM).toString();
+        QString platformName = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString();
 
         // Enqueue
-        enqueueError = enqueueAdditionalApp(addApp, platform, Task::Stage::Primary);
+        enqueueError = enqueueAdditionalApp(addApp, platformName, Task::Stage::Primary);
         mCore.setStatus(STATUS_PLAY, searchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString());
 
         if(enqueueError)
@@ -240,7 +240,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
             if(addApp.isAutorunBefore())
             {
                 mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
-                enqueueError = enqueueAdditionalApp(addApp, game.platform(), Task::Stage::Auxiliary);
+                enqueueError = enqueueAdditionalApp(addApp, game.platformName(), Task::Stage::Auxiliary);
                 if(enqueueError)
                     return enqueueError;
             }
@@ -307,7 +307,7 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 
 ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
 {
-    QString gamePath = mCore.resolveTrueAppPath(game.appPath(), game.platform());
+    QString gamePath = mCore.resolveTrueAppPath(game.appPath(), game.platformName());
     QFileInfo fullGamePathInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
 
     TExec* gameTask = new TExec(&mCore);

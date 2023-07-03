@@ -78,6 +78,7 @@ public:
     static inline const QString ERR_ID_NOT_FOUND = QSL("An entry matching the specified ID could not be found in the Flashpoint database.");
     static inline const QString ERR_TITLE_NOT_FOUND = QSL("The provided title was not found in the Flashpoint database.");
     static inline const QString WRN_EXIST_PACK_SUM_MISMATCH = QSL("The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.");
+    static inline const QString ERR_MISSING_PACK_SOURCE = QSL("The expected data pack source was missing.");
 
     // Error Messages - Helper
     static inline const QString ERR_FIND_TOO_MANY_RESULTS = QSL("Too many titles matched the title-based query.");
