@@ -544,31 +544,15 @@ ErrorCode Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
 }
 #endif
 
-ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
+ErrorCode Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
-    // Get entry data
-    QSqlError searchError;
-    Fp::Db::QueryBuffer searchResult;
-
-    // Get database
-    Fp::Db* database = mFlashpointInstall->database();
-
-    if((searchError = database->queryEntryDataById(searchResult, targetId)).isValid())
-    {
-        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCode::SQL_ERROR;
-    }
-
-    // Advance result to only record
-    searchResult.result.next();
-
     // Extract relevant data
     QString packDestFolderPath = mFlashpointInstall->fullPath() + "/" + mFlashpointInstall->preferences().dataPacksFolderPath;
-    QString packFileName = searchResult.result.value(Fp::Db::Table_Game_Data::COL_PATH).toString();
-    QString packSha256 = searchResult.result.value(Fp::Db::Table_Game_Data::COL_SHA256).toString();
-    QString packParameters = searchResult.result.value(Fp::Db::Table_Game_Data::COL_PARAM).toString();
+    QString packFileName = gameData.path();
+    QString packSha256 = gameData.sha256();
+    QString packParameters = gameData.parameters();
     QFile packFile(packDestFolderPath + "/" + packFileName);
 
     // Get current file checksum if it exists
@@ -635,7 +619,7 @@ ErrorCode Core::enqueueDataPackTasks(QUuid targetId)
         // Create task
         TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
-        mountTask->setTitleId(targetId);
+        mountTask->setTitleId(gameData.gameId());
         mountTask->setPath(packDestFolderPath + "/" + packFileName);
         mountTask->setSkipQemu(!qemuUsed);
 

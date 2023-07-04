@@ -56,16 +56,16 @@ ErrorCode CPrepare::process(const QStringList& commandLine)
     // Enqueue prepare task
     QSqlError sqlError;
 
-    bool titleUsesDataPack;
-    if((sqlError = mCore.fpInstall().database()->entryUsesDataPack(titleUsesDataPack, id)).isValid())
+    Fp::GameData titleGameData;
+    if(Qx::GenericError gdErr = mCore.fpInstall().database()->getGameData(titleGameData, id); gdErr.isValid())
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
+        mCore.postError(NAME, gdErr);
         return ErrorCode::SQL_ERROR;
     }
 
-    if(titleUsesDataPack)
+    if(!titleGameData.isNull())
     {
-        if((errorStatus = mCore.enqueueDataPackTasks(id)))
+        if((errorStatus = mCore.enqueueDataPackTasks(titleGameData)))
             return errorStatus;
 
         mCore.setStatus(STATUS_PREPARE, id.toString(QUuid::WithoutBraces));

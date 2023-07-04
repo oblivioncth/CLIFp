@@ -88,44 +88,24 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
     wasStandalone = false;
 
     mCore.logEvent(NAME, LOG_EVENT_ENQ_AUTO);
-    // Search FP database for entry via ID
-    QSqlError searchError;
-    Fp::Db::QueryBuffer searchResult;
-    ErrorCode enqueueError;
 
-    // Get database
+    // Get entry via ID
+    ErrorCode enqueueError;
+    QSqlError searchError;
     Fp::Db* database = mCore.fpInstall().database();
 
-    // Find title
-    Fp::Db::EntryFilter mainFilter{.type = Fp::Db::EntryType::PrimaryThenAddApp, .id = targetId};
-
-    searchError = database->queryEntrys(searchResult, mainFilter);
-    if(searchError.isValid())
+    std::variant<Fp::Game, Fp::AddApp> entry;
+    if(Qx::GenericError eErr = database->getEntry(entry, targetId); eErr.isValid())
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, searchError.text()));
+        mCore.postError(NAME, eErr);
         return ErrorCode::SQL_ERROR;
     }
 
-    // Check if ID was found and that only one instance was found
-    if(searchResult.size == 0)
-    {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND));
-        return ErrorCode::ID_NOT_FOUND;
-    }
-    else if(searchResult.size > 1)
-    {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ID_DUPLICATE_ENTRY_P, ERR_ID_DUPLICATE_ENTRY_S));
-        return ErrorCode::ID_DUPLICATE;
-    }
-
-    // Advance result to only record
-    searchResult.result.next();
-
     // Enqueue if result is additional app
-    if(searchResult.source == Fp::Db::Table_Add_App::NAME)
+    if(std::holds_alternative<Fp::AddApp>(entry))
     {
-        // Build add app
-        Fp::AddApp addApp = buildAdditionalApp(searchResult);
+        // Get add app
+        const Fp::AddApp& addApp = std::get<Fp::AddApp>(entry);
 
         mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
                                                            addApp.parentId().toString(QUuid::WithoutBraces)));
@@ -139,8 +119,6 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
         }
 
         // Check if parent entry uses a data pack
-        QSqlError packCheckError;
-        bool parentUsesDataPack;
         QUuid parentId = addApp.parentId();
 
         if(parentId.isNull())
@@ -149,16 +127,17 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
             return ErrorCode::PARENT_INVALID;
         }
 
-        if((packCheckError = database->entryUsesDataPack(parentUsesDataPack, parentId)).isValid())
+        Fp::GameData parentGameData;
+        if(Qx::GenericError gdErr = database->getGameData(parentGameData, parentId); gdErr.isValid())
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
+            mCore.postError(NAME, gdErr);
             return ErrorCode::SQL_ERROR;
         }
 
-        if(parentUsesDataPack)
+        if(!parentGameData.isNull())
         {
             mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
-            enqueueError = mCore.enqueueDataPackTasks(parentId);
+            enqueueError = mCore.enqueueDataPackTasks(parentGameData);
 
             if(enqueueError)
                 return enqueueError;
@@ -183,32 +162,31 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
 
         // Enqueue
         enqueueError = enqueueAdditionalApp(addApp, platformName, Task::Stage::Primary);
-        mCore.setStatus(STATUS_PLAY, searchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString());
+        mCore.setStatus(STATUS_PLAY, addApp.name());
 
         if(enqueueError)
             return enqueueError;
     }
-    else if(searchResult.source == Fp::Db::Table_Game::NAME) // Get auto-run additional apps if result is game
+    else if(std::holds_alternative<Fp::Game>(entry)) // Get auto-run additional apps if result is game
     {
-        // Build game
-        Fp::Game game = buildGame(searchResult);
+        // Get game
+        const Fp::Game& game = std::get<Fp::Game>(entry);
 
         mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(game.title()));
 
-        // Check if entry uses a data pack
-        QSqlError packCheckError;
-        bool entryUsesDataPack;
-
-        if((packCheckError = database->entryUsesDataPack(entryUsesDataPack, game.id())).isValid())
+        // Get game data (if present)
+        Fp::GameData gameData;
+        if(Qx::GenericError gdErr = database->getGameData(gameData, targetId); gdErr.isValid())
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, packCheckError.text()));
+            mCore.postError(NAME, gdErr);
             return ErrorCode::SQL_ERROR;
         }
 
-        if(entryUsesDataPack)
+        // Check if entry uses a data pack
+        if(!gameData.isNull())
         {
             mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
-            enqueueError = mCore.enqueueDataPackTasks(game.id());
+            enqueueError = mCore.enqueueDataPackTasks(gameData);
 
             if(enqueueError)
                 return enqueueError;
@@ -247,7 +225,7 @@ ErrorCode CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
         }
 
         // Enqueue game
-        enqueueError = enqueueGame(game, Task::Stage::Primary);
+        enqueueError = enqueueGame(game, gameData, Task::Stage::Primary);
         if(enqueueError)
             return enqueueError;
     }
@@ -305,9 +283,10 @@ ErrorCode CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     return ErrorCode::NO_ERR;
 }
 
-ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
+ErrorCode CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
-    QString gamePath = mCore.resolveTrueAppPath(game.appPath(), game.platformName());
+    QString gamePath = mCore.resolveTrueAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
+                                                game.platformName());
     QFileInfo fullGamePathInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
 
     TExec* gameTask = new TExec(&mCore);
@@ -315,7 +294,7 @@ ErrorCode CPlay::enqueueGame(const Fp::Game& game, Task::Stage taskStage)
     gameTask->setStage(taskStage);
     gameTask->setExecutable(fullGamePathInfo.canonicalFilePath());
     gameTask->setDirectory(fullGamePathInfo.absoluteDir());
-    gameTask->setParameters(game.launchCommand());
+    gameTask->setParameters(!gameData.isNull() ? gameData.launchCommand() : game.launchCommand());
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 
