@@ -17,6 +17,7 @@
 #include "task/t-extract.h"
 #include "task/t-mount.h"
 #include "task/t-sleep.h"
+#include "task/t-generic.h"
 #ifdef _WIN32
     #include "task/t-bideprocess.h"
 #endif
@@ -589,8 +590,10 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     // Get current file checksum if it exists
     bool checksumMatches = false;
 
-    if(packFile.exists())
+    if(gameData.presentOnDisk() && packFile.exists())
     {
+        // Checking the sum in addition to the flag is somewhat overkill, but may help in situations
+        // where the flag is set but the datapack's contents have changed
         Qx::IoOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, packSha256, QCryptographicHash::Sha256);
         if(checksumReport.isFailure())
             logError(NAME, checksumReport);
@@ -625,6 +628,19 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
         mTaskQueue.push(downloadTask);
         logTask(NAME, downloadTask);
+
+        // Add task to update DB with onDiskState
+        int gameDataId = gameData.id();
+
+        TGeneric* onDiskUpdateTask = new TGeneric(this);
+        onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
+        onDiskUpdateTask->setDescription("Update GameData onDisk state.");
+        onDiskUpdateTask->setAction([gameDataId, this]{
+            return mFlashpointInstall->database()->updateGameDataOnDiskState(gameDataId, true);
+        });
+
+        mTaskQueue.push(onDiskUpdateTask);
+        logTask(NAME, onDiskUpdateTask);
     }
 
     // Enqueue pack mount or extract
