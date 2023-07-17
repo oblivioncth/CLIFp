@@ -33,7 +33,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    DeferredProcessManager(QObject* parent = nullptr);
+    DeferredProcessManager(QObject* parent);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

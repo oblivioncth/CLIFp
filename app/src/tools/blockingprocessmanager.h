@@ -29,7 +29,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    BlockingProcessManager(QProcess* process, const QString& identifier, QObject* parent = nullptr);
+    BlockingProcessManager(QProcess* process, const QString& identifier, QObject* parent);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
