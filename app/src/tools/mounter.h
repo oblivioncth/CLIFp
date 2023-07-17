@@ -95,6 +95,7 @@ private:
     static inline const QString EVENT_MOUNT_INFO_DETERMINED = QSL("Mount Info: {.filePath = \"%1\", .driveId = \"%2\", .driveSerial = \"%3\"}");
     static inline const QString EVENT_QEMU_DETECTION = QSL("QEMU %1 in use.");
     static inline const QString EVENT_CREATING_MOUNT_POINT = QSL("Creating data pack mount point on QEMU instance...");
+    static inline const QString EVENT_DISCONNECTING_FROM_QEMU = QSL("Disconnecting from FP QEMU instance...");
     static inline const QString EVENT_MOUNTING_THROUGH_SERVER = QSL("Mounting data pack via PHP server...");
     static inline const QString EVENT_REQUEST_SENT = QSL("Sent request (%1): %2}");
 
@@ -112,7 +113,6 @@ private:
     Qmpi mQemuMounter;
     Qmpi mQemuProdder; // Not actually used; no, need unless issues with mounting are reported
     bool mQemuEnabled;
-    int mCompletedQemuCommands;
 
     QNetworkAccessManager mNam;
     QPointer<QNetworkReply> mPhpMountReply;
@@ -146,6 +146,7 @@ public:
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
     void qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities);
+    void qmpiCommandsExhaustedHandler();
     void qmpiFinishedHandler();
     void qmpiReadyForCommandsHandler();
     void phpMountFinishedHandler(QNetworkReply* reply);

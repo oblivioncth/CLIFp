@@ -51,8 +51,7 @@ Mounter::Mounter(QObject* parent) :
     mWebServerPort(0),
     mQemuMounter(QHostAddress::LocalHost, 0),
     mQemuProdder(QHostAddress::LocalHost, 0), // Currently not used
-    mQemuEnabled(true),
-    mCompletedQemuCommands(0)
+    mQemuEnabled(true)
 {
     // Setup Network Access Manager
     mNam.setAutoDeleteReplies(true);
@@ -63,6 +62,7 @@ Mounter::Mounter(QObject* parent) :
 
     // Connections - Work
     connect(&mQemuMounter, &Qmpi::readyForCommands, this, &Mounter::qmpiReadyForCommandsHandler);
+    connect(&mQemuMounter, &Qmpi::commandQueueExhausted, this, &Mounter::qmpiCommandsExhaustedHandler);
     connect(&mQemuMounter, &Qmpi::finished, this, &Mounter::qmpiFinishedHandler);
     connect(&mNam, &QNetworkAccessManager::finished, this, &Mounter::phpMountFinishedHandler);
 
@@ -103,7 +103,6 @@ void Mounter::finish()
     mErrorStatus.reset();
     mMounting = false;
     mCurrentMountInfo = {};
-    mCompletedQemuCommands = 0;
     emit mountFinished(err);
 }
 
@@ -212,6 +211,12 @@ void Mounter::qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities)
     emit eventOccured(EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
 }
 
+void Mounter::qmpiCommandsExhaustedHandler()
+{
+    emit eventOccured(EVENT_DISCONNECTING_FROM_QEMU);
+    mQemuMounter.disconnectFromHost();
+}
+
 void Mounter::qmpiFinishedHandler()
 {
     if(mErrorStatus.isSet())
@@ -271,11 +276,7 @@ void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, s
 
 void Mounter::qmpiCommandResponseHandler(QJsonValue value, std::any context)
 {
-    mCompletedQemuCommands++;
     emit eventOccured(EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::asString(value)));
-
-    if(mCompletedQemuCommands == 2)
-        mQemuMounter.disconnectFromHost();
 }
 
 void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime timestamp)
