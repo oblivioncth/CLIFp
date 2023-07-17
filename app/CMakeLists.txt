@@ -32,6 +32,8 @@ set(CLIFP_SOURCE
     task/t-extra.cpp
     task/t-extract.h
     task/t-extract.cpp
+    task/t-generic.h
+    task/t-generic.cpp
     task/t-message.h
     task/t-message.cpp
     task/t-mount.h
