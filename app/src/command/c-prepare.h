@@ -5,36 +5,17 @@
 #include <qx/utility/qx-macros.h>
 
 // Project Includes
-#include "command/command.h"
+#include "command/title-command.h"
 
-class CPrepare : public Command
+class CPrepare : public TitleCommand
 {
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
     static inline const QString STATUS_PREPARE = QSL("Preparing");
 
-    // Error Messages - Prep
-    static inline const QString ERR_NO_TITLE = QSL("No title to prepare was specified.");
-
-    // Logging - Messages
-
     // Logging - Errors
     static inline const QString LOG_WRN_PREP_NOT_DATA_PACK = QSL("The provided ID does not belong to a Data Pack based game (%1). No action will be taken.");
-
-    // Command line option strings
-    static inline const QString CL_OPT_ID_S_NAME = QSL("i");
-    static inline const QString CL_OPT_ID_L_NAME = QSL("id");
-    static inline const QString CL_OPT_ID_DESC = QSL("UUID of title to prepare");
-
-    static inline const QString CL_OPT_TITLE_S_NAME = QSL("t");
-    static inline const QString CL_OPT_TITLE_L_NAME = QSL("title");
-    static inline const QString CL_OPT_TITLE_DESC = QSL("Title to prepare");
-
-    // Command line options
-    static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, "id"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_TITLE{{CL_OPT_TITLE_S_NAME, CL_OPT_TITLE_L_NAME}, CL_OPT_TITLE_DESC, "title"}; // Takes value
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_TITLE};
 
 public:
     // Meta
@@ -47,11 +28,9 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    const QList<const QCommandLineOption*> options();
-    const QString name();
-
-public:
-    ErrorCode process(const QStringList& commandLine);
+    QList<const QCommandLineOption*> options() override;
+    QString name() override;
+    Qx::Error perform() override;
 };
 REGISTER_COMMAND(CPrepare::NAME, CPrepare, CPrepare::DESCRIPTION);
 

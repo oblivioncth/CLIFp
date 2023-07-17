@@ -8,6 +8,50 @@
 #include <QProcess>
 #include <QTimer>
 
+class QX_ERROR_TYPE(TAwaitDockerError, "TAwaitDockerError", 1260)
+{
+    friend class TAwaitDocker;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        DirectQueryFailed = 1,
+        ListenFailed = 2,
+        StartFailed = 3
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {DirectQueryFailed, QSL("Failed to directly query docker image status.")},
+        {ListenFailed, QSL("Failed to start the docker event listener.")},
+        {StartFailed, QSL("The start of the docker image timed out.")}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    TAwaitDockerError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class TAwaitDocker : public Task
 {
     Q_OBJECT;
@@ -26,11 +70,6 @@ private:
     static inline const QString LOG_EVENT_FINAL_CHECK_PASS = "The docker image was found to be running after the final timeout check";
     static inline const QString LOG_EVENT_STOPPING_LISTENER = "Stopping event listener...";
 
-    // Errors
-    static inline const QString ERR_DIRECT_QUERY = "Failed to directly query docker image status.";
-    static inline const QString ERR_CANT_LISTEN = "Failed to start the docker event listener.";
-    static inline const QString ERR_DOCKER_DIDNT_START = "The start of docker image '%1' timed out!";
-
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
@@ -47,8 +86,8 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    ErrorCode imageRunningCheck(bool& running);
-    ErrorCode startEventListener();
+    TAwaitDockerError imageRunningCheck(bool& running);
+    TAwaitDockerError startEventListener();
     void stopEventListening();
 
 public:

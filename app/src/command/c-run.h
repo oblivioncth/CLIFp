@@ -7,19 +7,52 @@
 // Project Includes
 #include "command/command.h"
 
+class QX_ERROR_TYPE(CRunError, "CRunError", 1215)
+{
+    friend class CRun;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        MissingApp = 1
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {MissingApp, QSL("No application to run was provided.")}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    CRunError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class CRun : public Command
 {
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
     static inline const QString STATUS_RUN = QSL("Running");
-
-    // Error Messages - Prep
-    static inline const QString ERR_NO_APP = QSL("No application to run was provided.");
-
-    // Logging - Messages
-
-    // Logging - Errors
 
     // Command line option strings
     static inline const QString CL_OPT_APP_S_NAME = QSL("a");
@@ -46,11 +79,9 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    const QList<const QCommandLineOption*> options();
-    const QString name();
-
-public:
-    ErrorCode process(const QStringList& commandLine);
+    QList<const QCommandLineOption*> options() override;
+    QString name() override;
+    Qx::Error perform() override;
 };
 REGISTER_COMMAND(CRun::NAME, CRun, CRun::DESCRIPTION);
 

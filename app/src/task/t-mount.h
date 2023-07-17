@@ -53,7 +53,7 @@ public:
 
 //-Signals & Slots-------------------------------------------------------------------------------------------------------
 private slots:
-    void postMount(ErrorCode errorStatus);
+    void postMount(MounterError errorStatus);
 };
 
 #endif // TMOUNT_H

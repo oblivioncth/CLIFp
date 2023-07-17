@@ -1,131 +1,91 @@
 // Unit Include
 #include "c-link.h"
 
-// Project Includes
+//===============================================================================================================
+// CLinkError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+CLinkError::CLinkError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool CLinkError::isValid() const { return mType != NoError; }
+QString CLinkError::specific() const { return mSpecific; }
+CLinkError::Type CLinkError::type() const { return mType; }
+
+//Private:
+Qx::Severity CLinkError::deriveSeverity() const { return Qx::Critical; }
+quint32 CLinkError::deriveValue() const { return mType; }
+QString CLinkError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString CLinkError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
-// CSHORTCUT
+// CLink
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CLink::CLink(Core& coreRef) : Command(coreRef) {}
+CLink::CLink(Core& coreRef) : TitleCommand(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-const QList<const QCommandLineOption*> CLink::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-const QString CLink::name() { return NAME; }
+QList<const QCommandLineOption*> CLink::options() { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
+QSet<const QCommandLineOption*> CLink::requiredOptions() { return CL_OPTIONS_REQUIRED + TitleCommand::requiredOptions(); }
+QString CLink::name() { return NAME; }
 
-//Public:
-ErrorCode CLink::process(const QStringList& commandLine)
+Qx::Error CLink::perform()
 {
-    ErrorCode errorStatus;
-
-    // Parse and check for valid arguments
-    if((errorStatus = parse(commandLine)))
-        return errorStatus;
-
-    // Handle standard options
-    if(checkStandardOptions())
-        return ErrorCode::NO_ERR;
-
     // Shortcut parameters
     QUuid shortcutId;
     QDir shortcutDir;
     QString shortcutName;
 
     // Get shortcut ID
-    if(mParser.isSet(CL_OPTION_ID))
-    {
-        if((shortcutId = QUuid(mParser.value(CL_OPTION_ID))).isNull())
-        {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
-            return ErrorCode::ID_NOT_VALID;
-        }
-    }
-    else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
-    {
-        // Check title
-        bool titleStrict = mParser.isSet(CL_OPTION_TITLE_STRICT);
-        QString title = titleStrict ? mParser.value(CL_OPTION_TITLE_STRICT) : mParser.value(CL_OPTION_TITLE);
-
-        if((errorStatus = mCore.findGameIdFromTitle(shortcutId, title, titleStrict)))
-            return errorStatus;
-
-        // Bail if canceled
-        if(shortcutId.isNull())
-            return ErrorCode::NO_ERR;
-
-        // Check subtitle
-        if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
-        {
-            bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
-            QString subtitle = subtitleStrict ? mParser.value(CL_OPTION_SUBTITLE_STRICT) : mParser.value(CL_OPTION_SUBTITLE);
-
-            if((errorStatus = mCore.findAddAppIdFromName(shortcutId, shortcutId, subtitle, subtitleStrict)))
-                return errorStatus;
-
-            // Bail if canceled
-            if(shortcutId.isNull())
-                return ErrorCode::NO_ERR;
-        }
-    }
-    else
-    {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
-        return ErrorCode::INVALID_ARGS;
-    }
+    if(Qx::Error ide = getTitleId(shortcutId); ide.isValid())
+        return ide;
 
     mCore.setStatus(STATUS_LINK, shortcutId.toString(QUuid::WithoutBraces));
 
     // Get database
     Fp::Db* database = mCore.fpInstall().database();
 
-    // Get entry info (also confirms that ID is present in database)
-    Fp::Db::EntryFilter entryFilter{.type = Fp::Db::EntryType::PrimaryThenAddApp, .id = shortcutId};
-
-    QSqlError sqlError;
-    Fp::Db::QueryBuffer entryInfo;
-
-    if((sqlError = database->queryEntrys(entryInfo, entryFilter)).isValid())
+    // Get entry (also confirms that ID is present in database)
+    std::variant<Fp::Game, Fp::AddApp> entry_v;
+    Fp::DbError dbError = database->getEntry(entry_v, shortcutId);
+    if(dbError.isValid())
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
-        return ErrorCode::SQL_ERROR;
-    }
-    else if(entryInfo.size < 1)
-    {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_NOT_FOUND, sqlError.text()));
-        return ErrorCode::ID_NOT_FOUND;
+        mCore.postError(NAME, dbError);
+        return dbError;
     }
 
-    // Get entry title
-    entryInfo.result.next();
-
-    if(entryInfo.source == Fp::Db::Table_Game::NAME)
-        shortcutName = Qx::kosherizeFileName(entryInfo.result.value(Fp::Db::Table_Game::COL_TITLE).toString());
-    else if(entryInfo.source == Fp::Db::Table_Add_App::NAME)
+    if(std::holds_alternative<Fp::Game>(entry_v))
     {
+        Fp::Game game = std::get<Fp::Game>(entry_v);
+        shortcutName = Qx::kosherizeFileName(game.title());
+    }
+    else if(std::holds_alternative<Fp::AddApp>(entry_v))
+    {
+        Fp::AddApp addApp = std::get<Fp::AddApp>(entry_v);
+
         // Get parent info
-        QUuid parentId = QUuid(entryInfo.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString());
-        Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
-
-        Fp::Db::QueryBuffer parentInfo;
-        if((sqlError = database->queryEntrys(parentInfo, parentFilter)).isValid())
+        Fp::DbError dbError = database->getEntry(entry_v, addApp.parentId());
+        if(dbError.isValid())
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_UNEXPECTED_SQL, sqlError.text()));
-            return ErrorCode::SQL_ERROR;
+            mCore.postError(NAME, dbError);
+            return dbError;
         }
-        parentInfo.result.next();
+        Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
 
-        QString parentName = parentInfo.result.value(Fp::Db::Table_Game::COL_TITLE).toString();
-        shortcutName = Qx::kosherizeFileName(parentName + " (" + entryInfo.result.value(Fp::Db::Table_Add_App::COL_NAME).toString() + ")");
+        Fp::Game parent = std::get<Fp::Game>(entry_v);
+        shortcutName = Qx::kosherizeFileName(parent.title() + " (" + addApp.name() + ")");
     }
     else
-    {
-        mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_SQL_MISMATCH,
-                                               ERR_DIFFERENT_TITLE_SRC.arg(Fp::Db::Table_Game::NAME + "/" + Fp::Db::Table_Add_App::NAME, entryInfo.source)));
-        return ErrorCode::SQL_MISMATCH;
-    }
+        qCritical("Invalid variant state for std::variant<Fp::Game, Fp::AddApp>.");
 
     // Get shortcut path
     if(mParser.isSet(CL_OPTION_PATH))
@@ -158,7 +118,7 @@ ErrorCode CLink::process(const QStringList& commandLine)
         if(selectedPath.isEmpty())
         {
             mCore.logEvent(NAME, LOG_EVENT_DIAG_CANCEL);
-            return ErrorCode::NO_ERR;
+            return CLinkError();
         }
         else
         {
@@ -177,8 +137,9 @@ ErrorCode CLink::process(const QStringList& commandLine)
     {
         if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
         {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CREATE_FAILED, ERR_INVALID_PATH));
-            return ErrorCode::CANT_CREATE_SHORTCUT;
+            CLinkError err(CLinkError::InvalidPath);
+            mCore.postError(NAME, err);
+            return err;
         }
         mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));
     }

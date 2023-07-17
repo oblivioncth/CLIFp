@@ -16,7 +16,7 @@
 Controller::Controller(QObject* parent) :
     QObject(parent),
     mStatusRelay(this),
-    mExitCode(ErrorCode::NO_ERR),
+    mExitCode(0),
     mReadyToExit(false)
 {
     // Create driver

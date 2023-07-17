@@ -5,6 +5,29 @@
 #include "task/t-exec.h"
 
 //===============================================================================================================
+// CRunError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+CRunError::CRunError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool CRunError::isValid() const { return mType != NoError; }
+QString CRunError::specific() const { return mSpecific; }
+CRunError::Type CRunError::type() const { return mType; }
+
+//Private:
+Qx::Severity CRunError::deriveSeverity() const { return Qx::Critical; }
+quint32 CRunError::deriveValue() const { return mType; }
+QString CRunError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString CRunError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // CRUN
 //===============================================================================================================
 
@@ -14,32 +37,22 @@ CRun::CRun(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-const QList<const QCommandLineOption*> CRun::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-const QString CRun::name() { return NAME; }
+QList<const QCommandLineOption*> CRun::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QString CRun::name() { return NAME; }
 
-//Public:
-ErrorCode CRun::process(const QStringList& commandLine)
+Qx::Error CRun::perform()
 {
-    ErrorCode errorStatus;
-
-    // Parse and check for valid arguments
-    if((errorStatus = parse(commandLine)))
-        return errorStatus;
-
-    // Handle standard options
-    if(checkStandardOptions())
-        return ErrorCode::NO_ERR;
-
     // Make sure that at least an app was provided
     if(!mParser.isSet(CL_OPTION_PARAM))
     {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_APP));
-        return ErrorCode::INVALID_ARGS;
+        CRunError err(CRunError::MissingApp);
+        mCore.logError(NAME, err);
+        return err;
     }
 
     // Enqueue startup tasks
-    if((errorStatus = mCore.enqueueStartupTasks()))
-        return errorStatus;
+    if(Qx::Error ee = mCore.enqueueStartupTasks(); ee.isValid())
+        return ee;
 
     QString inputPath = mCore.resolveTrueAppPath(mParser.value(CL_OPTION_APP), ""); // No way of knowing platform
     QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
@@ -58,10 +71,10 @@ ErrorCode CRun::process(const QStringList& commandLine)
 
 #ifdef _WIN32
     // Add wait task if required
-    if((errorStatus = mCore.conditionallyEnqueueBideTask(inputInfo)))
-        return errorStatus;
+    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(inputInfo); ee.isValid())
+        return ee;
 #endif
 
     // Return success
-    return ErrorCode::NO_ERR;
+    return CRunError();
 }

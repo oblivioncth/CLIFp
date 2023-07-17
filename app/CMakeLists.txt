@@ -6,7 +6,8 @@ set(CLIFP_SOURCE
     kernel/core.cpp
     kernel/driver.h
     kernel/driver.cpp
-    kernel/errorcode.h
+    kernel/errorstatus.h
+    kernel/errorstatus.cpp
     command/command.h
     command/command.cpp
     command/c-link.h
@@ -19,6 +20,8 @@ set(CLIFP_SOURCE
     command/c-run.cpp
     command/c-show.cpp
     command/c-show.h
+    command/title-command.h
+    command/title-command.cpp
     task/task.h
     task/task.cpp
     task/t-download.h

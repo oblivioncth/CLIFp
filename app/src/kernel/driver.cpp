@@ -11,16 +11,40 @@
 #include "utility.h"
 
 //===============================================================================================================
+// DriverError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+DriverError::DriverError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool DriverError::isValid() const { return mType != NoError; }
+QString DriverError::specific() const { return mSpecific; }
+DriverError::Type DriverError::type() const { return mType; }
+
+//Private:
+Qx::Severity DriverError::deriveSeverity() const { return Qx::Critical; }
+quint32 DriverError::deriveValue() const { return mType; }
+QString DriverError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString DriverError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // DRIVER
 //===============================================================================================================
 
 //-Constructor--------------------------------------------------------------------
 Driver::Driver(QStringList arguments) :
     mArguments(arguments),
-    mErrorStatus(ErrorCode::NO_ERR),
+    mCore(nullptr),
+    mErrorStatus(),
+    mCurrentTask(nullptr),
     mCurrentTaskNumber(-1),
-    mQuitRequested(false),
-    mCore(nullptr)
+    mQuitRequested(false)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -93,11 +117,11 @@ void Driver::startNextTask()
         // Connect task notifiers
         connect(mCurrentTask, &Task::notificationReady, mCore, &Core::postMessage);
         connect(mCurrentTask, &Task::eventOccurred, mCore, &Core::logEvent);
-        connect(mCurrentTask, &Task::errorOccurred, mCore, [this](QString taskName, Qx::GenericError error){
+        connect(mCurrentTask, &Task::errorOccurred, mCore, [this](QString taskName, Qx::Error error){
             mCore->postError(taskName, error); // Can't connect directly because newer connect syntax doesn't support default args
         });
         connect(mCurrentTask, &Task::blockingErrorOccured, this,
-                [this](QString taskName, int* response, Qx::GenericError error, QMessageBox::StandardButtons choices) {
+                [this](QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices) {
             *response = mCore->postBlockingError(taskName, error, true, choices);
         });
         connect(mCurrentTask, &Task::longTaskStarted, this, &Driver::longTaskStarted);
@@ -141,7 +165,10 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
         if(fpInstall->isValid())
             break;
         else
+        {
+            mCore->logError(NAME, fpInstall->error().setSeverity(Qx::Warning));
             fpInstall.reset();
+        }
     }
     while(currentDir.cdUp());
 
@@ -153,12 +180,12 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
 
 //-Slots--------------------------------------------------------------------------------
 //Private:
-void Driver::completeTaskHandler(ErrorCode ec)
+void Driver::completeTaskHandler(Qx::Error e)
 {
     // Handle errors
-    if(ec != ErrorCode::NO_ERR)
+    if(e.isValid())
     {
-        mErrorStatus = ec;
+        mErrorStatus = e;
         mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(mCurrentTaskNumber)); // Record early end of task
     }
 
@@ -194,8 +221,9 @@ void Driver::drive()
     //-Restrict app to only one instance---------------------------------------------------
     if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
     {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_ALREADY_OPEN));
-        mErrorStatus = ErrorCode::ALREADY_OPEN;
+        DriverError err(DriverError::AlreadyOpen);
+        mCore->postError(NAME, err);
+        mErrorStatus = err;
         finish();
         return;
     }
@@ -203,8 +231,9 @@ void Driver::drive()
     // Ensure Flashpoint Launcher isn't running
     if(Qx::processIsRunning(Fp::Install::LAUNCHER_NAME))
     {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_LAUNCHER_RUNNING_P, ERR_LAUNCHER_RUNNING_S));
-        mErrorStatus = ErrorCode::LAUNCHER_OPEN;
+        DriverError err(DriverError::AlreadyOpen, ERR_LAUNCHER_RUNNING_TIP);
+        mCore->postError(NAME, err);
+        mErrorStatus = err;
         finish();
         return;
     }
@@ -215,8 +244,9 @@ void Driver::drive()
 
     if(!(flashpointInstall = findFlashpointInstall()))
     {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INSTALL_INVALID_P, ERR_INSTALL_INVALID_S));
-        mErrorStatus = ErrorCode::INSTALL_INVALID;
+        DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
+        mCore->postError(NAME, err);
+        mErrorStatus = err;
         finish();
         return;
     }
@@ -229,10 +259,10 @@ void Driver::drive()
     QString commandStr = mArguments.first().toLower();
 
     // Check for valid command
-    if(!Command::isRegistered(commandStr))
+    if(CommandError ce = Command::isRegistered(commandStr); ce.isValid())
     {
-        mCore->postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_INVALID_COMMAND.arg(commandStr)));
-        mErrorStatus = ErrorCode::INVALID_ARGS;
+        mCore->postError(NAME, ce);
+        mErrorStatus = ce;
         finish();
         return;
     }

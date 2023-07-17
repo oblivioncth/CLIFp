@@ -146,7 +146,7 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
     if(mClosingClients)
         signalEvent(LOG_EVENT_PROCCESS_CLOSED.arg(identifier, program, status, code));
     else
-        signalError(Qx::GenericError(Qx::GenericError::Warning, ERR_PROCESS_END_PREMATURE.arg(identifier, program, status, code)));
+        signalError(Qx::GenericError(Qx::Warning, 12311, ERR_PROCESS_END_PREMATURE.arg(identifier, program, status, code)));
 }
 
 void DeferredProcessManager::processStandardOutHandler()

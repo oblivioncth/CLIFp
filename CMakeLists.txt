@@ -72,18 +72,18 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "90098afc6b84ce0c833fa0121235b9eafd2211e6"
+    REF "036444f02843050c2d19fa6eddf4a270d8a485b8"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("7f04fdd28819859ea00002b9dc2e3f492febbc2f")
+ob_fetch_libfp("ecf3c78ad5c8090ef0a67b419849bb3f44f3eb34")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("v0.2.1")
+ob_fetch_qi_qmp("ae12edd5c9f4b3856e7f7a9c7564e463de7d867e")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
@@ -94,7 +94,7 @@ ob_fetch_quazip(
 
 # Fetch Neargye's Magic Enum
 include(OB/FetchMagicEnum)
-ob_fetch_magicenum("v0.8.0")
+ob_fetch_magicenum("v0.9.3")
 
 # Process Targets
 set(APP_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})

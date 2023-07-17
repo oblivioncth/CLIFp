@@ -7,6 +7,46 @@
 // Project Includes
 #include "command/command.h"
 
+class QX_ERROR_TYPE(CShowError, "CShowError", 1216)
+{
+    friend class CShow;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        MissingThing = 1
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {MissingThing, QSL("No message or extra to show was provided.")}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    CShowError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class CShow : public Command
 {
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -14,13 +54,6 @@ private:
     // Status
     static inline const QString STATUS_SHOW_MSG = QSL("Displaying message");
     static inline const QString STATUS_SHOW_EXTRA = QSL("Displaying extra");
-
-    // Error Messages - Prep
-    static inline const QString ERR_NO_SHOW = QSL("No message or extra to show was provided.");
-
-    // Logging - Messages
-
-    // Logging - Errors
 
     // Command line option strings
     static inline const QString CL_OPT_MSG_S_NAME = QSL("m");
@@ -47,11 +80,9 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    const QList<const QCommandLineOption*> options();
-    const QString name();
-
-public:
-    ErrorCode process(const QStringList& commandLine);
+    QList<const QCommandLineOption*> options() override;
+    QString name() override;
+    Qx::Error perform() override;
 };
 REGISTER_COMMAND(CShow::NAME, CShow, CShow::DESCRIPTION);
 

@@ -7,6 +7,9 @@
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
 
+// Magic Enum Includes
+#include <magic_enum_flags.hpp>
+
 // Project Includes
 #include "command/command.h"
 #include "task/t-download.h"
@@ -22,6 +25,30 @@
 #endif
 #include "utility.h"
 #include "project_vars.h"
+
+//===============================================================================================================
+// CoreError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+CoreError::CoreError(Type t, const QString& s, Qx::Severity sv) :
+    mType(t),
+    mSpecific(s),
+    mSeverity(sv)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool CoreError::isValid() const { return mType != NoError; }
+QString CoreError::specific() const { return mSpecific; }
+CoreError::Type CoreError::type() const { return mType; }
+
+//Private:
+Qx::Severity CoreError::deriveSeverity() const { return mSeverity; }
+quint32 CoreError::deriveValue() const { return mType; }
+QString CoreError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString CoreError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
 // CORE
@@ -91,13 +118,13 @@ void Core::showVersion()
     postMessage(CL_VERSION_MESSAGE);
 }
 
-ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
+Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
 {
     // Clear return buffer
     returnBuffer = QUuid();
 
     // Search database for title
-    QSqlError searchError;
+    Fp::DbError searchError;
     Fp::Db::QueryBuffer searchResult;
 
     Fp::Db::EntryFilter filter{
@@ -110,16 +137,17 @@ ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
 
     if((searchError = mFlashpointInstall->database()->queryEntrys(searchResult, filter)).isValid())
     {
-        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_UNEXPECTED_SQL, searchError.text()));
-        return ErrorCode::SQL_ERROR;
+        postError(NAME, searchError);
+        return searchError;
     }
 
     logEvent(NAME, LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(name));
 
     if(searchResult.size < 1)
     {
-        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_TITLE_NOT_FOUND));
-        return ErrorCode::TITLE_NOT_FOUND;
+        CoreError err(CoreError::TitleNotFound, name);
+        postError(NAME, err);
+        return err;
     }
     else if(searchResult.size == 1)
     {
@@ -134,12 +162,13 @@ ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         returnBuffer = QUuid(searchResult.result.value(idKey).toString());
         logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
 
-        return ErrorCode::NO_ERR;
+        return CoreError();
     }
     else if (searchResult.size > FIND_ENTRY_LIMIT)
     {
-        postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_FIND_TOO_MANY_RESULTS));
-        return ErrorCode::TOO_MANY_RESULTS;
+        CoreError err(CoreError::TooManyResults, name);
+        postError(NAME, err);
+        return err;
     }
     else
     {
@@ -190,12 +219,12 @@ ErrorCode Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
             logEvent(NAME, LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
         }
 
-        return ErrorCode::NO_ERR;
+        return CoreError();
     }
 }
 
 //Public:
-ErrorCode Core::initialize(QStringList& commandLine)
+Qx::Error Core::initialize(QStringList& commandLine)
 {
     // Setup CLI Parser
     QCommandLineParser clParser;
@@ -240,7 +269,7 @@ ErrorCode Core::initialize(QStringList& commandLine)
     // Open log
     Qx::IoOpReport logOpen = mLogger->openLog();
     if(logOpen.isFailure())
-        postError(NAME, Qx::GenericError(Qx::GenericError::Warning, logOpen.outcome(), logOpen.outcomeInfo()), false);
+        postError(NAME, Qx::Error(logOpen).setSeverity(Qx::Warning), false);
 
     // Log initialization step
     logEvent(NAME, LOG_EVENT_INIT);
@@ -272,14 +301,16 @@ ErrorCode Core::initialize(QStringList& commandLine)
             commandLine = clParser.positionalArguments(); // Remove core options from command line list
 
         // Return success
-        return ErrorCode::NO_ERR;
+        return CoreError();
     }
     else
     {
         commandLine.clear(); // Clear remaining options since they are now irrelevant
         showHelp();
-        logError(NAME, Qx::GenericError(Qx::GenericError::Error, LOG_ERR_INVALID_PARAM, clParser.errorText()));
-        return ErrorCode::INVALID_ARGS;
+
+        CoreError err(CoreError::InvalidOptions, clParser.errorText());
+        postError(NAME, err);
+        return err;
     }
 
 }
@@ -321,16 +352,16 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform)
 {
     // If appPath is absolute, convert it to relative temporarily
-    QString workingPath = appPath;
+    QString transformedPath = appPath;
 
     QString fpPath = mFlashpointInstall->fullPath();
-    bool isFpAbsolute = workingPath.startsWith(fpPath);
+    bool isFpAbsolute = transformedPath.startsWith(fpPath);
     if(isFpAbsolute)
     {
         // Remove FP root and separator
-        workingPath.remove(fpPath);
-        if(!workingPath.isEmpty() && workingPath.front() == '/' || workingPath.front() == '\\')
-            workingPath = workingPath.mid(1);
+        transformedPath.remove(fpPath);
+        if(!transformedPath.isEmpty() && (transformedPath.front() == '/' || transformedPath.front() == '\\'))
+            transformedPath = transformedPath.mid(1);
     }
 
     /* TODO: If this is made into a libfp function, isolate this part of it so it stays here,
@@ -341,37 +372,37 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
      * override it with Basilisk. Basilisk was removed in FP11 but the app path overrides
      * contains an entry for it that's appropriate on both platforms.
      */
-    if(workingPath == ":browser-mode:")
-        workingPath = "FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe";
+    if(transformedPath == ":browser-mode:")
+        transformedPath = "FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe";
 
     // Resolve both swap types
-    workingPath = mFlashpointInstall->resolveExecSwaps(workingPath, platform);
-    workingPath = mFlashpointInstall->resolveAppPathOverrides(workingPath);
+    transformedPath = mFlashpointInstall->resolveExecSwaps(transformedPath, platform);
+    transformedPath = mFlashpointInstall->resolveAppPathOverrides(transformedPath);
 
     // Rebuild full path if applicable
     if(isFpAbsolute)
-        workingPath = fpPath + '/' + workingPath;
+        transformedPath = fpPath + '/' + transformedPath;
 
-    if(workingPath != appPath)
-        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, workingPath));
+    if(transformedPath != appPath)
+        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, transformedPath));
 
     // Convert Windows separators to universal '/'
-    return workingPath.replace('\\','/');
+    return transformedPath.replace('\\','/');
 }
 
-ErrorCode Core::findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle)
+Qx::Error Core::findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle)
 {
     logEvent(NAME, LOG_EVENT_GAME_SEARCH.arg(title));
     return searchAndFilterEntity(returnBuffer, title, exactTitle);
 }
 
-ErrorCode Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName)
+Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName)
 {
     logEvent(NAME, LOG_EVENT_ADD_APP_SEARCH.arg(name, parent.toString()));
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
 }
 
-ErrorCode Core::enqueueStartupTasks()
+CoreError Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
@@ -398,7 +429,7 @@ ErrorCode Core::enqueueStartupTasks()
     Fp::Config fpConfig = mFlashpointInstall->config();
 
     // Add Start entries from services
-    for(const Fp::StartStop& startEntry : qAsConst(fpServices.starts))
+    for(const Fp::StartStop& startEntry : qAsConst(fpServices.start))
     {
         TExec* currentTask = new TExec(this);
         currentTask->setIdentifier(startEntry.filename);
@@ -415,13 +446,14 @@ ErrorCode Core::enqueueStartupTasks()
     // Add Server entry from services if applicable
     if(fpConfig.startServer)
     {
-        if(!fpServices.servers.contains(fpConfig.server))
+        if(!fpServices.server.contains(fpConfig.server))
         {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CONFIG_SERVER_MISSING));
-            return ErrorCode::CONFIG_SERVER_MISSING;
+            CoreError err(CoreError::ConfiguredServerMissing);
+            postError(NAME, err);
+            return err;
         }
 
-        Fp::ServerDaemon configuredServer = fpServices.servers.value(fpConfig.server);
+        Fp::ServerDaemon configuredServer = fpServices.server.value(fpConfig.server);
 
         TExec* serverTask = new TExec(this);
         serverTask->setIdentifier("Server");
@@ -436,16 +468,15 @@ ErrorCode Core::enqueueStartupTasks()
     }
 
     // Add Daemon entry from services
-    QHash<QString, Fp::ServerDaemon>::const_iterator daemonIt;
-    for (daemonIt = fpServices.daemons.constBegin(); daemonIt != fpServices.daemons.constEnd(); ++daemonIt)
+    for(const Fp::ServerDaemon& d : qAsConst(fpServices.daemon))
     {
         TExec* currentTask = new TExec(this);
         currentTask->setIdentifier("Daemon");
         currentTask->setStage(Task::Stage::Startup);
-        currentTask->setExecutable(daemonIt.value().filename);
-        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + daemonIt.value().path);
-        currentTask->setParameters(daemonIt.value().arguments);
-        currentTask->setProcessType(daemonIt.value().kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
+        currentTask->setExecutable(d.filename);
+        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + d.path);
+        currentTask->setParameters(d.arguments);
+        currentTask->setProcessType(d.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(currentTask);
         logTask(NAME, currentTask);
@@ -479,14 +510,14 @@ ErrorCode Core::enqueueStartupTasks()
     logTask(NAME, initDelay);
 
     // Return success
-    return ErrorCode::NO_ERR;
+    return CoreError();
 }
 
 void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
     // Add Stop entries from services
-    for(const Fp::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stops))
+    for(const Fp::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stop))
     {
         TExec* shutdownTask = new TExec(this);
         shutdownTask->setIdentifier(stopEntry.filename);
@@ -516,15 +547,15 @@ void Core::enqueueShutdownTasks()
 }
 
 #ifdef _WIN32
-ErrorCode Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
+Qx::Error Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
 {
     // Add wait for apps that involve secure player
     bool involvesSecurePlayer;
-    Qx::GenericError securePlayerCheckError = Fp::Install::appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
+    Qx::Error securePlayerCheckError = Fp::Install::appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
     if(securePlayerCheckError.isValid())
     {
         postError(NAME, securePlayerCheckError);
-        return ErrorCode::CANT_READ_BAT_FILE;
+        return securePlayerCheckError;
     }
 
     if(involvesSecurePlayer)
@@ -538,13 +569,13 @@ ErrorCode Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
     }
 
     // Return success
-    return ErrorCode::NO_ERR;
+    return CoreError();
 
     // Possible future waits...
 }
 #endif
 
-ErrorCode Core::enqueueDataPackTasks(const Fp::GameData& gameData)
+Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
@@ -562,12 +593,12 @@ ErrorCode Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     {
         Qx::IoOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, packSha256, QCryptographicHash::Sha256);
         if(checksumReport.isFailure())
-            logError(NAME, Qx::GenericError(Qx::GenericError::Error, checksumReport.outcome(), checksumReport.outcomeInfo()));
+            logError(NAME, checksumReport);
 
         if(checksumMatches)
             logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
         else
-            postError(NAME, Qx::GenericError(Qx::GenericError::Warning, WRN_EXIST_PACK_SUM_MISMATCH));
+            postError(NAME, CoreError(CoreError::DataPackSumMismatch, packFileName, Qx::Warning));
     }
     else
         logEvent(NAME, LOG_EVENT_DATA_PACK_MISS);
@@ -577,8 +608,9 @@ ErrorCode Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     {
         if(!mFlashpointInstall->preferences().gameDataSources.contains("Flashpoint Project"))
         {
-            postError(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_MISSING_PACK_SOURCE));
-            return ErrorCode::CANT_OBTAIN_DATA_PACK;
+            CoreError err(CoreError::DataPackSourceMissing, "Flashpoint Project");
+            postError(NAME, err);
+            return err;
         }
 
         Fp::GameDataSource gameSource = mFlashpointInstall->preferences().gameDataSources.value("Flashpoint Project");
@@ -628,7 +660,7 @@ ErrorCode Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     }
 
     // Return success
-    return ErrorCode::NO_ERR;
+    return CoreError();
 }
 
 void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(NAME, task); }
@@ -638,24 +670,24 @@ void Core::logCommand(QString src, QString commandName)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_LABEL.arg(commandName));
     if(logReport.isFailure())
-        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
+        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 }
 
 void Core::logCommandOptions(QString src, QString commandOptions)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_OPT_LABEL.arg(commandOptions));
     if(logReport.isFailure())
-        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
+        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 }
 
-void Core::logError(QString src, Qx::GenericError error)
+void Core::logError(QString src, Qx::Error error)
 {
     Qx::IoOpReport logReport = mLogger->recordErrorEvent(src, error);
 
     if(logReport.isFailure())
-        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
+        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 
-    if(error.errorLevel() == Qx::GenericError::Critical)
+    if(error.severity() == Qx::Critical)
         mCriticalErrorOccured = true;
 }
 
@@ -663,25 +695,27 @@ void Core::logEvent(QString src, QString event)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, event);
     if(logReport.isFailure())
-        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
+        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 }
 
 void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
 
-ErrorCode Core::logFinish(QString src, ErrorCode exitCode)
+ErrorCode Core::logFinish(QString src, Qx::Error errorState)
 {
     if(mCriticalErrorOccured)
         logEvent(src, LOG_ERR_CRITICAL);
 
-    Qx::IoOpReport logReport = mLogger->finish(exitCode);
+    ErrorCode code = errorState.code();
+
+    Qx::IoOpReport logReport = mLogger->finish(code);
     if(logReport.isFailure())
-        postError(src, Qx::GenericError(Qx::GenericError::Warning, logReport.outcome(), logReport.outcomeInfo()), false);
+        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 
     // Return exit code so main function can return with this one
-    return exitCode;
+    return code;
 }
 
-void Core::postError(QString src, Qx::GenericError error, bool log)
+void Core::postError(QString src, Qx::Error error, bool log)
 {
     // Logging
     if(log)
@@ -689,7 +723,7 @@ void Core::postError(QString src, Qx::GenericError error, bool log)
 
     // Show error if applicable
     if(mNotificationVerbosity == NotificationVerbosity::Full ||
-       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
+       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.severity() == Qx::Critical))
     {
         // Box error
         Error e;
@@ -701,7 +735,7 @@ void Core::postError(QString src, Qx::GenericError error, bool log)
     }
 }
 
-int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
+int Core::postBlockingError(QString src, Qx::Error error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
 {
     // Logging
     if(log)
@@ -709,7 +743,7 @@ int Core::postBlockingError(QString src, Qx::GenericError error, bool log, QMess
 
     // Show error if applicable
     if(mNotificationVerbosity == NotificationVerbosity::Full ||
-       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.errorLevel() == Qx::GenericError::Critical))
+       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.severity() == Qx::Critical))
     {
         // Box error
         BlockingError be;

@@ -19,6 +19,60 @@ class CommandFactory;
     }; \
     static command##Factory _##command##Factory;
 
+class QX_ERROR_TYPE(CommandError, "CommandError", 1210)
+{
+    friend class Command;
+
+//-Class Enums--------------------------------------------------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        InvalidArguments = 1,
+        InvalidCommand = 2,
+        MissingRequiredOption = 3
+    };
+
+//-Class Variables------------------------------------------------------------------------------------------------
+private:
+    static inline const QString PRIMARY_STRING = QSL("Command parsing error.");
+
+//-Instance Variables------------------------------------------------------------------------------------------------
+private:
+    Type mType;
+    QString mString;
+    QString mDetails;
+
+//-Constructor----------------------------------------------------------------------------------------------------------
+public:
+    CommandError();
+
+private:
+    CommandError(Type type, const QString& errStr);
+
+//-Instance Functions---------------------------------------------------------------------------------------------------
+private:
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+    QString deriveDetails() const override;
+    Qx::Severity deriveSeverity() const override;
+
+    template<typename... Args>
+    CommandError arged(Args... args) const
+    {
+        CommandError a = *this;
+        a.mString = a.mString.arg(args...);
+        return a;
+    }
+
+    CommandError& wDetails(const QString& det);
+
+public:
+    bool isValid() const;
+    Type type() const;
+    QString errorString() const;
+};
 
 class Command
 {
@@ -31,13 +85,23 @@ protected:
     };
 
 //-Class Variables--------------------------------------------------------------------------------------------------------
-protected:
+private:
+    // Error
+    static inline const CommandError ERR_INVALID_ARGS =
+        CommandError(CommandError::InvalidArguments, QSL("Invalid command arguments."));
+    static inline const CommandError ERR_INVALID_COMMAND =
+        CommandError(CommandError::InvalidCommand, QSL("'%1' is not a valid command"));
+    static inline const CommandError ERR_MISSING_REQ_OPT =
+        CommandError(CommandError::MissingRequiredOption, QSL("Missing required options for '%1'"));
+
     // Help template
     static inline const QString HELP_TEMPL = QSL("<u>Usage:</u><br>"
                                                  "%1 &lt;options&gt;<br>"
                                                  "<br>"
-                                                 "<u>Options:</u>%2");
-    static inline const QString HELP_OPT_TEMPL = QSL("<br><b>%1:</b> &nbsp;%2");
+                                                 "<u>Options:</u>%2<br>"
+                                                 "<br>"
+                                                 "*Required Option<br>");
+    static inline const QString HELP_OPT_TEMPL = QSL("<br><b>%1%2:</b> &nbsp;%3");
 
     // Logging - Messages
     static inline const QString LOG_EVENT_C_HELP_SHOWN = QSL("Displayed help infomration for: %1");
@@ -77,21 +141,27 @@ private:
 
 public:
     static void registerCommand(const QString& name, CommandFactory* factory, const QString& desc);
-    static bool isRegistered(const QString& name);
+    static CommandError isRegistered(const QString& name);
     static QList<QString> registered();
     static std::unique_ptr<Command> acquire(const QString& name, Core& coreRef);
     static QString describe(const QString& name);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
-protected:
-    virtual const QList<const QCommandLineOption*> options() = 0;
-    virtual const QString name() = 0;
-    ErrorCode parse(const QStringList& commandLine);
+private:
+    CommandError parse(const QStringList& commandLine);
     bool checkStandardOptions();
+    CommandError checkRequiredOptions();
     void showHelp();
 
+protected:
+    // Command specific
+    virtual QList<const QCommandLineOption*> options() = 0;
+    virtual QSet<const QCommandLineOption*> requiredOptions();
+    virtual QString name() = 0;
+    virtual Qx::Error perform() = 0;
+
 public:
-    virtual ErrorCode process(const QStringList& commandLine) = 0;
+    Qx::Error process(const QStringList& commandLine);
 };
 
 class CommandFactory
