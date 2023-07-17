@@ -24,6 +24,60 @@
 #include "task/task.h"
 #include "project_vars.h"
 
+// General Aliases
+using ErrorCode = quint32;
+
+class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
+{
+    friend class Core;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        InvalidOptions = 1,
+        TitleNotFound = 2,
+        TooManyResults = 3,
+        ConfiguredServerMissing = 4,
+        DataPackSumMismatch = 5,
+        DataPackSourceMissing = 6
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {InvalidOptions, QSL("Invalid global options provided.")},
+        {TitleNotFound, QSL("Could not find the title in the Flashpoint database.")},
+        {TooManyResults, QSL("More results than can be presented were returned in a search.")},
+        {ConfiguredServerMissing, QSL("The server specified in the Flashpoint config was not found within the Flashpoint services store.")},
+        {DataPackSumMismatch, QSL("The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.")},
+        {DataPackSourceMissing, QSL("The expected primary data pack source was missing.")}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+    Qx::Severity mSeverity;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    CoreError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class Core : public QObject
 {
     Q_OBJECT;
@@ -36,13 +90,13 @@ public:
     struct Error
     {
         QString source;
-        Qx::GenericError errorInfo;
+        Qx::Error errorInfo;
     };
 
     struct BlockingError
     {
         QString source;
-        Qx::GenericError errorInfo;
+        Qx::Error errorInfo;
         QMessageBox::StandardButtons choices;
         QMessageBox::StandardButton defaultChoice;
     };
@@ -69,19 +123,6 @@ public:
     static inline const QString STATUS_DISPLAY = QSL("Displaying");
     static inline const QString STATUS_DISPLAY_HELP = QSL("Help");
     static inline const QString STATUS_DISPLAY_VERSION = QSL("Version");
-
-    // Error Messages - Prep
-    static inline const QString ERR_UNEXPECTED_SQL = QSL("Unexpected SQL error while querying the Flashpoint database:");
-    static inline const QString ERR_SQL_MISMATCH = QSL("Received a different form of result from an SQL query than expected.");
-    static inline const QString ERR_CONFIG_SERVER_MISSING = QSL("The server specified in the Flashpoint config was not found within the Flashpoint services store.");
-    static inline const QString ERR_ID_INVALID = QSL("The provided string was not a valid GUID/UUID.");
-    static inline const QString ERR_ID_NOT_FOUND = QSL("An entry matching the specified ID could not be found in the Flashpoint database.");
-    static inline const QString ERR_TITLE_NOT_FOUND = QSL("The provided title was not found in the Flashpoint database.");
-    static inline const QString WRN_EXIST_PACK_SUM_MISMATCH = QSL("The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.");
-    static inline const QString ERR_MISSING_PACK_SOURCE = QSL("The expected data pack source was missing.");
-
-    // Error Messages - Helper
-    static inline const QString ERR_FIND_TOO_MANY_RESULTS = QSL("Too many titles matched the title-based query.");
 
     // Logging - Primary Labels
     static inline const QString COMMAND_LABEL = QSL("Command: %1");
@@ -204,37 +245,37 @@ private:
     void showVersion();
 
     // Helper
-    ErrorCode searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
+    Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
 
 public:
     // Setup
-    ErrorCode initialize(QStringList& commandLine);
+    Qx::Error initialize(QStringList& commandLine);
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     // Helper
     QString resolveTrueAppPath(const QString& appPath, const QString& platform);
-    ErrorCode findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
-    ErrorCode findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
+    Qx::Error findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
+    Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
-    ErrorCode enqueueStartupTasks();
+    CoreError enqueueStartupTasks();
     void enqueueShutdownTasks();
 #ifdef _WIN32
-    ErrorCode conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
+    Qx::Error conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
 #endif
-    ErrorCode enqueueDataPackTasks(const Fp::GameData& gameData);
+    Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     // Notifications/Logging
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
-    void logError(QString src, Qx::GenericError error);
+    void logError(QString src, Qx::Error error);
     void logEvent(QString src, QString event);
     void logTask(QString src, const Task* task);
-    ErrorCode logFinish(QString src, ErrorCode exitCode);
-    void postError(QString src, Qx::GenericError error, bool log = true);
-    int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    ErrorCode logFinish(QString src, Qx::Error errorState);
+    void postError(QString src, Qx::Error error, bool log = true);
+    int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);

@@ -6,6 +6,29 @@
 #include <QUrl>
 
 //===============================================================================================================
+// TExtraError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TExtraError::TExtraError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TExtraError::isValid() const { return mType != NoError; }
+QString TExtraError::specific() const { return mSpecific; }
+TExtraError::Type TExtraError::type() const { return mType; }
+
+//Private:
+Qx::Severity TExtraError::deriveSeverity() const { return Qx::Critical; }
+quint32 TExtraError::deriveValue() const { return mType; }
+QString TExtraError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TExtraError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // TExtra
 //===============================================================================================================
 
@@ -32,7 +55,7 @@ void TExtra::setDirectory(QDir dir) { mDirectory = dir; }
 void TExtra::perform()
 {
     // Error tracking
-    ErrorCode errorStatus = ErrorCode::NO_ERR;
+    TExtraError errorStatus;
 
     // Ensure extra exists
     if(mDirectory.exists())
@@ -43,8 +66,8 @@ void TExtra::perform()
     }
     else
     {
-        emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_EXTRA_NOT_FOUND.arg(QDir::toNativeSeparators(mDirectory.path()))));
-        errorStatus = ErrorCode::EXTRA_NOT_FOUND;
+        errorStatus = TExtraError(TExtraError::NotFound, QDir::toNativeSeparators(mDirectory.path()));
+        emit errorOccurred(NAME, errorStatus);
     }
 
     emit complete(errorStatus);

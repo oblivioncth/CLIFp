@@ -18,14 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04]
-        compiler: [gcc, clang]
+        compiler: [clang]
         lib_linkage: [shared, static]
         include:
-          - os: ubuntu-20.04
-            compiler: gcc
-            c_comp: gcc-10
-            cxx_comp: g++-10
-            qt_comp: clang12
           - os: ubuntu-20.04
             compiler: clang
             c_comp: clang-12
@@ -36,6 +31,13 @@ jobs:
             c_comp: gcc-12
             cxx_comp: g++-12
             qt_comp: clang14
+            lib_linkage: shared
+          - os: ubuntu-22.04
+            compiler: gcc
+            c_comp: gcc-12
+            cxx_comp: g++-12
+            qt_comp: clang14
+            lib_linkage: static
           - os: ubuntu-22.04
             compiler: clang
             c_comp: clang-14
@@ -44,7 +46,7 @@ jobs:
           - lib_linkage: shared
             cmake_bsl: ON
           - lib_linkage: static
-            cmake_bsl: OFF   
+            cmake_bsl: OFF
     runs-on: ${{ matrix.os }}
     env:
       cmake_gen: Ninja Multi-Config

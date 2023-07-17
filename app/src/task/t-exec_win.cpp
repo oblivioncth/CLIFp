@@ -7,9 +7,6 @@
 // Qx Includes
 #include <qx/core/qx-regularexpression.h>
 
-// Project Includes
-#include "utility.h"
-
 namespace // Unit helper functions
 {
 

@@ -8,6 +8,48 @@
 // Project Includes
 #include "task/task.h"
 
+class QX_ERROR_TYPE(TDownloadError, "TDownloadError", 1252)
+{
+    friend class TDownload;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        ChecksumMismatch = 1,
+        Incomeplete = 2
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {ChecksumMismatch, QSL("The title's Data Pack checksum does not match its record!")},
+        {Incomeplete, QSL("The download could not be completed.")}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    TDownloadError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class TDownload : public Task
 {
     Q_OBJECT;
@@ -21,9 +63,6 @@ private:
     static inline const QString LOG_EVENT_DOWNLOAD_SUCC = QSL("Data Pack downloaded successfully");
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = QSL("Data Pack download unexpectedly requires authentication (%1)");
     static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = QSL("Stopping current download(s)...");
-
-    // Errors
-    static inline const QString ERR_PACK_SUM_MISMATCH = QSL("The title's Data Pack checksum does not match its record!");
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

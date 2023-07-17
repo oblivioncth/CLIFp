@@ -5,12 +5,56 @@
 #include <QThread>
 
 // Qx Includes
-#include <qx/core/qx-setonce.h>
 #include <qx/network/qx-downloadmanager.h>
 #include <qx/utility/qx-macros.h>
 
 // Project Includes
+#include "kernel/errorstatus.h"
 #include "kernel/core.h"
+
+class QX_ERROR_TYPE(DriverError, "DriverError", 1201)
+{
+    friend class Driver;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        AlreadyOpen = 1,
+        LauncherRunning = 2,
+        InvalidInstall = 3,
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {AlreadyOpen, QSL("Only one instance of CLIFp can be used at a time!")},
+        {LauncherRunning, QSL("The CLI cannot be used while the Flashpoint Launcher is running.")},
+        {InvalidInstall, QSL("CLIFp does not appear to be deployed in a valid Flashpoint install")}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    DriverError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
 
 class Driver : public QObject
 {
@@ -21,12 +65,8 @@ private:
     static inline const QString SINGLE_INSTANCE_ID = QSL("CLIFp_ONE_INSTANCE"); // Basically never change this
 
     // Error Messages
-    static inline const QString ERR_ALREADY_OPEN = QSL("Only one instance of CLIFp can be used at a time!");
-    static inline const QString ERR_INVALID_COMMAND = QSL(R"("%1" is not a valid command)");
-    static inline const QString ERR_LAUNCHER_RUNNING_P = QSL("The CLI cannot be used while the Flashpoint Launcher is running.");
-    static inline const QString ERR_LAUNCHER_RUNNING_S = QSL("Please close the Launcher first.");
-    static inline const QString ERR_INSTALL_INVALID_P = QSL("CLIFp does not appear to be deployed in a valid Flashpoint install");
-    static inline const QString ERR_INSTALL_INVALID_S = QSL("Check its location and compatibility with your Flashpoint version.");
+    static inline const QString ERR_LAUNCHER_RUNNING_TIP = QSL("Please close the Launcher first.");
+    static inline const QString ERR_INSTALL_INVALID_TIP = QSL("Check its location and compatibility with your Flashpoint version.");
 
     // Logging
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = QSL("Searching for Flashpoint root...");
@@ -66,7 +106,7 @@ private:
      * construct core after Driver is already moved to the new thread.
     */
 
-    Qx::SetOnce<ErrorCode> mErrorStatus;
+    ErrorStatus mErrorStatus;
 
     Task* mCurrentTask;
     int mCurrentTaskNumber;
@@ -93,7 +133,7 @@ private:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
-    void completeTaskHandler(ErrorCode ec = ErrorCode::NO_ERR);
+    void completeTaskHandler(Qx::Error e = {});
 
 public slots:
     // Worker main

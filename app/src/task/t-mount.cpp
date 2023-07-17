@@ -15,7 +15,7 @@ TMount::TMount(QObject* parent) :
     mMounter()
 {
     // Connect mounter signals
-    connect(&mMounter, &Mounter::errorOccured, this, [this](Qx::GenericError errorMsg){
+    connect(&mMounter, &Mounter::errorOccured, this, [this](MounterError errorMsg){
         emit errorOccurred(NAME, errorMsg);
     });
     connect(&mMounter, &Mounter::eventOccured, this, [this](QString event){
@@ -73,7 +73,7 @@ void TMount::stop()
 
 //-Signals & Slots-------------------------------------------------------------------------------------------------------
 //Private Slots:
-void TMount::postMount(ErrorCode errorStatus)
+void TMount::postMount(MounterError errorStatus)
 {
     // Handle result
     emit longTaskFinished();

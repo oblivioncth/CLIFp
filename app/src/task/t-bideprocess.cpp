@@ -2,6 +2,29 @@
 #include "t-bideprocess.h"
 
 //===============================================================================================================
+// TBideProcessError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TBideProcessError::TBideProcessError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TBideProcessError::isValid() const { return mType != NoError; }
+QString TBideProcessError::specific() const { return mSpecific; }
+TBideProcessError::Type TBideProcessError::type() const { return mType; }
+
+//Private:
+Qx::Severity TBideProcessError::deriveSeverity() const { return Qx::Err; }
+quint32 TBideProcessError::deriveValue() const { return mType; }
+QString TBideProcessError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TBideProcessError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // TBideProcess
 //===============================================================================================================
 
@@ -15,7 +38,7 @@ TBideProcess::TBideProcess(QObject* parent) :
     connect(&mProcessBider, &ProcessBider::statusChanged, this,  [this](QString statusMessage){
         emit eventOccurred(NAME, statusMessage);
     });
-    connect(&mProcessBider, &ProcessBider::errorOccured, this, [this](Qx::GenericError errorMessage){
+    connect(&mProcessBider, &ProcessBider::errorOccured, this, [this](ProcessBiderError errorMessage){
         emit errorOccurred(NAME, errorMessage);
     });
     connect(&mProcessBider, &ProcessBider::bideFinished, this, &TBideProcess::postBide);
@@ -47,13 +70,13 @@ void TBideProcess::stop()
     {
         emit eventOccurred(NAME, LOG_EVENT_STOPPING_BIDE_PROCESS);
         if(!mProcessBider.closeProcess())
-            emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Error, ERR_CANT_CLOSE_BIDE_PROCESS));
+            emit errorOccurred(NAME, TBideProcessError(TBideProcessError::CantClose));
     }
 }
 
 //-Signals & Slots-------------------------------------------------------------------------------------------------------
 //Private Slots:
-void TBideProcess::postBide(ErrorCode errorStatus)
+void TBideProcess::postBide(Qx::Error errorStatus)
 {
     emit complete(errorStatus);
 }

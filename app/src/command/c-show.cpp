@@ -6,6 +6,29 @@
 #include "task/t-extra.h"
 
 //===============================================================================================================
+// CShowError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+CShowError::CShowError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool CShowError::isValid() const { return mType != NoError; }
+QString CShowError::specific() const { return mSpecific; }
+CShowError::Type CShowError::type() const { return mType; }
+
+//Private:
+Qx::Severity CShowError::deriveSeverity() const { return Qx::Critical; }
+quint32 CShowError::deriveValue() const { return mType; }
+QString CShowError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString CShowError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // CSHOW
 //===============================================================================================================
 
@@ -15,22 +38,11 @@ CShow::CShow(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-const QList<const QCommandLineOption*> CShow::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-const QString CShow::name() { return NAME; }
+QList<const QCommandLineOption*> CShow::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QString CShow::name() { return NAME; }
 
-//Public:
-ErrorCode CShow::process(const QStringList& commandLine)
+Qx::Error CShow::perform()
 {
-    ErrorCode errorStatus;
-
-    // Parse and check for valid arguments
-    if((errorStatus = parse(commandLine)))
-        return errorStatus;
-
-    // Handle standard options
-    if(checkStandardOptions())
-        return ErrorCode::NO_ERR;
-
     // Enqueue show task
     if(mParser.isSet(CL_OPTION_MSG))
     {
@@ -53,10 +65,11 @@ ErrorCode CShow::process(const QStringList& commandLine)
     }
     else
     {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_SHOW));
-        return ErrorCode::INVALID_ARGS;
+        CShowError err(CShowError::MissingThing);
+        mCore.postError(NAME, err);
+        return err;
     }
 
     // Return success
-    return ErrorCode::NO_ERR;
+    return CShowError();
 }

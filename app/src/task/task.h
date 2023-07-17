@@ -6,10 +6,7 @@
 #include <QMessageBox>
 
 // Qx Includes
-#include <qx/core/qx-genericerror.h>
-
-// Project Includes
-#include "kernel/errorcode.h"
+#include <qx/core/qx-error.h>
 
 class Task : public QObject
 {
@@ -30,7 +27,6 @@ public:
 public:
     virtual ~Task() = default;
 
-
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:
     virtual QString name() const = 0;
@@ -46,15 +42,15 @@ public:
 signals:
     void notificationReady(QString message);
     void eventOccurred(QString taskName, QString event);
-    void errorOccurred(QString taskName, Qx::GenericError error);
-    void blockingErrorOccured(QString taskName, int* response, Qx::GenericError error, QMessageBox::StandardButtons choices);
+    void errorOccurred(QString taskName, Qx::Error error);
+    void blockingErrorOccured(QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices);
 
     void longTaskStarted(QString procedure);
     void longTaskTotalChanged(quint64 total);
     void longTaskProgressChanged(quint64 progress);
     void longTaskFinished();
 
-    void complete(ErrorCode errorStatus);
+    void complete(Qx::Error errorState);
 };
 
 #endif // TASK_H

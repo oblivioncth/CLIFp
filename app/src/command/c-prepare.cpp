@@ -1,78 +1,47 @@
 // Unit Include
 #include "c-prepare.h"
 
+// Qx Includes
+#include <qx/core/qx-genericerror.h>
+
 //===============================================================================================================
 // CPREPARE
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CPrepare::CPrepare(Core& coreRef) : Command(coreRef) {}
+CPrepare::CPrepare(Core& coreRef) : TitleCommand(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-const QList<const QCommandLineOption*> CPrepare::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-const QString CPrepare::name() { return NAME; }
+QList<const QCommandLineOption*> CPrepare::options() { return {&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_TITLE_STRICT}; }
+QString CPrepare::name() { return NAME; }
 
-//Public:
-ErrorCode CPrepare::process(const QStringList& commandLine)
+Qx::Error CPrepare::perform()
 {
-    ErrorCode errorStatus;
-
-    // Parse and check for valid arguments
-    if((errorStatus = parse(commandLine)))
-        return errorStatus;
-
-    // Handle standard options
-    if(checkStandardOptions())
-        return ErrorCode::NO_ERR;
-
     // Get ID to prepare
     QUuid id;
-
-    if(mParser.isSet(CL_OPTION_ID))
-    {
-        if((id = QUuid(mParser.value(CL_OPTION_ID))).isNull())
-        {
-            mCore.postError(NAME, Qx::GenericError(Qx::GenericError::Critical, Core::ERR_ID_INVALID));
-            return ErrorCode::ID_NOT_VALID;
-        }    
-    }
-    else if(mParser.isSet(CL_OPTION_TITLE))
-    {
-        if((errorStatus = mCore.findGameIdFromTitle(id, mParser.value(CL_OPTION_TITLE))))
-            return errorStatus;
-
-        // Bail if canceled
-        if(id.isNull())
-            return ErrorCode::NO_ERR;
-    }
-    else
-    {
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Error, Core::LOG_ERR_INVALID_PARAM, ERR_NO_TITLE));
-        return ErrorCode::INVALID_ARGS;
-    }
+    if(Qx::Error ide = getTitleId(id); ide.isValid())
+        return ide;
 
     // Enqueue prepare task
-    QSqlError sqlError;
-
     Fp::GameData titleGameData;
-    if(Qx::GenericError gdErr = mCore.fpInstall().database()->getGameData(titleGameData, id); gdErr.isValid())
+    if(Fp::DbError gdErr = mCore.fpInstall().database()->getGameData(titleGameData, id); gdErr.isValid())
     {
         mCore.postError(NAME, gdErr);
-        return ErrorCode::SQL_ERROR;
+        return gdErr;
     }
 
     if(!titleGameData.isNull())
     {
-        if((errorStatus = mCore.enqueueDataPackTasks(titleGameData)))
-            return errorStatus;
+        if(Qx::Error ee = mCore.enqueueDataPackTasks(titleGameData); ee.isValid())
+            return ee;
 
         mCore.setStatus(STATUS_PREPARE, id.toString(QUuid::WithoutBraces));
     }
     else
-        mCore.logError(NAME, Qx::GenericError(Qx::GenericError::Warning, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
+        mCore.logError(NAME, Qx::GenericError(Qx::Warning, 12141, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
 
     // Return success
-    return ErrorCode::NO_ERR;
+    return Qx::Error();
 }

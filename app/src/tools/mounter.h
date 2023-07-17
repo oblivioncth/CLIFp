@@ -9,14 +9,57 @@
 
 // Qx Includes
 #include <qx/core/qx-setonce.h>
-#include <qx/core/qx-genericerror.h>
+#include <qx/core/qx-error.h>
 #include <qx/utility/qx-macros.h>
 
 // QI-QMP Includes
 #include <qi-qmp/qmpi.h>
 
-// Project Includes
-#include "kernel/errorcode.h"
+class QX_ERROR_TYPE(MounterError, "MounterError", 1232)
+{
+    friend class Mounter;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        PhpMount = 1,
+        QemuConnection = 2,
+        QemuCommunication = 3,
+        QemuCommand = 4
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, QSL("")},
+        {PhpMount, QSL("Failed to mount data pack (PHP).")},
+        {QemuConnection, QSL("QMPI connection error.")},
+        {QemuCommunication, QSL("QMPI communication error.")},
+        {QemuCommand, QSL("QMPI command error.")},
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    MounterError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
 
 class Mounter : public QObject
 {
@@ -32,12 +75,14 @@ private:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Error Status Helper
+    static inline const auto ERROR_STATUS_CMP = [](const MounterError& a, const MounterError& b){
+        return a.type() == b.type();
+    };
+
     // Error
-    static inline const QString MOUNT_ERROR_TEXT = QSL("An error occurred while mounting a data pack.");
-    static inline const QString ERR_QMP_CONNECTION = QSL("QMPI connection error - \"%1\"");
     static inline const QString ERR_QMP_CONNECTION_ABORT = QSL("The connection was aborted.");
-    static inline const QString ERR_QMP_COMMUNICATION = QSL("QMPI communication error - \"%1\"");
-    static inline const QString ERR_QMP_COMMAND = QSL("QMPI command %1 error - [%2] \"%3\"");
+    static inline const QString ERR_QMP_COMMAND = QSL("Command %1 - [%2] \"%3\"");
 
     // Events - External
     static inline const QString EVENT_QMP_WELCOME_MESSAGE = QSL("QMPI connected to QEMU Version: %1 | Capabilities: %2");
@@ -50,6 +95,7 @@ private:
     static inline const QString EVENT_MOUNT_INFO_DETERMINED = QSL("Mount Info: {.filePath = \"%1\", .driveId = \"%2\", .driveSerial = \"%3\"}");
     static inline const QString EVENT_QEMU_DETECTION = QSL("QEMU %1 in use.");
     static inline const QString EVENT_CREATING_MOUNT_POINT = QSL("Creating data pack mount point on QEMU instance...");
+    static inline const QString EVENT_DISCONNECTING_FROM_QEMU = QSL("Disconnecting from FP QEMU instance...");
     static inline const QString EVENT_MOUNTING_THROUGH_SERVER = QSL("Mounting data pack via PHP server...");
     static inline const QString EVENT_REQUEST_SENT = QSL("Sent request (%1): %2}");
 
@@ -60,14 +106,13 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
     bool mMounting;
-    Qx::SetOnce<ErrorCode> mErrorStatus;
+    Qx::SetOnce<MounterError, decltype(ERROR_STATUS_CMP)> mErrorStatus;
     MountInfo mCurrentMountInfo;
 
     int mWebServerPort;
     Qmpi mQemuMounter;
     Qmpi mQemuProdder; // Not actually used; no, need unless issues with mounting are reported
     bool mQemuEnabled;
-    int mCompletedQemuCommands;
 
     QNetworkAccessManager mNam;
     QPointer<QNetworkReply> mPhpMountReply;
@@ -101,6 +146,7 @@ public:
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
     void qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities);
+    void qmpiCommandsExhaustedHandler();
     void qmpiFinishedHandler();
     void qmpiReadyForCommandsHandler();
     void phpMountFinishedHandler(QNetworkReply* reply);
@@ -117,8 +163,8 @@ public slots:
 
 signals:
     void eventOccured(QString event);
-    void errorOccured(Qx::GenericError errorMessage);
-    void mountFinished(ErrorCode errorCode);
+    void errorOccured(MounterError errorMessage);
+    void mountFinished(MounterError errorState);
 
     // For now these just cause a busy state
     void mountProgress(qint64 progress);
