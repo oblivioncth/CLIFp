@@ -97,7 +97,7 @@ TExtractError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, QSt
             if(pathOnDisk.absolutePath() != currentDirOnDisk.absolutePath())
             {
                 currentDirOnDisk = pathOnDisk.absoluteDir();
-                if(!currentDirOnDisk.mkpath("."))
+                if(!currentDirOnDisk.mkpath(u"."_s))
                     return TExtractError(zipName, TExtractError::MakePath);
             }
 
@@ -138,9 +138,9 @@ QString TExtract::name() const { return NAME; }
 QStringList TExtract::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".packPath() = \"" + mPackPath + "\"");
-    ml.append(".pathInPack() = \"" + mPathInPack + "\"");
-    ml.append(".destinationPath() = \"" + mDestinationPath + "\"");
+    ml.append(u".packPath() = \""_s + mPackPath + u"\""_s);
+    ml.append(u".pathInPack() = \""_s + mPathInPack + u"\""_s);
+    ml.append(u".destinationPath() = \""_s + mDestinationPath + u"\""_s);
     return ml;
 }
 

@@ -59,8 +59,8 @@ QString CoreError::deriveSecondary() const { return mSpecific; }
 Core::Core(QObject* parent) :
     QObject(parent),
     mCriticalErrorOccured(false),
-    mStatusHeading("Initializing"),
-    mStatusMessage("...")
+    mStatusHeading(u"Initializing"_s),
+    mStatusMessage(u"..."_s)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -93,10 +93,10 @@ void Core::showHelp()
             // Handle names
             QStringList dashedNames;
             for(const QString& name : qxAsConst(clOption->names()))
-                dashedNames << ((name.length() > 1 ? "--" : "-") + name);
+                dashedNames << ((name.length() > 1 ? u"--"_s : u"-"_s) + name);
 
             // Add option
-            optStr += HELP_OPT_TEMPL.arg(dashedNames.join(" | "), clOption->description());
+            optStr += HELP_OPT_TEMPL.arg(dashedNames.join(u" | "_s), clOption->description());
         }
 
         // Help commands
@@ -244,13 +244,13 @@ Qx::Error Core::initialize(QStringList& commandLine)
         {
             // Add switch to interpreted string
             if(!globalOptions.isEmpty())
-                globalOptions += " "; // Space after every switch except first one
+                globalOptions += ' '; // Space after every switch except first one
 
-            globalOptions += "--" + (*clOption).names().at(1); // Always use long name
+            globalOptions += u"--"_s + (*clOption).names().at(1); // Always use long name
 
             // Add value of switch if it takes one
             if(!(*clOption).valueName().isEmpty())
-                globalOptions += R"(=")" + clParser.value(*clOption) + R"(")";
+                globalOptions += uR"(=")"_s + clParser.value(*clOption) + uR"(")"_s;
         }
     }
     if(globalOptions.isEmpty())
@@ -329,16 +329,16 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     mChildTitleProcEnv = QProcessEnvironment::systemEnvironment();
 
     // Add FP root var
-    mChildTitleProcEnv.insert("FP_PATH", mFlashpointInstall->fullPath());
+    mChildTitleProcEnv.insert(u"FP_PATH"_s, mFlashpointInstall->fullPath());
 
 #ifdef __linux__
     // Add HTTTP proxy var
     QString baseProxy = mFlashpointInstall->preferences().browserModeProxy;
     if(!baseProxy.isEmpty())
     {
-        QString fullProxy = "http://" + baseProxy + '/';
-        mChildTitleProcEnv.insert("http_proxy", fullProxy);
-        mChildTitleProcEnv.insert("HTTP_PROXY", fullProxy);
+        QString fullProxy = u"http://"_s + baseProxy + '/';
+        mChildTitleProcEnv.insert(u"http_proxy"_s, fullProxy);
+        mChildTitleProcEnv.insert(u"HTTP_PROXY"_s, fullProxy);
     }
 
     /* NOTE: It's called "browserModeProxy" but it seems to be used everywhere and not just
@@ -373,8 +373,8 @@ QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform
      * override it with Basilisk. Basilisk was removed in FP11 but the app path overrides
      * contains an entry for it that's appropriate on both platforms.
      */
-    if(transformedPath == ":browser-mode:")
-        transformedPath = "FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe";
+    if(transformedPath == u":browser-mode:"_s)
+        transformedPath = u"FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe"_s;
 
     // Resolve both swap types
     transformedPath = mFlashpointInstall->resolveExecSwaps(transformedPath, platform);
@@ -414,9 +414,9 @@ CoreError Core::enqueueStartupTasks()
      * if docker isn't used, but leaving for now.
      */
     TExec* xhostSet = new TExec(this);
-    xhostSet->setIdentifier("xhost Set");
+    xhostSet->setIdentifier(u"xhost Set"_s);
     xhostSet->setStage(Task::Stage::Startup);
-    xhostSet->setExecutable("xhost");
+    xhostSet->setExecutable(u"xhost"_s);
     xhostSet->setDirectory(mFlashpointInstall->fullPath());
     xhostSet->setParameters({"+SI:localuser:root"});
     xhostSet->setProcessType(TExec::ProcessType::Blocking);
@@ -457,7 +457,7 @@ CoreError Core::enqueueStartupTasks()
         Fp::ServerDaemon configuredServer = fpServices.server.value(fpConfig.server);
 
         TExec* serverTask = new TExec(this);
-        serverTask->setIdentifier("Server");
+        serverTask->setIdentifier(u"Server"_s);
         serverTask->setStage(Task::Stage::Startup);
         serverTask->setExecutable(configuredServer.filename);
         serverTask->setDirectory(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
@@ -472,7 +472,7 @@ CoreError Core::enqueueStartupTasks()
     for(const Fp::ServerDaemon& d : qAsConst(fpServices.daemon))
     {
         TExec* currentTask = new TExec(this);
-        currentTask->setIdentifier("Daemon");
+        currentTask->setIdentifier(u"Daemon"_s);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setExecutable(d.filename);
         currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + d.path);
@@ -490,7 +490,7 @@ CoreError Core::enqueueStartupTasks()
         TAwaitDocker* dockerWait = new TAwaitDocker(this);
         dockerWait->setStage(Task::Stage::Startup);
         // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
-        dockerWait->setImageName("gamezip");
+        dockerWait->setImageName(u"gamezip"_s);
         dockerWait->setTimeout(10000);
 
         mTaskQueue.push(dockerWait);
@@ -535,9 +535,9 @@ void Core::enqueueShutdownTasks()
 #ifdef __linux__
     // Undo xhost permissions modifications
     TExec* xhostClear = new TExec(this);
-    xhostClear->setIdentifier("xhost Clear");
+    xhostClear->setIdentifier(u"xhost Clear"_s);
     xhostClear->setStage(Task::Stage::Shutdown);
-    xhostClear->setExecutable("xhost");
+    xhostClear->setExecutable(u"xhost"_s);
     xhostClear->setDirectory(mFlashpointInstall->fullPath());
     xhostClear->setParameters({"-SI:localuser:root"});
     xhostClear->setProcessType(TExec::ProcessType::Blocking);
@@ -581,11 +581,11 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
     // Extract relevant data
-    QString packDestFolderPath = mFlashpointInstall->fullPath() + "/" + mFlashpointInstall->preferences().dataPacksFolderPath;
+    QString packDestFolderPath = mFlashpointInstall->fullPath() + '/' + mFlashpointInstall->preferences().dataPacksFolderPath;
     QString packFileName = gameData.path();
     QString packSha256 = gameData.sha256();
     QString packParameters = gameData.parameters();
-    QFile packFile(packDestFolderPath + "/" + packFileName);
+    QFile packFile(packDestFolderPath + '/' + packFileName);
 
     // Get current file checksum if it exists
     bool checksumMatches = false;
@@ -609,14 +609,14 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     // Enqueue pack download if it doesn't exist or is different than expected
     if(!packFile.exists() || !checksumMatches)
     {
-        if(!mFlashpointInstall->preferences().gameDataSources.contains("Flashpoint Project"))
+        if(!mFlashpointInstall->preferences().gameDataSources.contains(u"Flashpoint Project"_s))
         {
-            CoreError err(CoreError::DataPackSourceMissing, "Flashpoint Project");
+            CoreError err(CoreError::DataPackSourceMissing, u"Flashpoint Project"_s);
             postError(NAME, err);
             return err;
         }
 
-        Fp::GameDataSource gameSource = mFlashpointInstall->preferences().gameDataSources.value("Flashpoint Project");
+        Fp::GameDataSource gameSource = mFlashpointInstall->preferences().gameDataSources.value(u"Flashpoint Project"_s);
         QString gameSourceBase = gameSource.arguments.value(0);
 
         TDownload* downloadTask = new TDownload(this);
@@ -634,7 +634,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
         TGeneric* onDiskUpdateTask = new TGeneric(this);
         onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
-        onDiskUpdateTask->setDescription("Update GameData onDisk state.");
+        onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
         onDiskUpdateTask->setAction([gameDataId, this]{
             return mFlashpointInstall->database()->updateGameDataOnDiskState(gameDataId, true);
         });
@@ -644,14 +644,14 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     }
 
     // Enqueue pack mount or extract
-    if(packParameters.contains("-extract"))
+    if(packParameters.contains(u"-extract"_s))
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
         TExtract* extractTask = new TExtract(this);
         extractTask->setStage(Task::Stage::Auxiliary);
-        extractTask->setPackPath(packDestFolderPath + "/" + packFileName);
-        extractTask->setPathInPack("content");
+        extractTask->setPackPath(packDestFolderPath + '/' + packFileName);
+        extractTask->setPathInPack(u"content"_s);
         extractTask->setDestinationPath(mFlashpointInstall->preferences().htdocsFolderPath);
 
         mTaskQueue.push(extractTask);
@@ -668,7 +668,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
         TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(gameData.gameId());
-        mountTask->setPath(packDestFolderPath + "/" + packFileName);
+        mountTask->setPath(packDestFolderPath + '/' + packFileName);
         mountTask->setSkipQemu(!qemuUsed);
 
         mTaskQueue.push(mountTask);
@@ -714,7 +714,7 @@ void Core::logEvent(QString src, QString event)
         postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 }
 
-void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(", "))); }
+void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(u", "_s))); }
 
 ErrorCode Core::logFinish(QString src, Qx::Error errorState)
 {

@@ -29,13 +29,13 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {OpenArchive, QSL("Failed to open archive.")},
-        {MakePath, QSL("Failed to create file path.")},
-        {OpenArchiveFile, QSL("Failed to open archive file.")},
-        {OpenDiskFile, QSL("Failed to open disk file.")},
-        {WriteDiskFile, QSL("Failed to write disk file.")},
-        {GeneralZip, QSL("General zip error.")}
+        {NoError, u""_s},
+        {OpenArchive, u"Failed to open archive."_s},
+        {MakePath, u"Failed to create file path."_s},
+        {OpenArchiveFile, u"Failed to open archive file."_s},
+        {OpenDiskFile, u"Failed to open disk file."_s},
+        {WriteDiskFile, u"Failed to write disk file."_s},
+        {GeneralZip, u"General zip error."_s}
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -70,13 +70,13 @@ class TExtract : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TExtract");
+    static inline const QString NAME = u"TExtract"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_EXTRACTING_DATA_PACK = QSL("Extracting Data Pack %1");
+    static inline const QString LOG_EVENT_EXTRACTING_DATA_PACK = u"Extracting Data Pack %1"_s;
 
     // Error
-    static inline const QString ERR_CODE_TEMPLATE = QSL("Code: 0x%1");
+    static inline const QString ERR_CODE_TEMPLATE = u"Code: 0x%1"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

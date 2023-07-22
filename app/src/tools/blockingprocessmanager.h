@@ -15,12 +15,12 @@ class BlockingProcessManager : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("BlockingProcessManager");
+    static inline const QString NAME = u"BlockingProcessManager"_s;
 
     // Log
-    static inline const QString LOG_EVENT_PROCCESS_CLOSED = QSL("Blocking process '%1' ( %2 ) finished. Status: '%3', Code: %4");
-    static inline const QString LOG_EVENT_PROCCESS_STDOUT = QSL("( %1 ) <stdout> %2");
-    static inline const QString LOG_EVENT_PROCCESS_STDERR = QSL("( %1 ) <stderr> %2");
+    static inline const QString LOG_EVENT_PROCCESS_CLOSED = u"Blocking process '%1' ( %2 ) finished. Status: '%3', Code: %4"_s;
+    static inline const QString LOG_EVENT_PROCCESS_STDOUT = u"( %1 ) <stdout> %2"_s;
+    static inline const QString LOG_EVENT_PROCCESS_STDERR = u"( %1 ) <stderr> %2"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

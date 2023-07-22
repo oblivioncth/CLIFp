@@ -96,8 +96,8 @@ QString TExec::createEscapedShellArguments()
         QStringList rebuild = QProcess::splitCommand(escapedArgs);
         if(rebuild != parameters)
         {
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg("{\"" + parameters.join(R"(", ")") + "\"}",
-                                                                "{\"" + rebuild.join(R"(", ")") + "\"}"));
+            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(u"{\""_s + parameters.join(uR"(", ")"_s) + u"\"}"_s,
+                                                                u"{\""_s + rebuild.join(uR"(", ")"_s) + u"\"}"_s));
         }
     }
 
@@ -141,14 +141,14 @@ QString TExec::name() const { return NAME; }
 QStringList TExec::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".executable() = \"" + mExecutable + "\"");
-    ml.append(".directory() = \"" + mDirectory.absolutePath() + "\"");
+    ml.append(u".executable() = \""_s + mExecutable + u"\""_s);
+    ml.append(u".directory() = \""_s + mDirectory.absolutePath() + u"\""_s);
     if(std::holds_alternative<QString>(mParameters))
-        ml.append(".parameters() = \"" + std::get<QString>(mParameters) + "\"");
+        ml.append(u".parameters() = \""_s + std::get<QString>(mParameters) + u"\""_s);
     else
-        ml.append(".parameters() = {\"" + std::get<QStringList>(mParameters).join(R"(", ")") + "\"}");
-    ml.append(".processType() = " + ENUM_NAME(mProcessType));
-    ml.append(".identifier() = \"" + mIdentifier + "\"");
+        ml.append(u".parameters() = {\""_s + std::get<QStringList>(mParameters).join(uR"(", ")"_s) + u"\"}"_s);
+    ml.append(u".processType() = "_s + ENUM_NAME(mProcessType));
+    ml.append(u".identifier() = \""_s + mIdentifier + u"\""_s);
     return ml;
 }
 

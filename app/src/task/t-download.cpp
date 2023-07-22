@@ -69,10 +69,10 @@ QString TDownload::name() const { return NAME; }
 QStringList TDownload::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".destinationPath() = \"" + QDir::toNativeSeparators(mDestinationPath) + "\"");
-    ml.append(".destinationFilename() = \"" + mDestinationFilename + "\"");
-    ml.append(".targetFile() = \"" + mTargetFile.toString() + "\"");
-    ml.append(".sha256() = " + mSha256);
+    ml.append(u".destinationPath() = \""_s + QDir::toNativeSeparators(mDestinationPath) + u"\""_s);
+    ml.append(u".destinationFilename() = \""_s + mDestinationFilename + u"\""_s);
+    ml.append(u".targetFile() = \""_s + mTargetFile.toString() + u"\""_s);
+    ml.append(u".sha256() = "_s + mSha256);
     return ml;
 }
 
@@ -89,7 +89,7 @@ void TDownload::setSha256(QString sha256) { mSha256 = sha256; }
 void TDownload::perform()
 {
     // Setup download
-    QFile packFile(mDestinationPath + "/" + mDestinationFilename);
+    QFile packFile(mDestinationPath + '/' + mDestinationFilename);
     QFileInfo packFileInfo(packFile);
     Qx::DownloadTask download{
         .target = mTargetFile,
@@ -126,12 +126,12 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
     if(downloadReport.wasSuccessful())
     {
         // Confirm checksum is correct
-        QFile packFile(mDestinationPath + "/" + mDestinationFilename);
+        QFile packFile(mDestinationPath + '/' + mDestinationFilename);
         bool checksumMatch;
         Qx::IoOpReport cr = Qx::fileMatchesChecksum(checksumMatch, packFile, mSha256, QCryptographicHash::Sha256);
         if(cr.isFailure() || !checksumMatch)
         {
-            TDownloadError err(TDownloadError::ChecksumMismatch, cr.isFailure() ? cr.outcomeInfo() : "");
+            TDownloadError err(TDownloadError::ChecksumMismatch, cr.isFailure() ? cr.outcomeInfo() : u""_s);
             errorStatus = err;
             emit errorOccurred(NAME, errorStatus);
         }

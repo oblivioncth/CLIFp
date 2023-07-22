@@ -12,15 +12,15 @@ class CPrepare : public TitleCommand
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
-    static inline const QString STATUS_PREPARE = QSL("Preparing");
+    static inline const QString STATUS_PREPARE = u"Preparing"_s;
 
     // Logging - Errors
-    static inline const QString LOG_WRN_PREP_NOT_DATA_PACK = QSL("The provided ID does not belong to a Data Pack based game (%1). No action will be taken.");
+    static inline const QString LOG_WRN_PREP_NOT_DATA_PACK = u"The provided ID does not belong to a Data Pack based game (%1). No action will be taken."_s;
 
 public:
     // Meta
-    static inline const QString NAME = QSL("prepare");
-    static inline const QString DESCRIPTION = QSL("Initializes Flashpoint for playing the provided Data Pack based title by UUID. If the title does not use a Data Pack this command has no effect.");
+    static inline const QString NAME = u"prepare"_s;
+    static inline const QString DESCRIPTION = u"Initializes Flashpoint for playing the provided Data Pack based title by UUID. If the title does not use a Data Pack this command has no effect."_s;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:

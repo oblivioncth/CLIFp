@@ -24,10 +24,10 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {DirectQueryFailed, QSL("Failed to directly query docker image status.")},
-        {ListenFailed, QSL("Failed to start the docker event listener.")},
-        {StartFailed, QSL("The start of the docker image timed out.")}
+        {NoError, u""_s},
+        {DirectQueryFailed, u"Failed to directly query docker image status."_s},
+        {ListenFailed, u"Failed to start the docker event listener."_s},
+        {StartFailed, u"The start of the docker image timed out."_s}
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -58,17 +58,17 @@ class TAwaitDocker : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QStringLiteral("TAwaitDocker");
+    static inline const QString NAME = u"TAwaitDocker"_s;
 
     // Functional
-    static inline const QString DOCKER = QStringLiteral("docker");
+    static inline const QString DOCKER = u"docker"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_DIRECT_QUERY = "Checking if docker image '%1' is running directly";
-    static inline const QString LOG_EVENT_STARTING_LISTENER = "Docker image isn't running, starting listener...";
-    static inline const QString LOG_EVENT_START_RECEIVED = "Received docker image start event";
-    static inline const QString LOG_EVENT_FINAL_CHECK_PASS = "The docker image was found to be running after the final timeout check";
-    static inline const QString LOG_EVENT_STOPPING_LISTENER = "Stopping event listener...";
+    static inline const QString LOG_EVENT_DIRECT_QUERY = u"Checking if docker image '%1' is running directly"_s;
+    static inline const QString LOG_EVENT_STARTING_LISTENER = u"Docker image isn't running, starting listener..."_s;
+    static inline const QString LOG_EVENT_START_RECEIVED = u"Received docker image start event"_s;
+    static inline const QString LOG_EVENT_FINAL_CHECK_PASS = u"The docker image was found to be running after the final timeout check"_s;
+    static inline const QString LOG_EVENT_STOPPING_LISTENER = u"Stopping event listener..."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

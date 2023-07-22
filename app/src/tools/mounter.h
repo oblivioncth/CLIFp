@@ -32,11 +32,11 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {PhpMount, QSL("Failed to mount data pack (PHP).")},
-        {QemuConnection, QSL("QMPI connection error.")},
-        {QemuCommunication, QSL("QMPI communication error.")},
-        {QemuCommand, QSL("QMPI command error.")},
+        {NoError, u""_s},
+        {PhpMount, u"Failed to mount data pack (PHP)."_s},
+        {QemuConnection, u"QMPI connection error."_s},
+        {QemuCommunication, u"QMPI communication error."_s},
+        {QemuCommand, u"QMPI command error."_s},
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -81,23 +81,23 @@ private:
     };
 
     // Error
-    static inline const QString ERR_QMP_CONNECTION_ABORT = QSL("The connection was aborted.");
-    static inline const QString ERR_QMP_COMMAND = QSL("Command %1 - [%2] \"%3\"");
+    static inline const QString ERR_QMP_CONNECTION_ABORT = u"The connection was aborted."_s;
+    static inline const QString ERR_QMP_COMMAND = u"Command %1 - [%2] \"%3\""_s;
 
     // Events - External
-    static inline const QString EVENT_QMP_WELCOME_MESSAGE = QSL("QMPI connected to QEMU Version: %1 | Capabilities: %2");
-    static inline const QString EVENT_QMP_COMMAND_RESPONSE = QSL("QMPI command %1 returned - \"%2\"");
-    static inline const QString EVENT_QMP_EVENT = QSL("QMPI event occurred at %1 - [%2] \"%3\"");
-    static inline const QString EVENT_PHP_RESPONSE = QSL("Mount.php Response: \"%1\"");
+    static inline const QString EVENT_QMP_WELCOME_MESSAGE = u"QMPI connected to QEMU Version: %1 | Capabilities: %2"_s;
+    static inline const QString EVENT_QMP_COMMAND_RESPONSE = u"QMPI command %1 returned - \"%2\""_s;
+    static inline const QString EVENT_QMP_EVENT = u"QMPI event occurred at %1 - [%2] \"%3\""_s;
+    static inline const QString EVENT_PHP_RESPONSE = u"Mount.php Response: \"%1\""_s;
 
     // Events - Internal
-    static inline const QString EVENT_CONNECTING_TO_QEMU = QSL("Connecting to FP QEMU instance...");
-    static inline const QString EVENT_MOUNT_INFO_DETERMINED = QSL("Mount Info: {.filePath = \"%1\", .driveId = \"%2\", .driveSerial = \"%3\"}");
-    static inline const QString EVENT_QEMU_DETECTION = QSL("QEMU %1 in use.");
-    static inline const QString EVENT_CREATING_MOUNT_POINT = QSL("Creating data pack mount point on QEMU instance...");
-    static inline const QString EVENT_DISCONNECTING_FROM_QEMU = QSL("Disconnecting from FP QEMU instance...");
-    static inline const QString EVENT_MOUNTING_THROUGH_SERVER = QSL("Mounting data pack via PHP server...");
-    static inline const QString EVENT_REQUEST_SENT = QSL("Sent request (%1): %2}");
+    static inline const QString EVENT_CONNECTING_TO_QEMU = u"Connecting to FP QEMU instance..."_s;
+    static inline const QString EVENT_MOUNT_INFO_DETERMINED = u"Mount Info: {.filePath = \"%1\", .driveId = \"%2\", .driveSerial = \"%3\"}"_s;
+    static inline const QString EVENT_QEMU_DETECTION = u"QEMU %1 in use."_s;
+    static inline const QString EVENT_CREATING_MOUNT_POINT = u"Creating data pack mount point on QEMU instance..."_s;
+    static inline const QString EVENT_DISCONNECTING_FROM_QEMU = u"Disconnecting from FP QEMU instance..."_s;
+    static inline const QString EVENT_MOUNTING_THROUGH_SERVER = u"Mounting data pack via PHP server..."_s;
+    static inline const QString EVENT_REQUEST_SENT = u"Sent request (%1): %2}"_s;
 
     // Connections
     static const int QMP_TRANSACTION_TIMEOUT = 5000; // ms

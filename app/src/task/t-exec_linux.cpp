@@ -29,13 +29,13 @@ QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
     QProcess* process = new QProcess();
 
     // Force WINE
-    process->setProgram("wine");
+    process->setProgram(u"wine"_s);
 
     // Set arguments
     QStringList fullArgs{
-        "start",
-        "/wait",
-        "/unix"
+        u"start"_s,
+        u"/wait"_s,
+        u"/unix"_s
     };
     fullArgs.append(exePath);
     fullArgs.append(exeArgs);
@@ -50,11 +50,11 @@ QProcess* setupShellScriptProcess(const QString& scriptPath, const QString& scri
     QProcess* process = new QProcess();
 
     // Set program
-    process->setProgram("/bin/sh");
+    process->setProgram(u"/bin/sh"_s);
 
     // Set arguments
-    QString bashCommand = "'" + scriptPath + "' " + scriptArgs;
-    process->setArguments({"-c", bashCommand});
+    QString bashCommand = u"'"_s + scriptPath + u"' "_s + scriptArgs;
+    process->setArguments({u"-c"_s, bashCommand});
 
     return process;
 }
@@ -174,6 +174,6 @@ void TExec::logPreparedProcess(const QProcess* process)
 {
     emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
     emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->arguments().isEmpty() ?
-                                                            "{\"" + process->arguments().join(R"(", ")") + "\"}" :
-                                                            ""));
+                                                            u"{\""_s + process->arguments().join(uR"(", ")"_s) + u"\"}"_s :
+                                                            u""_s));
 }

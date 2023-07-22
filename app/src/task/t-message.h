@@ -13,10 +13,10 @@ class TMessage : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TMessage");
+    static inline const QString NAME = u"TMessage"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_SHOW_MESSAGE = QSL("Displayed message");
+    static inline const QString LOG_EVENT_SHOW_MESSAGE = u"Displayed message"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

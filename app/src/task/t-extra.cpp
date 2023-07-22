@@ -44,7 +44,7 @@ QString TExtra::name() const { return NAME; }
 QStringList TExtra::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".directory() = \"" + QDir::toNativeSeparators(mDirectory.path()) + "\"");
+    ml.append(u".directory() = \""_s + QDir::toNativeSeparators(mDirectory.path()) + u"\""_s);
     return ml;
 }
 

@@ -82,7 +82,7 @@ Qx::Error CLink::perform()
         Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
 
         Fp::Game parent = std::get<Fp::Game>(entry_v);
-        shortcutName = Qx::kosherizeFileName(parent.title() + " (" + addApp.name() + ")");
+        shortcutName = Qx::kosherizeFileName(parent.title() + u" ("_s + addApp.name() + u")"_s);
     }
     else
         qCritical("Invalid variant state for std::variant<Fp::Game, Fp::AddApp>.");
@@ -110,8 +110,8 @@ Qx::Error CLink::perform()
         // Prompt user for path
         Core::SaveFileRequest sfr{
             .caption = DIAG_CAPTION,
-            .dir = QDir::homePath() + "/Desktop/" + shortcutName,
-            .filter = "Shortcuts (*. " + shortcutExtension() + ")"
+            .dir = QDir::homePath() + u"/Desktop/"_s + shortcutName,
+            .filter = u"Shortcuts (*. "_s + shortcutExtension() + u")"_s
         };
         QString selectedPath = mCore.requestSaveFilePath(sfr);
 
@@ -122,8 +122,8 @@ Qx::Error CLink::perform()
         }
         else
         {
-            if(!selectedPath.endsWith("." + shortcutExtension(), Qt::CaseInsensitive))
-                selectedPath += "." + shortcutExtension();
+            if(!selectedPath.endsWith(u"."_s + shortcutExtension(), Qt::CaseInsensitive))
+                selectedPath += u"."_s + shortcutExtension();
 
             mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(QDir::toNativeSeparators(selectedPath)));
             QFileInfo pathInfo(selectedPath);

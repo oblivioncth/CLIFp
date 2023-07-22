@@ -17,8 +17,8 @@ QString TGeneric::name() const { return NAME; }
 QStringList TGeneric::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".description() = \"" + mDescription + "\"");
-    ml.append(".action() = <FUNCTOR>");
+    ml.append(u".description() = \""_s + mDescription + u"\""_s);
+    ml.append(u".action() = <FUNCTOR>"_s);
     return ml;
 }
 

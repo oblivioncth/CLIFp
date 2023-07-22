@@ -13,11 +13,11 @@ class TGeneric : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TGeneric");
+    static inline const QString NAME = u"TGeneric"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_START_ACTION = QSL("Starting generic action: %1");
-    static inline const QString LOG_EVENT_END_ACTION = QSL("Finished generic action.");
+    static inline const QString LOG_EVENT_START_ACTION = u"Starting generic action: %1"_s;
+    static inline const QString LOG_EVENT_END_ACTION = u"Finished generic action."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

@@ -15,11 +15,11 @@ class TMount : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TMount");
+    static inline const QString NAME = u"TMount"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = QSL("Mounting Data Pack %1");
-    static inline const QString LOG_EVENT_STOPPING_MOUNT = QSL("Stopping current mount(s)...");
+    static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = u"Mounting Data Pack %1"_s;
+    static inline const QString LOG_EVENT_STOPPING_MOUNT = u"Stopping current mount(s)..."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

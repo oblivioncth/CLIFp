@@ -164,7 +164,7 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
 
     // Determine variant
     if(subId.isNull())
-        infoFillTemplate = infoFillTemplate.arg("N/A");
+        infoFillTemplate = infoFillTemplate.arg(u"N/A"_s);
     else
     {
         // Get sub entry info

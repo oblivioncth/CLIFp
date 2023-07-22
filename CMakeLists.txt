@@ -72,18 +72,18 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "036444f02843050c2d19fa6eddf4a270d8a485b8"
+    REF "e46b448cf6c60c75095c1e243a5684a0ff1ec911"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("737939552cd4c6ac320e9470d2ecf48288acf485")
+ob_fetch_libfp("7663b1eff2813dfa54efee1aaad32f501ea58fba")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("ae12edd5c9f4b3856e7f7a9c7564e463de7d867e")
+ob_fetch_qi_qmp("b99be49cd0ec71f9c3c398676be147cb68452bb9")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)

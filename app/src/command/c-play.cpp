@@ -202,7 +202,7 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     {
         TExtra* extraTask = new TExtra(&mCore);
         extraTask->setStage(taskStage);
-        extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + "/" + addApp.launchCommand()));
+        extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + '/' + addApp.launchCommand()));
 
         mCore.enqueueSingleTask(extraTask);
     }

@@ -35,7 +35,7 @@ public:
 
 //-Class Variables------------------------------------------------------------------------------------------------
 private:
-    static inline const QString PRIMARY_STRING = QSL("Command parsing error.");
+    static inline const QString PRIMARY_STRING = u"Command parsing error."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -88,36 +88,36 @@ protected:
 private:
     // Error
     static inline const CommandError ERR_INVALID_ARGS =
-        CommandError(CommandError::InvalidArguments, QSL("Invalid command arguments."));
+        CommandError(CommandError::InvalidArguments, u"Invalid command arguments."_s);
     static inline const CommandError ERR_INVALID_COMMAND =
-        CommandError(CommandError::InvalidCommand, QSL("'%1' is not a valid command"));
+        CommandError(CommandError::InvalidCommand, u"'%1' is not a valid command"_s);
     static inline const CommandError ERR_MISSING_REQ_OPT =
-        CommandError(CommandError::MissingRequiredOption, QSL("Missing required options for '%1'"));
+        CommandError(CommandError::MissingRequiredOption, u"Missing required options for '%1'"_s);
 
     // Help template
-    static inline const QString HELP_TEMPL = QSL("<u>Usage:</u><br>"
-                                                 "%1 &lt;options&gt;<br>"
-                                                 "<br>"
-                                                 "<u>Options:</u>%2<br>"
-                                                 "<br>"
-                                                 "*Required Option<br>");
-    static inline const QString HELP_OPT_TEMPL = QSL("<br><b>%1%2:</b> &nbsp;%3");
+    static inline const QString HELP_TEMPL = u"<u>Usage:</u><br>"
+                                              "%1 &lt;options&gt;<br>"
+                                              "<br>"
+                                              "<u>Options:</u>%2<br>"
+                                              "<br>"
+                                              "*Required Option<br>"_s;
+    static inline const QString HELP_OPT_TEMPL = u"<br><b>%1%2:</b> &nbsp;%3"_s;
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_C_HELP_SHOWN = QSL("Displayed help infomration for: %1");
+    static inline const QString LOG_EVENT_C_HELP_SHOWN = u"Displayed help infomration for: %1"_s;
 
     // Standard command line option strings
-    static inline const QString CL_OPT_HELP_S_NAME = QSL("h");
-    static inline const QString CL_OPT_HELP_L_NAME = QSL("help");
-    static inline const QString CL_OPT_HELP_E_NAME = QSL("?");
-    static inline const QString CL_OPT_HELP_DESC = QSL("Prints this help message.");
+    static inline const QString CL_OPT_HELP_S_NAME = u"h"_s;
+    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
+    static inline const QString CL_OPT_HELP_E_NAME = u"?"_s;
+    static inline const QString CL_OPT_HELP_DESC = u"Prints this help message."_s;
 
     // Standard command line options
     static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC}; // Boolean option
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_STANDARD{&CL_OPTION_HELP};
 
     // Meta
-    static inline const QString NAME = QSL("command");
+    static inline const QString NAME = u"command"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:

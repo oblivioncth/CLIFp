@@ -21,8 +21,8 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {MissingApp, QSL("No application to run was provided.")}
+        {NoError, u""_s},
+        {MissingApp, u"No application to run was provided."_s}
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -52,26 +52,26 @@ class CRun : public Command
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
-    static inline const QString STATUS_RUN = QSL("Running");
+    static inline const QString STATUS_RUN = u"Running"_s;
 
     // Command line option strings
-    static inline const QString CL_OPT_APP_S_NAME = QSL("a");
-    static inline const QString CL_OPT_APP_L_NAME = QSL("app");
-    static inline const QString CL_OPT_APP_DESC = QSL("Relative (to Flashpoint directory) path of application to launch.");
+    static inline const QString CL_OPT_APP_S_NAME = u"a"_s;
+    static inline const QString CL_OPT_APP_L_NAME = u"app"_s;
+    static inline const QString CL_OPT_APP_DESC = u"Relative (to Flashpoint directory) path of application to launch."_s;
 
-    static inline const QString CL_OPT_PARAM_S_NAME = QSL("p");
-    static inline const QString CL_OPT_PARAM_L_NAME = QSL("param");
-    static inline const QString CL_OPT_PARAM_DESC = QSL("Command-line parameters to use when starting the application.");
+    static inline const QString CL_OPT_PARAM_S_NAME = u"p"_s;
+    static inline const QString CL_OPT_PARAM_L_NAME = u"param"_s;
+    static inline const QString CL_OPT_PARAM_DESC = u"Command-line parameters to use when starting the application."_s;
 
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_APP{{CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, "application"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_PARAM{{CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, "parameters"}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_APP{{CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, u"application"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_PARAM{{CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, u"parameters"_s}; // Takes value
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_APP, &CL_OPTION_PARAM};
 
 public:
     // Meta
-    static inline const QString NAME = QSL("run");
-    static inline const QString DESCRIPTION = QSL("Start Flashpoint's webserver and then execute the provided application");
+    static inline const QString NAME = u"run"_s;
+    static inline const QString DESCRIPTION = u"Start Flashpoint's webserver and then execute the provided application"_s;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:

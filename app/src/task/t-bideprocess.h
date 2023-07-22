@@ -22,8 +22,8 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {CantClose, QSL("Could not automatically end the running title! It will have to be closed manually.")},
+        {NoError, u""_s},
+        {CantClose, u"Could not automatically end the running title! It will have to be closed manually."_s},
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -54,13 +54,13 @@ class TBideProcess : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TBideProcess");
+    static inline const QString NAME = u"TBideProcess"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_STOPPING_BIDE_PROCESS = QSL("Stopping current bide process...");
+    static inline const QString LOG_EVENT_STOPPING_BIDE_PROCESS = u"Stopping current bide process..."_s;
 
     // Errors
-    static inline const QString ERR_CANT_CLOSE_BIDE_PROCESS = QSL("Could not automatically end the running title! It will have to be closed manually.");
+    static inline const QString ERR_CANT_CLOSE_BIDE_PROCESS = u"Could not automatically end the running title! It will have to be closed manually."_s;
 
     // Functional
     static const uint STANDARD_GRACE = 2; // Seconds to allow the process to restart in cases it does

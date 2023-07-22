@@ -56,8 +56,8 @@ bool ProcessBider::closeAdminProcess(DWORD processId, bool force)
     // Setup taskkill args
     QString tkArgs;
     if(force)
-        tkArgs += "/F ";
-    tkArgs += "/PID ";
+        tkArgs += u"/F "_s;
+    tkArgs += u"/PID "_s;
     tkArgs += QString::number(processId);
     const std::wstring tkArgsStd = tkArgs.toStdWString();
 

@@ -32,8 +32,8 @@ QString TMount::name() const { return NAME; }
 QStringList TMount::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".titleId() = \"" + mTitleId.toString() + "\"");
-    ml.append(".path() = \"" + QDir::toNativeSeparators(mPath) + "\"");
+    ml.append(u".titleId() = \""_s + mTitleId.toString() + u"\""_s);
+    ml.append(u".path() = \""_s + QDir::toNativeSeparators(mPath) + u"\""_s);
     return ml;
 }
 

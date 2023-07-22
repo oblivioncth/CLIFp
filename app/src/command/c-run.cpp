@@ -58,7 +58,7 @@ Qx::Error CRun::perform()
     QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
 
     TExec* runTask = new TExec(&mCore);
-    runTask->setIdentifier(NAME + " program");
+    runTask->setIdentifier(NAME + u" program"_s);
     runTask->setStage(Task::Stage::Primary);
     runTask->setExecutable(inputInfo.canonicalFilePath());
     runTask->setDirectory(inputInfo.canonicalPath());

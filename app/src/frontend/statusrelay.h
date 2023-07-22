@@ -21,7 +21,7 @@ class StatusRelay : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // System Messages
-    static inline const QString SYS_TRAY_STATUS = QSL("CLIFp is running");
+    static inline const QString SYS_TRAY_STATUS = u"CLIFp is running"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 public:

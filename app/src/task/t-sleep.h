@@ -16,12 +16,12 @@ class TSleep : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TSleep");
+    static inline const QString NAME = u"TSleep"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_START_SLEEP = QSL("Sleeping for %1 milliseconds");
-    static inline const QString LOG_EVENT_SLEEP_INTERUPTED = QSL("Sleep interrupted");
-    static inline const QString LOG_EVENT_FINISH_SLEEP = QSL("Finished sleeping");
+    static inline const QString LOG_EVENT_START_SLEEP = u"Sleeping for %1 milliseconds"_s;
+    static inline const QString LOG_EVENT_SLEEP_INTERUPTED = u"Sleep interrupted"_s;
+    static inline const QString LOG_EVENT_FINISH_SLEEP = u"Finished sleeping"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:

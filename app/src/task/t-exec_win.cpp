@@ -12,12 +12,12 @@ namespace // Unit helper functions
 
 QProcess* setupBatchScriptProcess(const QString& scriptPath, const QString& scriptArgs)
 {
-    static const QString CMD_ARG_TEMPLATE = R"(/d /s /c ""%1" %2")";
+    static const QString CMD_ARG_TEMPLATE = uR"(/d /s /c ""%1" %2")"_s;
 
     QProcess* childProcess = new QProcess();
 
     // Set program
-    childProcess->setProgram("cmd.exe");
+    childProcess->setProgram(u"cmd.exe"_s);
 
     // Set arguments
     QString cmdCommand = CMD_ARG_TEMPLATE.arg(scriptPath, scriptArgs);
@@ -116,6 +116,6 @@ void TExec::logPreparedProcess(const QProcess* process)
     emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->nativeArguments().isEmpty() ?
                                                             process->nativeArguments() :
                                                             !process->arguments().isEmpty() ?
-                                                            "{\"" + process->arguments().join(R"(", ")") + "\"}" :
-                                                            ""));
+                                                            u"{\""_s + process->arguments().join(uR"(", ")"_s) + u"\"}"_s :
+                                                            u""_s));
 }

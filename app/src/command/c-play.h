@@ -12,20 +12,20 @@ class CPlay : public TitleCommand
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status
-    static inline const QString STATUS_PLAY = QSL("Playing");
+    static inline const QString STATUS_PLAY = u"Playing"_s;
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_ENQ_AUTO = QSL("Enqueuing automatic tasks...");
-    static inline const QString LOG_EVENT_ID_MATCH_TITLE = QSL("ID matches main title: %1");
-    static inline const QString LOG_EVENT_ID_MATCH_ADDAPP = QSL("ID matches additional app: %1 (Child of %2)");
-    static inline const QString LOG_EVENT_QUEUE_CLEARED = QSL("Previous queue entries cleared due to auto task being a Message/Extra");
-    static inline const QString LOG_EVENT_FOUND_AUTORUN = QSL("Found autorun-before additional app: %1");
-    static inline const QString LOG_EVENT_DATA_PACK_TITLE = QSL("Selected title uses a data pack");
+    static inline const QString LOG_EVENT_ENQ_AUTO = u"Enqueuing automatic tasks..."_s;
+    static inline const QString LOG_EVENT_ID_MATCH_TITLE = u"ID matches main title: %1"_s;
+    static inline const QString LOG_EVENT_ID_MATCH_ADDAPP = u"ID matches additional app: %1 (Child of %2)"_s;
+    static inline const QString LOG_EVENT_QUEUE_CLEARED = u"Previous queue entries cleared due to auto task being a Message/Extra"_s;
+    static inline const QString LOG_EVENT_FOUND_AUTORUN = u"Found autorun-before additional app: %1"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_TITLE = u"Selected title uses a data pack"_s;
 
 public:
     // Meta
-    static inline const QString NAME = QSL("play");
-    static inline const QString DESCRIPTION = QSL("Launch a title and all of it's support applications, in the same manner as using the GUI");
+    static inline const QString NAME = u"play"_s;
+    static inline const QString DESCRIPTION = u"Launch a title and all of it's support applications, in the same manner as using the GUI"_s;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:

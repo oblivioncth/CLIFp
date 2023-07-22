@@ -127,8 +127,8 @@ QString TAwaitDocker::name() const { return NAME; }
 QStringList TAwaitDocker::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".imageName() = \"" + mImageName + "\"");
-    ml.append(".timeout() = " + QString::number(mTimeout));
+    ml.append(u".imageName() = \""_s + mImageName + u"\""_s);
+    ml.append(u".timeout() = "_s + QString::number(mTimeout));
     return ml;
 }
 

@@ -80,13 +80,13 @@ CommandError Command::parse(const QStringList& commandLine)
         {
             // Add switch to interpreted string
             if(!optionsStr.isEmpty())
-                optionsStr += " "; // Space after every switch except first one
+                optionsStr += ' '; // Space after every switch except first one
 
-            optionsStr += "--" + (*clOption).names().at(1); // Always use long name
+            optionsStr += u"--"_s + (*clOption).names().at(1); // Always use long name
 
             // Add value of switch if it takes one
             if(!(*clOption).valueName().isEmpty())
-                optionsStr += R"(=")" + mParser.value(*clOption) + R"(")";
+                optionsStr += uR"(=")"_s + mParser.value(*clOption) + uR"(")"_s;
         }
     }
     if(optionsStr.isEmpty())
@@ -127,7 +127,7 @@ CommandError Command::checkRequiredOptions()
             missing.append(opt->names().constFirst());
 
     if(!missing.isEmpty())
-        return ERR_MISSING_REQ_OPT.arged(name()).wDetails("'" + missing.join("','") + "'");
+        return ERR_MISSING_REQ_OPT.arged(name()).wDetails(u"'"_s + missing.join(u"','"_s) + u"'"_s);
 
     return CommandError();
 }
@@ -151,11 +151,11 @@ void Command::showHelp()
             // Handle names
             QStringList dashedNames;
             for(const QString& name :  qxAsConst(clOption->names()))
-                dashedNames << ((name.length() > 1 ? "--" : "-") + name);
+                dashedNames << ((name.length() > 1 ? u"--"_s : u"-"_s) + name);
 
             // Add option
-            QString marker = requiredOptions().contains(clOption) ? "*" : "";
-            optStr += HELP_OPT_TEMPL.arg(marker, dashedNames.join(" | "), clOption->description());
+            QString marker = requiredOptions().contains(clOption) ? u"*"_s : u""_s;
+            optStr += HELP_OPT_TEMPL.arg(marker, dashedNames.join(u" | "_s), clOption->description());
         }
 
         // Complete string

@@ -18,8 +18,8 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
 {
     // Create shortcut properties
     Qx::ShortcutProperties sp;
-    sp.target = CLIFP_DIR_PATH + "/" + CLIFP_CUR_APP_FILENAME;
-    sp.targetArgs = CPlay::NAME + " -" + TitleCommand::CL_OPTION_ID.names().constFirst() + " " + id.toString(QUuid::WithoutBraces);
+    sp.target = CLIFP_DIR_PATH + '/' + CLIFP_CUR_APP_FILENAME;
+    sp.targetArgs = CPlay::NAME + u" -"_s + TitleCommand::CL_OPTION_ID.names().constFirst() + ' ' + id.toString(QUuid::WithoutBraces);
     sp.comment = name;
 
     // Create shortcut
@@ -39,4 +39,4 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     return CLinkError();
 }
 
-QString CLink::shortcutExtension() const { return "lnk"; };
+QString CLink::shortcutExtension() const { return u"lnk"_s; };

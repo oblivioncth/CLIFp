@@ -80,18 +80,18 @@ Mounter::Mounter(QObject* parent) :
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
      */
     connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
-        emit eventOccured("Unexpected use of authentication by PHP server!");
+        emit eventOccured(u"Unexpected use of authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
-        emit eventOccured("Unexpected use of PSK authentication by PHP server!");
+        emit eventOccured(u"Unexpected use of PSK authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
-        emit eventOccured("Unexpected use of proxy by PHP server!");
+        emit eventOccured(u"Unexpected use of proxy by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
         Q_UNUSED(reply);
-        QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, ",");
-        emit eventOccured("Unexpected SSL errors from PHP server! {" + errStrList + "}");
+        QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, u","_s);
+        emit eventOccured(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
     });
 }
 
@@ -111,23 +111,23 @@ void Mounter::createMountPoint()
     emit eventOccured(EVENT_CREATING_MOUNT_POINT);
 
     // Build commands
-    QString blockDevAddCmd = "blockdev-add";
-    QString deviceAddCmd = "device_add";
+    QString blockDevAddCmd = u"blockdev-add"_s;
+    QString deviceAddCmd = u"device_add"_s;
 
     QJsonObject blockDevAddArgs;
-    blockDevAddArgs["node-name"] = mCurrentMountInfo.driveId;
-    blockDevAddArgs["driver"] = "raw";
-    blockDevAddArgs["read-only"] = true;
+    blockDevAddArgs[u"node-name"_s] = mCurrentMountInfo.driveId;
+    blockDevAddArgs[u"driver"_s] = u"raw"_s;
+    blockDevAddArgs[u"read-only"_s] = true;
     QJsonObject fileArgs;
-    fileArgs["driver"] = "file";
-    fileArgs["filename"] = mCurrentMountInfo.filePath;
-    blockDevAddArgs["file"] = fileArgs;
+    fileArgs[u"driver"_s] = u"file"_s;
+    fileArgs[u"filename"_s] = mCurrentMountInfo.filePath;
+    blockDevAddArgs[u"file"_s] = fileArgs;
 
     QJsonObject deviceAddArgs;
-    deviceAddArgs["driver"] = "virtio-blk-pci";
-    deviceAddArgs["drive"] = mCurrentMountInfo.driveId;
-    deviceAddArgs["id"] = mCurrentMountInfo.driveId;
-    deviceAddArgs["serial"] = mCurrentMountInfo.driveSerial;
+    deviceAddArgs[u"driver"_s] = u"virtio-blk-pci"_s;
+    deviceAddArgs[u"drive"_s] = mCurrentMountInfo.driveId;
+    deviceAddArgs[u"id"_s] = mCurrentMountInfo.driveId;
+    deviceAddArgs[u"serial"_s] = mCurrentMountInfo.driveSerial;
 
     // Log formatter
     QJsonDocument formatter;
@@ -137,12 +137,12 @@ void Mounter::createMountPoint()
     formatter.setObject(blockDevAddArgs);
     cmdLog = formatter.toJson(QJsonDocument::Compact);
     mQemuMounter.execute(blockDevAddCmd, blockDevAddArgs,
-                         blockDevAddCmd + " " + cmdLog);
+                         blockDevAddCmd + ' ' + cmdLog);
 
     formatter.setObject(deviceAddArgs);
     cmdLog = formatter.toJson(QJsonDocument::Compact);
     mQemuMounter.execute(deviceAddCmd, deviceAddArgs,
-                         deviceAddCmd + " " + cmdLog);
+                         deviceAddCmd + ' ' + cmdLog);
 
     // Await finished() signal...
 }
@@ -153,13 +153,13 @@ void Mounter::setMountOnServer()
 
     // Create mount request
     QUrl mountUrl;
-    mountUrl.setScheme("http");
-    mountUrl.setHost("127.0.0.1");
+    mountUrl.setScheme(u"http"_s);
+    mountUrl.setHost(u"127.0.0.1"_s);
     mountUrl.setPort(mWebServerPort);
-    mountUrl.setPath("/mount.php");
+    mountUrl.setPath(u"/mount.php"_s);
 
     QUrlQuery query;
-    QString queryKey = "file";
+    QString queryKey = u"file"_s;
     QString queryValue = QUrl::toPercentEncoding(mQemuEnabled ? mCurrentMountInfo.driveSerial :
                                                                 QFileInfo(mCurrentMountInfo.filePath).fileName());
     query.addQueryItem(queryKey, queryValue);
@@ -283,7 +283,7 @@ void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime
 {
     QJsonDocument formatter(data);
     QString dataStr = formatter.toJson(QJsonDocument::Compact);
-    QString timestampStr = timestamp.toString("hh:mm:s s.zzz");
+    QString timestampStr = timestamp.toString(u"hh:mm:s s.zzz"_s);
     emit eventOccured(EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
 }
 
@@ -318,7 +318,7 @@ void Mounter::mount(QUuid titleId, QString filePath)
 
     // Log info
     logMountInfo(mCurrentMountInfo);
-    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? "is" : "isn't"));
+    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? u"is"_s : u"isn't"_s));
 
     // Connect to QEMU instance, or go straight to web server portion if bypassing
     if(mQemuEnabled)

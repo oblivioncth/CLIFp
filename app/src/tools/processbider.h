@@ -43,9 +43,9 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {HandleAquisition, QSL("Could not get a wait handle to a restartable process, the title will likely not work correctly.")},
-        {ProcessHook, QSL("Could not hook a restartable process for waiting, the title will likely not work correctly.")},
+        {NoError, u""_s},
+        {HandleAquisition, u"Could not get a wait handle to a restartable process, the title will likely not work correctly."_s},
+        {ProcessHook, u"Could not hook a restartable process for waiting, the title will likely not work correctly."_s},
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -76,11 +76,11 @@ class ProcessBider : public QThread
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Status Messages
-    static inline const QString LOG_EVENT_BIDE_GRACE = QSL("Waiting %1 seconds for process %2 to be running");
-    static inline const QString LOG_EVENT_BIDE_RUNNING = QSL("Wait-on process %1 is running");
-    static inline const QString LOG_EVENT_BIDE_ON = QSL("Waiting for process %1 to finish");
-    static inline const QString LOG_EVENT_BIDE_QUIT = QSL("Wait-on process %1 has finished");
-    static inline const QString LOG_EVENT_BIDE_FINISHED = QSL("Wait-on process %1 was not running after the grace period");
+    static inline const QString LOG_EVENT_BIDE_GRACE = u"Waiting %1 seconds for process %2 to be running"_s;
+    static inline const QString LOG_EVENT_BIDE_RUNNING = u"Wait-on process %1 is running"_s;
+    static inline const QString LOG_EVENT_BIDE_ON = u"Waiting for process %1 to finish"_s;
+    static inline const QString LOG_EVENT_BIDE_QUIT = u"Wait-on process %1 has finished"_s;
+    static inline const QString LOG_EVENT_BIDE_FINISHED = u"Wait-on process %1 was not running after the grace period"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:

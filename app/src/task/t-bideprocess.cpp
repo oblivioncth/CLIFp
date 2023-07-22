@@ -50,7 +50,7 @@ QString TBideProcess::name() const { return NAME; }
 QStringList TBideProcess::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".processName() = \"" + mProcessName + "\"");
+    ml.append(u".processName() = \""_s + mProcessName + u"\""_s);
     return ml;
 }
 

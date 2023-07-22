@@ -25,7 +25,7 @@ StatusRelay::StatusRelay(QObject* parent) :
 void StatusRelay::setupTrayIcon()
 {
     // Set Icon
-    mTrayIcon.setIcon(QIcon(":/app/CLIFp.ico"));
+    mTrayIcon.setIcon(QIcon(u":/app/CLIFp.ico"_s));
 
     // Set ToolTip Action
     mTrayIcon.setToolTip(SYS_TRAY_STATUS);
@@ -36,8 +36,8 @@ void StatusRelay::setupTrayIcon()
 
     // Set Context Menu
     QAction* quit = new QAction(&mTrayIconContextMenu);
-    quit->setIcon(QIcon(":/tray/Exit.png"));
-    quit->setText("Quit");
+    quit->setIcon(QIcon(u":/tray/Exit.png"_s));
+    quit->setText(u"Quit"_s);
     connect(quit, &QAction::triggered, this, &StatusRelay::quitRequested);
     mTrayIconContextMenu.addAction(quit);
     mTrayIcon.setContextMenu(&mTrayIconContextMenu);
@@ -49,7 +49,7 @@ void StatusRelay::setupTrayIcon()
 void StatusRelay::setupProgressDialog()
 {
     // Initialize dialog
-    mLongTaskProgressDialog.setCancelButtonText("Cancel");
+    mLongTaskProgressDialog.setCancelButtonText(u"Cancel"_s);
     mLongTaskProgressDialog.setWindowModality(Qt::NonModal);
     mLongTaskProgressDialog.setMinimumDuration(0);
     mLongTaskProgressDialog.setAutoClose(true);

@@ -17,8 +17,8 @@ QString TMessage::name() const { return NAME; }
 QStringList TMessage::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".message() = \"" + mMessage + "\"");
-    ml.append(".isModal() = \"" + QString(mModal ? "true" : "false") + "\"");
+    ml.append(u".message() = \""_s + mMessage + u"\""_s);
+    ml.append(u".isModal() = \""_s + QString(mModal ? u"true"_s : u"false"_s) + u"\""_s);
     return ml;
 }
 

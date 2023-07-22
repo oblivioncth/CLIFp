@@ -20,10 +20,10 @@ public:
 //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {InvalidId, QSL("The provided string was not a valid GUID/UUID.")},
-        {InvalidRandomFilter, QSL("The provided string for random operation was not a valid filter.")},
-        {MissingTitle, QSL("No title was specified.")},
+        {NoError, u""_s},
+        {InvalidId, u"The provided string was not a valid GUID/UUID."_s},
+        {InvalidRandomFilter, u"The provided string for random operation was not a valid filter."_s},
+        {MissingTitle, u"No title was specified."_s},
     };
 
 //-Instance Variables-------------------------------------------------------------
@@ -53,73 +53,72 @@ class TitleCommand : public Command
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Logging - Errors
-    static inline const QString LOG_WRN_INVALID_RAND_ID = QSL("A UUID found in the database during Random operation is invalid (%1)");
+    static inline const QString LOG_WRN_INVALID_RAND_ID = u"A UUID found in the database during Random operation is invalid (%1)"_s;
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_SEL_RAND = QSL("Selecting a playable title at random...");
-    static inline const QString LOG_EVENT_INIT_RAND_ID = QSL("Randomly chose primary title is \"%1\"");
-    static inline const QString LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT = QSL("Chosen title has %1 playable additional-apps");
-    static inline const QString LOG_EVENT_RAND_DET_PRIM = QSL("Selected primary title");
-    static inline const QString LOG_EVENT_RAND_DET_ADD_APP = QSL("Selected additional-app \"%1\"");
-    static inline const QString LOG_EVENT_RAND_GET_INFO = QSL("Querying random game info...");
-    static inline const QString LOG_EVENT_PLAYABLE_COUNT = QSL("Found %1 playable primary titles");
+    static inline const QString LOG_EVENT_SEL_RAND = u"Selecting a playable title at random..."_s;
+    static inline const QString LOG_EVENT_INIT_RAND_ID = u"Randomly chose primary title is \"%1\""_s;
+    static inline const QString LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT = u"Chosen title has %1 playable additional-apps"_s;
+    static inline const QString LOG_EVENT_RAND_DET_PRIM = u"Selected primary title"_s;
+    static inline const QString LOG_EVENT_RAND_DET_ADD_APP = u"Selected additional-app \"%1\""_s;
+    static inline const QString LOG_EVENT_RAND_GET_INFO = u"Querying random game info..."_s;
+    static inline const QString LOG_EVENT_PLAYABLE_COUNT = u"Found %1 playable primary titles"_s;
 
     // Random Selection Info
-    static inline const QString RAND_SEL_INFO = QSL(
-        "<b>Randomly Selected Game</b><br>"
+    static inline const QString RAND_SEL_INFO =
+        u"<b>Randomly Selected Game</b><br>"
         "<br>"
         "<b>Title:</b> %1<br>"
         "<b>Developer:</b> %2<br>"
         "<b>Publisher:</b> %3<br>"
         "<b>Library:</b> %4<br>"
-        "<b>Variant:</b> %5<br>"
-        );
+        "<b>Variant:</b> %5<br>"_s;
     // Random Filter Sets
-    static inline const QStringList RAND_ALL_FILTER_NAMES{QSL("all"), QSL("any")};
-    static inline const QStringList RAND_GAME_FILTER_NAMES{QSL("game"), QSL("arcade")};
-    static inline const QStringList RAND_ANIM_FILTER_NAMES{QSL("animation"), QSL("theatre")};
+    static inline const QStringList RAND_ALL_FILTER_NAMES{u"all"_s, u"any"_s};
+    static inline const QStringList RAND_GAME_FILTER_NAMES{u"game"_s, u"arcade"_s};
+    static inline const QStringList RAND_ANIM_FILTER_NAMES{u"animation"_s, u"theatre"_s};
 
     // Command line option strings
-    static inline const QString CL_OPT_ID_S_NAME = QSL("i");
-    static inline const QString CL_OPT_ID_L_NAME = QSL("id");
-    static inline const QString CL_OPT_ID_DESC = QSL("UUID of title to process");
+    static inline const QString CL_OPT_ID_S_NAME = u"i"_s;
+    static inline const QString CL_OPT_ID_L_NAME = u"id"_s;
+    static inline const QString CL_OPT_ID_DESC = u"UUID of title to process"_s;
 
-    static inline const QString CL_OPT_TITLE_S_NAME = QSL("t");
-    static inline const QString CL_OPT_TITLE_L_NAME = QSL("title");
-    static inline const QString CL_OPT_TITLE_DESC = QSL("Title to process");
+    static inline const QString CL_OPT_TITLE_S_NAME = u"t"_s;
+    static inline const QString CL_OPT_TITLE_L_NAME = u"title"_s;
+    static inline const QString CL_OPT_TITLE_DESC = u"Title to process"_s;
 
-    static inline const QString CL_OPT_TITLE_STRICT_S_NAME = QSL("T");
-    static inline const QString CL_OPT_TITLE_STRICT_L_NAME = QSL("title-strict");
-    static inline const QString CL_OPT_TITLE_STRICT_DESC = QSL("Same as -t, but exact matches only");
+    static inline const QString CL_OPT_TITLE_STRICT_S_NAME = u"T"_s;
+    static inline const QString CL_OPT_TITLE_STRICT_L_NAME = u"title-strict"_s;
+    static inline const QString CL_OPT_TITLE_STRICT_DESC = u"Same as -t, but exact matches only"_s;
 
-    static inline const QString CL_OPT_SUBTITLE_S_NAME = QSL("s");
-    static inline const QString CL_OPT_SUBTITLE_L_NAME = QSL("subtitle");
-    static inline const QString CL_OPT_SUBTITLE_DESC = QSL("Name of additional-app under the title to process. Must be used with -t / -T");
+    static inline const QString CL_OPT_SUBTITLE_S_NAME = u"s"_s;
+    static inline const QString CL_OPT_SUBTITLE_L_NAME = u"subtitle"_s;
+    static inline const QString CL_OPT_SUBTITLE_DESC = u"Name of additional-app under the title to process. Must be used with -t / -T"_s;
 
-    static inline const QString CL_OPT_SUBTITLE_STRICT_S_NAME = QSL("S");
-    static inline const QString CL_OPT_SUBTITLE_STRICT_L_NAME = QSL("subtitle-strict");
-    static inline const QString CL_OPT_SUBTITLE_STRICT_DESC = QSL("Same as -s, but exact matches only");
+    static inline const QString CL_OPT_SUBTITLE_STRICT_S_NAME = u"S"_s;
+    static inline const QString CL_OPT_SUBTITLE_STRICT_L_NAME = u"subtitle-strict"_s;
+    static inline const QString CL_OPT_SUBTITLE_STRICT_DESC = u"Same as -s, but exact matches only"_s;
 
-    static inline const QString CL_OPT_RAND_S_NAME = QSL("r");
-    static inline const QString CL_OPT_RAND_L_NAME = QSL("random");
-    static inline const QString CL_OPT_RAND_DESC = "Select a random title from the database to start. Must be followed by a library filter: " +
-                                                   RAND_ALL_FILTER_NAMES.join("/") + ", " + RAND_GAME_FILTER_NAMES.join("/") + " or " + RAND_ANIM_FILTER_NAMES.join("/");
+    static inline const QString CL_OPT_RAND_S_NAME = u"r"_s;
+    static inline const QString CL_OPT_RAND_L_NAME = u"random"_s;
+    static inline const QString CL_OPT_RAND_DESC = u"Select a random title from the database to start. Must be followed by a library filter: "_s +
+                                                   RAND_ALL_FILTER_NAMES.join('/') + u", "_s + RAND_GAME_FILTER_NAMES.join('/') + u" or "_s + RAND_ANIM_FILTER_NAMES.join('/');
 
 protected:
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, "id"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_TITLE{{CL_OPT_TITLE_S_NAME, CL_OPT_TITLE_L_NAME}, CL_OPT_TITLE_DESC, "title"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_TITLE_STRICT{{CL_OPT_TITLE_STRICT_S_NAME, CL_OPT_TITLE_STRICT_L_NAME}, CL_OPT_TITLE_STRICT_DESC, "title-strict"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_SUBTITLE{{CL_OPT_SUBTITLE_S_NAME, CL_OPT_SUBTITLE_L_NAME}, CL_OPT_SUBTITLE_DESC, "subtitle"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_SUBTITLE_STRICT{{CL_OPT_SUBTITLE_STRICT_S_NAME, CL_OPT_SUBTITLE_STRICT_L_NAME}, CL_OPT_SUBTITLE_STRICT_DESC, "subtitle-strict"}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_RAND{{CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, "random"}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, u"id"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_TITLE{{CL_OPT_TITLE_S_NAME, CL_OPT_TITLE_L_NAME}, CL_OPT_TITLE_DESC, u"title"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_TITLE_STRICT{{CL_OPT_TITLE_STRICT_S_NAME, CL_OPT_TITLE_STRICT_L_NAME}, CL_OPT_TITLE_STRICT_DESC, u"title-strict"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_SUBTITLE{{CL_OPT_SUBTITLE_S_NAME, CL_OPT_SUBTITLE_L_NAME}, CL_OPT_SUBTITLE_DESC, u"subtitle"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_SUBTITLE_STRICT{{CL_OPT_SUBTITLE_STRICT_S_NAME, CL_OPT_SUBTITLE_STRICT_L_NAME}, CL_OPT_SUBTITLE_STRICT_DESC, u"subtitle-strict"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_RAND{{CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, u"random"_s}; // Takes value
 
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_TITLE_STRICT, &CL_OPTION_SUBTITLE,
                                                                               &CL_OPTION_SUBTITLE_STRICT, &CL_OPTION_RAND};
 
 public:
     // Meta
-    static inline const QString NAME = QSL("title-command");
+    static inline const QString NAME = u"title-command"_s;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:

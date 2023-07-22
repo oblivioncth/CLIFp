@@ -21,7 +21,7 @@ QString TSleep::name() const { return NAME; }
 QStringList TSleep::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".duration() = " + QString::number(mDuration));
+    ml.append(u".duration() = "_s + QString::number(mDuration));
     return ml;
 }
 

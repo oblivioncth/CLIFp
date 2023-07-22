@@ -24,8 +24,8 @@ public:
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, QSL("")},
-        {NotFound, QSL("Could not find an extra to display.")}
+        {NoError, u""_s},
+        {NotFound, u"Could not find an extra to display."_s}
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -56,13 +56,13 @@ class TExtra : public Task
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TExtra");
+    static inline const QString NAME = u"TExtra"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_SHOW_EXTRA = QSL("Opened folder of extra %1");
+    static inline const QString LOG_EVENT_SHOW_EXTRA = u"Opened folder of extra %1"_s;
 
     // Errors
-    static inline const QString ERR_EXTRA_NOT_FOUND = QSL("The extra %1 does not exist!");
+    static inline const QString ERR_EXTRA_NOT_FOUND = u"The extra %1 does not exist!"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
