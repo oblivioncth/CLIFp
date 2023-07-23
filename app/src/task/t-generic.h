@@ -1,9 +1,6 @@
 #ifndef TGENERIC_H
 #define TGENERIC_H
 
-// Qx Includes
-#include <qx/core/qx-genericerror.h>
-
 // Project Includes
 #include "task/task.h"
 
