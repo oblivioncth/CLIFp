@@ -208,55 +208,6 @@ CLIFp displays a system tray icon so that one can be sure it is still running. T
 
 The functionality of the tray icon may be expanded upon in future releases.
 
-## Exit Codes
-Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
-
-**Windows:**
-
-    start /wait CLIFp.exe [parameters]
-    echo %errorlevel%
-
-**Linux:**
-
-    ./clifp [parameters]
-    echo $?
-
-
-| Value | Code                     | Description                                                                                               |
-|-------|--------------------------|-----------------------------------------------------------------------------------------------------------|
-| 0     | NO_ERR                   | The application completed successfully                                                                    |
-| 1     | ALREADY_OPEN             | Another instance of CLIFp is already running                                                              |
-| 2     | INVALID_ARGS             | The arguments provided were not recognized or were formatted incorrectly                                  |
-| 3     | LAUNCHER_OPEN            | The application could not start because the Flashpoint Launcher is currently open                         |
-| 4     | INSTALL_INVALID          | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |
-| 5     | CONFIG_SERVER_MISSING    | The server entry specified in config.json was not found in services.json                                  |
-| 6     | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
-| 7     | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
-| 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
-| 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
-| 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 11    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
-| 12    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
-| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
-| 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
-| 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
-| 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
-| 17    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
-| 18    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
-| 19    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
-| 20    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
-| 21    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
-| 22    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
-| 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
-| 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
-| 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
-| 26    | CANT_LISTEN_DOCKER       | CLIFp could not connect to Docker to listen for the server's start signal                                 |
-| 27    | DOCKER_DIDNT_START       | The docker server never started                                                                           |
-| 28    | TOO_MANY_RESULTS         | Too many results were returned from a database query                                                      |
-| 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
-| 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
-| 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |
-
 ## Limitations
 
  - Although general compatibility is quite high, compatibility with every single title cannot be assured. Issues with a title or group of titles will be fixed as they are discovered
