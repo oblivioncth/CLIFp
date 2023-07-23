@@ -76,7 +76,7 @@ private:
                                                     "as the filename"_s;
 
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_PATH{{CL_OPT_PATH_S_NAME, CL_OPT_PATH_L_NAME}, CL_OPT_PATH_DESC, u"path"s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_PATH{{CL_OPT_PATH_S_NAME, CL_OPT_PATH_L_NAME}, CL_OPT_PATH_DESC, u"path"_s}; // Takes value
 
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_PATH};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_REQUIRED{};
