@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 11.1)
+set(TARGET_FP_VERSION_PREFIX 12.0)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
