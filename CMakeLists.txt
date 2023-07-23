@@ -72,7 +72,7 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "6812df5c1fe1c584a9dfa0ded76db8727ca059b5"
+    REF "5c4b3a0f84f6d4e42da9a431f887aafdfb9aae32"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
@@ -118,4 +118,3 @@ ob_standard_project_misc_install()
 
 include(OB/Packaging)
 ob_standard_project_package(VENDOR "oblivioncth")
-

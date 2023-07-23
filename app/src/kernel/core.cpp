@@ -418,7 +418,7 @@ CoreError Core::enqueueStartupTasks()
     xhostSet->setStage(Task::Stage::Startup);
     xhostSet->setExecutable(u"xhost"_s);
     xhostSet->setDirectory(mFlashpointInstall->fullPath());
-    xhostSet->setParameters({"+SI:localuser:root"});
+    xhostSet->setParameters({u"+SI:localuser:root"_s});
     xhostSet->setProcessType(TExec::ProcessType::Blocking);
 
     mTaskQueue.push(xhostSet);
