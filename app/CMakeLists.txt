@@ -134,7 +134,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
         FILE_VER ${PROJECT_VERSION}
         PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
         COMPANY_NAME "oblivioncth"
-        FILE_DESC "CLI for BlueMaxima's Flashpoint"
+        FILE_DESC "CLI for Flashpoint Archive"
         INTERNAL_NAME "CLIFp"
         COPYRIGHT "Open Source @ 2022 oblivioncth"
         TRADEMARKS_ONE "All Rights Reserved"

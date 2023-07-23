@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.24.0...3.25.0)
 project(CLIFp
     VERSION 0.9.4.1
     LANGUAGES CXX
-    DESCRIPTION "Command-line Interface for Flashpoint"
+    DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
 
 # Get helper scripts
@@ -79,7 +79,7 @@ ob_fetch_qx(
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("12fb5e56c105a9e66c1e214d403722f721015789")
+ob_fetch_libfp("7107ca019544ae8c656ff7280f6f46f7c921ac8d")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
