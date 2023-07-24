@@ -1,7 +1,7 @@
 # CLIFp (Command-line Interface for Flashpoint)
 <img align="left" src="https://i.imgur.com/U6aDFSt.png" width=20%>
 
-CLIFp (pronounced "Cliff-P") is a command-line interface for [BlueMaxima's Flashpoint](https://bluemaxima.org/flashpoint/) project that allows starting games/animations from within the collection via a system's command parser and contextual arguments. While it is a separate application, CLIFp functions closely to that of a native CLI by parsing the configuration of the Flashpoint install it is deployed into and therefore launches games/animation in the same manner as the standard GUI launcher.
+CLIFp (pronounced "Cliff-P") is a command-line interface for [Flashpoint Archive](https://flashpointarchive.org/) that allows starting games/animations from within the collection via a system's command parser and contextual arguments. While it is a separate application, CLIFp functions closely to that of a native CLI by parsing the configuration of the Flashpoint install it is deployed into and therefore launches games/animation in the same manner as the standard GUI launcher.
 
 Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completely in the background so that the only windows seen during use are the same ones present while running standard Flashpoint. It automatically terminates once the target application has exited, requiring no manual tasks or clean-up by the user. 
 
@@ -22,7 +22,7 @@ All Flashpoint features are supported, other than editing the local database and
 While testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection. Games are slightly prioritized when it comes to testing the application however.
 
 ### Version Matching
-Each release of this application targets a specific version series of BlueMaxima’s Flashpoint, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of Flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
+Each release of this application targets a specific version series of Flashpoint Archive, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of Flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
 
 Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however**, given its design, CLIFp is likely to continue working with newer versions of FP that are released without requiring an update, unless that new version contains significant technical changes.
 
@@ -207,55 +207,6 @@ With any use of the **--title** option for the commands that support it the titl
 CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on and features a context menu with an option to exit at any time.
 
 The functionality of the tray icon may be expanded upon in future releases.
-
-## Exit Codes
-Once CLIFp has finished executing an exit code is reported that indicates the "error status" of the program, which can be useful for recording/determining issues. The exit code can be obtained by running the application in the following manner, or by examining CLIFp.log:
-
-**Windows:**
-
-    start /wait CLIFp.exe [parameters]
-    echo %errorlevel%
-
-**Linux:**
-
-    ./clifp [parameters]
-    echo $?
-
-
-| Value | Code                     | Description                                                                                               |
-|-------|--------------------------|-----------------------------------------------------------------------------------------------------------|
-| 0     | NO_ERR                   | The application completed successfully                                                                    |
-| 1     | ALREADY_OPEN             | Another instance of CLIFp is already running                                                              |
-| 2     | INVALID_ARGS             | The arguments provided were not recognized or were formatted incorrectly                                  |
-| 3     | LAUNCHER_OPEN            | The application could not start because the Flashpoint Launcher is currently open                         |
-| 4     | INSTALL_INVALID          | The Flashpoint install that CLIFp is deployed in is corrupted or not compatible with its current version  |
-| 5     | CONFIG_SERVER_MISSING    | The server entry specified in config.json was not found in services.json                                  |
-| 6     | SQL_ERROR                | An unexpected SQL error occurred while reading flashpoint.sqlite                                          |
-| 7     | SQL_MISMATCH             | Received  a  different  form  of  result  from  an  SQL  query  than  expected                            |
-| 8     | EXECUTABLE_NOT_FOUND     | An enqueued executable was not found at the specified path                                                |
-| 9     | EXECUTABLE_NOT_VALID     | An file with the name of an enqueued executable was found but is not actually an executable               |
-| 10    | PROCESS_START_FAIL       | An enqueued executable failed to start                                                                    |
-| 11    | WAIT_PROCESS_NOT_HANDLED | A handle to a "wait-on" process (usually for .bat based titles) could not be obtained                     |
-| 12    | WAIT_PROCESS_NOT_HOOKED  | A wait task returned before its "wait-on" process (usually for .bat based titles) finished executing      |
-| 13    | CANT_READ_BAT_FILE       | Failed to read a batch script for checking if it contains a use of a "wait-on" process                    |
-| 14    | ID_NOT_VALID             | The specified string is not a valid 128-bit UUID                                                          |
-| 15    | ID_NOT_FOUND             | The specified UUID is not associated with any title in the Flashpoint database                            |
-| 16    | ID_DUPLICATE             | The specified UUID is associated with more than one title (possible collision)                            |
-| 17    | TITLE_NOT_FOUND          | The specified title was not found in the Flashpoint database                                              |
-| 18    | CANT_OBTAIN_DATA_PACK    | Failed to download the selected title's Data Pack                                                         |
-| 19    | DATA_PACK_INVALID        | The selected title's Data Pack checksum did not match it's known value after download                     |
-| 20    | EXTRA_NOT_FOUND          | The specified or auto-determined extra was not found in the Extras folder                                 |
-| 21    | QMP_CONNECTION_FAIL      | CLIFp failed to connect to Flashpoint's QEMU instance via QMP                                             |
-| 22    | QMP_COMMUNICATION_FAIL   | A communication error occurred with Flashpoint's QEMU instance                                            |
-| 23    | QMP_COMMAND_FAIL         | A command error occurred with Flashpoint's QEMU instance                                                  |
-| 24    | PHP_MOUNT_FAIL           | The QEMU server failed to mount a data pack                                                               |
-| 25    | PACK_EXTRACT_FAIL        | Data pack extraction failed                                                                               |
-| 26    | CANT_LISTEN_DOCKER       | CLIFp could not connect to Docker to listen for the server's start signal                                 |
-| 27    | DOCKER_DIDNT_START       | The docker server never started                                                                           |
-| 28    | TOO_MANY_RESULTS         | Too many results were returned from a database query                                                      |
-| 101   | RAND_FILTER_NOT_VALID    | The provided string for random operation was not a valid filter                                           |
-| 102   | PARENT_INVALID           | The parent ID of the target additional app is missing or invalid                                          |
-| 201   | INVALID_SHORTCUT_PARAM   | The provided shortcut path is not valid or there was a permissions issue                                  |
 
 ## Limitations
 

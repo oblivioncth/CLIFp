@@ -23,7 +23,7 @@ Task::Task(QObject* parent) :
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
-QStringList Task::members() const { return {".stage() = " + ENUM_NAME(mStage)}; }
+QStringList Task::members() const { return {u".stage() = "_s + ENUM_NAME(mStage)}; }
 
 Task::Stage Task::stage() const { return mStage; }
 void Task::setStage(Stage stage) { mStage = stage; }

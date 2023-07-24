@@ -16,6 +16,29 @@
 #include "utility.h"
 
 //===============================================================================================================
+// MounterError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+MounterError::MounterError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool MounterError::isValid() const { return mType != NoError; }
+QString MounterError::specific() const { return mSpecific; }
+MounterError::Type MounterError::type() const { return mType; }
+
+//Private:
+Qx::Severity MounterError::deriveSeverity() const { return Qx::Critical; }
+quint32 MounterError::deriveValue() const { return mType; }
+QString MounterError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString MounterError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // Mounter
 //===============================================================================================================
 
@@ -24,12 +47,11 @@
 Mounter::Mounter(QObject* parent) :
     QObject(parent),
     mMounting(false),
-    mErrorStatus(ErrorCode::NO_ERR),
+    mErrorStatus(MounterError(), ERROR_STATUS_CMP),
     mWebServerPort(0),
     mQemuMounter(QHostAddress::LocalHost, 0),
     mQemuProdder(QHostAddress::LocalHost, 0), // Currently not used
-    mQemuEnabled(true),
-    mCompletedQemuCommands(0)
+    mQemuEnabled(true)
 {
     // Setup Network Access Manager
     mNam.setAutoDeleteReplies(true);
@@ -40,6 +62,7 @@ Mounter::Mounter(QObject* parent) :
 
     // Connections - Work
     connect(&mQemuMounter, &Qmpi::readyForCommands, this, &Mounter::qmpiReadyForCommandsHandler);
+    connect(&mQemuMounter, &Qmpi::commandQueueExhausted, this, &Mounter::qmpiCommandsExhaustedHandler);
     connect(&mQemuMounter, &Qmpi::finished, this, &Mounter::qmpiFinishedHandler);
     connect(&mNam, &QNetworkAccessManager::finished, this, &Mounter::phpMountFinishedHandler);
 
@@ -57,18 +80,18 @@ Mounter::Mounter(QObject* parent) :
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
      */
     connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
-        emit eventOccured("Unexpected use of authentication by PHP server!");
+        emit eventOccured(u"Unexpected use of authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
-        emit eventOccured("Unexpected use of PSK authentication by PHP server!");
+        emit eventOccured(u"Unexpected use of PSK authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
-        emit eventOccured("Unexpected use of proxy by PHP server!");
+        emit eventOccured(u"Unexpected use of proxy by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
         Q_UNUSED(reply);
-        QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, ",");
-        emit eventOccured("Unexpected SSL errors from PHP server! {" + errStrList + "}");
+        QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, u","_s);
+        emit eventOccured(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
     });
 }
 
@@ -76,12 +99,11 @@ Mounter::Mounter(QObject* parent) :
 //Private:
 void Mounter::finish()
 {
-    ErrorCode code = mErrorStatus.value();
+    MounterError err = mErrorStatus.value();
     mErrorStatus.reset();
     mMounting = false;
     mCurrentMountInfo = {};
-    mCompletedQemuCommands = 0;
-    emit mountFinished(code);
+    emit mountFinished(err);
 }
 
 void Mounter::createMountPoint()
@@ -89,23 +111,23 @@ void Mounter::createMountPoint()
     emit eventOccured(EVENT_CREATING_MOUNT_POINT);
 
     // Build commands
-    QString blockDevAddCmd = "blockdev-add";
-    QString deviceAddCmd = "device_add";
+    QString blockDevAddCmd = u"blockdev-add"_s;
+    QString deviceAddCmd = u"device_add"_s;
 
     QJsonObject blockDevAddArgs;
-    blockDevAddArgs["node-name"] = mCurrentMountInfo.driveId;
-    blockDevAddArgs["driver"] = "raw";
-    blockDevAddArgs["read-only"] = true;
+    blockDevAddArgs[u"node-name"_s] = mCurrentMountInfo.driveId;
+    blockDevAddArgs[u"driver"_s] = u"raw"_s;
+    blockDevAddArgs[u"read-only"_s] = true;
     QJsonObject fileArgs;
-    fileArgs["driver"] = "file";
-    fileArgs["filename"] = mCurrentMountInfo.filePath;
-    blockDevAddArgs["file"] = fileArgs;
+    fileArgs[u"driver"_s] = u"file"_s;
+    fileArgs[u"filename"_s] = mCurrentMountInfo.filePath;
+    blockDevAddArgs[u"file"_s] = fileArgs;
 
     QJsonObject deviceAddArgs;
-    deviceAddArgs["driver"] = "virtio-blk-pci";
-    deviceAddArgs["drive"] = mCurrentMountInfo.driveId;
-    deviceAddArgs["id"] = mCurrentMountInfo.driveId;
-    deviceAddArgs["serial"] = mCurrentMountInfo.driveSerial;
+    deviceAddArgs[u"driver"_s] = u"virtio-blk-pci"_s;
+    deviceAddArgs[u"drive"_s] = mCurrentMountInfo.driveId;
+    deviceAddArgs[u"id"_s] = mCurrentMountInfo.driveId;
+    deviceAddArgs[u"serial"_s] = mCurrentMountInfo.driveSerial;
 
     // Log formatter
     QJsonDocument formatter;
@@ -115,12 +137,12 @@ void Mounter::createMountPoint()
     formatter.setObject(blockDevAddArgs);
     cmdLog = formatter.toJson(QJsonDocument::Compact);
     mQemuMounter.execute(blockDevAddCmd, blockDevAddArgs,
-                         blockDevAddCmd + " " + cmdLog);
+                         blockDevAddCmd + ' ' + cmdLog);
 
     formatter.setObject(deviceAddArgs);
     cmdLog = formatter.toJson(QJsonDocument::Compact);
     mQemuMounter.execute(deviceAddCmd, deviceAddArgs,
-                         deviceAddCmd + " " + cmdLog);
+                         deviceAddCmd + ' ' + cmdLog);
 
     // Await finished() signal...
 }
@@ -131,13 +153,13 @@ void Mounter::setMountOnServer()
 
     // Create mount request
     QUrl mountUrl;
-    mountUrl.setScheme("http");
-    mountUrl.setHost("127.0.0.1");
+    mountUrl.setScheme(u"http"_s);
+    mountUrl.setHost(u"127.0.0.1"_s);
     mountUrl.setPort(mWebServerPort);
-    mountUrl.setPath("/mount.php");
+    mountUrl.setPath(u"/mount.php"_s);
 
     QUrlQuery query;
-    QString queryKey = "file";
+    QString queryKey = u"file"_s;
     QString queryValue = QUrl::toPercentEncoding(mQemuEnabled ? mCurrentMountInfo.driveSerial :
                                                                 QFileInfo(mCurrentMountInfo.filePath).fileName());
     query.addQueryItem(queryKey, queryValue);
@@ -189,6 +211,12 @@ void Mounter::qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities)
     emit eventOccured(EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
 }
 
+void Mounter::qmpiCommandsExhaustedHandler()
+{
+    emit eventOccured(EVENT_DISCONNECTING_FROM_QEMU);
+    mQemuMounter.disconnectFromHost();
+}
+
 void Mounter::qmpiFinishedHandler()
 {
     if(mErrorStatus.isSet())
@@ -206,9 +234,10 @@ void Mounter::phpMountFinishedHandler(QNetworkReply* reply)
     // FP (as of 11) is currently bugged and is expected to give an internal server error so it must be ignored
     if(reply->error() != QNetworkReply::NoError && reply->error() != QNetworkReply::InternalServerError)
     {
-        mErrorStatus = ErrorCode::PHP_MOUNT_FAIL;
-        Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, reply->errorString());
-        emit errorOccured(errMsg);
+        MounterError err(MounterError::PhpMount, reply->errorString());
+        mErrorStatus = err;
+
+        emit errorOccured(err);
         finish();
     }
     else
@@ -220,43 +249,41 @@ void Mounter::phpMountFinishedHandler(QNetworkReply* reply)
 
 void Mounter::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
 {
-    mErrorStatus = ErrorCode::QMP_CONNECTION_FAIL;
-    QString errStr = ENUM_NAME(error);
-    Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(errStr));
-    emit errorOccured(errMsg);
+    MounterError err(MounterError::QemuConnection, ENUM_NAME(error));
+    mErrorStatus = err;
+
+    emit errorOccured(err);
 }
 
 void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
 {
-    mErrorStatus = ErrorCode::QMP_COMMUNICATION_FAIL;
-    QString errStr = ENUM_NAME(error);
-    Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_COMMUNICATION.arg(errStr));
-    emit errorOccured(errMsg);
+    MounterError err(MounterError::QemuCommunication, ENUM_NAME(error));
+    mErrorStatus = err;
+
+    emit errorOccured(err);
 }
 
 void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, std::any context)
 {
-    mErrorStatus = ErrorCode::QMP_COMMAND_FAIL;
     QString commandErr = ERR_QMP_COMMAND.arg(std::any_cast<QString>(context), errorClass, description);
-    Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, commandErr);
-    emit errorOccured(errMsg);
+
+    MounterError err(MounterError::QemuCommand, commandErr);
+    mErrorStatus = err;
+
+    emit errorOccured(err);
     mQemuMounter.abort();
 }
 
 void Mounter::qmpiCommandResponseHandler(QJsonValue value, std::any context)
 {
-    mCompletedQemuCommands++;
-    emit eventOccured(EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::Json::asString(value)));
-
-    if(mCompletedQemuCommands == 2)
-        mQemuMounter.disconnectFromHost();
+    emit eventOccured(EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::asString(value)));
 }
 
 void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime timestamp)
 {
     QJsonDocument formatter(data);
     QString dataStr = formatter.toJson(QJsonDocument::Compact);
-    QString timestampStr = timestamp.toString("hh:mm:s s.zzz");
+    QString timestampStr = timestamp.toString(u"hh:mm:s s.zzz"_s);
     emit eventOccured(EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
 }
 
@@ -291,7 +318,7 @@ void Mounter::mount(QUuid titleId, QString filePath)
 
     // Log info
     logMountInfo(mCurrentMountInfo);
-    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? "is" : "isn't"));
+    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? u"is"_s : u"isn't"_s));
 
     // Connect to QEMU instance, or go straight to web server portion if bypassing
     if(mQemuEnabled)
@@ -309,9 +336,10 @@ void Mounter::abort()
     if(mQemuMounter.isConnectionActive())
     {
         // Aborting this doesn't cause an error so we must set one here manually.
-        mErrorStatus = ErrorCode::QMP_CONNECTION_FAIL;
-        Qx::GenericError errMsg(Qx::GenericError::Critical, MOUNT_ERROR_TEXT, ERR_QMP_CONNECTION.arg(ERR_QMP_CONNECTION_ABORT));
-        emit errorOccured(errMsg);
+        MounterError err(MounterError::QemuConnection, ERR_QMP_CONNECTION_ABORT);
+        mErrorStatus = err;
+
+        emit errorOccured(err);
         mQemuMounter.abort(); // Call last here because it causes finished signal to emit immediately
     }
     if(mPhpMountReply && mPhpMountReply->isRunning())

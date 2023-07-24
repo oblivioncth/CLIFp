@@ -1,45 +1,41 @@
-#ifndef TMESSAGE_H
-#define TMESSAGE_H
-
-// Qx Includes
-#include <qx/utility/qx-macros.h>
+#ifndef TGENERIC_H
+#define TGENERIC_H
 
 // Project Includes
 #include "task/task.h"
 
-class TMessage : public Task
+class TGeneric : public Task
 {
     Q_OBJECT;
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = u"TMessage"_s;
+    static inline const QString NAME = u"TGeneric"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_SHOW_MESSAGE = u"Displayed message"_s;
+    static inline const QString LOG_EVENT_START_ACTION = u"Starting generic action: %1"_s;
+    static inline const QString LOG_EVENT_END_ACTION = u"Finished generic action."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
-    // Data
-    QString mMessage;
-    bool mModal;
+    QString mDescription;
+    std::function<Qx::Error()> mAction;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TMessage(QObject* parent);
+    TGeneric(QObject* parent);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:
     QString name() const override;
     QStringList members() const override;
 
-    QString message() const;
-    bool isModal() const;
-
-    void setMessage(QString message);
-    void setModal(bool modal);
+    QString description() const;
+    void setDescription(const QString& desc);
+    void setAction(std::function<Qx::Error()> action);
 
     void perform() override;
+    //void stop() override; Not supported, so try to keep these short
 };
 
-#endif // TMESSAGE_H
+#endif // TGENERIC_H

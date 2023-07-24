@@ -4,9 +4,33 @@
 // Qx Includes
 #include <qx_windows.h>
 #include <qx/core/qx-system.h>
+#include <qx/core/qx-error.h>
 
 // Windows Include
 #include <shellapi.h>
+
+//===============================================================================================================
+// ProcessBiderError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+ProcessBiderError::ProcessBiderError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool ProcessBiderError::isValid() const { return mType != NoError; }
+QString ProcessBiderError::specific() const { return mSpecific; }
+ProcessBiderError::Type ProcessBiderError::type() const { return mType; }
+
+//Private:
+Qx::Severity ProcessBiderError::deriveSeverity() const { return Qx::Warning; }
+quint32 ProcessBiderError::deriveValue() const { return mType; }
+QString ProcessBiderError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString ProcessBiderError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
 // ProcessBider
@@ -32,8 +56,8 @@ bool ProcessBider::closeAdminProcess(DWORD processId, bool force)
     // Setup taskkill args
     QString tkArgs;
     if(force)
-        tkArgs += "/F ";
-    tkArgs += "/PID ";
+        tkArgs += u"/F "_s;
+    tkArgs += u"/PID "_s;
     tkArgs += QString::number(processId);
     const std::wstring tkArgsStd = tkArgs.toStdWString();
 
@@ -74,7 +98,7 @@ bool ProcessBider::closeAdminProcess(DWORD processId, bool force)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-ErrorCode ProcessBider::doWait()
+ProcessBiderError ProcessBider::doWait()
 {
     // Lock other threads from interaction while managing process handle
     QMutexLocker handleLocker(&mProcessHandleMutex);
@@ -100,11 +124,11 @@ ErrorCode ProcessBider::doWait()
             DWORD rights = PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE;
             if((mProcessHandle = OpenProcess(rights, FALSE, spProcessId)) == NULL)
             {
-                Qx::GenericError nativeError = Qx::translateHresult(HRESULT_FROM_WIN32(GetLastError()));
+                Qx::SystemError nativeError = Qx::SystemError::fromHresult(HRESULT_FROM_WIN32(GetLastError()));
+                ProcessBiderError err(ProcessBiderError::HandleAquisition, nativeError.cause());
 
-                emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HANDLED_P.arg(mProcessName),
-                                                   nativeError.primaryInfo()));
-                return ErrorCode::BIDE_PROCESS_NOT_HANDLED;
+                emit errorOccured(err);
+                return err;
             }
 
             // Attempt to wait on process to terminate
@@ -122,11 +146,11 @@ ErrorCode ProcessBider::doWait()
              */
             if(waitError != WAIT_OBJECT_0)
             {
-                Qx::GenericError nativeError = Qx::translateHresult(HRESULT_FROM_WIN32(GetLastError()));
+                Qx::SystemError nativeError = Qx::SystemError::fromHresult(HRESULT_FROM_WIN32(GetLastError()));
+                ProcessBiderError err(ProcessBiderError::ProcessHook, nativeError.cause());
 
-                emit errorOccured(Qx::GenericError(Qx::GenericError::Warning, WRN_WAIT_PROCESS_NOT_HOOKED_P.arg(mProcessName),
-                                                   nativeError.primaryInfo()));
-                return ErrorCode::BIDE_PROCESS_NOT_HOOKED;
+                emit errorOccured(err);
+                return err;
             }
             emit statusChanged(LOG_EVENT_BIDE_QUIT.arg(mProcessName));
         }
@@ -135,12 +159,12 @@ ErrorCode ProcessBider::doWait()
 
     // Return success
     emit statusChanged(LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
-    return ErrorCode::NO_ERR;
+    return ProcessBiderError();
 }
 
 void ProcessBider::run()
 {
-    ErrorCode status = doWait();
+    ProcessBiderError status = doWait();
     emit bideFinished(status);
 }
 

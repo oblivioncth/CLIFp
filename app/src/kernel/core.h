@@ -24,6 +24,60 @@
 #include "task/task.h"
 #include "project_vars.h"
 
+// General Aliases
+using ErrorCode = quint32;
+
+class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
+{
+    friend class Core;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        InvalidOptions = 1,
+        TitleNotFound = 2,
+        TooManyResults = 3,
+        ConfiguredServerMissing = 4,
+        DataPackSumMismatch = 5,
+        DataPackSourceMissing = 6
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, u""_s},
+        {InvalidOptions, u"Invalid global options provided."_s},
+        {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
+        {TooManyResults, u"More results than can be presented were returned in a search."_s},
+        {ConfiguredServerMissing, u"The server specified in the Flashpoint config was not found within the Flashpoint services store."_s},
+        {DataPackSumMismatch, u"The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded."_s},
+        {DataPackSourceMissing, u"The expected primary data pack source was missing."_s}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+    Qx::Severity mSeverity;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    CoreError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class Core : public QObject
 {
     Q_OBJECT;
@@ -36,13 +90,13 @@ public:
     struct Error
     {
         QString source;
-        Qx::GenericError errorInfo;
+        Qx::Error errorInfo;
     };
 
     struct BlockingError
     {
         QString source;
-        Qx::GenericError errorInfo;
+        Qx::Error errorInfo;
         QMessageBox::StandardButtons choices;
         QMessageBox::StandardButton defaultChoice;
     };
@@ -66,77 +120,65 @@ public:
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
     // Status
-    static inline const QString STATUS_DISPLAY = QSL("Displaying");
-    static inline const QString STATUS_DISPLAY_HELP = QSL("Help");
-    static inline const QString STATUS_DISPLAY_VERSION = QSL("Version");
-
-    // Error Messages - Prep
-    static inline const QString ERR_UNEXPECTED_SQL = QSL("Unexpected SQL error while querying the Flashpoint database:");
-    static inline const QString ERR_SQL_MISMATCH = QSL("Received a different form of result from an SQL query than expected.");
-    static inline const QString ERR_CONFIG_SERVER_MISSING = QSL("The server specified in the Flashpoint config was not found within the Flashpoint services store.");
-    static inline const QString ERR_ID_INVALID = QSL("The provided string was not a valid GUID/UUID.");
-    static inline const QString ERR_ID_NOT_FOUND = QSL("An entry matching the specified ID could not be found in the Flashpoint database.");
-    static inline const QString ERR_TITLE_NOT_FOUND = QSL("The provided title was not found in the Flashpoint database.");
-    static inline const QString WRN_EXIST_PACK_SUM_MISMATCH = QSL("The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded.");
-
-    // Error Messages - Helper
-    static inline const QString ERR_FIND_TOO_MANY_RESULTS = QSL("Too many titles matched the title-based query.");
+    static inline const QString STATUS_DISPLAY = u"Displaying"_s;
+    static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
+    static inline const QString STATUS_DISPLAY_VERSION = u"Version"_s;
 
     // Logging - Primary Labels
-    static inline const QString COMMAND_LABEL = QSL("Command: %1");
-    static inline const QString COMMAND_OPT_LABEL = QSL("Command Options: %1");
+    static inline const QString COMMAND_LABEL = u"Command: %1"_s;
+    static inline const QString COMMAND_OPT_LABEL = u"Command Options: %1"_s;
 
     // Logging - Primary Values
-    static inline const QString LOG_FILE_EXT = QSL("log");
-    static inline const QString LOG_NO_PARAMS = QSL("*None*");
+    static inline const QString LOG_FILE_EXT = u"log"_s;
+    static inline const QString LOG_NO_PARAMS = u"*None*"_s;
     static const int LOG_MAX_ENTRIES = 50;
 
     // Logging - Errors
-    static inline const QString LOG_ERR_INVALID_PARAM = QSL("Invalid parameters provided");
-    static inline const QString LOG_ERR_CRITICAL = QSL("Aborting execution due to previous critical errors");
+    static inline const QString LOG_ERR_INVALID_PARAM = u"Invalid parameters provided"_s;
+    static inline const QString LOG_ERR_CRITICAL = u"Aborting execution due to previous critical errors"_s;
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_INIT = QSL("Initializing CLIFp...");
-    static inline const QString LOG_EVENT_GLOBAL_OPT = QSL("Global Options: %1");
-    static inline const QString LOG_EVENT_G_HELP_SHOWN = QSL("Displayed general help information");
-    static inline const QString LOG_EVENT_VER_SHOWN = QSL("Displayed version information");
-    static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = QSL("Notification Level is: %1");
-    static inline const QString LOG_EVENT_RECOGNIZED_DAEMONS = QSL("Recognized service daemons: %1");
-    static inline const QString LOG_EVENT_ENQ_START = QSL("Enqueuing startup tasks...");
-    static inline const QString LOG_EVENT_ENQ_STOP = QSL("Enqueuing shutdown tasks...");
-    static inline const QString LOG_EVENT_ENQ_DATA_PACK = QSL("Enqueuing Data Pack tasks...");
-    static inline const QString LOG_EVENT_DATA_PACK_MISS = QSL("Title Data Pack is not available locally");
-    static inline const QString LOG_EVENT_DATA_PACK_FOUND = QSL("Title Data Pack with correct hash is already present, no need to download");
-    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = QSL("Title Data Pack requires mounting");
-    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = QSL("Title Data Pack requires extraction");
-    static inline const QString LOG_EVENT_TASK_ENQ = QSL("Enqueued %1: {%2}");
-    static inline const QString LOG_EVENT_APP_PATH_ALT = QSL("App path \"%1\" maps to alternative \"%2\".");
+    static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
+    static inline const QString LOG_EVENT_GLOBAL_OPT = u"Global Options: %1"_s;
+    static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
+    static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
+    static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = u"Notification Level is: %1"_s;
+    static inline const QString LOG_EVENT_RECOGNIZED_DAEMONS = u"Recognized service daemons: %1"_s;
+    static inline const QString LOG_EVENT_ENQ_START = u"Enqueuing startup tasks..."_s;
+    static inline const QString LOG_EVENT_ENQ_STOP = u"Enqueuing shutdown tasks..."_s;
+    static inline const QString LOG_EVENT_ENQ_DATA_PACK = u"Enqueuing Data Pack tasks..."_s;
+    static inline const QString LOG_EVENT_DATA_PACK_MISS = u"Title Data Pack is not available locally"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_FOUND = u"Title Data Pack with correct hash is already present, no need to download"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = u"Title Data Pack requires mounting"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = u"Title Data Pack requires extraction"_s;
+    static inline const QString LOG_EVENT_TASK_ENQ = u"Enqueued %1: {%2}"_s;
+    static inline const QString LOG_EVENT_APP_PATH_ALT = u"App path \"%1\" maps to alternative \"%2\"."_s;
 
     // Logging - Title Search
-    static inline const QString LOG_EVENT_GAME_SEARCH = QSL("Searching for game with title '%1'");
-    static inline const QString LOG_EVENT_ADD_APP_SEARCH = QSL("Searching for additional-app with title '%1' and parent %2");
-    static inline const QString LOG_EVENT_TITLE_ID_COUNT = QSL("Found %1 ID(s) when searching for title %2");
-    static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = QSL("Prompting user to disambiguate multiple IDs...");
-    static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = QSL("ID of title %1 determined to be %2");
-    static inline const QString LOG_EVENT_TITLE_SEL_CANCELED = QSL("Title selection was canceled by the user.");
+    static inline const QString LOG_EVENT_GAME_SEARCH = u"Searching for game with title '%1'"_s;
+    static inline const QString LOG_EVENT_ADD_APP_SEARCH = u"Searching for additional-app with title '%1' and parent %2"_s;
+    static inline const QString LOG_EVENT_TITLE_ID_COUNT = u"Found %1 ID(s) when searching for title %2"_s;
+    static inline const QString LOG_EVENT_TITLE_SEL_PROMNPT = u"Prompting user to disambiguate multiple IDs..."_s;
+    static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = u"ID of title %1 determined to be %2"_s;
+    static inline const QString LOG_EVENT_TITLE_SEL_CANCELED = u"Title selection was canceled by the user."_s;
 
     // Global command line option strings
-    static inline const QString CL_OPT_HELP_S_NAME = QSL("h");
-    static inline const QString CL_OPT_HELP_L_NAME = QSL("help");
-    static inline const QString CL_OPT_HELP_E_NAME = QSL("?");
-    static inline const QString CL_OPT_HELP_DESC = QSL("Prints this help message.");
+    static inline const QString CL_OPT_HELP_S_NAME = u"h"_s;
+    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
+    static inline const QString CL_OPT_HELP_E_NAME = u"?"_s;
+    static inline const QString CL_OPT_HELP_DESC = u"Prints this help message."_s;
 
-    static inline const QString CL_OPT_VERSION_S_NAME = QSL("v");
-    static inline const QString CL_OPT_VERSION_L_NAME = QSL("version");
-    static inline const QString CL_OPT_VERSION_DESC = QSL("Prints the current version of this tool.");
+    static inline const QString CL_OPT_VERSION_S_NAME = u"v"_s;
+    static inline const QString CL_OPT_VERSION_L_NAME = u"version"_s;
+    static inline const QString CL_OPT_VERSION_DESC = u"Prints the current version of this tool."_s;
 
-    static inline const QString CL_OPT_QUIET_S_NAME = QSL("q");
-    static inline const QString CL_OPT_QUIET_L_NAME = QSL("quiet");
-    static inline const QString CL_OPT_QUIET_DESC = QSL("Silences all non-critical messages.");
+    static inline const QString CL_OPT_QUIET_S_NAME = u"q"_s;
+    static inline const QString CL_OPT_QUIET_L_NAME = u"quiet"_s;
+    static inline const QString CL_OPT_QUIET_DESC = u"Silences all non-critical messages."_s;
 
-    static inline const QString CL_OPT_SILENT_S_NAME = QSL("s");
-    static inline const QString CL_OPT_SILENT_L_NAME = QSL("silent");
-    static inline const QString CL_OPT_SILENT_DESC = QSL("Silences all messages (takes precedence over quiet mode).");
+    static inline const QString CL_OPT_SILENT_S_NAME = u"s"_s;
+    static inline const QString CL_OPT_SILENT_L_NAME = u"silent"_s;
+    static inline const QString CL_OPT_SILENT_DESC = u"Silences all messages (takes precedence over quiet mode)."_s;
 
     // Global command line options
     static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC}; // Boolean option
@@ -148,31 +190,31 @@ public:
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_ACTIONABLE{&CL_OPTION_HELP, &CL_OPTION_VERSION};
 
     // Help template
-    static inline const QString HELP_TEMPL = QSL("<u>Usage:</u><br>"
-                                                 PROJECT_SHORT_NAME "&lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
-                                                 "<br>"
-                                                 "<u>Global Options:</u>%1<br>"
-                                                 "<br>"
-                                                 "<u>Commands:</u>%2<br>"
-                                                 "<br>"
-                                                 "Use the <b>-h</b> switch after a command to see it's specific usage notes");
-    static inline const QString HELP_OPT_TEMPL = QSL("<br><b>%1:</b> &nbsp;%2");
-    static inline const QString HELP_COMMAND_TEMPL = QSL("<br><b>%1:</b> &nbsp;%2");
+    static inline const QString HELP_TEMPL = u"<u>Usage:</u><br>"
+                                              PROJECT_SHORT_NAME "&lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
+                                              "<br>"
+                                              "<u>Global Options:</u>%1<br>"
+                                              "<br>"
+                                              "<u>Commands:</u>%2<br>"
+                                              "<br>"
+                                              "Use the <b>-h</b> switch after a command to see it's specific usage notes"_s;
+    static inline const QString HELP_OPT_TEMPL = u"<br><b>%1:</b> &nbsp;%2"_s;
+    static inline const QString HELP_COMMAND_TEMPL = u"<br><b>%1:</b> &nbsp;%2"_s;
 
     // Command line messages
-    static inline const QString CL_VERSION_MESSAGE = QSL("CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with BlueMaxima's Flashpoint " PROJECT_TARGET_FP_VER_PFX_STR " series");
+    static inline const QString CL_VERSION_MESSAGE = u"CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with Flashpoint Archive " PROJECT_TARGET_FP_VER_PFX_STR " series"_s;
 
     // Input strings
-    static inline const QString MULTI_TITLE_SEL_CAP = QSL("Title Disambiguation");
-    static inline const QString MULTI_TITLE_SEL_LABEL = QSL("Title to start:");
-    static inline const QString MULTI_GAME_SEL_TEMP = QSL("[%1] %2 (%3) {%4}");
-    static inline const QString MULTI_ADD_APP_SEL_TEMP = QSL("%1 {%2}");
+    static inline const QString MULTI_TITLE_SEL_CAP = u"Title Disambiguation"_s;
+    static inline const QString MULTI_TITLE_SEL_LABEL = u"Title to start:"_s;
+    static inline const QString MULTI_GAME_SEL_TEMP = u"[%1] %2 (%3) {%4}"_s;
+    static inline const QString MULTI_ADD_APP_SEL_TEMP = u"%1 {%2}"_s;
 
     // Helper
     static const int FIND_ENTRY_LIMIT = 20;
 
     // Meta
-    static inline const QString NAME = QSL("core");
+    static inline const QString NAME = u"core"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
@@ -203,37 +245,37 @@ private:
     void showVersion();
 
     // Helper
-    ErrorCode searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
+    Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
 
 public:
     // Setup
-    ErrorCode initialize(QStringList& commandLine);
+    Qx::Error initialize(QStringList& commandLine);
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     // Helper
     QString resolveTrueAppPath(const QString& appPath, const QString& platform);
-    ErrorCode findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
-    ErrorCode findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
+    Qx::Error findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
+    Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
-    ErrorCode enqueueStartupTasks();
+    CoreError enqueueStartupTasks();
     void enqueueShutdownTasks();
 #ifdef _WIN32
-    ErrorCode conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
+    Qx::Error conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
 #endif
-    ErrorCode enqueueDataPackTasks(QUuid targetId);
+    Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     // Notifications/Logging
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
-    void logError(QString src, Qx::GenericError error);
+    void logError(QString src, Qx::Error error);
     void logEvent(QString src, QString event);
     void logTask(QString src, const Task* task);
-    ErrorCode logFinish(QString src, ErrorCode exitCode);
-    void postError(QString src, Qx::GenericError error, bool log = true);
-    int postBlockingError(QString src, Qx::GenericError error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    ErrorCode logFinish(QString src, Qx::Error errorState);
+    void postError(QString src, Qx::Error error, bool log = true);
+    int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(QString msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);

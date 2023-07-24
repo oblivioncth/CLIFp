@@ -5,12 +5,56 @@
 #include <QThread>
 
 // Qx Includes
-#include <qx/core/qx-setonce.h>
 #include <qx/network/qx-downloadmanager.h>
 #include <qx/utility/qx-macros.h>
 
 // Project Includes
+#include "kernel/errorstatus.h"
 #include "kernel/core.h"
+
+class QX_ERROR_TYPE(DriverError, "DriverError", 1201)
+{
+    friend class Driver;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        AlreadyOpen = 1,
+        LauncherRunning = 2,
+        InvalidInstall = 3,
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, u""_s},
+        {AlreadyOpen, u"Only one instance of CLIFp can be used at a time!"_s},
+        {LauncherRunning, u"The CLI cannot be used while the Flashpoint Launcher is running."_s},
+        {InvalidInstall, u"CLIFp does not appear to be deployed in a valid Flashpoint install"_s}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    DriverError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
 
 class Driver : public QObject
 {
@@ -18,36 +62,32 @@ class Driver : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Single Instance ID
-    static inline const QString SINGLE_INSTANCE_ID = QSL("CLIFp_ONE_INSTANCE"); // Basically never change this
+    static inline const QString SINGLE_INSTANCE_ID = u"CLIFp_ONE_INSTANCE"_s; // Basically never change this
 
     // Error Messages
-    static inline const QString ERR_ALREADY_OPEN = QSL("Only one instance of CLIFp can be used at a time!");
-    static inline const QString ERR_INVALID_COMMAND = QSL(R"("%1" is not a valid command)");
-    static inline const QString ERR_LAUNCHER_RUNNING_P = QSL("The CLI cannot be used while the Flashpoint Launcher is running.");
-    static inline const QString ERR_LAUNCHER_RUNNING_S = QSL("Please close the Launcher first.");
-    static inline const QString ERR_INSTALL_INVALID_P = QSL("CLIFp does not appear to be deployed in a valid Flashpoint install");
-    static inline const QString ERR_INSTALL_INVALID_S = QSL("Check its location and compatibility with your Flashpoint version.");
+    static inline const QString ERR_LAUNCHER_RUNNING_TIP = u"Please close the Launcher first."_s;
+    static inline const QString ERR_INSTALL_INVALID_TIP = u"Check its location and compatibility with your Flashpoint version."_s;
 
     // Logging
-    static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = QSL("Searching for Flashpoint root...");
-    static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = QSL(R"(Checking if "%1" is flashpoint root)");
-    static inline const QString LOG_EVENT_FLASHPOINT_LINK = QSL(R"(Linked to Flashpoint install at: "%1")");
-    static inline const QString LOG_EVENT_TASK_COUNT = QSL("%1 task(s) to perform");
-    static inline const QString LOG_EVENT_QUEUE_START = QSL("Processing Task queue");
-    static inline const QString LOG_EVENT_TASK_START = QSL("Handling task %1 [%2] (%3)");
-    static inline const QString LOG_EVENT_TASK_FINISH = QSL("End of task %1");
-    static inline const QString LOG_EVENT_TASK_FINISH_ERR = QSL("Premature end of task %1");
-    static inline const QString LOG_EVENT_QUEUE_FINISH = QSL("Finished processing Task queue");
-    static inline const QString LOG_EVENT_ENDING_CHILD_PROCESSES = QSL("Closing deferred processes...");
-    static inline const QString LOG_EVENT_CLEANUP_START = QSL("Cleaning up...");
-    static inline const QString LOG_EVENT_CLEANUP_FINISH = QSL("Finished cleanup");
-    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = QSL("Task skipped due to previous errors");
-    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = QSL("Task skipped because the application is quitting");
-    static inline const QString LOG_EVENT_QUIT_REQUEST = QSL("Received quit request");
-    static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = QSL("Received redundant quit request");
+    static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
+    static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = uR"(Checking if u"%1"_s is flashpoint root)"_s;
+    static inline const QString LOG_EVENT_FLASHPOINT_LINK = uR"(Linked to Flashpoint install at: u"%1"_s)"_s;
+    static inline const QString LOG_EVENT_TASK_COUNT = u"%1 task(s) to perform"_s;
+    static inline const QString LOG_EVENT_QUEUE_START = u"Processing Task queue"_s;
+    static inline const QString LOG_EVENT_TASK_START = u"Handling task %1 [%2] (%3)"_s;
+    static inline const QString LOG_EVENT_TASK_FINISH = u"End of task %1"_s;
+    static inline const QString LOG_EVENT_TASK_FINISH_ERR = u"Premature end of task %1"_s;
+    static inline const QString LOG_EVENT_QUEUE_FINISH = u"Finished processing Task queue"_s;
+    static inline const QString LOG_EVENT_ENDING_CHILD_PROCESSES = u"Closing deferred processes..."_s;
+    static inline const QString LOG_EVENT_CLEANUP_START = u"Cleaning up..."_s;
+    static inline const QString LOG_EVENT_CLEANUP_FINISH = u"Finished cleanup"_s;
+    static inline const QString LOG_EVENT_TASK_SKIP_ERROR = u"Task skipped due to previous errors"_s;
+    static inline const QString LOG_EVENT_TASK_SKIP_QUIT = u"Task skipped because the application is quitting"_s;
+    static inline const QString LOG_EVENT_QUIT_REQUEST = u"Received quit request"_s;
+    static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = u"Received redundant quit request"_s;
 
     // Meta
-    static inline const QString NAME = QSL("driver");
+    static inline const QString NAME = u"driver"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
@@ -66,7 +106,7 @@ private:
      * construct core after Driver is already moved to the new thread.
     */
 
-    Qx::SetOnce<ErrorCode> mErrorStatus;
+    ErrorStatus mErrorStatus;
 
     Task* mCurrentTask;
     int mCurrentTaskNumber;
@@ -93,7 +133,7 @@ private:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
-    void completeTaskHandler(ErrorCode ec = ErrorCode::NO_ERR);
+    void completeTaskHandler(Qx::Error e = {});
 
 public slots:
     // Worker main
