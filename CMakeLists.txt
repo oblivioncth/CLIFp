@@ -1,19 +1,19 @@
 #================= Project Setup ==========================
 
 # CMake
-cmake_minimum_required(VERSION 3.24.0...3.25.0)
+cmake_minimum_required(VERSION 3.24.0...3.26.0)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.4.1
+    VERSION 0.9.5
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.3")
+fetch_ob_cmake("v0.3.2")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -72,18 +72,18 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "5c4b3a0f84f6d4e42da9a431f887aafdfb9aae32"
+    REF "v0.5.1"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("7107ca019544ae8c656ff7280f6f46f7c921ac8d")
+ob_fetch_libfp("v0.4")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("b99be49cd0ec71f9c3c398676be147cb68452bb9")
+ob_fetch_qi_qmp("v0.2.2")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
