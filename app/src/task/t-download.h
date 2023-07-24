@@ -8,22 +8,61 @@
 // Project Includes
 #include "task/task.h"
 
+class QX_ERROR_TYPE(TDownloadError, "TDownloadError", 1252)
+{
+    friend class TDownload;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        ChecksumMismatch = 1,
+        Incomeplete = 2
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, u""_s},
+        {ChecksumMismatch, u"The title's Data Pack checksum does not match its record!"_s},
+        {Incomeplete, u"The download could not be completed."_s}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    TDownloadError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class TDownload : public Task
 {
     Q_OBJECT;
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TDownload");
+    static inline const QString NAME = u"TDownload"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = QSL("Downloading Data Pack %1");
-    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = QSL("Data Pack downloaded successfully");
-    static inline const QString LOG_EVENT_DOWNLOAD_AUTH = QSL("Data Pack download unexpectedly requires authentication (%1)");
-    static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = QSL("Stopping current download(s)...");
-
-    // Errors
-    static inline const QString ERR_PACK_SUM_MISMATCH = QSL("The title's Data Pack checksum does not match its record!");
+    static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = u"Downloading Data Pack %1"_s;
+    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = u"Data Pack downloaded successfully"_s;
+    static inline const QString LOG_EVENT_DOWNLOAD_AUTH = u"Data Pack download unexpectedly requires authentication (%1)"_s;
+    static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = u"Stopping current download(s)..."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -42,7 +81,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TDownload(QObject* parent = nullptr);
+    TDownload(QObject* parent);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 public:

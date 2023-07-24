@@ -9,9 +9,6 @@
 #include <qx/windows/qx-common-windows.h>
 #include <qx/utility/qx-macros.h>
 
-// Project Includes
-#include "kernel/errorcode.h"
-
 /* This uses the approach of sub-classing QThread instead of the worker/object model. This means that by default there is no event
  * loop running in the new thread (not needed with current setup), and that only the contents of run() take place in the new thread,
  * with everything else happening in the thread that contains the instance of this class.
@@ -31,21 +28,59 @@
  * handle the quit upon its next event loop cycle.
  */
 
+class QX_ERROR_TYPE(ProcessBiderError, "ProcessBiderError", 1233)
+{
+    friend class ProcessBider;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        HandleAquisition = 1,
+        ProcessHook = 2
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, u""_s},
+        {HandleAquisition, u"Could not get a wait handle to a restartable process, the title will likely not work correctly."_s},
+        {ProcessHook, u"Could not hook a restartable process for waiting, the title will likely not work correctly."_s},
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    ProcessBiderError(Type t = NoError, const QString& s = {});
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class ProcessBider : public QThread
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
-    // Error Messages
-    static inline const QString WRN_WAIT_PROCESS_NOT_HANDLED_P  = QSL("Could not get a wait handle to %1, the title will likely not work correctly.");
-    static inline const QString WRN_WAIT_PROCESS_NOT_HOOKED_P  = QSL("Could not hook %1 for waiting, the title will likely not work correctly.");
-
     // Status Messages
-    static inline const QString LOG_EVENT_BIDE_GRACE = QSL("Waiting %1 seconds for process %2 to be running");
-    static inline const QString LOG_EVENT_BIDE_RUNNING = QSL("Wait-on process %1 is running");
-    static inline const QString LOG_EVENT_BIDE_ON = QSL("Waiting for process %1 to finish");
-    static inline const QString LOG_EVENT_BIDE_QUIT = QSL("Wait-on process %1 has finished");
-    static inline const QString LOG_EVENT_BIDE_FINISHED = QSL("Wait-on process %1 was not running after the grace period");
+    static inline const QString LOG_EVENT_BIDE_GRACE = u"Waiting %1 seconds for process %2 to be running"_s;
+    static inline const QString LOG_EVENT_BIDE_RUNNING = u"Wait-on process %1 is running"_s;
+    static inline const QString LOG_EVENT_BIDE_ON = u"Waiting for process %1 to finish"_s;
+    static inline const QString LOG_EVENT_BIDE_QUIT = u"Wait-on process %1 has finished"_s;
+    static inline const QString LOG_EVENT_BIDE_FINISHED = u"Wait-on process %1 was not running after the grace period"_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
@@ -67,7 +102,7 @@ private:
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
-    ErrorCode doWait();
+    ProcessBiderError doWait();
     void run() override;
 
 public:
@@ -81,8 +116,8 @@ public slots:
 
 signals:
     void statusChanged(QString statusMessage);
-    void errorOccured(Qx::GenericError errorMessage);
-    void bideFinished(ErrorCode errorCode);
+    void errorOccured(ProcessBiderError errorMessage);
+    void bideFinished(ProcessBiderError errorStatus);
 };
 
 #endif // PROCESSWAITER_H

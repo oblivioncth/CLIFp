@@ -8,6 +8,30 @@
 #include "utility.h"
 
 //===============================================================================================================
+// TExecError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TExecError::TExecError(Type t, const QString& s, Qx::Severity sv) :
+    mType(t),
+    mSpecific(s),
+    mSeverity(sv)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TExecError::isValid() const { return mType != NoError; }
+QString TExecError::specific() const { return mSpecific; }
+TExecError::Type TExecError::type() const { return mType; }
+
+//Private:
+Qx::Severity TExecError::deriveSeverity() const { return mSeverity; }
+quint32 TExecError::deriveValue() const { return mType; }
+QString TExecError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TExecError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // TExec
 //===============================================================================================================
 
@@ -72,15 +96,15 @@ QString TExec::createEscapedShellArguments()
         QStringList rebuild = QProcess::splitCommand(escapedArgs);
         if(rebuild != parameters)
         {
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg("{\"" + parameters.join(R"(", ")") + "\"}",
-                                                                "{\"" + rebuild.join(R"(", ")") + "\"}"));
+            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(u"{\""_s + parameters.join(uR"(", ")"_s) + u"\"}"_s,
+                                                                u"{\""_s + rebuild.join(uR"(", ")"_s) + u"\"}"_s));
         }
     }
 
     return escapedArgs;
 }
 
-bool TExec::cleanStartProcess(QProcess* process)
+TExecError TExec::cleanStartProcess(QProcess* process)
 {
     // Note directories
     const QString currentDirPath = QDir::currentPath();
@@ -101,16 +125,15 @@ bool TExec::cleanStartProcess(QProcess* process)
     // Make sure process starts
     if(!process->waitForStarted())
     {
-        emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical,
-                                 ERR_EXE_NOT_STARTED.arg(mExecutable),
-                                 ENUM_NAME(process->error())));
+        TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(mExecutable, ENUM_NAME(process->error())));
+        emit errorOccurred(NAME, err);
         delete process; // Clear finished process handle from heap
-        return false;
+        return err;
     }
 
     // Return success
     emit eventOccurred(NAME, LOG_EVENT_STARTED_PROCESS.arg(mIdentifier));
-    return true;
+    return TExecError();
 }
 
 //Public:
@@ -118,14 +141,14 @@ QString TExec::name() const { return NAME; }
 QStringList TExec::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".executable() = \"" + mExecutable + "\"");
-    ml.append(".directory() = \"" + mDirectory.absolutePath() + "\"");
+    ml.append(u".executable() = \""_s + mExecutable + u"\""_s);
+    ml.append(u".directory() = \""_s + mDirectory.absolutePath() + u"\""_s);
     if(std::holds_alternative<QString>(mParameters))
-        ml.append(".parameters() = \"" + std::get<QString>(mParameters) + "\"");
+        ml.append(u".parameters() = \""_s + std::get<QString>(mParameters) + u"\""_s);
     else
-        ml.append(".parameters() = {\"" + std::get<QStringList>(mParameters).join(R"(", ")") + "\"}");
-    ml.append(".processType() = " + ENUM_NAME(mProcessType));
-    ml.append(".identifier() = \"" + mIdentifier + "\"");
+        ml.append(u".parameters() = {\""_s + std::get<QStringList>(mParameters).join(uR"(", ")"_s) + u"\"}"_s);
+    ml.append(u".processType() = "_s + ENUM_NAME(mProcessType));
+    ml.append(u".identifier() = \""_s + mIdentifier + u"\""_s);
     return ml;
 }
 
@@ -151,9 +174,9 @@ void TExec::perform()
     QString execPath = resolveExecutablePath();
     if(execPath.isEmpty())
     {
-        emit errorOccurred(NAME, Qx::GenericError(mStage == Stage::Shutdown ? Qx::GenericError::Error : Qx::GenericError::Critical,
-                                                  ERR_EXE_NOT_FOUND.arg(mExecutable)));
-        emit complete(ErrorCode::EXECUTABLE_NOT_FOUND);
+        TExecError err(TExecError::CouldNotFind, mExecutable, mStage == Stage::Shutdown ? Qx::Err : Qx::Critical);
+        emit errorOccurred(NAME, err);
+        emit complete(err);
         return;
     }
 
@@ -175,9 +198,9 @@ void TExec::perform()
             connect(mBlockingProcessManager, &BlockingProcessManager::finished, this, &TExec::postBlockingProcess);
 
             // Setup and start process
-            if(!cleanStartProcess(taskProcess))
+            if(TExecError se = cleanStartProcess(taskProcess); se.isValid())
             {
-                emit complete(ErrorCode::PROCESS_START_FAIL);
+                emit complete(se);
                 return;
             }
 
@@ -187,9 +210,9 @@ void TExec::perform()
         case ProcessType::Deferred:
              // Can't use 'this' as parent since process will outlive this instance, so use parent of task
             taskProcess->setParent(this->parent());
-            if(!cleanStartProcess(taskProcess))
+            if(TExecError se = cleanStartProcess(taskProcess); se.isValid())
             {
-                emit complete(ErrorCode::PROCESS_START_FAIL);
+                emit complete(se);
                 return;
             }
 
@@ -208,14 +231,16 @@ void TExec::perform()
             taskProcess->setStandardErrorFile(QProcess::nullDevice());
             if(!taskProcess->startDetached())
             {
-                emit complete(ErrorCode::PROCESS_START_FAIL);
+                TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(mExecutable, ENUM_NAME(taskProcess->error())));
+                emit errorOccurred(NAME, err);
+                emit complete(err);
                 return;
             }
             break;
     }
 
     // Return success
-    emit complete(ErrorCode::NO_ERR);
+    emit complete(TExecError());
 }
 
 void TExec::stop()
@@ -236,5 +261,5 @@ void TExec::postBlockingProcess()
     mBlockingProcessManager = nullptr;
 
     // Return success
-    emit complete(ErrorCode::NO_ERR);
+    emit complete(TExecError());
 }

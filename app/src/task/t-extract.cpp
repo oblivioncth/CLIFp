@@ -8,6 +8,36 @@
 // TODO: Should probably be treated as a long task and support stopping
 
 //===============================================================================================================
+// TExtractError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TExtractError::TExtractError() :
+    mType(NoError)
+{}
+
+TExtractError::TExtractError(const QString& archName, Type t, const QString& s) :
+    mType(t),
+    mSpecific(s),
+    mArchName(archName)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TExtractError::isValid() const { return mType != NoError; }
+QString TExtractError::specific() const { return mSpecific; }
+TExtractError::Type TExtractError::type() const { return mType; }
+QString TExtractError::archName() const { return mArchName; }
+
+//Private:
+Qx::Severity TExtractError::deriveSeverity() const { return Qx::Critical; }
+quint32 TExtractError::deriveValue() const { return mType; }
+QString TExtractError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TExtractError::deriveSecondary() const { return mArchName; }
+QString TExtractError::deriveDetails() const { return mSpecific; }
+
+//===============================================================================================================
 // TExtract
 //===============================================================================================================
 
@@ -19,11 +49,10 @@ TExtract::TExtract(QObject* parent) :
 
 //-Class Functions---------------------------------------------------------------------------------------------------------------
 //Private:
-Qx::GenericError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, QString subFolder, QDir dir)
+TExtractError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, QString subFolder, QDir dir)
 {
     // Error template
-    QFileInfo zipInfo(zipFilePath);
-    Qx::GenericError error(Qx::GenericError::Critical, ERR_PACK_EXTRACT.arg(zipInfo.fileName()));
+    QString zipName = QFileInfo(zipFilePath).fileName();
 
     // Zip file
     QuaZip zipFile(zipFilePath);
@@ -45,7 +74,7 @@ Qx::GenericError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, 
 
     // Open archive, ensure it's closed when done
     if(!zipFile.open(QuaZip::mdUnzip))
-        return error.setSecondaryInfo(ERR_PACK_EXTRACT_OPEN);
+        return TExtractError(zipName, TExtractError::OpenArchive);
     QScopeGuard closeGuard([&](){ zipFile.close(); });
 
     // Persistent data
@@ -68,15 +97,15 @@ Qx::GenericError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, 
             if(pathOnDisk.absolutePath() != currentDirOnDisk.absolutePath())
             {
                 currentDirOnDisk = pathOnDisk.absoluteDir();
-                if(!currentDirOnDisk.mkpath("."))
-                    return error.setSecondaryInfo(ERR_PACK_EXTRACT_MAKE_PATH);
+                if(!currentDirOnDisk.mkpath(u"."_s))
+                    return TExtractError(zipName, TExtractError::MakePath);
             }
 
             // Open file in archive and read its data
             if(!currentArchiveFile.open(QIODevice::ReadOnly))
             {
                 int zipError = zipFile.getZipError();
-                return error.setSecondaryInfo(ERR_PACK_EXTRACT_OPEN_ARCH_FILE.arg(zipError, 2, 16, QChar('0')));
+                return TExtractError(zipName, TExtractError::OpenArchiveFile, ERR_CODE_TEMPLATE.arg(zipError, 2, 16, QChar('0')));
             }
 
             QByteArray fileData = currentArchiveFile.readAll();
@@ -85,10 +114,10 @@ Qx::GenericError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, 
             // Open disk file and write data to it
             QFile fileOnDisk(pathOnDisk.absoluteFilePath());
             if(!fileOnDisk.open(QIODevice::WriteOnly))
-                return error.setSecondaryInfo(ERR_PACK_EXTRACT_OPEN_DISK_FILE.arg(fileOnDisk.fileName()));
+                return TExtractError(zipName, TExtractError::OpenDiskFile, fileOnDisk.fileName());
 
             if(fileOnDisk.write(fileData) != fileData.size())
-                return error.setSecondaryInfo(ERR_PACK_EXTRACT_WRITE_DISK_FILE.arg(fileOnDisk.fileName()));
+                return TExtractError(zipName, TExtractError::WriteDiskFile, fileOnDisk.fileName());
 
             fileOnDisk.close();
         }
@@ -97,10 +126,10 @@ Qx::GenericError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, 
     // Check if processing ended due to an error
     int zipError = zipFile.getZipError();
     if(zipError != UNZ_OK)
-        return error.setSecondaryInfo(ERR_PACK_EXTRACT_GENERAL_ZIP.arg(zipError, 2, 16, QChar('0')));
+        return TExtractError(zipName, TExtractError::GeneralZip, ERR_CODE_TEMPLATE.arg(zipError, 2, 16, QChar('0')));
 
     // Return success
-    return Qx::GenericError();
+    return TExtractError();
 }
 
 //-Instance Functions-------------------------------------------------------------
@@ -109,9 +138,9 @@ QString TExtract::name() const { return NAME; }
 QStringList TExtract::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".packPath() = \"" + mPackPath + "\"");
-    ml.append(".pathInPack() = \"" + mPathInPack + "\"");
-    ml.append(".destinationPath() = \"" + mDestinationPath + "\"");
+    ml.append(u".packPath() = \""_s + mPackPath + u"\""_s);
+    ml.append(u".pathInPack() = \""_s + mPathInPack + u"\""_s);
+    ml.append(u".destinationPath() = \""_s + mDestinationPath + u"\""_s);
     return ml;
 }
 
@@ -125,23 +154,17 @@ void TExtract::setDestinationPath(QString path) { mDestinationPath = path; }
 
 void TExtract::perform()
 {
-    // Error tracking
-    ErrorCode errorStatus = ErrorCode::NO_ERR;
-
     // Log string
     QFileInfo packFileInfo(mPackPath);
     emit eventOccurred(NAME, LOG_EVENT_EXTRACTING_DATA_PACK.arg(packFileInfo.fileName()));
 
     // Extract pack
-    Qx::GenericError extractError = extractZipSubFolderContentToDir(mPackPath,
-                                                                    mPathInPack,
-                                                                    mDestinationPath);
+    TExtractError ee = extractZipSubFolderContentToDir(mPackPath,
+                                                       mPathInPack,
+                                                       mDestinationPath);
 
-    if(extractError.isValid())
-    {
-        emit errorOccurred(NAME, extractError);
-        errorStatus = ErrorCode::PACK_EXTRACT_FAIL;
-    }
+    if(ee.isValid())
+        emit errorOccurred(NAME, ee);
 
-    emit complete(errorStatus);
+    emit complete(ee);
 }

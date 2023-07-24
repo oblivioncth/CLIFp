@@ -1,19 +1,19 @@
 #================= Project Setup ==========================
 
 # CMake
-cmake_minimum_required(VERSION 3.24.0...3.25.0)
+cmake_minimum_required(VERSION 3.24.0...3.26.0)
 
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.4.1
+    VERSION 0.9.5
     LANGUAGES CXX
-    DESCRIPTION "Command-line Interface for Flashpoint"
+    DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.3")
+fetch_ob_cmake("v0.3.2")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 11.1)
+set(TARGET_FP_VERSION_PREFIX 12.0)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
@@ -72,18 +72,18 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.5.0.1"
+    REF "v0.5.1"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("v0.3.1")
+ob_fetch_libfp("v0.4")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("v0.2.1")
+ob_fetch_qi_qmp("v0.2.2")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
@@ -94,7 +94,7 @@ ob_fetch_quazip(
 
 # Fetch Neargye's Magic Enum
 include(OB/FetchMagicEnum)
-ob_fetch_magicenum("v0.8.0")
+ob_fetch_magicenum("v0.9.3")
 
 # Process Targets
 set(APP_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})
@@ -118,4 +118,3 @@ ob_standard_project_misc_install()
 
 include(OB/Packaging)
 ob_standard_project_package(VENDOR "oblivioncth")
-

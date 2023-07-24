@@ -14,6 +14,51 @@
 #include "tools/blockingprocessmanager.h"
 #include "tools/deferredprocessmanager.h"
 
+class QX_ERROR_TYPE(TExecError, "TExecError", 1253)
+{
+    friend class TExec;
+    //-Class Enums-------------------------------------------------------------
+public:
+    enum Type
+    {
+        NoError = 0,
+        CouldNotStart = 1,
+        CouldNotFind = 2,
+        NotValid = 3
+    };
+
+    //-Class Variables-------------------------------------------------------------
+private:
+    static inline const QHash<Type, QString> ERR_STRINGS{
+        {NoError, u""_s},
+        {CouldNotStart, u"Failed to start executable."_s},
+        {CouldNotFind, u"Failed to find executable."_s},
+        {NotValid, u"Tried to start invalid executable."_s}
+    };
+
+    //-Instance Variables-------------------------------------------------------------
+private:
+    Type mType;
+    QString mSpecific;
+    Qx::Severity mSeverity;
+
+    //-Constructor-------------------------------------------------------------
+private:
+    TExecError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
+
+    //-Instance Functions-------------------------------------------------------------
+public:
+    bool isValid() const;
+    Type type() const;
+    QString specific() const;
+
+private:
+    Qx::Severity deriveSeverity() const override;
+    quint32 deriveValue() const override;
+    QString derivePrimary() const override;
+    QString deriveSecondary() const override;
+};
+
 class TExec : public Task
 {
     Q_OBJECT;
@@ -24,34 +69,31 @@ public:
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = QSL("TExec");
+    static inline const QString NAME = u"TExec"_s;
 
     // Logging - Process Prep
-    static inline const QString LOG_EVENT_PREPARING_PROCESS = QSL("Preparing %1 process '%2' (%3)...");
-    static inline const QString LOG_EVENT_FINAL_EXECUTABLE = QSL("Final Executable: %1");
-    static inline const QString LOG_EVENT_FINAL_PARAMETERS = QSL("Final Parameters: %1");
+    static inline const QString LOG_EVENT_PREPARING_PROCESS = u"Preparing %1 process '%2' (%3)..."_s;
+    static inline const QString LOG_EVENT_FINAL_EXECUTABLE = u"Final Executable: %1"_s;
+    static inline const QString LOG_EVENT_FINAL_PARAMETERS = u"Final Parameters: %1"_s;
 
     // Logging - Process Attribute Modification
-    static inline const QString LOG_EVENT_ARGS_ESCAPED = QSL("CMD arguments escaped from [[%1]] to [[%2]]");
-    static inline const QString LOG_EVENT_FORCED_BASH = QSL("Forced use of 'sh' from Windows 'bat'");
-    static inline const QString LOG_EVENT_FORCED_WIN = QSL("Forced use of WINE from Windows 'exe'");
-
+    static inline const QString LOG_EVENT_ARGS_ESCAPED = u"CMD arguments escaped from [[%1]] to [[%2]]"_s;
+    static inline const QString LOG_EVENT_FORCED_BASH = u"Forced use of 'sh' from Windows 'bat'"_s;
+    static inline const QString LOG_EVENT_FORCED_WIN = u"Forced use of WINE from Windows 'exe'"_s;
 
     // Logging - Process Management
-    static inline const QString LOG_EVENT_CD = QSL("Changed current directory to: %1");
-    static inline const QString LOG_EVENT_STARTING = QSL("Starting '%1' (%2)");
-    static inline const QString LOG_EVENT_STARTED_PROCESS = QSL("Started '%1'");
-    static inline const QString LOG_EVENT_STOPPING_BLOCKING_PROCESS = QSL("Stopping blocking process '%1'...");
+    static inline const QString LOG_EVENT_CD = u"Changed current directory to: %1"_s;
+    static inline const QString LOG_EVENT_STARTING = u"Starting '%1' (%2)"_s;
+    static inline const QString LOG_EVENT_STARTED_PROCESS = u"Started '%1'"_s;
+    static inline const QString LOG_EVENT_STOPPING_BLOCKING_PROCESS = u"Stopping blocking process '%1'..."_s;
 
     // Errors
-    static inline const QString ERR_EXE_NOT_FOUND = QSL("Could not find %1!");
-    static inline const QString ERR_EXE_NOT_STARTED = QSL("Could not start %1!");
-    static inline const QString ERR_EXE_NOT_VALID = QSL("%1 is not an executable file!");
+    static inline const QString ERR_DETAILS_TEMPLATE = u"%1 - %2"_s;
 
     // Extensions
-    static inline const QString SHELL_EXT_WIN = QSL("bat");
-    static inline const QString SHELL_EXT_LINUX = QSL("sh");
-    static inline const QString EXECUTABLE_EXT_WIN = QSL("exe");
+    static inline const QString SHELL_EXT_WIN = u"bat"_s;
+    static inline const QString SHELL_EXT_LINUX = u"sh"_s;
+    static inline const QString EXECUTABLE_EXT_WIN = u"exe"_s;
 
     // Deferred Processes
     static inline DeferredProcessManager* smDeferredProcessManager;
@@ -71,7 +113,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TExec(QObject* parent = nullptr);
+    TExec(QObject* parent);
 
 //-Class Functions-----------------------------------------------------------------------------------------------------
 private:
@@ -88,7 +130,7 @@ private:
     QString escapeForShell(const QString& argStr);
     QString createEscapedShellArguments();
     QProcess* prepareProcess(const QFileInfo& execInfo);
-    bool cleanStartProcess(QProcess* process);
+    TExecError cleanStartProcess(QProcess* process);
 
     // Logging
     void logPreparedProcess(const QProcess* process);

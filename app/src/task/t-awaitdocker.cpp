@@ -1,7 +1,28 @@
 // Unit Include
 #include "t-awaitdocker.h"
 
-// Qt Includes
+//===============================================================================================================
+// TAwaitDockerError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TAwaitDockerError::TAwaitDockerError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TAwaitDockerError::isValid() const { return mType != NoError; }
+QString TAwaitDockerError::specific() const { return mSpecific; }
+TAwaitDockerError::Type TAwaitDockerError::type() const { return mType; }
+
+//Private:
+Qx::Severity TAwaitDockerError::deriveSeverity() const { return Qx::Critical; }
+quint32 TAwaitDockerError::deriveValue() const { return mType; }
+QString TAwaitDockerError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TAwaitDockerError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
 // TAwaitDocker
@@ -23,7 +44,7 @@ TAwaitDocker::TAwaitDocker(QObject* parent) :
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-ErrorCode TAwaitDocker::imageRunningCheck(bool& running)
+TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
 {
     // Directly check if the gamezip docker image is running
     running = false; // Default to no
@@ -45,15 +66,18 @@ ErrorCode TAwaitDocker::imageRunningCheck(bool& running)
     dockerPs.start();
     if(!dockerPs.waitForStarted(1000))
     {
-        emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DIRECT_QUERY));
-        return ErrorCode::CANT_QUERY_DOCKER;
+        TAwaitDockerError err(TAwaitDockerError::DirectQueryFailed);
+        emit errorOccurred(NAME, err);
+        return err;
     }
     if(!dockerPs.waitForFinished(1000))
     {
         dockerPs.kill(); // Force close
         dockerPs.waitForFinished();
-        emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DIRECT_QUERY));
-        return ErrorCode::CANT_QUERY_DOCKER;
+
+        TAwaitDockerError err(TAwaitDockerError::DirectQueryFailed);
+        emit errorOccurred(NAME, err);
+        return err;
     }
 
     // Check result, should just contain image name due to filter/format options
@@ -61,10 +85,10 @@ ErrorCode TAwaitDocker::imageRunningCheck(bool& running)
     queryResult.chop(1); // Remove '\n'
     running = queryResult == mImageName;
 
-    return ErrorCode::NO_ERR;
+    return TAwaitDockerError();
 }
 
-ErrorCode TAwaitDocker::startEventListener()
+TAwaitDockerError TAwaitDocker::startEventListener()
 {
     // Arguments set here instead of ctor. since they depend on mImageName
     mEventListener.setArguments({
@@ -80,12 +104,13 @@ ErrorCode TAwaitDocker::startEventListener()
     mEventListener.start();
     if(!mEventListener.waitForStarted(1000))
     {
-        emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_CANT_LISTEN));
-        return ErrorCode::CANT_LISTEN_DOCKER;
+        TAwaitDockerError err(TAwaitDockerError::ListenFailed);
+        emit errorOccurred(NAME, err);
+        return err;
     }
     mTimeoutTimer.start(mTimeout);
 
-    return ErrorCode::NO_ERR;
+    return TAwaitDockerError();
 }
 
 void TAwaitDocker::stopEventListening()
@@ -102,8 +127,8 @@ QString TAwaitDocker::name() const { return NAME; }
 QStringList TAwaitDocker::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".imageName() = \"" + mImageName + "\"");
-    ml.append(".timeout() = " + QString::number(mTimeout));
+    ml.append(u".imageName() = \""_s + mImageName + u"\""_s);
+    ml.append(u".timeout() = "_s + QString::number(mTimeout));
     return ml;
 }
 
@@ -116,14 +141,14 @@ void TAwaitDocker::setTimeout(uint msecs) { mTimeout = msecs; }
 void TAwaitDocker::perform()
 {
     // Error tracking
-    ErrorCode errorStatus = ErrorCode::NO_ERR;
+    TAwaitDockerError errorStatus;
 
     // Check if image is running
     emit eventOccurred(NAME, LOG_EVENT_DIRECT_QUERY.arg(mImageName));
 
     bool running;
     errorStatus = imageRunningCheck(running);
-    if(errorStatus || running)
+    if(errorStatus.isValid() || running)
     {
         emit complete(errorStatus);
         return;
@@ -132,7 +157,7 @@ void TAwaitDocker::perform()
     // Listen for image started event
     emit eventOccurred(NAME, LOG_EVENT_STARTING_LISTENER);
     errorStatus = startEventListener();
-    if(errorStatus)
+    if(errorStatus.isValid())
         emit complete(errorStatus);
 
     // Await event...
@@ -144,7 +169,9 @@ void TAwaitDocker::stop()
     {
         mTimeoutTimer.stop();
         stopEventListening();
-        emit complete(ErrorCode::DOCKER_DIDNT_START);
+
+        TAwaitDockerError err(TAwaitDockerError::StartFailed, mImageName);
+        emit complete(err);
     }
 }
 
@@ -163,7 +190,7 @@ void TAwaitDocker::eventDataReceived()
             mTimeoutTimer.stop();
             emit eventOccurred(NAME, LOG_EVENT_START_RECEIVED);
             stopEventListening();
-            emit complete(ErrorCode::NO_ERR);
+            emit complete(TAwaitDockerError());
         }
     }
 }
@@ -179,11 +206,12 @@ void TAwaitDocker::timeoutOccurred()
     if(running)
     {
         emit eventOccurred(NAME, LOG_EVENT_FINAL_CHECK_PASS);
-        emit complete(ErrorCode::NO_ERR);
+        emit complete(TAwaitDockerError());
     }
     else
     {
-        emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_DOCKER_DIDNT_START.arg(mImageName)));
-        emit complete(ErrorCode::DOCKER_DIDNT_START);
+        TAwaitDockerError err(TAwaitDockerError::StartFailed, mImageName);
+        emit errorOccurred(NAME, err);
+        emit complete(err);
     }
 }

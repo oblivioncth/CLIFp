@@ -6,7 +6,8 @@ set(CLIFP_SOURCE
     kernel/core.cpp
     kernel/driver.h
     kernel/driver.cpp
-    kernel/errorcode.h
+    kernel/errorstatus.h
+    kernel/errorstatus.cpp
     command/command.h
     command/command.cpp
     command/c-link.h
@@ -19,6 +20,8 @@ set(CLIFP_SOURCE
     command/c-run.cpp
     command/c-show.cpp
     command/c-show.h
+    command/title-command.h
+    command/title-command.cpp
     task/task.h
     task/task.cpp
     task/t-download.h
@@ -29,6 +32,8 @@ set(CLIFP_SOURCE
     task/t-extra.cpp
     task/t-extract.h
     task/t-extract.cpp
+    task/t-generic.h
+    task/t-generic.cpp
     task/t-message.h
     task/t-message.cpp
     task/t-mount.h
@@ -129,7 +134,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
         FILE_VER ${PROJECT_VERSION}
         PRODUCT_VER ${TARGET_FP_VERSION_PREFIX}
         COMPANY_NAME "oblivioncth"
-        FILE_DESC "CLI for BlueMaxima's Flashpoint"
+        FILE_DESC "CLI for Flashpoint Archive"
         INTERNAL_NAME "CLIFp"
         COPYRIGHT "Open Source @ 2022 oblivioncth"
         TRADEMARKS_ONE "All Rights Reserved"

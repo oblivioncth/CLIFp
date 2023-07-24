@@ -2,6 +2,29 @@
 #include "t-download.h"
 
 //===============================================================================================================
+// TDownloadError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TDownloadError::TDownloadError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TDownloadError::isValid() const { return mType != NoError; }
+QString TDownloadError::specific() const { return mSpecific; }
+TDownloadError::Type TDownloadError::type() const { return mType; }
+
+//Private:
+Qx::Severity TDownloadError::deriveSeverity() const { return Qx::Critical; }
+quint32 TDownloadError::deriveValue() const { return mType; }
+QString TDownloadError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TDownloadError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // TDownload
 //===============================================================================================================
 
@@ -17,7 +40,7 @@ TDownload::TDownload(QObject* parent) :
     mDownloadManager.setSkipEnumeration(true);
 
     // Download event handlers
-    connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::GenericError errorMsg, bool* ignore) {
+    connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
         int choice;
         emit blockingErrorOccured(NAME, &choice, errorMsg, QMessageBox::Yes | QMessageBox::No);
         *ignore = choice == QMessageBox::Yes;
@@ -46,10 +69,10 @@ QString TDownload::name() const { return NAME; }
 QStringList TDownload::members() const
 {
     QStringList ml = Task::members();
-    ml.append(".destinationPath() = \"" + QDir::toNativeSeparators(mDestinationPath) + "\"");
-    ml.append(".destinationFilename() = \"" + mDestinationFilename + "\"");
-    ml.append(".targetFile() = \"" + mTargetFile.toString() + "\"");
-    ml.append(".sha256() = " + mSha256);
+    ml.append(u".destinationPath() = \""_s + QDir::toNativeSeparators(mDestinationPath) + u"\""_s);
+    ml.append(u".destinationFilename() = \""_s + mDestinationFilename + u"\""_s);
+    ml.append(u".targetFile() = \""_s + mTargetFile.toString() + u"\""_s);
+    ml.append(u".sha256() = "_s + mSha256);
     return ml;
 }
 
@@ -66,7 +89,7 @@ void TDownload::setSha256(QString sha256) { mSha256 = sha256; }
 void TDownload::perform()
 {
     // Setup download
-    QFile packFile(mDestinationPath + "/" + mDestinationFilename);
+    QFile packFile(mDestinationPath + '/' + mDestinationFilename);
     QFileInfo packFileInfo(packFile);
     Qx::DownloadTask download{
         .target = mTargetFile,
@@ -96,31 +119,30 @@ void TDownload::stop()
 //Private Slots:
 void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
 {
-    // Status holder
-    ErrorCode errorStatus = ErrorCode::NO_ERR;
+    Qx::Error errorStatus;
 
     // Handle result
     emit longTaskFinished();
     if(downloadReport.wasSuccessful())
     {
         // Confirm checksum is correct
-        QFile packFile(mDestinationPath + "/" + mDestinationFilename);
+        QFile packFile(mDestinationPath + '/' + mDestinationFilename);
         bool checksumMatch;
-        Qx::IoOpReport checksumResult = Qx::fileMatchesChecksum(checksumMatch, packFile, mSha256, QCryptographicHash::Sha256);
-        if(checksumResult.isFailure() || !checksumMatch)
+        Qx::IoOpReport cr = Qx::fileMatchesChecksum(checksumMatch, packFile, mSha256, QCryptographicHash::Sha256);
+        if(cr.isFailure() || !checksumMatch)
         {
-            emit errorOccurred(NAME, Qx::GenericError(Qx::GenericError::Critical, ERR_PACK_SUM_MISMATCH));
-            errorStatus = ErrorCode::DATA_PACK_INVALID;
+            TDownloadError err(TDownloadError::ChecksumMismatch, cr.isFailure() ? cr.outcomeInfo() : u""_s);
+            errorStatus = err;
+            emit errorOccurred(NAME, errorStatus);
         }
         else
             emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_SUCC);
     }
     else
     {
-        Qx::GenericError err = downloadReport.errorInfo();
-        err.setErrorLevel(Qx::GenericError::Critical);
-        emit errorOccurred(NAME, err);
-        errorStatus = ErrorCode::CANT_OBTAIN_DATA_PACK;
+        TDownloadError err(TDownloadError::Incomeplete, downloadReport.outcomeString());
+        errorStatus = err;
+        emit errorOccurred(NAME, errorStatus);
     }
 
     emit complete(errorStatus);
