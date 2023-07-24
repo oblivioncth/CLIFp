@@ -65,9 +65,6 @@ jobs:
         echo "Packaging CLIFp..."
         cpack -C "Release"
         echo "Build complete."
-    - name: Remove VC Runtime Redistributable Added by Qt # Required until an option to disable this is added to Qt
-      run: |
-        Remove-Item "${{ env.clifp_install_path }}/bin/vc_redist*"
     - name: Get CLIFp artifact name
       run: |
         $artifact_name=$((Get-ChildItem -Path "${{ env.clifp_package_path }}" -Filter *.zip)[0].BaseName)
