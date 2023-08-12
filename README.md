@@ -44,6 +44,8 @@ It is recommended to place CLIFp in the root directory of Flashpoint (next to it
 **In most cases you should use the 'static' builds of CLIFp on Windows or Linux.**
 
 ### General
+**Before using CLIFp, be sure to have ran Flashpoint through its regular launcher at least once**
+
 **NOTE: Do not run CLIFp as an administrator/root as some titles may not work correctly or run at all**
 
 CLIFp uses the following syntax scheme:
