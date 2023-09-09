@@ -231,7 +231,7 @@ void Driver::drive()
     // Ensure Flashpoint Launcher isn't running
     if(Qx::processIsRunning(Fp::Install::LAUNCHER_NAME))
     {
-        DriverError err(DriverError::AlreadyOpen, ERR_LAUNCHER_RUNNING_TIP);
+        DriverError err(DriverError::LauncherRunning, ERR_LAUNCHER_RUNNING_TIP);
         mCore->postError(NAME, err);
         mErrorStatus = err;
         finish();
