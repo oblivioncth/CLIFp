@@ -428,6 +428,7 @@ CoreError Core::enqueueStartupTasks()
     // Get settings
     Fp::Services fpServices = mFlashpointInstall->services();
     Fp::Config fpConfig = mFlashpointInstall->config();
+    Fp::Preferences fpPreferences = mFlashpointInstall->preferences();
 
     // Add Start entries from services
     for(const Fp::StartStop& startEntry : qAsConst(fpServices.start))
@@ -447,14 +448,14 @@ CoreError Core::enqueueStartupTasks()
     // Add Server entry from services if applicable
     if(fpConfig.startServer)
     {
-        if(!fpServices.server.contains(fpConfig.server))
+        if(!fpServices.server.contains(fpPreferences.server))
         {
             CoreError err(CoreError::ConfiguredServerMissing);
             postError(NAME, err);
             return err;
         }
 
-        Fp::ServerDaemon configuredServer = fpServices.server.value(fpConfig.server);
+        Fp::ServerDaemon configuredServer = fpServices.server.value(fpPreferences.server);
 
         TExec* serverTask = new TExec(this);
         serverTask->setIdentifier(u"Server"_s);
