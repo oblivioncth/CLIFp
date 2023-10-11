@@ -39,6 +39,7 @@ QString TExecError::deriveSecondary() const { return mSpecific; }
 //Public:
 TExec::TExec(QObject* parent) :
     Task(parent),
+    mEnvironment(smDefaultEnv),
     mBlockingProcessManager(nullptr)
 {}
 
@@ -69,6 +70,8 @@ QString TExec::collapseArguments(const QStringList& args)
 //Public:
 void TExec::installDeferredProcessManager(DeferredProcessManager* manager) { smDeferredProcessManager = manager; }
 DeferredProcessManager* TExec::deferredProcessManager() { return smDeferredProcessManager; }
+void TExec::setDefaultProcessEnvironment(const QProcessEnvironment pe) { smDefaultEnv = pe; }
+QProcessEnvironment TExec::defaultProcessEnvironment() { return smDefaultEnv; }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -185,8 +188,7 @@ void TExec::perform()
     logPreparedProcess(taskProcess);
 
     // Set common process properties
-    if(!mEnvironment.isEmpty()) // Don't override the QProcess default (use system env.) if no custom env. was set
-        taskProcess->setProcessEnvironment(mEnvironment);
+    taskProcess->setProcessEnvironment(mEnvironment);
 
     // Cover each process type
     switch(mProcessType)

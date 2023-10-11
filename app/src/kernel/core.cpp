@@ -325,11 +325,28 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     QString dmns = QString(magic_enum::enum_flags_name(static_cast<Fp::KnownDaemon>(mFlashpointInstall->services().recognizedDaemons.toInt())).data());
     logEvent(NAME, LOG_EVENT_RECOGNIZED_DAEMONS.arg(dmns));
 
-    // Initialize child process env var
-    mChildTitleProcEnv = QProcessEnvironment::systemEnvironment();
+    // Initialize child process env vars
+    QProcessEnvironment de = QProcessEnvironment::systemEnvironment();
+    QString fpPath = mFlashpointInstall->fullPath();
+
+#ifdef __linux__
+    // Add platform support environment variables
+    QString winFpPath = u"Z:"_s + fpPath;
+
+    de.insert(u"DIR"_s, fpPath);
+    de.insert(u"WINDOWS_DIR"_s, winFpPath);
+    de.insert(u"FP_STARTUP_PATH"_s, winFpPath + u"\\FPSoftware"_s);
+    de.insert(u"FP_BROWSER_PLUGINS"_s, winFpPath + u"\\FPSoftware\\BrowserPlugins"_s);
+    de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
+#endif
+
+    TExec::setDefaultProcessEnvironment(de);
+
+    // Initialize title specific child process env vars
+    mChildTitleProcEnv = de;
 
     // Add FP root var
-    mChildTitleProcEnv.insert(u"FP_PATH"_s, mFlashpointInstall->fullPath());
+    mChildTitleProcEnv.insert(u"FP_PATH"_s, fpPath);
 
 #ifdef __linux__
     // Add HTTTP proxy var
