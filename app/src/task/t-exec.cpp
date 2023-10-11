@@ -128,7 +128,7 @@ TExecError TExec::cleanStartProcess(QProcess* process)
     // Make sure process starts
     if(!process->waitForStarted())
     {
-        TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(mExecutable, ENUM_NAME(process->error())));
+        TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(process->program(), ENUM_NAME(process->error())));
         emit errorOccurred(NAME, err);
         delete process; // Clear finished process handle from heap
         return err;
@@ -233,7 +233,7 @@ void TExec::perform()
             taskProcess->setStandardErrorFile(QProcess::nullDevice());
             if(!taskProcess->startDetached())
             {
-                TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(mExecutable, ENUM_NAME(taskProcess->error())));
+                TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(taskProcess->program(), ENUM_NAME(taskProcess->error())));
                 emit errorOccurred(NAME, err);
                 emit complete(err);
                 return;
