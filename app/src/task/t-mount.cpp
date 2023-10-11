@@ -15,12 +15,8 @@ TMount::TMount(QObject* parent) :
     mMounter()
 {
     // Connect mounter signals
-    connect(&mMounter, &Mounter::errorOccured, this, [this](MounterError errorMsg){
-        emit errorOccurred(NAME, errorMsg);
-    });
-    connect(&mMounter, &Mounter::eventOccured, this, [this](QString event){
-        emit eventOccurred(NAME, event);
-    });
+    connect(&mMounter, &Mounter::errorOccured, this, &TMount::errorOccurred);
+    connect(&mMounter, &Mounter::eventOccured, this, &TMount::eventOccurred);
     connect(&mMounter, &Mounter::mountProgressMaximumChanged, this, &Task::longTaskTotalChanged);
     connect(&mMounter, &Mounter::mountProgress, this, &Task::longTaskProgressChanged);
     connect(&mMounter, &Mounter::mountFinished, this, &TMount::postMount);

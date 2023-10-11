@@ -75,6 +75,9 @@ private:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
+    // Meta
+    static inline const QString NAME = u"Mounter"_s;
+
     // Error Status Helper
     static inline const auto ERROR_STATUS_CMP = [](const MounterError& a, const MounterError& b){
         return a.type() == b.type();
@@ -162,8 +165,8 @@ public slots:
     void abort();
 
 signals:
-    void eventOccured(QString event);
-    void errorOccured(MounterError errorMessage);
+    void eventOccured(QString name, QString event);
+    void errorOccured(QString name, MounterError errorMessage);
     void mountFinished(MounterError errorState);
 
     // For now these just cause a busy state

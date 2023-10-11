@@ -80,18 +80,18 @@ Mounter::Mounter(QObject* parent) :
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
      */
     connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
-        emit eventOccured(u"Unexpected use of authentication by PHP server!"_s);
+        emit eventOccured(NAME, u"Unexpected use of authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
-        emit eventOccured(u"Unexpected use of PSK authentication by PHP server!"_s);
+        emit eventOccured(NAME, u"Unexpected use of PSK authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
-        emit eventOccured(u"Unexpected use of proxy by PHP server!"_s);
+        emit eventOccured(NAME, u"Unexpected use of proxy by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
         Q_UNUSED(reply);
         QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, u","_s);
-        emit eventOccured(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
+        emit eventOccured(NAME, u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
     });
 }
 
@@ -108,7 +108,7 @@ void Mounter::finish()
 
 void Mounter::createMountPoint()
 {
-    emit eventOccured(EVENT_CREATING_MOUNT_POINT);
+    emit eventOccured(NAME, EVENT_CREATING_MOUNT_POINT);
 
     // Build commands
     QString blockDevAddCmd = u"blockdev-add"_s;
@@ -149,7 +149,7 @@ void Mounter::createMountPoint()
 
 void Mounter::setMountOnServer()
 {
-    emit eventOccured(EVENT_MOUNTING_THROUGH_SERVER);
+    emit eventOccured(NAME, EVENT_MOUNTING_THROUGH_SERVER);
 
     // Create mount request
     QUrl mountUrl;
@@ -171,20 +171,20 @@ void Mounter::setMountOnServer()
     mPhpMountReply = mNam.get(mountReq);
 
     // Log request
-    emit eventOccured(EVENT_REQUEST_SENT.arg(ENUM_NAME(mPhpMountReply->operation()), mountUrl.toString()));
+    emit eventOccured(NAME, EVENT_REQUEST_SENT.arg(ENUM_NAME(mPhpMountReply->operation()), mountUrl.toString()));
 
     // Await finished() signal...
 }
 
 void Mounter::notePhpMountResponse(const QString& response)
 {
-    emit eventOccured(EVENT_PHP_RESPONSE.arg(response));
+    emit eventOccured(NAME, EVENT_PHP_RESPONSE.arg(response));
     finish();
 }
 
 void Mounter::logMountInfo(const MountInfo& info)
 {
-    emit eventOccured(EVENT_MOUNT_INFO_DETERMINED.arg(info.filePath, info.driveId, info.driveSerial));
+    emit eventOccured(NAME, EVENT_MOUNT_INFO_DETERMINED.arg(info.filePath, info.driveId, info.driveSerial));
 }
 
 //Public:
@@ -208,12 +208,12 @@ void Mounter::qmpiConnectedHandler(QJsonObject version, QJsonArray capabilities)
     QString versionStr = formatter.toJson(QJsonDocument::Compact);
     formatter.setArray(capabilities);
     QString capabilitiesStr = formatter.toJson(QJsonDocument::Compact);
-    emit eventOccured(EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
+    emit eventOccured(NAME, EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
 }
 
 void Mounter::qmpiCommandsExhaustedHandler()
 {
-    emit eventOccured(EVENT_DISCONNECTING_FROM_QEMU);
+    emit eventOccured(NAME, EVENT_DISCONNECTING_FROM_QEMU);
     mQemuMounter.disconnectFromHost();
 }
 
@@ -237,7 +237,7 @@ void Mounter::phpMountFinishedHandler(QNetworkReply* reply)
         MounterError err(MounterError::PhpMount, reply->errorString());
         mErrorStatus = err;
 
-        emit errorOccured(err);
+        emit errorOccured(NAME, err);
         finish();
     }
     else
@@ -252,7 +252,7 @@ void Mounter::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
     MounterError err(MounterError::QemuConnection, ENUM_NAME(error));
     mErrorStatus = err;
 
-    emit errorOccured(err);
+    emit errorOccured(NAME, err);
 }
 
 void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
@@ -260,7 +260,7 @@ void Mounter::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
     MounterError err(MounterError::QemuCommunication, ENUM_NAME(error));
     mErrorStatus = err;
 
-    emit errorOccured(err);
+    emit errorOccured(NAME, err);
 }
 
 void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, std::any context)
@@ -270,13 +270,13 @@ void Mounter::qmpiCommandErrorHandler(QString errorClass, QString description, s
     MounterError err(MounterError::QemuCommand, commandErr);
     mErrorStatus = err;
 
-    emit errorOccured(err);
+    emit errorOccured(NAME, err);
     mQemuMounter.abort();
 }
 
 void Mounter::qmpiCommandResponseHandler(QJsonValue value, std::any context)
 {
-    emit eventOccured(EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::asString(value)));
+    emit eventOccured(NAME, EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::asString(value)));
 }
 
 void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime timestamp)
@@ -284,7 +284,7 @@ void Mounter::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime
     QJsonDocument formatter(data);
     QString dataStr = formatter.toJson(QJsonDocument::Compact);
     QString timestampStr = timestamp.toString(u"hh:mm:s s.zzz"_s);
-    emit eventOccured(EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
+    emit eventOccured(NAME, EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
 }
 
 //Public Slots:
@@ -318,12 +318,12 @@ void Mounter::mount(QUuid titleId, QString filePath)
 
     // Log info
     logMountInfo(mCurrentMountInfo);
-    emit eventOccured(EVENT_QEMU_DETECTION.arg(mQemuEnabled ? u"is"_s : u"isn't"_s));
+    emit eventOccured(NAME, EVENT_QEMU_DETECTION.arg(mQemuEnabled ? u"is"_s : u"isn't"_s));
 
     // Connect to QEMU instance, or go straight to web server portion if bypassing
     if(mQemuEnabled)
     {
-        emit eventOccured(EVENT_CONNECTING_TO_QEMU);
+        emit eventOccured(NAME, EVENT_CONNECTING_TO_QEMU);
         mQemuMounter.connectToHost();
         // Await readyForCommands() signal...
     }
@@ -339,7 +339,7 @@ void Mounter::abort()
         MounterError err(MounterError::QemuConnection, ERR_QMP_CONNECTION_ABORT);
         mErrorStatus = err;
 
-        emit errorOccured(err);
+        emit errorOccured(NAME, err);
         mQemuMounter.abort(); // Call last here because it causes finished signal to emit immediately
     }
     if(mPhpMountReply && mPhpMountReply->isRunning())
