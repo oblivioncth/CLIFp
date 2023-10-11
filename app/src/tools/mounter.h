@@ -100,7 +100,7 @@ private:
     static inline const QString EVENT_CREATING_MOUNT_POINT = u"Creating data pack mount point on QEMU instance..."_s;
     static inline const QString EVENT_DISCONNECTING_FROM_QEMU = u"Disconnecting from FP QEMU instance..."_s;
     static inline const QString EVENT_MOUNTING_THROUGH_SERVER = u"Mounting data pack via PHP server..."_s;
-    static inline const QString EVENT_REQUEST_SENT = u"Sent request (%1): %2}"_s;
+    static inline const QString EVENT_REQUEST_SENT = u"Sent request (%1): %2"_s;
 
     // Connections
     static const int QMP_TRANSACTION_TIMEOUT = 5000; // ms
