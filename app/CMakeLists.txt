@@ -44,8 +44,6 @@ set(CLIFP_SOURCE
     tools/blockingprocessmanager.cpp
     tools/deferredprocessmanager.h
     tools/deferredprocessmanager.cpp
-    tools/mounter.h
-    tools/mounter.cpp
     frontend/statusrelay.h
     frontend/statusrelay.cpp
     controller.h
@@ -67,7 +65,6 @@ set(CLIFP_LINKS
         Qx::Network
         Qx::Widgets
         Fp::Fp
-        QI-QMP::Qmpi
         QuaZip::QuaZip
         magic_enum::magic_enum
 )
@@ -101,17 +98,44 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     )
 endif()
 
+# FP Proxy specific changes
+if(FP_PROXY)
+    list(APPEND CLIFP_SOURCE
+        tools/mounter_proxy.h
+        tools/mounter_proxy.cpp
+    )
+    list(APPEND CLIFP_DEFINITIONS
+        PRIVATE
+            "FP_PROXY"
+    )
+else()
+    list(APPEND CLIFP_SOURCE
+        tools/mounter.h
+        tools/mounter.cpp
+    )
+    list(APPEND CLIFP_LINKS
+        PRIVATE
+            QI-QMP::Qmpi
+    )
+endif()
+
 # Add via ob standard executable
 include(OB/Executable)
 ob_add_standard_executable(${APP_TARGET_NAME}
     NAMESPACE "${PROJECT_NAMESPACE}"
     ALIAS "${APP_ALIAS_NAME}"
     SOURCE  ${CLIFP_SOURCE}
+    DEFINITIONS ${CLIFP_DEFINITIONS}
     RESOURCE "resources.qrc"
     LINKS ${CLIFP_LINKS}
     CONFIG STANDARD
     WIN32
 )
+
+# Add environment specific defines
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+    target_compile_definitions(${APP_TARGET_NAME} PRIVATE "FP_PROXY_MOUNTER")
+endif()
 
 ## Forward select project variables to C++ code
 include(OB/CppVars)

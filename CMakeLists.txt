@@ -27,6 +27,14 @@ set(TARGET_FP_VERSION_PREFIX 12.0)
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
 option(BUILD_SHARED_LIBS "Build CLIFp with shared libraries" OFF)
 
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    set(FP_PROXY_DEFAULT ON)
+else()
+    set(FP_PROXY_DEFAULT OFF)
+endif()
+
+option(FP_PROXY "Configure CLIFp to work with an install that uses an FP Proxy Server" ${FP_PROXY_DEFAULT})
+
 # C++
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -81,9 +89,11 @@ ob_fetch_qx(
 include(OB/Fetchlibfp)
 ob_fetch_libfp("bca00c48d37e9306a311bc83f74a7692e169afae")
 
-# Fetch QI-QMP (build and import from source)
-include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("v0.2.2")
+if(NOT FP_PROXY)
+    # Fetch QI-QMP (build and import from source)
+    include(OB/FetchQI-QMP)
+    ob_fetch_qi_qmp("v0.2.2")
+endif()
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)

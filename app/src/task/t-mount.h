@@ -4,9 +4,16 @@
 // Qx Includes
 #include <qx/utility/qx-macros.h>
 
+// Qt Includes
+#include <QUuid>
+
 // Project Includes
 #include "task/task.h"
-#include "tools/mounter.h"
+#ifdef FP_PROXY
+    #include "tools/mounter_proxy.h"
+#else
+    #include "tools/mounter.h"
+#endif
 
 class TMount : public Task
 {

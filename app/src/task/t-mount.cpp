@@ -48,14 +48,22 @@ void TMount::perform()
     QString label = LOG_EVENT_MOUNTING_DATA_PACK.arg(packFileInfo.fileName());
 
     //-Setup Mounter------------------------------------
+#ifdef FP_PROXY
+    mMounter.setProxyServerPort(22501);
+#else
     mMounter.setWebServerPort(22500);
     mMounter.setQemuMountPort(22501);
     mMounter.setQemuProdPort(0);
     mMounter.setQemuEnabled(!mSkipQemu);
+#endif
 
     // Start mount
     emit longTaskStarted(label);
+#ifdef FP_PROXY
+    mMounter.mount(mPath);
+#else
     mMounter.mount(mTitleId, mPath);
+#endif
 }
 
 void TMount::stop()
