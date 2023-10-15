@@ -1,5 +1,5 @@
 // Unit Includes
-#include "mounter_proxy.h"
+#include "mounter_router.h"
 
 // Qt Includes
 #include <QAuthenticator>
@@ -12,27 +12,27 @@
 #include "utility.h"
 
 //===============================================================================================================
-// MounterError
+// MounterRouterError
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Private:
-MounterProxyError::MounterProxyError(Type t, const QString& s) :
+MounterRouterError::MounterRouterError(Type t, const QString& s) :
     mType(t),
     mSpecific(s)
 {}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
-bool MounterProxyError::isValid() const { return mType != NoError; }
-QString MounterProxyError::specific() const { return mSpecific; }
-MounterProxyError::Type MounterProxyError::type() const { return mType; }
+bool MounterRouterError::isValid() const { return mType != NoError; }
+QString MounterRouterError::specific() const { return mSpecific; }
+MounterRouterError::Type MounterRouterError::type() const { return mType; }
 
 //Private:
-Qx::Severity MounterProxyError::deriveSeverity() const { return Qx::Critical; }
-quint32 MounterProxyError::deriveValue() const { return mType; }
-QString MounterProxyError::derivePrimary() const { return ERR_STRINGS.value(mType); }
-QString MounterProxyError::deriveSecondary() const { return mSpecific; }
+Qx::Severity MounterRouterError::deriveSeverity() const { return Qx::Critical; }
+quint32 MounterRouterError::deriveValue() const { return mType; }
+QString MounterRouterError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString MounterRouterError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
 // Mounter
@@ -40,17 +40,17 @@ QString MounterProxyError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-MounterProxy::MounterProxy(QObject* parent) :
+MounterRouter::MounterRouter(QObject* parent) :
     QObject(parent),
     mMounting(false),
-    mProxyServerPort(0)
+    mRouterPort(0)
 {
     // Setup Network Access Manager
     mNam.setAutoDeleteReplies(true);
-    mNam.setTransferTimeout(PROXY_TRANSFER_TIMEOUT);
+    mNam.setTransferTimeout(PHP_TRANSFER_TIMEOUT);
 
-    // Connections - Work
-    connect(&mNam, &QNetworkAccessManager::finished, this, &MounterProxy::proxyMountFinishedHandler);
+    // Connections
+    connect(&mNam, &QNetworkAccessManager::finished, this, &MounterRouter::mountFinishedHandler);
 
     /* Network check (none of these should be triggered, they are here in case a FP update would required
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
@@ -73,87 +73,75 @@ MounterProxy::MounterProxy(QObject* parent) :
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 //Private:
-void MounterProxy::finish(const MounterProxyError& errorState)
+void MounterRouter::finish(const MounterRouterError& result)
 {
     mMounting = false;
-    emit mountFinished(errorState);
-}
-
-void MounterProxy::noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data)
-{
-    emit eventOccurred(NAME, EVENT_REQUEST_SENT.arg(ENUM_NAME(op), url.toString(), QString::fromLatin1(data)));
-}
-
-void MounterProxy::noteProxyResponse(const QString& response)
-{
-    emit eventOccurred(NAME, EVENT_PROXY_RESPONSE.arg(response));
+    emit mountFinished(result);
 }
 
 //Public:
-bool MounterProxy::isMounting() { return mMounting; }
+bool MounterRouter::isMounting() { return mMounting; }
 
-quint16 MounterProxy::proxyServerPort() const { return mProxyServerPort; }
-QString MounterProxy::filePath() const { return mFilePath; }
+quint16 MounterRouter::routerPort() const { return mRouterPort; }
+QString MounterRouter::mountValue() const { return mMountValue; }
 
-void MounterProxy::setProxyServerPort(quint16 port) { mProxyServerPort = port; }
-void MounterProxy::setFilePath(const QString& path) { mFilePath = path; }
+void MounterRouter::setRouterPort(quint16 port) { mRouterPort = port; }
+void MounterRouter::setMountValue(const QString& value) { mMountValue = value; }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Private Slots:
-void MounterProxy::proxyMountFinishedHandler(QNetworkReply* reply)
+void MounterRouter::mountFinishedHandler(QNetworkReply* reply)
 {
-    assert(reply == mProxyMountReply.get());
+    assert(reply == mRouterMountReply.get());
 
-    MounterProxyError err;
+    MounterRouterError err;
 
-    if(reply->error() != QNetworkReply::NoError)
+    // FP (as of 11) is currently bugged and is expected to give an internal server error so it must be ignored
+    if(reply->error() != QNetworkReply::NoError && reply->error() != QNetworkReply::InternalServerError)
     {
-        err = MounterProxyError(MounterProxyError::ProxyMount, reply->errorString());
+        err = MounterRouterError(MounterRouterError::Failed, reply->errorString());
         emit errorOccurred(NAME, err);
     }
     else
     {
         QByteArray response = reply->readAll();
-        noteProxyResponse(QString::fromLatin1(response));
+        emit eventOccurred(NAME, EVENT_ROUTER_RESPONSE.arg(response));
     }
 
     finish(err);
 }
 
 //Public Slots:
-void MounterProxy::mount()
+void MounterRouter::mount()
 {
-    emit eventOccurred(NAME, EVENT_MOUNTING);
+    emit eventOccurred(NAME, EVENT_MOUNTING_THROUGH_ROUTER);
 
-    //-Create mount request-------------------------
-
-    // Url
+    // Create mount request
     QUrl mountUrl;
     mountUrl.setScheme(u"http"_s);
-    mountUrl.setHost(u"localhost"_s);
-    mountUrl.setPort(mProxyServerPort);
-    mountUrl.setPath(u"/fpProxy/api/mountzip"_s);
+    mountUrl.setHost(u"127.0.0.1"_s);
+    mountUrl.setPort(mRouterPort);
+    mountUrl.setPath(u"/mount.php"_s);
 
-    // Req
+    QUrlQuery query;
+    QString queryKey = u"file"_s;
+    QString queryValue = QUrl::toPercentEncoding(mMountValue);
+    query.addQueryItem(queryKey, queryValue);
+    mountUrl.setQuery(query);
+
     QNetworkRequest mountReq(mountUrl);
 
-    // Header
-    mountReq.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    // Data (could use QJsonDocument but for such a simple object that's overkill
-    QByteArray data = "{\"filePath\":\""_ba + mFilePath.toLatin1() + "\"}"_ba;
-
-    //-POST Request---------------------------------
-    mProxyMountReply = mNam.post(mountReq, data);
+    // GET request
+    mRouterMountReply = mNam.get(mountReq);
 
     // Log request
-    noteProxyRequest(mProxyMountReply->operation(), mountUrl, data);
+    emit eventOccurred(NAME, EVENT_REQUEST_SENT.arg(ENUM_NAME(mRouterMountReply->operation()), mountUrl.toString()));
 
     // Await finished() signal...
 }
 
-void MounterProxy::abort()
+void MounterRouter::abort()
 {
-    if(mProxyMountReply && mProxyMountReply->isRunning())
-        mProxyMountReply->abort();
+    if(mRouterMountReply && mRouterMountReply->isRunning())
+        mRouterMountReply->abort();
 }

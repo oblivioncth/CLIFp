@@ -15,7 +15,7 @@
 class QX_ERROR_TYPE(DriverError, "DriverError", 1201)
 {
     friend class Driver;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
@@ -25,7 +25,7 @@ public:
         InvalidInstall = 3,
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
@@ -34,16 +34,16 @@ private:
         {InvalidInstall, u"CLIFp does not appear to be deployed in a valid Flashpoint install"_s}
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     DriverError(Type t = NoError, const QString& s = {});
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -71,6 +71,7 @@ private:
     // Logging
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
     static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = uR"(Checking if "%1" is flashpoint root)"_s;
+    static inline const QString LOG_WARN_FP_UNRECOGNIZED_DAEMON = "Flashpoint install does not contain a recognized daemon!";
     static inline const QString LOG_EVENT_FLASHPOINT_LINK = uR"(Linked to Flashpoint install at: "%1")"_s;
     static inline const QString LOG_EVENT_TASK_COUNT = u"%1 task(s) to perform"_s;
     static inline const QString LOG_EVENT_QUEUE_START = u"Processing Task queue"_s;

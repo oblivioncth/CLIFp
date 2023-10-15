@@ -322,8 +322,7 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     mFlashpointInstall = std::move(flashpointInstall);
 
     // Note install details
-    QString dmns = QString(magic_enum::enum_flags_name(static_cast<Fp::KnownDaemon>(mFlashpointInstall->services().recognizedDaemons.toInt())).data());
-    logEvent(NAME, LOG_EVENT_RECOGNIZED_DAEMONS.arg(dmns));
+    logEvent(NAME, LOG_EVENT_OUTFITTED_DAEMON.arg(ENUM_NAME(mFlashpointInstall->outfittedDaemon())));
 
     // Initialize child process env vars
     QProcessEnvironment de = QProcessEnvironment::systemEnvironment();
@@ -425,21 +424,23 @@ CoreError Core::enqueueStartupTasks()
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
 #ifdef __linux__
-    /* On Linux X11 Server needs to be temporarily be set to allow connections from root for docker
-     *
-     * TODO: It should be OK to skip this (and the corresponding shutdown task that reverses it),
-     * if docker isn't used, but leaving for now.
+    /* On Linux X11 Server needs to be temporarily be set to allow connections from root for docker,
+     * if it's in use
      */
-    TExec* xhostSet = new TExec(this);
-    xhostSet->setIdentifier(u"xhost Set"_s);
-    xhostSet->setStage(Task::Stage::Startup);
-    xhostSet->setExecutable(u"xhost"_s);
-    xhostSet->setDirectory(mFlashpointInstall->fullPath());
-    xhostSet->setParameters({u"+SI:localuser:root"_s});
-    xhostSet->setProcessType(TExec::ProcessType::Blocking);
 
-    mTaskQueue.push(xhostSet);
-    logTask(NAME, xhostSet);
+    if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Docker)
+    {
+        TExec* xhostSet = new TExec(this);
+        xhostSet->setIdentifier(u"xhost Set"_s);
+        xhostSet->setStage(Task::Stage::Startup);
+        xhostSet->setExecutable(u"xhost"_s);
+        xhostSet->setDirectory(mFlashpointInstall->fullPath());
+        xhostSet->setParameters({u"+SI:localuser:root"_s});
+        xhostSet->setProcessType(TExec::ProcessType::Blocking);
+
+        mTaskQueue.push(xhostSet);
+        logTask(NAME, xhostSet);
+    }
 #endif
 
     // Get settings
@@ -503,7 +504,7 @@ CoreError Core::enqueueStartupTasks()
 
 #ifdef __linux__
     // On Linux the startup tasks take a while so make sure the docker image is actually running before proceeding
-    if(mFlashpointInstall->services().recognizedDaemons.testFlag(Fp::KnownDaemon::Docker))
+    if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Docker)
     {
         TAwaitDocker* dockerWait = new TAwaitDocker(this);
         dockerWait->setStage(Task::Stage::Startup);
@@ -551,17 +552,20 @@ void Core::enqueueShutdownTasks()
     }
 
 #ifdef __linux__
-    // Undo xhost permissions modifications
-    TExec* xhostClear = new TExec(this);
-    xhostClear->setIdentifier(u"xhost Clear"_s);
-    xhostClear->setStage(Task::Stage::Shutdown);
-    xhostClear->setExecutable(u"xhost"_s);
-    xhostClear->setDirectory(mFlashpointInstall->fullPath());
-    xhostClear->setParameters({"-SI:localuser:root"});
-    xhostClear->setProcessType(TExec::ProcessType::Blocking);
+    // Undo xhost permissions modifications related to docker
+    if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Docker)
+    {
+        TExec* xhostClear = new TExec(this);
+        xhostClear->setIdentifier(u"xhost Clear"_s);
+        xhostClear->setStage(Task::Stage::Shutdown);
+        xhostClear->setExecutable(u"xhost"_s);
+        xhostClear->setDirectory(mFlashpointInstall->fullPath());
+        xhostClear->setParameters({"-SI:localuser:root"});
+        xhostClear->setProcessType(TExec::ProcessType::Blocking);
 
-    mTaskQueue.push(xhostClear);
-    logTask(NAME, xhostClear);
+        mTaskQueue.push(xhostClear);
+        logTask(NAME, xhostClear);
+    }
 #endif
 }
 
@@ -679,15 +683,12 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
-        // Determine if QEMU is involved
-        bool qemuUsed = mFlashpointInstall->services().recognizedDaemons.testFlag(Fp::KnownDaemon::Qemu);
-
         // Create task
         TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(gameData.gameId());
         mountTask->setPath(packDestFolderPath + '/' + packFileName);
-        mountTask->setSkipQemu(!qemuUsed);
+        mountTask->setDaemon(mFlashpointInstall->outfittedDaemon());
 
         mTaskQueue.push(mountTask);
         logTask(NAME, mountTask);

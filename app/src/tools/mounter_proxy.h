@@ -1,5 +1,5 @@
-#ifndef MOUNTER_H
-#define MOUNTER_H
+#ifndef MOUNTER_PROXY_H
+#define MOUNTER_PROXY_H
 
 // Qt Includes
 #include <QObject>
@@ -11,9 +11,9 @@
 #include <qx/core/qx-error.h>
 #include <qx/utility/qx-macros.h>
 
-class QX_ERROR_TYPE(MounterError, "MounterError", 1232)
+class QX_ERROR_TYPE(MounterProxyError, "MounterError", 1232)
 {
-    friend class Mounter;
+    friend class MounterProxy;
 //-Class Enums-------------------------------------------------------------
 public:
     enum Type
@@ -36,7 +36,7 @@ private:
 
 //-Constructor-------------------------------------------------------------
 private:
-    MounterError(Type t = NoError, const QString& s = {});
+    MounterProxyError(Type t = NoError, const QString& s = {});
 
 //-Instance Functions-------------------------------------------------------------
 public:
@@ -51,7 +51,7 @@ private:
     QString deriveSecondary() const override;
 };
 
-class Mounter : public QObject
+class MounterProxy : public QObject
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -76,42 +76,46 @@ private:
 private:
     bool mMounting;
     int mProxyServerPort;
+    QString mFilePath;
 
     QNetworkAccessManager mNam;
     QPointer<QNetworkReply> mProxyMountReply;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit Mounter(QObject* parent = nullptr);
+    explicit MounterProxy(QObject* parent = nullptr);
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
-    void finish(const MounterError& errorState);
-    void postMountToServer(const QStringView filePath);
+    void finish(const MounterProxyError& errorState);
     void noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data);
     void noteProxyResponse(const QString& response);
 
 public:
     bool isMounting();
+
     quint16 proxyServerPort() const;
+    QString filePath() const;
+
     void setProxyServerPort(quint16 port);
+    void setFilePath(const QString& path);
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
     void proxyMountFinishedHandler(QNetworkReply* reply);
 
 public slots:
-    void mount(QStringView filePath);
+    void mount();
     void abort();
 
 signals:
-    void eventOccured(QString name, const QString& event);
-    void errorOccured(QString name, MounterError errorMessage);
-    void mountFinished(MounterError errorState);
+    void eventOccurred(QString name, const QString& event);
+    void errorOccurred(QString name, MounterProxyError errorMessage);
+    void mountFinished(MounterProxyError errorState);
 
     // For now these just cause a busy state
     void mountProgress(qint64 progress);
     void mountProgressMaximumChanged(qint64 maximum);
 };
 
-#endif // MOUNTER_H
+#endif // MOUNTER_PROXY_H
