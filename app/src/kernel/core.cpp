@@ -330,13 +330,26 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 
 #ifdef __linux__
     // Add platform support environment variables
-    QString winFpPath = u"Z:"_s + fpPath;
+    if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Qemu) // Appimage based build
+    {
+        QString pathValue = de.value(u"PATH"_s);
+        pathValue.prepend(fpPath + u"/FPSoftware/FPWine/bin:"_s + fpPath + u"/FPSoftware/FPQemuPHP:"_s);
+        de.insert(u"PATH"_s, pathValue);
+        qputenv("PATH", pathValue.toLocal8Bit()); // Path needs to be updated for self as well
 
-    de.insert(u"DIR"_s, fpPath);
-    de.insert(u"WINDOWS_DIR"_s, winFpPath);
-    de.insert(u"FP_STARTUP_PATH"_s, winFpPath + u"\\FPSoftware"_s);
-    de.insert(u"FP_BROWSER_PLUGINS"_s, winFpPath + u"\\FPSoftware\\BrowserPlugins"_s);
-    de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
+        de.insert(u"GTK_USE_PORTAL"_s, "1");
+        de.remove(u"LD_PRELOAD"_s);
+    }
+    else // Regular Linux build
+    {
+        QString winFpPath = u"Z:"_s + fpPath;
+
+        de.insert(u"DIR"_s, fpPath);
+        de.insert(u"WINDOWS_DIR"_s, winFpPath);
+        de.insert(u"FP_STARTUP_PATH"_s, winFpPath + u"\\FPSoftware"_s);
+        de.insert(u"FP_BROWSER_PLUGINS"_s, winFpPath + u"\\FPSoftware\\BrowserPlugins"_s);
+        de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
+    }
 #endif
 
     TExec::setDefaultProcessEnvironment(de);
