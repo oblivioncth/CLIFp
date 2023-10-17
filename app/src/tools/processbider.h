@@ -28,7 +28,7 @@
  * handle the quit upon its next event loop cycle.
  */
 
-class QX_ERROR_TYPE(ProcessBiderError, "ProcessBiderError", 1233)
+class QX_ERROR_TYPE(ProcessBiderError, "ProcessBiderError", 1235)
 {
     friend class ProcessBider;
     //-Class Enums-------------------------------------------------------------

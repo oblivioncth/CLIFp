@@ -97,6 +97,7 @@ private:
 
     // Deferred Processes
     static inline DeferredProcessManager* smDeferredProcessManager;
+    static inline QProcessEnvironment smDefaultEnv;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -122,6 +123,8 @@ private:
 public:
     static void installDeferredProcessManager(DeferredProcessManager* manager);
     static DeferredProcessManager* deferredProcessManager();
+    static void setDefaultProcessEnvironment(const QProcessEnvironment pe);
+    static QProcessEnvironment defaultProcessEnvironment();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
