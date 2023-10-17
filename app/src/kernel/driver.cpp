@@ -163,7 +163,15 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
         // Attempt to instantiate
         fpInstall = std::make_unique<Fp::Install>(currentDir.absolutePath());
         if(fpInstall->isValid())
-            break;
+        {
+            if(fpInstall->outfittedDaemon() == Fp::Daemon::Unknown)
+            {
+                mCore->logError(NAME, Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
+                fpInstall.reset();
+            }
+            else
+                break;
+        }
         else
         {
             mCore->logError(NAME, fpInstall->error().setSeverity(Qx::Warning));

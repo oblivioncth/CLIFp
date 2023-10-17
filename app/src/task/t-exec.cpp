@@ -39,6 +39,7 @@ QString TExecError::deriveSecondary() const { return mSpecific; }
 //Public:
 TExec::TExec(QObject* parent) :
     Task(parent),
+    mEnvironment(smDefaultEnv),
     mBlockingProcessManager(nullptr)
 {}
 
@@ -69,6 +70,8 @@ QString TExec::collapseArguments(const QStringList& args)
 //Public:
 void TExec::installDeferredProcessManager(DeferredProcessManager* manager) { smDeferredProcessManager = manager; }
 DeferredProcessManager* TExec::deferredProcessManager() { return smDeferredProcessManager; }
+void TExec::setDefaultProcessEnvironment(const QProcessEnvironment pe) { smDefaultEnv = pe; }
+QProcessEnvironment TExec::defaultProcessEnvironment() { return smDefaultEnv; }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -125,7 +128,7 @@ TExecError TExec::cleanStartProcess(QProcess* process)
     // Make sure process starts
     if(!process->waitForStarted())
     {
-        TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(mExecutable, ENUM_NAME(process->error())));
+        TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(process->program(), ENUM_NAME(process->error())));
         emit errorOccurred(NAME, err);
         delete process; // Clear finished process handle from heap
         return err;
@@ -185,8 +188,7 @@ void TExec::perform()
     logPreparedProcess(taskProcess);
 
     // Set common process properties
-    if(!mEnvironment.isEmpty()) // Don't override the QProcess default (use system env.) if no custom env. was set
-        taskProcess->setProcessEnvironment(mEnvironment);
+    taskProcess->setProcessEnvironment(mEnvironment);
 
     // Cover each process type
     switch(mProcessType)
@@ -231,7 +233,7 @@ void TExec::perform()
             taskProcess->setStandardErrorFile(QProcess::nullDevice());
             if(!taskProcess->startDetached())
             {
-                TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(mExecutable, ENUM_NAME(taskProcess->error())));
+                TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(taskProcess->program(), ENUM_NAME(taskProcess->error())));
                 emit errorOccurred(NAME, err);
                 emit complete(err);
                 return;

@@ -4,14 +4,21 @@
 // Qx Includes
 #include <qx/utility/qx-macros.h>
 
+// Qt Includes
+#include <QUuid>
+
+// libfp includes
+#include <fp/fp-daemon.h>
+
 // Project Includes
 #include "task/task.h"
-#include "tools/mounter.h"
+#include "tools/mounter_proxy.h"
+#include "tools/mounter_qmp.h"
+#include "tools/mounter_router.h"
 
 class TMount : public Task
 {
     Q_OBJECT;
-
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
@@ -19,15 +26,21 @@ private:
 
     // Logging
     static inline const QString LOG_EVENT_MOUNTING_DATA_PACK = u"Mounting Data Pack %1"_s;
+    static inline const QString LOG_EVENT_MOUNT_INFO_DETERMINED = u"Mount Info: {.filePath = \"%1\", .driveId = \"%2\", .driveSerial = \"%3\"}"_s;
     static inline const QString LOG_EVENT_STOPPING_MOUNT = u"Stopping current mount(s)..."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
-    // Functional
-    Mounter mMounter;
+    // Mounters
+    MounterProxy* mMounterProxy;
+    MounterQmp* mMounterQmp;
+    MounterRouter* mMounterRouter;
 
     // Data
-    bool mSkipQemu;
+    bool mMounting;
+
+    // Properties
+    Fp::Daemon mDaemon;
     QUuid mTitleId;
     QString mPath;
 
@@ -36,24 +49,30 @@ public:
     TMount(QObject* parent);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
+private:
+    template<typename M>
+        requires Qx::any_of<M, MounterProxy, MounterQmp, MounterRouter>
+    void initMounter(M*& mounter);
+
 public:
     QString name() const override;
     QStringList members() const override;
 
-    bool isSkipQemu() const;
     QUuid titleId() const;
     QString path() const;
+    Fp::Daemon daemon() const;
 
-    void setSkipQemu(bool skip);
     void setTitleId(QUuid titleId);
     void setPath(QString path);
+    void setDaemon(Fp::Daemon daemon);
 
     void perform() override;
     void stop() override;
 
 //-Signals & Slots-------------------------------------------------------------------------------------------------------
 private slots:
-    void postMount(MounterError errorStatus);
+    void mounterFinishHandler(Qx::Error err);
+    void postMount(Qx::Error errorStatus);
 };
 
 #endif // TMOUNT_H

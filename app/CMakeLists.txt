@@ -44,8 +44,12 @@ set(CLIFP_SOURCE
     tools/blockingprocessmanager.cpp
     tools/deferredprocessmanager.h
     tools/deferredprocessmanager.cpp
-    tools/mounter.h
-    tools/mounter.cpp
+    tools/mounter_proxy.h
+    tools/mounter_proxy.cpp
+    tools/mounter_qmp.h
+    tools/mounter_qmp.cpp
+    tools/mounter_router.h
+    tools/mounter_router.cpp
     frontend/statusrelay.h
     frontend/statusrelay.cpp
     controller.h
@@ -67,9 +71,9 @@ set(CLIFP_LINKS
         Qx::Network
         Qx::Widgets
         Fp::Fp
-        QI-QMP::Qmpi
         QuaZip::QuaZip
         magic_enum::magic_enum
+        QI-QMP::Qmpi
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
