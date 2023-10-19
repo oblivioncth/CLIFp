@@ -756,7 +756,7 @@ ErrorCode Core::logFinish(QString src, Qx::Error errorState)
     if(mCriticalErrorOccurred)
         logEvent(src, LOG_ERR_CRITICAL);
 
-    ErrorCode code = errorState.code();
+    ErrorCode code = errorState.typeCode();
 
     Qx::IoOpReport logReport = mLogger->finish(code);
     if(logReport.isFailure())
