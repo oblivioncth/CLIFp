@@ -109,14 +109,13 @@ void Core::showHelp()
     }
 
     // Show help
-    postMessage(helpStr);
+    postMessage(Message{.text = helpStr});
 }
-
 
 void Core::showVersion()
 {
     setStatus(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
-    postMessage(CL_VERSION_MESSAGE);
+    postMessage(Message{.text = CL_VERSION_MESSAGE});
 }
 
 Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
@@ -816,7 +815,7 @@ int Core::postBlockingError(QString src, Qx::Error error, bool log, QMessageBox:
         return def;
 }
 
-void Core::postMessage(QString msg) { emit message(msg); }
+void Core::postMessage(const Message& msg) { emit message(msg); }
 
 QString Core::requestSaveFilePath(const SaveFileRequest& request)
 {

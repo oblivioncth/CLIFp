@@ -21,8 +21,9 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Data
-    QString mMessage;
-    bool mModal;
+    QString mText;
+    bool mBlocking;
+    bool mSelectable;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -33,11 +34,13 @@ public:
     QString name() const override;
     QStringList members() const override;
 
-    QString message() const;
-    bool isModal() const;
+    QString text() const;
+    bool isBlocking() const;
+    bool isSelectable() const;
 
-    void setMessage(QString message);
-    void setModal(bool modal);
+    void setText(const QString& txt);
+    void setBlocking(bool block);
+    void setSelectable(bool sel);
 
     void perform() override;
 };

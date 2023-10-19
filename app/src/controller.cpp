@@ -33,7 +33,7 @@ Controller::Controller(QObject* parent) :
     // Connect driver - Status
     connect(driver, &Driver::statusChanged, &mStatusRelay, &StatusRelay::statusChangeHandler);
     connect(driver, &Driver::errorOccured, &mStatusRelay, &StatusRelay::errorHandler);
-    connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler);
+    connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler, Qt::BlockingQueuedConnection); // Allows optional blocking
     connect(driver, &Driver::longTaskProgressChanged, &mStatusRelay, &StatusRelay::longTaskProgressHandler);
     connect(driver, &Driver::longTaskTotalChanged, &mStatusRelay, &StatusRelay::longTaskTotalHandler);
     connect(driver, &Driver::longTaskStarted, &mStatusRelay, &StatusRelay::longTaskStartedHandler);

@@ -279,7 +279,7 @@ public:
     ErrorCode logFinish(QString src, Qx::Error errorState);
     void postError(QString src, Qx::Error error, bool log = true);
     int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
-    void postMessage(QString msg);
+    void postMessage(const Message& msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);
 
@@ -304,7 +304,7 @@ signals:
     void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
-    void message(const QString& message);
+    void message(const Message& message);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------

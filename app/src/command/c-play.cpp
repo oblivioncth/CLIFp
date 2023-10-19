@@ -193,8 +193,8 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     {
         TMessage* messageTask = new TMessage(&mCore);
         messageTask->setStage(taskStage);
-        messageTask->setMessage(addApp.launchCommand());
-        messageTask->setModal(addApp.isWaitExit() || taskStage == Task::Stage::Primary);
+        messageTask->setText(addApp.launchCommand());
+        messageTask->setBlocking(addApp.isWaitExit());
 
         mCore.enqueueSingleTask(messageTask);
     }

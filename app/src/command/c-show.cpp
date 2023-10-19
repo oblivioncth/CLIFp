@@ -48,11 +48,10 @@ Qx::Error CShow::perform()
     {
         TMessage* messageTask = new TMessage(&mCore);
         messageTask->setStage(Task::Stage::Primary);
-        messageTask->setMessage(mParser.value(CL_OPTION_MSG));
-        messageTask->setModal(true);
+        messageTask->setText(mParser.value(CL_OPTION_MSG));
 
         mCore.enqueueSingleTask(messageTask);
-        mCore.setStatus(STATUS_SHOW_MSG, messageTask->message());
+        mCore.setStatus(STATUS_SHOW_MSG, messageTask->text());
     }
     else if(mParser.isSet(CL_OPTION_EXTRA))
     {

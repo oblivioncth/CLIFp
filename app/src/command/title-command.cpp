@@ -269,7 +269,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
                 return rse;
 
             // Display selection info
-            mCore.postMessage(selInfo);
+            mCore.postMessage(Message{.text = selInfo});
         }
     }
     else

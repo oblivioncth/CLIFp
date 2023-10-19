@@ -163,7 +163,7 @@ void Command::showHelp()
     }
 
     // Show help
-    mCore.postMessage(helpStr);
+    mCore.postMessage(Message{.text = helpStr});
 }
 
 //Protected:

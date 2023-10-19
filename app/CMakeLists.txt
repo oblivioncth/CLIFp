@@ -50,6 +50,8 @@ set(CLIFP_SOURCE
     tools/mounter_qmp.cpp
     tools/mounter_router.h
     tools/mounter_router.cpp
+    frontend/message.h
+    frontend/message.cpp
     frontend/statusrelay.h
     frontend/statusrelay.cpp
     controller.h
