@@ -102,7 +102,8 @@ void Core::showHelp()
         // Help commands
         QString commandStr;
         for(const QString& command : qxAsConst(Command::registered()))
-            commandStr += HELP_COMMAND_TEMPL.arg(command, Command::describe(command));
+            if(Command::hasDescription(command))
+                commandStr += HELP_COMMAND_TEMPL.arg(command, Command::describe(command));
 
         // Complete string
         helpStr = HELP_TEMPL.arg(optStr, commandStr);

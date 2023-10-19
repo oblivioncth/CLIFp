@@ -58,6 +58,7 @@ CommandError Command::isRegistered(const QString &name)
 }
 
 QList<QString> Command::registered() { return registry().keys(); }
+bool Command::hasDescription(const QString& name) { return !registry().value(name).description.isEmpty(); }
 QString Command::describe(const QString& name) { return registry().value(name).description; }
 std::unique_ptr<Command> Command::acquire(const QString& name, Core& coreRef) { return registry().value(name).factory->produce(coreRef); }
 
@@ -148,6 +149,10 @@ void Command::showHelp()
         QString optStr;
         for(const QCommandLineOption* clOption : options())
         {
+            QString desc = clOption->description();
+            if(desc.isEmpty())
+                continue; // Don't show "hidden" options
+
             // Handle names
             QStringList dashedNames;
             for(const QString& name :  qxAsConst(clOption->names()))
@@ -155,7 +160,7 @@ void Command::showHelp()
 
             // Add option
             QString marker = requiredOptions().contains(clOption) ? u"*"_s : u""_s;
-            optStr += HELP_OPT_TEMPL.arg(marker, dashedNames.join(u" | "_s), clOption->description());
+            optStr += HELP_OPT_TEMPL.arg(marker, dashedNames.join(u" | "_s), desc);
         }
 
         // Complete string
