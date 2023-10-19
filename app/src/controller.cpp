@@ -30,18 +30,19 @@ Controller::Controller(QObject* parent) :
     connect(driver, &Driver::finished, &mWorkerThread, &QThread::quit); // Have driver finish cause thread finish
     connect(&mWorkerThread, &QThread::finished, this, &Controller::finisher); // Finish execution when thread quits
 
-    // Connect driver - Status
+    // Connect driver - Status/Non-blocking
     connect(driver, &Driver::statusChanged, &mStatusRelay, &StatusRelay::statusChangeHandler);
     connect(driver, &Driver::errorOccurred, &mStatusRelay, &StatusRelay::errorHandler);
-    connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler, Qt::BlockingQueuedConnection); // Allows optional blocking
     connect(driver, &Driver::longTaskProgressChanged, &mStatusRelay, &StatusRelay::longTaskProgressHandler);
     connect(driver, &Driver::longTaskTotalChanged, &mStatusRelay, &StatusRelay::longTaskTotalHandler);
     connect(driver, &Driver::longTaskStarted, &mStatusRelay, &StatusRelay::longTaskStartedHandler);
     connect(driver, &Driver::longTaskFinished, &mStatusRelay, &StatusRelay::longTaskFinishedHandler);
     connect(&mStatusRelay, &StatusRelay::longTaskCanceled, driver, &Driver::cancelActiveLongTask);
     connect(&mStatusRelay, &StatusRelay::longTaskCanceled, this, &Controller::longTaskCanceledHandler);
+    connect(driver, &Driver::clipboardUpdateRequested, &mStatusRelay, &StatusRelay::clipboardUpdateRequestHandler);
 
-    // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
+    // Connect driver - Response Requests/Blocking (BlockingQueuedConnection since response must be waited for)
+    connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler, Qt::BlockingQueuedConnection); // Allows optional blocking
     connect(driver, &Driver::blockingErrorOccurred, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::saveFileRequested, &mStatusRelay, &StatusRelay::saveFileRequestHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::itemSelectionRequested, &mStatusRelay, &StatusRelay::itemSelectionRequestHandler, Qt::BlockingQueuedConnection);

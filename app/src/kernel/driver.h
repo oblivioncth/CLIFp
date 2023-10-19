@@ -155,6 +155,7 @@ signals:
     void message(const Message& message);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
+    void clipboardUpdateRequested(const QString& text);
 
     // Long task
     void longTaskProgressChanged(quint64 progress);

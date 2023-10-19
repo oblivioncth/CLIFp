@@ -82,6 +82,28 @@ If the application needs to use files from a Data Pack that pack will need to be
 
 The applications and arguments that are used for each game/animation can be found within the Flashpoint database ([FP Install Dir]\Data\flashpoint.sqlite)
 
+### Flashpoint Protocol
+CLIFp supports the "flashpoint" protocol, which means it can launch titles through URL with a custom scheme, followed by a title's UUID, like this:
+
+    flashpoint://37e5c215-9c39-4a3d-9912-b4343a17027e
+
+This makes it fast and easy to share games that you think your friends should try out.
+
+To register CLIFp as the handler for these URLs, simply run:
+
+    CLIFp share -c
+
+To easily create a share link if you don't already know the UUID of a game, you can use the **share** command with the **-t** switch followed by a title:
+
+    CLIFp share -t "Simple, Tasty Buttons"
+
+This will create a share link for that title which will be displayed via a message box and automatically copied to the system clipboard.
+
+If for whatever reason the service through which you wish to share a link does not support links with custom schemes, you can use the **-u** switch to generate a standard "https" link that utilizes a GitHub-hosted redirect page, enabling share links to be provided everywhere. 
+
+[!IMPORTANT]
+You will want to disable the "Register As Protocol Handler" option in the default launcher or else it will replace CLIFp as the "flashpoint" protocol handler every time it's started (**NOTE: This option is not currently available in a released version of Flashpoint**).
+
 ## All Commands/Options
 The recommended way to use all switches is to use their short form when the value for the switch has no spaces:
 
@@ -192,6 +214,29 @@ See http://www.robvanderwoude.com/escapechars.php for more information.
 
 --------------------------------------------------------------------------------
 
+**share** - Generates a URL for starting a Flashpoint title that can be shared to other users.
+
+Options:
+ -  **-i | --id:** UUID  of  title  to  make a share link for
+ -  **-t | --title:** Title to  make a share link for
+ -  **-T | --title-strict:** Same as **-t**, but only exact matches are considered
+ -  **-s | --subtitle:** Name of additional-app under the title to make a share link for. Must be used with **-t**/**-T**
+ -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
+ -  **-u | --universal:** Creates a standard HTTPS link that utilizes a redirect page. May be easier to share on some platforms.
+ - **-c | --configure:** Registers CLIFp as the default handler for "flashpoint" protocol links.
+ - **-C | --unconfigure:** Removes CLIFp as the default handler for "flashpoint" protocol links.
+ -  **-h | --help | -?:** Prints command specific usage information
+
+Requires:
+**-i**, **-t** or **-c** 
+
+Notes: 
+
+ - By default, the standard Flashpoint launcher is registered to handle share links; therefore, its "Register As Protocol Handler" option should likely be disabled if you intend to use CLIFp instead.
+ - See the **play** command notes for information regarding the **t**/**T** and **s**/**S** switches.
+
+--------------------------------------------------------------------------------
+
  **show** - Display  a  message  or  extra  folder
 
 Options:
@@ -203,7 +248,7 @@ Requires:
 **-m** or **-e** 
 
 ### Remarks
-With any use of the **--title** option for the commands that support it the title must be entered verbatim as it appears within Flashpoint, as close matches are not checked (due to technical limitations). If two entries happen to share the title specified, a dialog window with more information will be displayed so that the intended title can be selected.
+With any use of the **--title**/**--subtitle** options for the commands that support them, the provided title should match as closely as possible to how it appears within Flashpoint, as checks for close matches are limited due to technical restrictions. If more than one entry is found, a dialog window with more information will be displayed so that the intended title can be selected.
 
 ## Other Features
 CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on and features a context menu with an option to exit at any time.

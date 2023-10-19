@@ -842,6 +842,8 @@ QString Core::requestItemSelection(const ItemSelectionRequest& request)
     return *item;
 }
 
+void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
+
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }

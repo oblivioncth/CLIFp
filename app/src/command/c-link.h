@@ -7,7 +7,7 @@
 // Project Includes
 #include "command/title-command.h"
 
-class QX_ERROR_TYPE(CLinkError, "CLinkError", 1212)
+class QX_ERROR_TYPE(CLinkError, "CLinkError", 1213)
 {
     friend class CLink;
     //-Class Enums-------------------------------------------------------------

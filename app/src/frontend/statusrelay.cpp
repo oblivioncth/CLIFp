@@ -14,7 +14,8 @@
 
 //-Constructor--------------------------------------------------------------------
 StatusRelay::StatusRelay(QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    mSystemClipboard(QGuiApplication::clipboard())
 {
     setupTrayIcon();
     setupProgressDialog();
@@ -119,6 +120,11 @@ void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, cons
     }
     else
         qFatal("No response argument provided!");
+}
+
+void StatusRelay::clipboardUpdateRequestHandler(const QString& text)
+{
+    mSystemClipboard->setText(text);
 }
 
 void StatusRelay::longTaskProgressHandler(quint64 progress)

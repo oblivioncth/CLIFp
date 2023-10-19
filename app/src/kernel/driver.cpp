@@ -61,6 +61,7 @@ void Driver::init()
     connect(mCore, &Core::message, this, &Driver::message);
     connect(mCore, &Core::saveFileRequested, this, &Driver::saveFileRequested);
     connect(mCore, &Core::itemSelectionRequested, this, &Driver::itemSelectionRequested);
+    connect(mCore, &Core::clipboardUpdateRequested, this, &Driver::clipboardUpdateRequested);
 
     //-Setup deferred process manager------
     /* NOTE: It looks like the manager should just be a stack member of TExec that is constructed

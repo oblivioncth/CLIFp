@@ -201,7 +201,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
     QUuid titleId;
     QUuid addAppId;
 
-    if(mParser.isSet(CL_OPTION_ID))
+    if(mParser.isSet(CL_OPTION_ID)) // TODO: Check that directly supplied IDs actually belong to a title
     {
         QString idStr = mParser.value(CL_OPTION_ID);
         if((titleId = QUuid(idStr)).isNull())
