@@ -8,6 +8,9 @@
 // Qx Includes
 #include <qx/core/qx-base85.h>
 
+// Project Includes
+#include "utility.h"
+
 //===============================================================================================================
 // TMount
 //===============================================================================================================
@@ -18,7 +21,9 @@ TMount::TMount(QObject* parent) :
     Task(parent),
     mMounterProxy(nullptr),
     mMounterQmp(nullptr),
-    mMounterRouter(nullptr)
+    mMounterRouter(nullptr),
+    mMounting(false),
+    mDaemon(Fp::FpProxy)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -39,6 +44,7 @@ QString TMount::name() const { return NAME; }
 QStringList TMount::members() const
 {
     QStringList ml = Task::members();
+    ml.append(u".daemon() = \""_s + ENUM_NAME(mDaemon) + u"\""_s);
     ml.append(u".titleId() = \""_s + mTitleId.toString() + u"\""_s);
     ml.append(u".path() = \""_s + QDir::toNativeSeparators(mPath) + u"\""_s);
     return ml;
