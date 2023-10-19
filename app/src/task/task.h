@@ -46,7 +46,7 @@ signals:
     void notificationReady(const Message& msg);
     void eventOccurred(QString taskName, QString event);
     void errorOccurred(QString taskName, Qx::Error error);
-    void blockingErrorOccured(QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices);
+    void blockingErrorOccurred(QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices);
 
     void longTaskStarted(QString procedure);
     void longTaskTotalChanged(quint64 total);

@@ -226,7 +226,7 @@ private:
     std::unique_ptr<Qx::ApplicationLogger> mLogger;
 
     // Processing
-    bool mCriticalErrorOccured;
+    bool mCriticalErrorOccurred;
     NotificationVerbosity mNotificationVerbosity;
     std::queue<Task*> mTaskQueue;
 
@@ -300,8 +300,8 @@ public:
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
-    void errorOccured(const Core::Error& error);
-    void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
+    void errorOccurred(const Core::Error& error);
+    void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void message(const Message& message);

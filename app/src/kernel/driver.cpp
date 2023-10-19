@@ -56,8 +56,8 @@ void Driver::init()
 
     //-Setup Core---------------------------
     connect(mCore, &Core::statusChanged, this, &Driver::statusChanged);
-    connect(mCore, &Core::errorOccured, this, &Driver::errorOccured);
-    connect(mCore, &Core::blockingErrorOccured, this, &Driver::blockingErrorOccured);
+    connect(mCore, &Core::errorOccurred, this, &Driver::errorOccurred);
+    connect(mCore, &Core::blockingErrorOccurred, this, &Driver::blockingErrorOccurred);
     connect(mCore, &Core::message, this, &Driver::message);
     connect(mCore, &Core::saveFileRequested, this, &Driver::saveFileRequested);
     connect(mCore, &Core::itemSelectionRequested, this, &Driver::itemSelectionRequested);
@@ -120,7 +120,7 @@ void Driver::startNextTask()
         connect(mCurrentTask, &Task::errorOccurred, mCore, [this](QString taskName, Qx::Error error){
             mCore->postError(taskName, error); // Can't connect directly because newer connect syntax doesn't support default args
         });
-        connect(mCurrentTask, &Task::blockingErrorOccured, this,
+        connect(mCurrentTask, &Task::blockingErrorOccurred, this,
                 [this](QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices) {
             *response = mCore->postBlockingError(taskName, error, true, choices);
         });

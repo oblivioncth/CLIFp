@@ -58,7 +58,7 @@ QString CoreError::deriveSecondary() const { return mSpecific; }
 //-Constructor-------------------------------------------------------------
 Core::Core(QObject* parent) :
     QObject(parent),
-    mCriticalErrorOccured(false),
+    mCriticalErrorOccurred(false),
     mStatusHeading(u"Initializing"_s),
     mStatusMessage(u"..."_s)
 {}
@@ -738,7 +738,7 @@ void Core::logError(QString src, Qx::Error error)
         postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 
     if(error.severity() == Qx::Critical)
-        mCriticalErrorOccured = true;
+        mCriticalErrorOccurred = true;
 }
 
 void Core::logEvent(QString src, QString event)
@@ -752,7 +752,7 @@ void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK
 
 ErrorCode Core::logFinish(QString src, Qx::Error errorState)
 {
-    if(mCriticalErrorOccured)
+    if(mCriticalErrorOccurred)
         logEvent(src, LOG_ERR_CRITICAL);
 
     ErrorCode code = errorState.code();
@@ -781,7 +781,7 @@ void Core::postError(QString src, Qx::Error error, bool log)
         e.errorInfo = error;
 
         // Emit
-        emit errorOccured(e);
+        emit errorOccurred(e);
     }
 }
 
@@ -806,7 +806,7 @@ int Core::postBlockingError(QString src, Qx::Error error, bool log, QMessageBox:
         QSharedPointer<int> response = QSharedPointer<int>::create(def);
 
         // Emit and get response
-        emit blockingErrorOccured(response, be);
+        emit blockingErrorOccurred(response, be);
 
         // Return response
         return *response;

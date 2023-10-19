@@ -127,7 +127,7 @@ ProcessBiderError ProcessBider::doWait()
                 Qx::SystemError nativeError = Qx::SystemError::fromHresult(HRESULT_FROM_WIN32(GetLastError()));
                 ProcessBiderError err(ProcessBiderError::HandleAquisition, nativeError.cause());
 
-                emit errorOccured(err);
+                emit errorOccurred(err);
                 return err;
             }
 
@@ -149,7 +149,7 @@ ProcessBiderError ProcessBider::doWait()
                 Qx::SystemError nativeError = Qx::SystemError::fromHresult(HRESULT_FROM_WIN32(GetLastError()));
                 ProcessBiderError err(ProcessBiderError::ProcessHook, nativeError.cause());
 
-                emit errorOccured(err);
+                emit errorOccurred(err);
                 return err;
             }
             emit statusChanged(LOG_EVENT_BIDE_QUIT.arg(mProcessName));

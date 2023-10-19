@@ -32,7 +32,7 @@ Controller::Controller(QObject* parent) :
 
     // Connect driver - Status
     connect(driver, &Driver::statusChanged, &mStatusRelay, &StatusRelay::statusChangeHandler);
-    connect(driver, &Driver::errorOccured, &mStatusRelay, &StatusRelay::errorHandler);
+    connect(driver, &Driver::errorOccurred, &mStatusRelay, &StatusRelay::errorHandler);
     connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler, Qt::BlockingQueuedConnection); // Allows optional blocking
     connect(driver, &Driver::longTaskProgressChanged, &mStatusRelay, &StatusRelay::longTaskProgressHandler);
     connect(driver, &Driver::longTaskTotalChanged, &mStatusRelay, &StatusRelay::longTaskTotalHandler);
@@ -42,7 +42,7 @@ Controller::Controller(QObject* parent) :
     connect(&mStatusRelay, &StatusRelay::longTaskCanceled, this, &Controller::longTaskCanceledHandler);
 
     // Connect driver - Response Requested  (BlockingQueuedConnection since response must be waited for)
-    connect(driver, &Driver::blockingErrorOccured, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
+    connect(driver, &Driver::blockingErrorOccurred, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::saveFileRequested, &mStatusRelay, &StatusRelay::saveFileRequestHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::itemSelectionRequested, &mStatusRelay, &StatusRelay::itemSelectionRequestHandler, Qt::BlockingQueuedConnection);
 

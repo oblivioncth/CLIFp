@@ -42,7 +42,7 @@ TDownload::TDownload(QObject* parent) :
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
         int choice;
-        emit blockingErrorOccured(NAME, &choice, errorMsg, QMessageBox::Yes | QMessageBox::No);
+        emit blockingErrorOccurred(NAME, &choice, errorMsg, QMessageBox::Yes | QMessageBox::No);
         *ignore = choice == QMessageBox::Yes;
     });
 

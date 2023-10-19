@@ -150,8 +150,8 @@ signals:
 
     // Core forwarders
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
-    void errorOccured(const Core::Error& error);
-    void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
+    void errorOccurred(const Core::Error& error);
+    void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void message(const Message& message);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
