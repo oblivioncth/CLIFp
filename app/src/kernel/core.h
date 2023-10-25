@@ -282,6 +282,7 @@ public:
     void postMessage(const Message& msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);
+    void requestClipboardUpdate(const QString& text);
 
     // Member access
     Fp::Install& fpInstall();
@@ -305,6 +306,7 @@ signals:
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void message(const Message& message);
+    void clipboardUpdateRequested(const QString& text);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------
