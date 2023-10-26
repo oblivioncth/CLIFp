@@ -51,7 +51,7 @@ Qx::Error CShare::perform()
     {
         mCore.logEvent(NAME, LOG_EVENT_REGISTRATION);
 
-        if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME, CLIFP_PATH, {u"play"_s, u"-u"_s}))
+        if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME))
         {
             CShareError err(CShareError::RegistrationFailed);
             mCore.postError(NAME, err);

@@ -299,7 +299,16 @@ Qx::Error Core::initialize(QStringList& commandLine)
             logEvent(NAME, LOG_EVENT_G_HELP_SHOWN);
         }
         else
-            commandLine = clParser.positionalArguments(); // Remove core options from command line list
+        {
+            QStringList pArgs = clParser.positionalArguments();
+            if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
+            {
+                logEvent(NAME, LOG_EVENT_PROTOCOL_FORWARD);
+                commandLine = {"play", "-u", pArgs.front()};
+            }
+            else
+                commandLine = pArgs; // Remove core options from command line list
+        }
 
         // Return success
         return CoreError();

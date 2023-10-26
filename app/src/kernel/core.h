@@ -87,6 +87,10 @@ public:
 
 //-Class Structs---------------------------------------------------------------------
 public:
+    /* TODO: These should be made their own files like message.h is in frontend
+     * (or one file, like "requests.h"), or message.h should be removed with its
+     * struct moved to here
+     */
     struct Error
     {
         QString source;
@@ -117,6 +121,7 @@ public:
         QStringList items;
     };
 
+
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
     // Status
@@ -143,6 +148,7 @@ public:
     static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
     static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
     static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = u"Notification Level is: %1"_s;
+    static inline const QString LOG_EVENT_PROTOCOL_FORWARD = u"Delegated protocol request to 'play'"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION_TXT = u"Flashpoint version.txt: %1"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION = u"Flashpoint version: %1"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_EDITION = u"Flashpoint edition: %1"_s;
@@ -215,6 +221,9 @@ public:
 
     // Helper
     static const int FIND_ENTRY_LIMIT = 20;
+
+    // Protocol
+    static inline const QString FLASHPOINT_PROTOCOL_SCHEME = u"flashpoint://"_s;
 
     // Meta
     static inline const QString NAME = u"core"_s;
