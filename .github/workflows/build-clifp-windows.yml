@@ -37,7 +37,7 @@ jobs:
     - name: Install Qt (custom build)
       uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
-        version: 6.5.1
+        version: 6.6.0
         os: windows
         compiler: msvc2022
         linkage: ${{ matrix.lib_linkage }}
