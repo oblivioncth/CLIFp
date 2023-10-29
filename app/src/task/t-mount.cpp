@@ -75,7 +75,7 @@ void TMount::perform()
 
     //-Setup Mounter(s)------------------------------------
 
-    if(mDaemon == Fp::Daemon::FpProxy)
+    if(mDaemon == Fp::Daemon::FpProxy || mDaemon == Fp::Daemon::FpGameServer)
     {
         initMounter(mMounterProxy);
         mMounterProxy->setFilePath(mPath);
@@ -122,6 +122,7 @@ void TMount::perform()
     switch(mDaemon)
     {
         case Fp::Daemon::FpProxy:
+        case Fp::Daemon::FpGameServer:
             mMounterProxy->mount();
             break;
 
