@@ -88,6 +88,9 @@ jobs:
     - name: Install EGL [22.04]
       if: matrix.os == 'ubuntu-22.04'
       run: sudo apt-get install libegl1-mesa-dev
+    - name: Install Wayland [22.04]
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install libwayland-dev
     - name: Checkout CLIFp
       uses: actions/checkout@v3
       with:
