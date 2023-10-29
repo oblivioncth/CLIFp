@@ -4,6 +4,9 @@
 // Qt Includes
 #include <QAuthenticator>
 #include <QUrlQuery>
+#include <QDir>
+#include <QJsonObject>
+#include <QJsonDocument>
 
 // Qx Includes
 #include <qx/core/qx-string.h>
@@ -96,7 +99,7 @@ quint16 MounterProxy::proxyServerPort() const { return mProxyServerPort; }
 QString MounterProxy::filePath() const { return mFilePath; }
 
 void MounterProxy::setProxyServerPort(quint16 port) { mProxyServerPort = port; }
-void MounterProxy::setFilePath(const QString& path) { mFilePath = path; }
+void MounterProxy::setFilePath(const QString& path) { mFilePath = QDir::toNativeSeparators(path); }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Private Slots:
@@ -139,9 +142,15 @@ void MounterProxy::mount()
 
     // Header
     mountReq.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    // These headers are used by the stock launcher, but don't seem to be needed
+    //
+    // mountReq.setRawHeader("Connection"_ba, "close"_ba);
+    // mountReq.setRawHeader("Accept"_ba, "application/json, text/plain, */*"_ba);
+    // mountReq.setRawHeader("Accept-Encoding"_ba, "gzip, compress, deflate, br"_ba);
 
-    // Data (could use QJsonDocument but for such a simple object that's overkill
-    QByteArray data = "{\"filePath\":\""_ba + mFilePath.toLatin1() + "\"}"_ba;
+    // Data
+    QJsonDocument jdData(QJsonObject{{u"filePath"_s, mFilePath}});
+    QByteArray data = jdData.toJson(QJsonDocument::Compact);
 
     //-POST Request---------------------------------
     mProxyMountReply = mNam.post(mountReq, data);

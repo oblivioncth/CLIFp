@@ -7,7 +7,7 @@
 // Project Includes
 #include "command/command.h"
 
-class QX_ERROR_TYPE(CShowError, "CShowError", 1216)
+class QX_ERROR_TYPE(CShowError, "CShowError", 1217)
 {
     friend class CShow;
     //-Class Enums-------------------------------------------------------------

@@ -8,6 +8,9 @@
 // Qx Includes
 #include <qx/core/qx-error.h>
 
+// Project Includes
+#include "frontend/message.h"
+
 class Task : public QObject
 {
     Q_OBJECT;
@@ -40,10 +43,10 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
-    void notificationReady(QString message);
+    void notificationReady(const Message& msg);
     void eventOccurred(QString taskName, QString event);
     void errorOccurred(QString taskName, Qx::Error error);
-    void blockingErrorOccured(QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices);
+    void blockingErrorOccurred(QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices);
 
     void longTaskStarted(QString procedure);
     void longTaskTotalChanged(quint64 total);

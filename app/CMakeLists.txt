@@ -18,6 +18,8 @@ set(CLIFP_SOURCE
     command/c-prepare.cpp
     command/c-run.h
     command/c-run.cpp
+    command/c-share.h
+    command/c-share.cpp
     command/c-show.cpp
     command/c-show.h
     command/title-command.h
@@ -50,6 +52,7 @@ set(CLIFP_SOURCE
     tools/mounter_qmp.cpp
     tools/mounter_router.h
     tools/mounter_router.cpp
+    frontend/message.h
     frontend/statusrelay.h
     frontend/statusrelay.cpp
     controller.h

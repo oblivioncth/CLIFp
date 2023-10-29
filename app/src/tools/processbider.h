@@ -116,7 +116,7 @@ public slots:
 
 signals:
     void statusChanged(QString statusMessage);
-    void errorOccured(ProcessBiderError errorMessage);
+    void errorOccurred(ProcessBiderError errorMessage);
     void bideFinished(ProcessBiderError errorStatus);
 };
 

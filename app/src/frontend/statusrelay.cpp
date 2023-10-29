@@ -14,7 +14,8 @@
 
 //-Constructor--------------------------------------------------------------------
 StatusRelay::StatusRelay(QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    mSystemClipboard(QGuiApplication::clipboard())
 {
     setupTrayIcon();
     setupProgressDialog();
@@ -79,14 +80,23 @@ void StatusRelay::blockingErrorHandler(QSharedPointer<int> response, Core::Block
         qFatal("No response argument provided!");
 }
 
-void StatusRelay::messageHandler(const QString& message)
+void StatusRelay::messageHandler(const Message& message)
 {
     QMessageBox* msg  = new QMessageBox();
     msg->setIcon(QMessageBox::Information);
     msg->setWindowTitle(QApplication::applicationName()); // This should be the default, but hey being explicit never hurt
-    msg->setText(message);
-    msg->setAttribute(Qt::WA_DeleteOnClose);
-    msg->show();
+    msg->setText(message.text);
+
+    if(message.selectable)
+        msg->setTextInteractionFlags(Qt::TextSelectableByMouse);
+
+    if(message.blocking)
+        msg->exec();
+    else
+    {
+        msg->setAttribute(Qt::WA_DeleteOnClose);
+        msg->show();
+    }
 }
 
 void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request)
@@ -110,6 +120,11 @@ void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, cons
     }
     else
         qFatal("No response argument provided!");
+}
+
+void StatusRelay::clipboardUpdateRequestHandler(const QString& text)
+{
+    mSystemClipboard->setText(text);
 }
 
 void StatusRelay::longTaskProgressHandler(quint64 progress)

@@ -68,6 +68,30 @@ jobs:
     uses: ./.github/workflows/build-clifp-linux.yml
     secrets:
       qt_ffynnon_cred: ${{ secrets.OBYBOT_FFYNNON_CREDS }}
+      
+  update-redirect:
+    name: Update redirect page
+    if: github.event.pull_request.merged == true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.page-deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Setup pages
+      uses: actions/configure-pages@v3
+    - name: Upload pages artifact
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: ${{ github.workspace }}/redirector
+    - name: Deploy pages artifact
+      id: page-deployment
+      uses: actions/deploy-pages@v1
 
   create-release:
     name: Create GitHub release

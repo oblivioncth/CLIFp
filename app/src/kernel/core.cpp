@@ -58,7 +58,7 @@ QString CoreError::deriveSecondary() const { return mSpecific; }
 //-Constructor-------------------------------------------------------------
 Core::Core(QObject* parent) :
     QObject(parent),
-    mCriticalErrorOccured(false),
+    mCriticalErrorOccurred(false),
     mStatusHeading(u"Initializing"_s),
     mStatusMessage(u"..."_s)
 {}
@@ -102,21 +102,21 @@ void Core::showHelp()
         // Help commands
         QString commandStr;
         for(const QString& command : qxAsConst(Command::registered()))
-            commandStr += HELP_COMMAND_TEMPL.arg(command, Command::describe(command));
+            if(Command::hasDescription(command))
+                commandStr += HELP_COMMAND_TEMPL.arg(command, Command::describe(command));
 
         // Complete string
         helpStr = HELP_TEMPL.arg(optStr, commandStr);
     }
 
     // Show help
-    postMessage(helpStr);
+    postMessage(Message{.text = helpStr});
 }
-
 
 void Core::showVersion()
 {
     setStatus(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
-    postMessage(CL_VERSION_MESSAGE);
+    postMessage(Message{.text = CL_VERSION_MESSAGE});
 }
 
 Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
@@ -299,7 +299,16 @@ Qx::Error Core::initialize(QStringList& commandLine)
             logEvent(NAME, LOG_EVENT_G_HELP_SHOWN);
         }
         else
-            commandLine = clParser.positionalArguments(); // Remove core options from command line list
+        {
+            QStringList pArgs = clParser.positionalArguments();
+            if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
+            {
+                logEvent(NAME, LOG_EVENT_PROTOCOL_FORWARD);
+                commandLine = {"play", "-u", pArgs.front()};
+            }
+            else
+                commandLine = pArgs; // Remove core options from command line list
+        }
 
         // Return success
         return CoreError();
@@ -739,7 +748,7 @@ void Core::logError(QString src, Qx::Error error)
         postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
 
     if(error.severity() == Qx::Critical)
-        mCriticalErrorOccured = true;
+        mCriticalErrorOccurred = true;
 }
 
 void Core::logEvent(QString src, QString event)
@@ -753,10 +762,10 @@ void Core::logTask(QString src, const Task* task) { logEvent(src, LOG_EVENT_TASK
 
 ErrorCode Core::logFinish(QString src, Qx::Error errorState)
 {
-    if(mCriticalErrorOccured)
+    if(mCriticalErrorOccurred)
         logEvent(src, LOG_ERR_CRITICAL);
 
-    ErrorCode code = errorState.code();
+    ErrorCode code = errorState.typeCode();
 
     Qx::IoOpReport logReport = mLogger->finish(code);
     if(logReport.isFailure())
@@ -782,7 +791,7 @@ void Core::postError(QString src, Qx::Error error, bool log)
         e.errorInfo = error;
 
         // Emit
-        emit errorOccured(e);
+        emit errorOccurred(e);
     }
 }
 
@@ -807,7 +816,7 @@ int Core::postBlockingError(QString src, Qx::Error error, bool log, QMessageBox:
         QSharedPointer<int> response = QSharedPointer<int>::create(def);
 
         // Emit and get response
-        emit blockingErrorOccured(response, be);
+        emit blockingErrorOccurred(response, be);
 
         // Return response
         return *response;
@@ -816,7 +825,7 @@ int Core::postBlockingError(QString src, Qx::Error error, bool log, QMessageBox:
         return def;
 }
 
-void Core::postMessage(QString msg) { emit message(msg); }
+void Core::postMessage(const Message& msg) { emit message(msg); }
 
 QString Core::requestSaveFilePath(const SaveFileRequest& request)
 {
@@ -841,6 +850,8 @@ QString Core::requestItemSelection(const ItemSelectionRequest& request)
     // Return response
     return *item;
 }
+
+void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
 
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }

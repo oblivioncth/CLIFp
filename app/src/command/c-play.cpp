@@ -13,6 +13,29 @@
 #include "../task/t-extra.h"
 
 //===============================================================================================================
+// CPlayError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+CPlayError::CPlayError(Type t, const QString& s) :
+    mType(t),
+    mSpecific(s)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool CPlayError::isValid() const { return mType != NoError; }
+QString CPlayError::specific() const { return mSpecific; }
+CPlayError::Type CPlayError::type() const { return mType; }
+
+//Private:
+Qx::Severity CPlayError::deriveSeverity() const { return Qx::Critical; }
+quint32 CPlayError::deriveValue() const { return mType; }
+QString CPlayError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString CPlayError::deriveSecondary() const { return mSpecific; }
+
+//===============================================================================================================
 // CPLAY
 //===============================================================================================================
 
@@ -193,8 +216,8 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     {
         TMessage* messageTask = new TMessage(&mCore);
         messageTask->setStage(taskStage);
-        messageTask->setMessage(addApp.launchCommand());
-        messageTask->setModal(addApp.isWaitExit() || taskStage == Task::Stage::Primary);
+        messageTask->setText(addApp.launchCommand());
+        messageTask->setBlocking(addApp.isWaitExit());
 
         mCore.enqueueSingleTask(messageTask);
     }
@@ -262,14 +285,28 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
 }
 
 //Protected:
+QList<const QCommandLineOption*> CPlay::options() { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
 QString CPlay::name() { return NAME; }
 
 Qx::Error CPlay::perform()
 {
-    // Get ID of title to start
+    // Get ID of title to start, prioritizing URL
     QUuid titleId;
-    if(Qx::Error ide = getTitleId(titleId); ide.isValid())
+    if(mParser.isSet(CL_OPTION_URL))
+    {
+        QRegularExpressionMatch urlMatch = URL_REGEX.match(mParser.value(CL_OPTION_URL));
+        if(!urlMatch.hasMatch())
+        {
+            CPlayError err(CPlayError::InvalidUrl);
+            mCore.postError(NAME, err);
+            return err;
+        }
+
+        titleId = QUuid(urlMatch.captured(u"id"_s));
+    }
+    else if(Qx::Error ide = getTitleId(titleId); ide.isValid())
         return ide;
+
 
     Qx::Error errorStatus;
 

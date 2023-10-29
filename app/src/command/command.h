@@ -144,6 +144,7 @@ public:
     static CommandError isRegistered(const QString& name);
     static QList<QString> registered();
     static std::unique_ptr<Command> acquire(const QString& name, Core& coreRef);
+    static bool hasDescription(const QString& name);
     static QString describe(const QString& name);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------

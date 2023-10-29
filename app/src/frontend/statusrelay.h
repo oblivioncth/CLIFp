@@ -8,6 +8,7 @@
 #include <QMenu>
 #include <QAuthenticator>
 #include <QInputDialog>
+#include <QClipboard>
 
 // Qx Includes
 #include <qx/utility/qx-macros.h>
@@ -31,6 +32,7 @@ public:
 
     QSystemTrayIcon mTrayIcon;
     QMenu mTrayIconContextMenu;
+    QClipboard* mSystemClipboard;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -43,13 +45,14 @@ private:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------
 public slots:
-    // Status messages
+    // Request/status handlers
     void statusChangeHandler(const QString& statusHeading, const QString& statusMessage);
     void errorHandler(Core::Error error);
     void blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError);
-    void messageHandler(const QString& message);
+    void messageHandler(const Message& message);
     void saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request);
     void itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
+    void clipboardUpdateRequestHandler(const QString& text);
 
     // Long Job
     void longTaskProgressHandler(quint64 progress);

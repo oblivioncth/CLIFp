@@ -66,7 +66,7 @@ private:
 
     // Error Messages
     static inline const QString ERR_LAUNCHER_RUNNING_TIP = u"Please close the Launcher first."_s;
-    static inline const QString ERR_INSTALL_INVALID_TIP = u"Check its location and compatibility with your Flashpoint version."_s;
+    static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update CLIFp."_s;
 
     // Logging
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
@@ -150,11 +150,12 @@ signals:
 
     // Core forwarders
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
-    void errorOccured(const Core::Error& error);
-    void blockingErrorOccured(QSharedPointer<int> response, const Core::BlockingError& blockingError);
-    void message(const QString& message);
+    void errorOccurred(const Core::Error& error);
+    void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
+    void message(const Message& message);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
+    void clipboardUpdateRequested(const QString& text);
 
     // Long task
     void longTaskProgressChanged(quint64 progress);

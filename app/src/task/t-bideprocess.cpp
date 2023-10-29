@@ -38,7 +38,7 @@ TBideProcess::TBideProcess(QObject* parent) :
     connect(&mProcessBider, &ProcessBider::statusChanged, this,  [this](QString statusMessage){
         emit eventOccurred(NAME, statusMessage);
     });
-    connect(&mProcessBider, &ProcessBider::errorOccured, this, [this](ProcessBiderError errorMessage){
+    connect(&mProcessBider, &ProcessBider::errorOccurred, this, [this](ProcessBiderError errorMessage){
         emit errorOccurred(NAME, errorMessage);
     });
     connect(&mProcessBider, &ProcessBider::bideFinished, this, &TBideProcess::postBide);
