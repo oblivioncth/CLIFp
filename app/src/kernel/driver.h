@@ -66,7 +66,7 @@ private:
 
     // Error Messages
     static inline const QString ERR_LAUNCHER_RUNNING_TIP = u"Please close the Launcher first."_s;
-    static inline const QString ERR_INSTALL_INVALID_TIP = u"Check its location and compatibility with your Flashpoint version."_s;
+    static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update CLIFp."_s;
 
     // Logging
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
