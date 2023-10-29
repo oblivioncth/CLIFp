@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 12.0)
+set(TARGET_FP_VERSION_PREFIX 12.1)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
@@ -79,7 +79,7 @@ ob_fetch_qx(
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("e9d857952113e84b3aac2d049b1503c34ff843d7")
+ob_fetch_libfp("v0.5.1")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
