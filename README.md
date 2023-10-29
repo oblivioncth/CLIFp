@@ -101,8 +101,8 @@ This will create a share link for that title which will be displayed via a messa
 
 If for whatever reason the service through which you wish to share a link does not support links with custom schemes, you can use the **-u** switch to generate a standard "https" link that utilizes a GitHub-hosted redirect page, enabling share links to be provided everywhere. 
 
-[!IMPORTANT]
-You will want to disable the "Register As Protocol Handler" option in the default launcher or else it will replace CLIFp as the "flashpoint" protocol handler every time it's started.
+> [!IMPORTANT]
+> You will want to disable the "Register As Protocol Handler" option in the default launcher or else it will replace CLIFp as the "flashpoint" protocol handler every time it's started.
 
 ## All Commands/Options
 The recommended way to use all switches is to use their short form when the value for the switch has no spaces:
