@@ -106,7 +106,7 @@ jobs:
     - name: Zip up release artifacts
       shell: pwsh
       run: |
-        $artifact_folders = Get-ChildItem -Directory -Path "${{ env.artifacts_path }}"
+        $artifact_folders = Get-ChildItem -Directory -Path "${{ env.artifacts_path }}" -Exclude "github-pages"
         foreach($art_dir in $artifact_folders)
         {
           $name = $art_dir.name
