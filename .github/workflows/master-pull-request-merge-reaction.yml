@@ -33,11 +33,14 @@ jobs:
         match_end: \)
       run: |
         $project_lists = Get-Content -Raw CMakeLists.txt
-        if(!($project_lists -match '(?<=${{ env.match_start }})(.*)(?=${{ env.match_end }})')){
-          throw "Could not get target FP version!"
-        }
-        $target_version = "v$($Matches[1].Trim())"
-        echo "fp_version=$target_version" >> $Env:GITHUB_OUTPUT
+        if(!($project_lists -match '(?<=${{ env.match_start
+      }})(.*)(?=${{
+      env.match_end
+      }})')){
+      throw"Could not get target FP version!"
+      }
+      $target_version="v$($Matches[1].Trim())"
+      echo"fp_version=$target_version">> $Env:GITHUB_OUTPUT
     - name: Tag master with new version tag
       uses: oblivioncth/actions/git/tag@dev
       with:
