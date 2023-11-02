@@ -67,7 +67,7 @@ jobs:
         echo "Build complete."
     - name: Get CLIFp artifact name
       run: |
-        $artifact_name=$((Get-ChildItem -Path "${{ env.clifp_package_path }}" -Filter *.zip)[0].BaseName)
+        $artifact_name=$((Get-ChildItem -Path "${{ env.clifp_package_path }}" -Filter *.zip)[0].BaseName) + ' [msvc]'
         echo "current_artifact_name=$artifact_name" >> $Env:GITHUB_ENV
     - name: Upload CLIFp build artifact
       uses: actions/upload-artifact@v3
