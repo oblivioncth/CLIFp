@@ -244,13 +244,15 @@ void Driver::drive()
     std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
     //-Restrict app to only one instance---------------------------------------------------
-    if(!commandProcessor->allowMultiInstance() && !Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
+    if(!commandProcessor->allowMultiInstance())
     {
-        DriverError err(DriverError::AlreadyOpen);
-        mCore->postError(NAME, err);
-        mErrorStatus = err;
-        finish();
-        return;
+        if(CoreError err = mCore->blockNewInstances(); err.isValid())
+        {
+            mCore->postError(NAME, err);
+            mErrorStatus = err;
+            finish();
+            return;
+        }
     }
 
     //-Handle Flashpoint Steps----------------------------------------------------------

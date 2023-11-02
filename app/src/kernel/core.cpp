@@ -6,6 +6,7 @@
 
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
+#include <qx/core/qx-system.h>
 
 // Magic Enum Includes
 #include <magic_enum_flags.hpp>
@@ -442,6 +443,12 @@ Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString 
 {
     logEvent(NAME, LOG_EVENT_ADD_APP_SEARCH.arg(name, parent.toString()));
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
+}
+
+CoreError Core::blockNewInstances()
+{
+    logEvent(NAME, LOG_EVENT_FURTHER_INSTANCE_BLOCK);
+    return CoreError(Qx::enforceSingleInstance(SINGLE_INSTANCE_ID) ? CoreError::NoError : CoreError::AlreadyOpen);
 }
 
 CoreError Core::enqueueStartupTasks()

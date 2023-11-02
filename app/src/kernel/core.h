@@ -35,13 +35,14 @@ class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 public:
     enum Type
     {
-        NoError = 0,
-        InvalidOptions = 1,
-        TitleNotFound = 2,
-        TooManyResults = 3,
-        ConfiguredServerMissing = 4,
-        DataPackSumMismatch = 5,
-        DataPackSourceMissing = 6
+        NoError,
+        InvalidOptions,
+        AlreadyOpen,
+        TitleNotFound,
+        TooManyResults,
+        ConfiguredServerMissing,
+        DataPackSumMismatch,
+        DataPackSourceMissing
     };
 
     //-Class Variables-------------------------------------------------------------
@@ -49,6 +50,7 @@ private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
         {InvalidOptions, u"Invalid global options provided."_s},
+        {AlreadyOpen, u"Only one instance of CLIFp can be used at a time!"_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
         {ConfiguredServerMissing, u"The server specified in the Flashpoint config was not found within the Flashpoint services store."_s},
@@ -124,6 +126,9 @@ public:
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
+    // Single Instance ID
+    static inline const QString SINGLE_INSTANCE_ID = u"CLIFp_ONE_INSTANCE"_s; // Basically never change this
+
     // Status
     static inline const QString STATUS_DISPLAY = u"Displaying"_s;
     static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
@@ -145,6 +150,7 @@ public:
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
     static inline const QString LOG_EVENT_GLOBAL_OPT = u"Global Options: %1"_s;
+    static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK = u"Attempting to lock instance count..."_s;
     static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
     static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
     static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = u"Notification Level is: %1"_s;
@@ -270,6 +276,7 @@ public:
     Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
+    CoreError blockNewInstances();
     CoreError enqueueStartupTasks();
     void enqueueShutdownTasks();
 #ifdef _WIN32

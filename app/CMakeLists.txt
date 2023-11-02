@@ -23,6 +23,8 @@ set(CLIFP_SOURCE
     command/c-share.cpp
     command/c-show.cpp
     command/c-show.h
+    command/c-update.h
+    command/c-update.cpp
     command/title-command.h
     command/title-command.cpp
     task/task.h

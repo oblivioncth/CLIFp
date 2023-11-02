@@ -20,16 +20,14 @@ public:
     enum Type
     {
         NoError = 0,
-        AlreadyOpen = 1,
-        LauncherRunning = 2,
-        InvalidInstall = 3,
+        LauncherRunning = 1,
+        InvalidInstall = 2,
     };
 
 //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {AlreadyOpen, u"Only one instance of CLIFp can be used at a time!"_s},
         {LauncherRunning, u"The CLI cannot be used while the Flashpoint Launcher is running."_s},
         {InvalidInstall, u"CLIFp does not appear to be deployed in a valid Flashpoint install"_s}
     };
@@ -61,12 +59,9 @@ class Driver : public QObject
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
-    // Single Instance ID
-    static inline const QString SINGLE_INSTANCE_ID = u"CLIFp_ONE_INSTANCE"_s; // Basically never change this
-
     // Error Messages
     static inline const QString ERR_LAUNCHER_RUNNING_TIP = u"Please close the Launcher first."_s;
-    static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update CLIFp."_s;
+    static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update (i.e. the 'update' command)."_s;
 
     // Logging
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
