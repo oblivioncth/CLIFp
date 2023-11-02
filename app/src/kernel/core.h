@@ -23,6 +23,7 @@
 // Project Includes
 #include "task/task.h"
 #include "project_vars.h"
+#include "kernel/buildinfo.h"
 
 // General Aliases
 using ErrorCode = quint32;
@@ -306,6 +307,9 @@ public:
     QString statusHeading();
     QString statusMessage();
     void setStatus(QString heading, QString message);
+
+    // Other
+    BuildInfo buildInfo() const;
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:

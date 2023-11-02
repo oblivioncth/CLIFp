@@ -25,7 +25,7 @@
     #include "task/t-awaitdocker.h"
 #endif
 #include "utility.h"
-#include "project_vars.h"
+#include "_buildinfo.h"
 
 //===============================================================================================================
 // CoreError
@@ -868,4 +868,22 @@ void Core::setStatus(QString heading, QString message)
     mStatusHeading = heading;
     mStatusMessage = message;
     emit statusChanged(heading, message);
+}
+
+BuildInfo Core::buildInfo() const
+{
+    constexpr auto sysOpt = magic_enum::enum_cast<BuildInfo::System>(BUILDINFO_SYSTEM);
+    static_assert(sysOpt.has_value(), "Configured on unsupported system!");
+
+    constexpr auto linkOpt = magic_enum::enum_cast<BuildInfo::Linkage>(BUILDINFO_LINKAGE);
+    static_assert(linkOpt.has_value(), "Invalid BuildInfo linkage string!");
+
+    static BuildInfo info{
+        .system = sysOpt.value(),
+        .linkage = linkOpt.value(),
+        .compiler = BUILDINFO_COMPILER,
+        .compilerVersion = QVersionNumber::fromString(BUILDINFO_COMPILER_VER_STR)
+    };
+
+    return info;
 }
