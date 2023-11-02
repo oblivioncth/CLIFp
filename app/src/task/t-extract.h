@@ -73,7 +73,7 @@ private:
     static inline const QString NAME = u"TExtract"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_EXTRACTING_DATA_PACK = u"Extracting Data Pack %1"_s;
+    static inline const QString LOG_EVENT_EXTRACTING_ARCHIVE = u"Extracting archive %1"_s;
 
     // Error
     static inline const QString ERR_CODE_TEMPLATE = u"Code: 0x%1"_s;

@@ -156,7 +156,7 @@ void TExtract::perform()
 {
     // Log string
     QFileInfo packFileInfo(mPackPath);
-    emit eventOccurred(NAME, LOG_EVENT_EXTRACTING_DATA_PACK.arg(packFileInfo.fileName()));
+    emit eventOccurred(NAME, LOG_EVENT_EXTRACTING_ARCHIVE.arg(packFileInfo.fileName()));
 
     // Extract pack
     TExtractError ee = extractZipSubFolderContentToDir(mPackPath,
