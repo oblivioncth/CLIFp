@@ -227,44 +227,7 @@ void Driver::drive()
         return;
     }
 
-    //-Restrict app to only one instance---------------------------------------------------
-    if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
-    {
-        DriverError err(DriverError::AlreadyOpen);
-        mCore->postError(NAME, err);
-        mErrorStatus = err;
-        finish();
-        return;
-    }
-
-    // Ensure Flashpoint Launcher isn't running
-    if(Qx::processIsRunning(Fp::Install::LAUNCHER_NAME))
-    {
-        DriverError err(DriverError::LauncherRunning, ERR_LAUNCHER_RUNNING_TIP);
-        mCore->postError(NAME, err);
-        mErrorStatus = err;
-        finish();
-        return;
-    }
-
-    //-Find and link to Flashpoint Install----------------------------------------------------------
-    std::unique_ptr<Fp::Install> flashpointInstall;
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
-
-    if(!(flashpointInstall = findFlashpointInstall()))
-    {
-        DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
-        mCore->postError(NAME, err);
-        mErrorStatus = err;
-        finish();
-        return;
-    }
-    mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
-
-    // Insert into core
-    mCore->attachFlashpoint(std::move(flashpointInstall));
-
-    //-Handle Command and Command Options----------------------------------------------------------
+    //-Prepare Command---------------------------------------------------------------------
     QString commandStr = mArguments.first().toLower();
 
     // Check for valid command
@@ -279,7 +242,48 @@ void Driver::drive()
     // Create command instance
     std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
-    // Process command
+    //-Restrict app to only one instance---------------------------------------------------
+    if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
+    {
+        DriverError err(DriverError::AlreadyOpen);
+        mCore->postError(NAME, err);
+        mErrorStatus = err;
+        finish();
+        return;
+    }
+
+    //-Handle Flashpoint Steps----------------------------------------------------------
+    if(commandProcessor->requiresFlashpoint())
+    {
+        // Ensure Flashpoint Launcher isn't running
+        if(Qx::processIsRunning(Fp::Install::LAUNCHER_NAME))
+        {
+            DriverError err(DriverError::LauncherRunning, ERR_LAUNCHER_RUNNING_TIP);
+            mCore->postError(NAME, err);
+            mErrorStatus = err;
+            finish();
+            return;
+        }
+
+        // Find and link to Flashpoint Install
+        std::unique_ptr<Fp::Install> flashpointInstall;
+        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
+
+        if(!(flashpointInstall = findFlashpointInstall()))
+        {
+            DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
+            mCore->postError(NAME, err);
+            mErrorStatus = err;
+            finish();
+            return;
+        }
+        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
+
+        // Insert into core
+        mCore->attachFlashpoint(std::move(flashpointInstall));
+    }
+
+    //-Process command-----------------------------------------------------------------------------
     mErrorStatus = commandProcessor->process(mArguments);
     if(mErrorStatus.isSet())
     {

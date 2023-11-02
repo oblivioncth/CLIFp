@@ -162,6 +162,7 @@ protected:
     virtual Qx::Error perform() = 0;
 
 public:
+    virtual bool requiresFlashpoint() const;
     Qx::Error process(const QStringList& commandLine);
 };
 

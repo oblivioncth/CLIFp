@@ -197,3 +197,6 @@ Qx::Error Command::process(const QStringList& commandLine)
     // Perform command
     return perform();
 }
+
+//Public:
+bool Command::requiresFlashpoint() const { return true; }
