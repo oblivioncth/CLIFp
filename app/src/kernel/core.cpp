@@ -246,7 +246,7 @@ Qx::Error Core::initialize(QStringList& commandLine)
             if(!globalOptions.isEmpty())
                 globalOptions += ' '; // Space after every switch except first one
 
-            globalOptions += u"--"_s + (*clOption).names().at(1); // Always use long name
+            globalOptions += u"--"_s + (*clOption).names().constLast(); // Always use long name
 
             // Add value of switch if it takes one
             if(!(*clOption).valueName().isEmpty())

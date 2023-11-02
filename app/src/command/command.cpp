@@ -83,7 +83,7 @@ CommandError Command::parse(const QStringList& commandLine)
             if(!optionsStr.isEmpty())
                 optionsStr += ' '; // Space after every switch except first one
 
-            optionsStr += u"--"_s + (*clOption).names().at(1); // Always use long name
+            optionsStr += u"--"_s + (*clOption).names().constLast(); // Always use long name
 
             // Add value of switch if it takes one
             if(!(*clOption).valueName().isEmpty())
