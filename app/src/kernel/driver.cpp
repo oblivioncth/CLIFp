@@ -244,7 +244,7 @@ void Driver::drive()
     std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
     //-Restrict app to only one instance---------------------------------------------------
-    if(!Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
+    if(!commandProcessor->allowMultiInstance() && !Qx::enforceSingleInstance(SINGLE_INSTANCE_ID))
     {
         DriverError err(DriverError::AlreadyOpen);
         mCore->postError(NAME, err);
