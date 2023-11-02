@@ -853,6 +853,24 @@ QString Core::requestItemSelection(const ItemSelectionRequest& request)
 
 void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
 
+bool Core::requestQuestionAnswer(const QString& question)
+{
+    // Show question if allowed
+    if(mNotificationVerbosity != NotificationVerbosity::Silent)
+    {
+        // Response holder
+        QSharedPointer<bool> response = QSharedPointer<bool>::create(false);
+
+        // Emit and get response
+        emit questionAnswerRequested(response, question);
+
+        // Return response
+        return *response;
+    }
+    else
+        return false; // Assume "No"
+}
+
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
 Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }

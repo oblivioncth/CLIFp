@@ -53,6 +53,7 @@ public slots:
     void saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request);
     void itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void clipboardUpdateRequestHandler(const QString& text);
+    void questionAnswerRequestHandler(QSharedPointer<bool> response, const QString& question);
 
     // Long Job
     void longTaskProgressHandler(quint64 progress);

@@ -122,7 +122,6 @@ public:
         QStringList items;
     };
 
-
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
     // Status
@@ -293,6 +292,7 @@ public:
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);
     void requestClipboardUpdate(const QString& text);
+    bool requestQuestionAnswer(const QString& question);
 
     // Member access
     Fp::Install& fpInstall();
@@ -320,6 +320,7 @@ signals:
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void message(const Message& message);
     void clipboardUpdateRequested(const QString& text);
+    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------
