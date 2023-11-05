@@ -89,16 +89,16 @@ void TDownload::setSha256(QString sha256) { mSha256 = sha256; }
 void TDownload::perform()
 {
     // Setup download
-    QFile packFile(mDestinationPath + '/' + mDestinationFilename);
-    QFileInfo packFileInfo(packFile);
+    QFile file(mDestinationPath + '/' + mDestinationFilename);
+    QFileInfo fileInfo(file);
     Qx::DownloadTask download{
         .target = mTargetFile,
-        .dest = packFileInfo.absoluteFilePath()
+        .dest = fileInfo.absoluteFilePath()
     };
     mDownloadManager.appendTask(download);
 
     // Log/label string
-    QString label = LOG_EVENT_DOWNLOADING_DATA_PACK.arg(packFileInfo.fileName());
+    QString label = LOG_EVENT_DOWNLOADING_FILE.arg(fileInfo.fileName());
     emit eventOccurred(NAME, label);
 
     // Start download
@@ -125,18 +125,21 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
     emit longTaskFinished();
     if(downloadReport.wasSuccessful())
     {
-        // Confirm checksum is correct
-        QFile packFile(mDestinationPath + '/' + mDestinationFilename);
-        bool checksumMatch;
-        Qx::IoOpReport cr = Qx::fileMatchesChecksum(checksumMatch, packFile, mSha256, QCryptographicHash::Sha256);
-        if(cr.isFailure() || !checksumMatch)
+        // Confirm checksum is correct, if supplied
+        if(!mSha256.isEmpty())
         {
-            TDownloadError err(TDownloadError::ChecksumMismatch, cr.isFailure() ? cr.outcomeInfo() : u""_s);
-            errorStatus = err;
-            emit errorOccurred(NAME, errorStatus);
+            QFile file(mDestinationPath + '/' + mDestinationFilename);
+            bool checksumMatch;
+            Qx::IoOpReport cr = Qx::fileMatchesChecksum(checksumMatch, file, mSha256, QCryptographicHash::Sha256);
+            if(cr.isFailure() || !checksumMatch)
+            {
+                TDownloadError err(TDownloadError::ChecksumMismatch, cr.isFailure() ? cr.outcomeInfo() : u""_s);
+                errorStatus = err;
+                emit errorOccurred(NAME, errorStatus);
+            }
         }
-        else
-            emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_SUCC);
+
+        emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_SUCC);
     }
     else
     {
