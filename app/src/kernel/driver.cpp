@@ -7,6 +7,7 @@
 
 // Project Includes
 #include "command/command.h"
+#include "command/c-update.h"
 #include "task/t-exec.h"
 #include "utility.h"
 
@@ -150,7 +151,19 @@ void Driver::cleanup()
     mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
 }
 
-void Driver::finish() { emit finished(mCore->logFinish(NAME, mErrorStatus.value())); }
+void Driver::finish()
+{
+    // Clear update cache
+    if(CUpdate::isUpdateCacheClearable())
+    {
+        if(CUpdateError err = CUpdate::clearUpdateCache(); err.isValid())
+            mCore->logError(NAME, err);
+        else
+            mCore->logEvent(NAME, LOG_EVENT_CLEARED_UPDATE_CACHE);
+    }
+
+    emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
+}
 
 // Helper functions
 std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
@@ -244,15 +257,13 @@ void Driver::drive()
     std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
     //-Restrict app to only one instance---------------------------------------------------
-    if(!commandProcessor->allowMultiInstance())
+    if(commandProcessor->autoBlockNewInstances() && !mCore->blockNewInstances())
     {
-        if(CoreError err = mCore->blockNewInstances(); err.isValid())
-        {
-            mCore->postError(NAME, err);
-            mErrorStatus = err;
-            finish();
-            return;
-        }
+        DriverError err(DriverError::AlreadyOpen);
+        mCore->postError(NAME, err);
+        mErrorStatus = err;
+        finish();
+        return;
     }
 
     //-Handle Flashpoint Steps----------------------------------------------------------

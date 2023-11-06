@@ -19,15 +19,17 @@ class QX_ERROR_TYPE(DriverError, "DriverError", 1201)
 public:
     enum Type
     {
-        NoError = 0,
-        LauncherRunning = 1,
-        InvalidInstall = 2,
+        NoError,
+        AlreadyOpen,
+        LauncherRunning,
+        InvalidInstall,
     };
 
 //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
+        {AlreadyOpen, u"Only one instance of CLIFp can be used at a time!"_s},
         {LauncherRunning, u"The CLI cannot be used while the Flashpoint Launcher is running."_s},
         {InvalidInstall, u"CLIFp does not appear to be deployed in a valid Flashpoint install"_s}
     };
@@ -81,6 +83,7 @@ private:
     static inline const QString LOG_EVENT_TASK_SKIP_QUIT = u"Task skipped because the application is quitting"_s;
     static inline const QString LOG_EVENT_QUIT_REQUEST = u"Received quit request"_s;
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = u"Received redundant quit request"_s;
+    static inline const QString LOG_EVENT_CLEARED_UPDATE_CACHE = u"Cleared stale update cache."_s;
 
     // Meta
     static inline const QString NAME = u"driver"_s;

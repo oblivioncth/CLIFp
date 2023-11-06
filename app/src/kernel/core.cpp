@@ -445,10 +445,11 @@ Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString 
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
 }
 
-CoreError Core::blockNewInstances()
+bool Core::blockNewInstances()
 {
-    logEvent(NAME, LOG_EVENT_FURTHER_INSTANCE_BLOCK);
-    return CoreError(Qx::enforceSingleInstance(SINGLE_INSTANCE_ID) ? CoreError::NoError : CoreError::AlreadyOpen);
+    bool b = Qx::enforceSingleInstance(SINGLE_INSTANCE_ID);
+    logEvent(NAME, b ? LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC : LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL);
+    return b;
 }
 
 CoreError Core::enqueueStartupTasks()

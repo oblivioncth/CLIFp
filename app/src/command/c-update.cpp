@@ -15,26 +15,16 @@
 #include "task/t-exec.h"
 #include "utility.h"
 
-QX_JSON_STRUCT_OUTSIDE(CUpdate::ReleaseAsset,
-    name,
-    browser_download_url
-)
-
-QX_JSON_STRUCT_OUTSIDE(CUpdate::ReleaseData,
-    name,
-    tag_name,
-    assets
-)
-
 //===============================================================================================================
 // CUpdateError
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Private:
-CUpdateError::CUpdateError(Type t, const QString& s) :
+CUpdateError::CUpdateError(Type t, const QString& s, Qx::Severity sv) :
     mType(t),
-    mSpecific(s)
+    mSpecific(s),
+    mSeverity(sv)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -44,7 +34,7 @@ QString CUpdateError::specific() const { return mSpecific; }
 CUpdateError::Type CUpdateError::type() const { return mType; }
 
 //Private:
-Qx::Severity CUpdateError::deriveSeverity() const { return Qx::Critical; }
+Qx::Severity CUpdateError::deriveSeverity() const { return mSeverity; }
 quint32 CUpdateError::deriveValue() const { return mType; }
 QString CUpdateError::derivePrimary() const { return ERR_STRINGS.value(mType); }
 QString CUpdateError::deriveSecondary() const { return mSpecific; }
@@ -80,6 +70,78 @@ QString CUpdate::sanitizeCompiler(QString cmp)
         cmp = cmp.toLower();
 
     return cmp;
+}
+
+QString CUpdate::substitutePathNames(const QString& path, QStringView binName, QStringView appName)
+{
+    static const QString stdBin = u"bin"_s;
+    static const QString installerName = CLIFP_CUR_APP_FILENAME;
+
+    QString subbed = path;
+
+    if(subbed.startsWith(stdBin))
+        subbed = subbed.mid(stdBin.size()).prepend(binName);
+    if(subbed.endsWith(installerName))
+    {
+        subbed.chop(installerName.size());
+        subbed.append(appName);
+    }
+
+    return subbed;
+}
+
+Qx::IoOpReport CUpdate::determineNewFiles(QStringList& files, const QDir& sourceRoot)
+{
+    files = {};
+
+    QStringList subDirs = {u"bin"_s};
+    for(const auto& sd : {u"lib"_s, u"plugins"_s})
+        if(sourceRoot.exists(sd))
+            subDirs += sd;
+
+    for(const auto& sd : qAsConst(subDirs))
+    {
+        QStringList subFiles;
+        Qx::IoOpReport r = Qx::dirContentList(subFiles, sourceRoot.absoluteFilePath(sd), {}, QDir::NoDotAndDotDot | QDir::Files,
+                                              QDirIterator::Subdirectories, Qx::PathType::Relative);
+        if(r.isFailure())
+            return r;
+
+        for(auto& p : subFiles)
+            p.prepend(sd + '/');
+
+        files += subFiles;
+    }
+
+    files.removeIf([](const QString& s){ return s == u"bin/"_s + CLIFP_CUR_APP_BASENAME + u".log"_s; });
+
+    return Qx::IoOpReport(Qx::IO_OP_ENUMERATE, Qx::IO_SUCCESS, sourceRoot);
+}
+
+CUpdate::UpdateTransfers CUpdate::determineTransfers(const QStringList& files, const TransferSpecs& specs)
+{
+    UpdateTransfers transfers;
+
+    for(const QString& file : files)
+    {
+        QString installPath = specs.installRoot.filePath(substitutePathNames(file, specs.binName, specs.appName));
+        QString updatePath = specs.updateRoot.filePath(file);
+        QString backupPath = specs.backupRoot.filePath(file);
+        transfers.install << FileTransfer{.source = updatePath, .dest = installPath};
+        transfers.backup << FileTransfer{.source = installPath, .dest = backupPath};
+    }
+
+    return transfers;
+}
+
+//Public:
+bool CUpdate::isUpdateCacheClearable() { return updateCacheDir().exists() && !smPersistCache; }
+
+CUpdateError CUpdate::clearUpdateCache()
+{
+    QDir uc = updateCacheDir();
+    bool removed = uc.exists() && uc.removeRecursively();
+    return CUpdateError(removed ? CUpdateError::NoError : CUpdateError::CacheClearFail, {}, Qx::Warning);
 }
 
 //-Instance Functions-------------------------------------------------------------
@@ -144,8 +206,72 @@ QString CUpdate::getTargetAssetName(const QString& tagName) const
     );
 }
 
+CUpdateError CUpdate::handleTransfers(const UpdateTransfers& transfers) const
+{
+    auto doTransfer = [&](const FileTransfer& ft, bool mkpath, bool move, bool overwrite){
+        mCore.logEvent(NAME, LOG_EVENT_FILE_TRANSFER.arg(ft.source, ft.dest));
+
+        if(mkpath)
+        {
+            QDir destDir(QFileInfo(ft.dest).absolutePath());
+            if(!destDir.mkpath(u"."_s))
+                return false;
+        }
+
+        if(overwrite && QFile::exists(ft.dest) && !QFile::remove(ft.dest))
+            return false;
+
+        return move ? QFile::rename(ft.source, ft.dest) : QFile::copy(ft.source, ft.dest);
+    };
+
+    // Backup, and note for restore
+    mCore.logEvent(NAME, LOG_EVENT_BACKUP_FILES);
+    QList<FileTransfer> restoreTransfers;
+    QScopeGuard restoreOnFail([&]{
+        if(!restoreTransfers.isEmpty())
+        {
+            mCore.logEvent(NAME, LOG_EVENT_RESTORE_FILES);
+            for(const auto& t : restoreTransfers) doTransfer(t, false, true, true);
+        }
+    });
+
+    for(const auto& ft : transfers.backup)
+    {
+        if(!doTransfer(ft, true, true, true))
+        {
+            CUpdateError err(CUpdateError::TransferFail, ft.dest);
+            mCore.postError(NAME, err);
+            return err;
+        }
+        restoreTransfers << FileTransfer{.source = ft.dest, .dest = ft.source};
+    }
+
+    // Install
+    mCore.logEvent(NAME, LOG_EVENT_INSTALL_FILES);
+    for(const auto& ft : transfers.install)
+    {
+        if(!doTransfer(ft, true, false, false))
+        {
+            CUpdateError err(CUpdateError::TransferFail, ft.dest);
+            mCore.postError(NAME, err);
+            return err;
+        }
+    }
+    restoreOnFail.dismiss();
+
+    return CUpdateError();
+}
+
 CUpdateError CUpdate::checkAndPrepareUpdate() const
 {
+     // This command had auto instance block disabled so we do this manually here
+    if(!mCore.blockNewInstances())
+    {
+        CUpdateError err(CUpdateError::AlreadyOpen);
+        mCore.postError(NAME, err);
+        return err;
+    }
+
     // Check for update
     mCore.setStatus(STATUS, STATUS_CHECKING);
     mCore.logEvent(NAME, LOG_EVENT_CHECKING_FOR_NEWER_VERSION);
@@ -153,14 +279,21 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     // Get new release data
     ReleaseData rd;
     if(CUpdateError ue = getLatestReleaseData(rd); ue.isValid())
+    {
+        mCore.postError(NAME, ue);
         return ue;
+    }
 
     // Check if newer
     QVersionNumber currentVersion = QVersionNumber::fromString(QCoreApplication::applicationVersion());
     Q_ASSERT(!currentVersion.isNull());
     QVersionNumber newVersion = QVersionNumber::fromString(rd.tag_name.mid(1)); // Drops 'v'
     if(newVersion.isNull())
-        return CUpdateError(CUpdateError::InvalidReleaseVersion);
+    {
+        CUpdateError err(CUpdateError::InvalidReleaseVersion);
+        mCore.postError(NAME, err);
+        return err;
+    }
 
     if(newVersion <= currentVersion)
     {
@@ -217,6 +350,9 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
         execTask->setParameters(QStringList{u"update"_s, u"--install"_s, CLIFP_PATH});
         execTask->setProcessType(TExec::ProcessType::Detached);
         mCore.enqueueSingleTask(execTask);
+
+        // Maintain update cache until installer runs
+        smPersistCache = true;
     }
     else
         mCore.logEvent(NAME, LOG_EVENT_UPDATE_REJECTED);
@@ -224,9 +360,71 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     return CUpdateError();
 }
 
-CUpdateError CUpdate::installUpdate(const QString& appPath) const
+Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
 {
-    //...
+    mCore.setStatus(STATUS, STATUS_INSTALLING);
+
+    // Wait for previous process to close, lock instance afterwards
+    static const int totalGrace = 2000;
+    static const int step = 500;
+    int currentGrace = 0;
+    bool haveLock = false;
+
+    do
+    {
+        mCore.logEvent(NAME, LOG_EVENT_WAITING_ON_OLD_CLOSE.arg(totalGrace - currentGrace));
+        QThread::msleep(step);
+        currentGrace += step;
+        haveLock = mCore.blockNewInstances();
+    }
+    while(!haveLock && currentGrace < totalGrace);
+
+    // TODO: Allow user retry here (i.e. they close the process manually)
+    if(!haveLock)
+    {
+        CUpdateError err(CUpdateError::OldProcessNotFinished, "Aborting update.");
+        mCore.postError(NAME, err);
+        return err;
+    }
+
+    //-Install update------------------------------------------------------------
+    mCore.logEvent(NAME, LOG_EVENT_INSTALLING_UPDATE);
+
+    // Ensure old executable exists where expected
+    if(!existingAppInfo.exists())
+    {
+        CUpdateError err(CUpdateError::InvalidPath, "Missing " + existingAppInfo.absoluteFilePath());
+        mCore.postError(NAME, err);
+        return err;
+    }
+
+    // Note structure
+    TransferSpecs ts{
+        .updateRoot = updateDataDir(),
+        .installRoot = QDir(QDir::cleanPath(existingAppInfo.absoluteFilePath() + "/../..")),
+        .backupRoot = updateBackupDir(),
+        .appName = existingAppInfo.fileName(),
+        .binName = existingAppInfo.absoluteDir().dirName()
+    };
+
+    // Determine transfers
+    QStringList updateFiles;
+    if(Qx::IoOpReport rep = determineNewFiles(updateFiles, ts.updateRoot); rep.isFailure())
+    {
+        mCore.postError(NAME, rep);
+        return rep;
+    }
+
+    UpdateTransfers updateTransfers = determineTransfers(updateFiles, ts);
+
+    // Transfer
+    if(CUpdateError err = handleTransfers(updateTransfers); err.isValid())
+        return err;
+
+    // Success
+    mCore.logEvent(NAME, MSG_UPDATE_COMPLETE);
+    mCore.postMessage(Message{.text = MSG_UPDATE_COMPLETE});
+    return CUpdateError();
 }
 
 //Protected:
@@ -235,17 +433,14 @@ QString CUpdate::name() { return NAME; }
 
 Qx::Error CUpdate::perform()
 {
-    // Install stage
-    if(mParser.isSet(CL_OPTION_INSTALL))
-        return installUpdate(mParser.value(CL_OPTION_INSTALL));
-
-    // Prepare stage
-    CoreError err = mCore.blockNewInstances(); // This command allows multi-instance so we do this manually here
-    if(err.isValid())
-        return err;
-    else
-        return checkAndPrepareUpdate();
+    /* Persist cache during setup so that files remain for install, and during install (so always)
+     * since the installer cannot delete itself while it's running
+     */
+    smPersistCache = true;
+    return mParser.isSet(CL_OPTION_INSTALL) ? installUpdate(QFileInfo(mParser.value(CL_OPTION_INSTALL))) :
+                                              checkAndPrepareUpdate();
 }
 
 //Public:
 bool CUpdate::requiresFlashpoint() const { return false; }
+bool CUpdate::autoBlockNewInstances() const { return false; }

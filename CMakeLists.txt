@@ -72,7 +72,7 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.5.4"
+    REF "757ed90239489811311c91f74ab842c2628b2e8b"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
