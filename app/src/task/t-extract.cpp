@@ -3,6 +3,7 @@
 
 // QuaZip Includes
 #include <quazip/quazip.h>
+#include <quazip/quazipdir.h>
 #include <quazip/quazipfile.h>
 
 // TODO: Should probably be treated as a long task and support stopping
@@ -37,6 +38,149 @@ QString TExtractError::derivePrimary() const { return ERR_STRINGS.value(mType); 
 QString TExtractError::deriveSecondary() const { return mArchName; }
 QString TExtractError::deriveDetails() const { return mSpecific; }
 
+class TExtract::Extractor
+{
+//-Class Variables-------------------------------------------------------------------------------------------------
+private:
+    static inline const QString ERR_CODE_TEMPLATE = u"Code: 0x%1"_s;
+
+//-Instance Variables------------------------------------------------------------------------------------------------
+private:
+    // Data
+    QuaZip mZip;
+    QuaZipFile mCurrentZipFile;
+    QuaZipDir mCurrentZipDir; // NOTE: empty string for root, only supports directories currently.
+    QFile mCurrentDiskFile;
+    QDir mCurrentDiskDir;
+
+//-Constructor----------------------------------------------------------------------------------------------------------
+public:
+    Extractor(const QString& zipPath, const QString& zipDirPath, const QDir& destinationDir) :
+        mZip(zipPath),
+        mCurrentZipFile(&mZip),
+        mCurrentZipDir(&mZip, sanitizeZipDirPath(zipDirPath)),
+        mCurrentDiskDir(destinationDir)
+    {}
+
+//-Destructor----------------------------------------------------------------------------------------------------------
+public:
+    ~Extractor() { mZip.close(); }
+
+//-Class Functions---------------------------------------------------------------------------------------------------------------
+private:
+    static QString sanitizeZipDirPath(const QString& zdp)
+    {
+        if(zdp.isEmpty() || zdp == '/')
+            return u""_s;
+
+        QString clean = zdp;
+        if(clean.front() == '/')
+            clean = clean.sliced(1);
+        if(clean.back() == '/')
+            clean.chop(1);
+
+        return clean;
+    }
+
+//-Instance Functions------------------------------------------------------------------------------------------------------
+private:
+    QString zipErrorString() const { return ERR_CODE_TEMPLATE.arg(mZip.getZipError(), 2, 16, QChar('0')); }
+    TExtractError makeError(TExtractError::Type t, const QString& s = {}) const { return TExtractError(mZip.getZipName(), t, s); }
+    TExtractError makeZipError(TExtractError::Type t) const { return TExtractError(mZip.getZipName(), t, zipErrorString()); }
+
+    bool diskCdDown(const QString& subFolder)
+    {
+        if(!mCurrentDiskDir.exists(subFolder) && !mCurrentDiskDir.mkdir(subFolder))
+            return false;
+
+        return mCurrentDiskDir.cd(subFolder);
+    }
+
+    TExtractError processDir(const QString& name = {})
+    {
+        // Move to dir, unless processing root
+        if(!name.isEmpty())
+        {
+            if(!mCurrentZipDir.cd(name))
+                return makeError(TExtractError::PathError);
+            if(!diskCdDown(name))
+                return makeError(TExtractError::MakePath);
+        }
+
+        // Process files
+        const QStringList files = mCurrentZipDir.entryList(QDir::Files);
+        for(const QString& f : files)
+            processFile(f);
+
+        // Process sub-folders
+        const QStringList subFolders = mCurrentZipDir.entryList(QDir::Dirs);
+        for(const QString& sf : subFolders)
+            processDir(sf);
+
+        // Return to parent dir, unless root
+        if(!name.isEmpty())
+        {
+            if(!mCurrentZipDir.cdUp() || !mCurrentDiskDir.cdUp())
+                return makeError(TExtractError::PathError);
+        }
+
+        return TExtractError();
+    }
+
+    TExtractError processFile(const QString name)
+    {
+        // Change to archive file
+        if(!mZip.setCurrentFile(mCurrentZipDir.filePath(name)))
+            return makeError(TExtractError::PathError);
+
+        // Open archive file and read data
+        if(!mCurrentZipFile.open(QIODevice::ReadOnly))
+            return makeZipError(TExtractError::OpenArchiveFile);
+
+        QByteArray fileData = mCurrentZipFile.readAll();
+        mCurrentZipFile.close();
+
+        // Change to disk file
+        mCurrentDiskFile.setFileName(mCurrentDiskDir.absoluteFilePath(name));
+
+        // Open disk file and write data
+        if(!mCurrentDiskFile.open(QIODevice::WriteOnly))
+            return makeError(TExtractError::OpenDiskFile, mCurrentDiskFile.errorString());
+
+        if(mCurrentDiskFile.write(fileData) != fileData.size())
+            return makeError(TExtractError::WriteDiskFile, mCurrentDiskFile.fileName());
+
+        mCurrentDiskFile.close();
+
+        return TExtractError();
+    }
+
+public:
+    TExtractError extract()
+    {
+        // Open archive
+        if(!mZip.open(QuaZip::mdUnzip))
+            return makeZipError(TExtractError::OpenArchive);
+
+        // Ensure zip sub-folder is valid
+        if(!mCurrentZipDir.exists())
+            return makeError(TExtractError::InvalidSubPath);
+
+        // Ensure root destination folder is present
+        if(!mCurrentDiskDir.mkpath(u"."_s))
+            return makeError(TExtractError::MakePath);
+
+        // Recurse
+        TExtractError err = processDir();
+
+         // Check for general zip error
+        if(!err.isValid() && mZip.getZipError() != UNZ_OK)
+            err = makeZipError(TExtractError::GeneralZip);
+
+        return err;
+    }
+};
+
 //===============================================================================================================
 // TExtract
 //===============================================================================================================
@@ -46,91 +190,6 @@ QString TExtractError::deriveDetails() const { return mSpecific; }
 TExtract::TExtract(QObject* parent) :
     Task(parent)
 {}
-
-//-Class Functions---------------------------------------------------------------------------------------------------------------
-//Private:
-TExtractError TExtract::extractZipSubFolderContentToDir(QString zipFilePath, QString subFolder, QDir dir)
-{
-    // Error template
-    QString zipName = QFileInfo(zipFilePath).fileName();
-
-    // Zip file
-    QuaZip zipFile(zipFilePath);
-
-    // Form subfolder string to match zip content scheme
-    if(subFolder.isEmpty())
-        subFolder = '/';
-
-    if(subFolder != '/')
-    {
-        // Remove leading '/' if present
-        if(subFolder.front() == '/')
-            subFolder = subFolder.mid(1);
-
-        // Add trailing '/' if missing
-        if(subFolder.back() != '/')
-            subFolder.append('/');
-    }
-
-    // Open archive, ensure it's closed when done
-    if(!zipFile.open(QuaZip::mdUnzip))
-        return TExtractError(zipName, TExtractError::OpenArchive);
-    QScopeGuard closeGuard([&](){ zipFile.close(); });
-
-    // Persistent data
-    QuaZipFile currentArchiveFile(&zipFile);
-    QDir currentDirOnDisk(dir);
-
-    // Extract all files in sub-folder
-    for(bool atEnd = !zipFile.goToFirstFile(); !atEnd; atEnd = !zipFile.goToNextFile())
-    {
-        QString fileName = zipFile.getCurrentFileName();
-
-        // Only consider files in specified sub-folder
-        if(fileName.startsWith(subFolder))
-        {
-            // Determine path on disk
-            QString pathWithinFolder = fileName.mid(subFolder.size());
-            QFileInfo pathOnDisk(dir.absoluteFilePath(pathWithinFolder));
-
-            // Update current directory and make path if necessary
-            if(pathOnDisk.absolutePath() != currentDirOnDisk.absolutePath())
-            {
-                currentDirOnDisk = pathOnDisk.absoluteDir();
-                if(!currentDirOnDisk.mkpath(u"."_s))
-                    return TExtractError(zipName, TExtractError::MakePath);
-            }
-
-            // Open file in archive and read its data
-            if(!currentArchiveFile.open(QIODevice::ReadOnly))
-            {
-                int zipError = zipFile.getZipError();
-                return TExtractError(zipName, TExtractError::OpenArchiveFile, ERR_CODE_TEMPLATE.arg(zipError, 2, 16, QChar('0')));
-            }
-
-            QByteArray fileData = currentArchiveFile.readAll();
-            currentArchiveFile.close();
-
-            // Open disk file and write data to it
-            QFile fileOnDisk(pathOnDisk.absoluteFilePath());
-            if(!fileOnDisk.open(QIODevice::WriteOnly))
-                return TExtractError(zipName, TExtractError::OpenDiskFile, fileOnDisk.fileName());
-
-            if(fileOnDisk.write(fileData) != fileData.size())
-                return TExtractError(zipName, TExtractError::WriteDiskFile, fileOnDisk.fileName());
-
-            fileOnDisk.close();
-        }
-    }
-
-    // Check if processing ended due to an error
-    int zipError = zipFile.getZipError();
-    if(zipError != UNZ_OK)
-        return TExtractError(zipName, TExtractError::GeneralZip, ERR_CODE_TEMPLATE.arg(zipError, 2, 16, QChar('0')));
-
-    // Return success
-    return TExtractError();
-}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
@@ -159,10 +218,8 @@ void TExtract::perform()
     emit eventOccurred(NAME, LOG_EVENT_EXTRACTING_ARCHIVE.arg(packFileInfo.fileName()));
 
     // Extract pack
-    TExtractError ee = extractZipSubFolderContentToDir(mPackPath,
-                                                       mPathInPack,
-                                                       mDestinationPath);
-
+    Extractor extractor(mPackPath, mPathInPack, mDestinationPath);
+    TExtractError ee = extractor.extract();
     if(ee.isValid())
         emit errorOccurred(NAME, ee);
 
