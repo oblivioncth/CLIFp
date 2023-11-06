@@ -285,7 +285,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     }
 
     // Check if newer
-    QVersionNumber currentVersion = QVersionNumber::fromString(QCoreApplication::applicationVersion());
+    QVersionNumber currentVersion = QVersionNumber::fromString(QCoreApplication::applicationVersion().mid(1)); // Drops 'v'
     Q_ASSERT(!currentVersion.isNull());
     QVersionNumber newVersion = QVersionNumber::fromString(rd.tag_name.mid(1)); // Drops 'v'
     if(newVersion.isNull())
