@@ -80,7 +80,7 @@ private:
 public:
     // Meta
     static inline const QString NAME = u"play"_s;
-    static inline const QString DESCRIPTION = u"Launch a title and all of it's support applications, in the same manner as using the GUI"_s;
+    static inline const QString DESCRIPTION = u"Launch a game/animation"_s;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
