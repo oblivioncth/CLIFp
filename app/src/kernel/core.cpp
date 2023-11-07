@@ -62,7 +62,34 @@ Core::Core(QObject* parent) :
     mCriticalErrorOccurred(false),
     mStatusHeading(u"Initializing"_s),
     mStatusMessage(u"..."_s)
-{}
+{
+    establishCanonCore(*this); // Ignore return value as there should never be more than one Core with current design
+}
+
+//-Class Functions------------------------------------------------------------------------------------------------------
+//Private:
+bool Core::establishCanonCore(Core& cc)
+{
+    if(!smDefaultMessageHandler)
+        smDefaultMessageHandler = qInstallMessageHandler(qtMessageHandler);
+
+    if(smCanonCore)
+        return false;
+
+    smCanonCore = &cc;
+    return true;
+}
+
+void Core::qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+    // Log messages
+    if(smCanonCore && smCanonCore->isLogOpen())
+        smCanonCore->logQtMessage(type, context, msg);
+
+    // Defer to default behavior
+    if(smDefaultMessageHandler)
+        smDefaultMessageHandler(type, context, msg);
+}
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -222,6 +249,41 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         }
 
         return CoreError();
+    }
+}
+
+void Core::logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+#if defined QT_NO_MESSAGELOGCONTEXT || !defined QT_MESSAGELOGCONTEXT
+    QString msgWithContext = msg;
+#else
+    static const QString cTemplate = u"(%1:%2, %3) %4"_s;
+    static const QString unk = u"Unk."_s;
+    QString msgWithContext = cTemplate.arg(
+        context.file ? QString(context.file) : unk,
+        context.line >= 0 ? QString::number(context.line) : unk,
+        context.function ? QString(context.function) : unk,
+        msg
+    );
+#endif
+
+    switch (type)
+    {
+        case QtDebugMsg:
+            logEvent(NAME, u"SYSTEM DEBUG) "_s + msgWithContext);
+            break;
+        case QtInfoMsg:
+            logEvent(NAME, u"SYSTEM INFO) "_s + msgWithContext);
+            break;
+        case QtWarningMsg:
+            logError(NAME, CoreError(CoreError::InternalError, msgWithContext, Qx::Warning));
+            break;
+        case QtCriticalMsg:
+            logError(NAME, CoreError(CoreError::InternalError, msgWithContext, Qx::Err));
+            break;
+        case QtFatalMsg:
+            logError(NAME, CoreError(CoreError::InternalError, msgWithContext, Qx::Critical));
+            break;
     }
 }
 
@@ -733,6 +795,8 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
 void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(NAME, task); }
 void Core::clearTaskQueue() { mTaskQueue = {}; }
+
+bool Core::isLogOpen() const { return mLogger->isOpen(); }
 
 void Core::logCommand(QString src, QString commandName)
 {

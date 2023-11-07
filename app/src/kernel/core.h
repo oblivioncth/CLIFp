@@ -36,6 +36,7 @@ public:
     enum Type
     {
         NoError,
+        InternalError,
         InvalidOptions,
         TitleNotFound,
         TooManyResults,
@@ -48,6 +49,7 @@ public:
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
+        {InternalError, u"Internal system error."_s},
         {InvalidOptions, u"Invalid global options provided."_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
@@ -233,6 +235,10 @@ public:
     // Meta
     static inline const QString NAME = u"core"_s;
 
+    // Qt Message Handling
+    static inline constinit QtMessageHandler smDefaultMessageHandler = nullptr;
+    static inline QPointer<Core> smCanonCore;
+
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
     // Handles
@@ -255,6 +261,12 @@ private:
 public:
     explicit Core(QObject* parent);
 
+//-Class Functions------------------------------------------------------------------------------------------------------
+private:
+    // Qt Message Handling - NOTE: Storing a static instance of core is required due to the C-function pointer interface of qInstallMessageHandler()
+    static bool establishCanonCore(Core& cc);
+    static void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg);
+
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;
@@ -263,6 +275,7 @@ private:
 
     // Helper
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
+    void logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg);
 
 public:
     // Setup
@@ -286,6 +299,7 @@ public:
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     // Notifications/Logging
+    bool isLogOpen() const;
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
     void logError(QString src, Qx::Error error);
