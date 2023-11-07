@@ -110,6 +110,16 @@ void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::Sav
         qFatal("No response argument provided!");
 }
 
+void StatusRelay::existingDirectoryRequestHandler(QSharedPointer<QString> dir, Core::ExistingDirRequest request)
+{
+    if(dir)
+    {
+        *dir = QFileDialog::getExistingDirectory(nullptr, request.caption, request.dir, request.options);
+    }
+    else
+        qFatal("No response argument provided!");
+}
+
 void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request)
 {
     if(item)

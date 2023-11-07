@@ -54,7 +54,7 @@ Qx::Error CLink::perform()
     // Get database
     Fp::Db* database = mCore.fpInstall().database();
 
-    // Get entry (also confirms that ID is present in database)
+    // Get entry (also confirms that ID is present in database, which is why we do this even if a custom name is set)
     std::variant<Fp::Game, Fp::AddApp> entry_v;
     Fp::DbError dbError = database->getEntry(entry_v, shortcutId);
     if(dbError.isValid())
@@ -66,7 +66,7 @@ Qx::Error CLink::perform()
     if(std::holds_alternative<Fp::Game>(entry_v))
     {
         Fp::Game game = std::get<Fp::Game>(entry_v);
-        shortcutName = Qx::kosherizeFileName(game.title());
+        shortcutName = game.title();
     }
     else if(std::holds_alternative<Fp::AddApp>(entry_v))
     {
@@ -82,38 +82,28 @@ Qx::Error CLink::perform()
         Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
 
         Fp::Game parent = std::get<Fp::Game>(entry_v);
-        shortcutName = Qx::kosherizeFileName(parent.title() + u" ("_s + addApp.name() + u")"_s);
+        shortcutName = parent.title() + u" ("_s + addApp.name() + u")"_s;
     }
     else
         qCritical("Invalid variant state for std::variant<Fp::Game, Fp::AddApp>.");
 
+    // Override shortcut name with user input
+    if(mParser.isSet(CL_OPTION_NAME))
+        shortcutName = mParser.value(CL_OPTION_NAME);
+
     // Get shortcut path
     if(mParser.isSet(CL_OPTION_PATH))
-    {
-        QFileInfo inputPathInfo(mParser.value(CL_OPTION_PATH));
-        if(inputPathInfo.suffix() == shortcutExtension()) // Path is file
-        {
-            mCore.logEvent(NAME, LOG_EVENT_FILE_PATH);
-            shortcutDir = inputPathInfo.absoluteDir();
-            shortcutName = inputPathInfo.baseName();
-        }
-        else // Path is directory
-        {
-            mCore.logEvent(NAME, LOG_EVENT_DIR_PATH);
-            shortcutDir = QDir(inputPathInfo.absoluteFilePath());
-        }
-    }
+        shortcutDir = mParser.value(CL_OPTION_PATH);
     else
     {
         mCore.logEvent(NAME, LOG_EVENT_NO_PATH);
 
         // Prompt user for path
-        Core::SaveFileRequest sfr{
+        Core::ExistingDirRequest edr{
             .caption = DIAG_CAPTION,
-            .dir = QDir::homePath() + u"/Desktop/"_s + shortcutName,
-            .filter = u"Shortcuts (*. "_s + shortcutExtension() + u")"_s
+            .dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)
         };
-        QString selectedPath = mCore.requestSaveFilePath(sfr);
+        QString selectedPath = mCore.requestExistingDirPath(edr);
 
         if(selectedPath.isEmpty())
         {
@@ -122,13 +112,8 @@ Qx::Error CLink::perform()
         }
         else
         {
-            if(!selectedPath.endsWith(u"."_s + shortcutExtension(), Qt::CaseInsensitive))
-                selectedPath += u"."_s + shortcutExtension();
-
             mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(QDir::toNativeSeparators(selectedPath)));
-            QFileInfo pathInfo(selectedPath);
-            shortcutDir = pathInfo.absoluteDir();
-            shortcutName = pathInfo.baseName();
+            shortcutDir = selectedPath;
         }
     }
 

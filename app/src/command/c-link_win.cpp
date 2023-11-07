@@ -16,6 +16,8 @@
 //Private:
 Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
 {
+    QString filename = Qx::kosherizeFileName(name);
+
     // Create shortcut properties
     Qx::ShortcutProperties sp;
     sp.target = CLIFP_PATH;
@@ -23,7 +25,7 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     sp.comment = name;
 
     // Create shortcut
-    QString fullShortcutPath = dir.absolutePath() + '/' + name + '.' + shortcutExtension();
+    QString fullShortcutPath = dir.absolutePath() + '/' + filename + u".lnk"_s;
     Qx::SystemError shortcutError = Qx::createShortcut(fullShortcutPath, sp);
 
     // Check for creation failure
@@ -38,5 +40,3 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     // Return success
     return CLinkError();
 }
-
-QString CLink::shortcutExtension() const { return u"lnk"_s; };
