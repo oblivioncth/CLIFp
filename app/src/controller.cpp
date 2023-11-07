@@ -46,6 +46,7 @@ Controller::Controller(QObject* parent) :
     connect(driver, &Driver::blockingErrorOccurred, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::saveFileRequested, &mStatusRelay, &StatusRelay::saveFileRequestHandler, Qt::BlockingQueuedConnection);
     connect(driver, &Driver::itemSelectionRequested, &mStatusRelay, &StatusRelay::itemSelectionRequestHandler, Qt::BlockingQueuedConnection);
+    connect(driver, &Driver::questionAnswerRequested, &mStatusRelay, &StatusRelay::questionAnswerRequestHandler, Qt::BlockingQueuedConnection);
 
     // Connect quit handler
     connect(&mStatusRelay, &StatusRelay::quitRequested, this, &Controller::quitRequestHandler);

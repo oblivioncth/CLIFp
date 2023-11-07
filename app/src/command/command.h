@@ -162,6 +162,8 @@ protected:
     virtual Qx::Error perform() = 0;
 
 public:
+    virtual bool requiresFlashpoint() const;
+    virtual bool autoBlockNewInstances() const;
     Qx::Error process(const QStringList& commandLine);
 };
 

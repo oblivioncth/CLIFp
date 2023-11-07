@@ -6,6 +6,7 @@
 
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
+#include <qx/core/qx-system.h>
 
 // Magic Enum Includes
 #include <magic_enum_flags.hpp>
@@ -444,6 +445,13 @@ Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString 
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
 }
 
+bool Core::blockNewInstances()
+{
+    bool b = Qx::enforceSingleInstance(SINGLE_INSTANCE_ID);
+    logEvent(NAME, b ? LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC : LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL);
+    return b;
+}
+
 CoreError Core::enqueueStartupTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
@@ -852,6 +860,24 @@ QString Core::requestItemSelection(const ItemSelectionRequest& request)
 }
 
 void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
+
+bool Core::requestQuestionAnswer(const QString& question)
+{
+    // Show question if allowed
+    if(mNotificationVerbosity != NotificationVerbosity::Silent)
+    {
+        // Response holder
+        QSharedPointer<bool> response = QSharedPointer<bool>::create(false);
+
+        // Emit and get response
+        emit questionAnswerRequested(response, question);
+
+        // Return response
+        return *response;
+    }
+    else
+        return false; // Assume "No"
+}
 
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }

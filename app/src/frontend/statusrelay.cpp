@@ -127,6 +127,15 @@ void StatusRelay::clipboardUpdateRequestHandler(const QString& text)
     mSystemClipboard->setText(text);
 }
 
+void StatusRelay::questionAnswerRequestHandler(QSharedPointer<bool> response, const QString& question)
+{
+
+    if(response)
+        *response = QMessageBox::question(nullptr, QString(), question) == QMessageBox::Yes;
+    else
+        qFatal("No response argument provided!");
+}
+
 void StatusRelay::longTaskProgressHandler(quint64 progress)
 {
     mLongTaskProgressDialog.setValue(progress);

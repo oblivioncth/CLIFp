@@ -175,6 +175,10 @@ void Command::showHelp()
 QList<const QCommandLineOption*> Command::options() { return CL_OPTIONS_STANDARD; }
 QSet<const QCommandLineOption*> Command::requiredOptions() { return {}; }
 
+//Public:
+bool Command::requiresFlashpoint() const { return true; }
+bool Command::autoBlockNewInstances() const { return true; }
+
 Qx::Error Command::process(const QStringList& commandLine)
 {
     // Parse and check for valid arguments
@@ -197,3 +201,5 @@ Qx::Error Command::process(const QStringList& commandLine)
     // Perform command
     return perform();
 }
+
+

@@ -35,13 +35,13 @@ class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 public:
     enum Type
     {
-        NoError = 0,
-        InvalidOptions = 1,
-        TitleNotFound = 2,
-        TooManyResults = 3,
-        ConfiguredServerMissing = 4,
-        DataPackSumMismatch = 5,
-        DataPackSourceMissing = 6
+        NoError,
+        InvalidOptions,
+        TitleNotFound,
+        TooManyResults,
+        ConfiguredServerMissing,
+        DataPackSumMismatch,
+        DataPackSourceMissing
     };
 
     //-Class Variables-------------------------------------------------------------
@@ -122,9 +122,11 @@ public:
         QStringList items;
     };
 
-
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
+    // Single Instance ID
+    static inline const QString SINGLE_INSTANCE_ID = u"CLIFp_ONE_INSTANCE"_s; // Basically never change this
+
     // Status
     static inline const QString STATUS_DISPLAY = u"Displaying"_s;
     static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
@@ -146,6 +148,8 @@ public:
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
     static inline const QString LOG_EVENT_GLOBAL_OPT = u"Global Options: %1"_s;
+    static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC = u"Successfully locked standard instance count..."_s;
+    static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL = u"Failed to lock standard instance count"_s;
     static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
     static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
     static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = u"Notification Level is: %1"_s;
@@ -212,7 +216,7 @@ public:
     static inline const QString HELP_COMMAND_TEMPL = u"<br><b>%1:</b> &nbsp;%2"_s;
 
     // Command line messages
-    static inline const QString CL_VERSION_MESSAGE = u"CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with Flashpoint Archive " PROJECT_TARGET_FP_VER_PFX_STR " series"_s;
+    static inline const QString CL_VERSION_MESSAGE = u"CLI Flashpoint " PROJECT_VERSION_STR ", designed for use with Flashpoint Archive " PROJECT_TARGET_FP_VER_PFX_STR " series"_s;
 
     // Input strings
     static inline const QString MULTI_TITLE_SEL_CAP = u"Title Disambiguation"_s;
@@ -271,6 +275,7 @@ public:
     Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
+    bool blockNewInstances();
     CoreError enqueueStartupTasks();
     void enqueueShutdownTasks();
 #ifdef _WIN32
@@ -293,6 +298,7 @@ public:
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);
     void requestClipboardUpdate(const QString& text);
+    bool requestQuestionAnswer(const QString& question);
 
     // Member access
     Fp::Install& fpInstall();
@@ -320,6 +326,7 @@ signals:
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void message(const Message& message);
     void clipboardUpdateRequested(const QString& text);
+    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------
