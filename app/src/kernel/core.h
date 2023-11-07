@@ -23,6 +23,7 @@
 // Project Includes
 #include "task/task.h"
 #include "project_vars.h"
+#include "kernel/buildinfo.h"
 
 // General Aliases
 using ErrorCode = quint32;
@@ -34,19 +35,21 @@ class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 public:
     enum Type
     {
-        NoError = 0,
-        InvalidOptions = 1,
-        TitleNotFound = 2,
-        TooManyResults = 3,
-        ConfiguredServerMissing = 4,
-        DataPackSumMismatch = 5,
-        DataPackSourceMissing = 6
+        NoError,
+        InternalError,
+        InvalidOptions,
+        TitleNotFound,
+        TooManyResults,
+        ConfiguredServerMissing,
+        DataPackSumMismatch,
+        DataPackSourceMissing
     };
 
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
+        {InternalError, u"Internal system error."_s},
         {InvalidOptions, u"Invalid global options provided."_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
@@ -114,6 +117,13 @@ public:
         QFileDialog::Options options;
     };
 
+    struct ExistingDirRequest
+    {
+        QString caption;
+        QString dir;
+        QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+    };
+
     struct ItemSelectionRequest
     {
         QString caption;
@@ -121,9 +131,11 @@ public:
         QStringList items;
     };
 
-
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
+    // Single Instance ID
+    static inline const QString SINGLE_INSTANCE_ID = u"CLIFp_ONE_INSTANCE"_s; // Basically never change this
+
     // Status
     static inline const QString STATUS_DISPLAY = u"Displaying"_s;
     static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
@@ -145,6 +157,8 @@ public:
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
     static inline const QString LOG_EVENT_GLOBAL_OPT = u"Global Options: %1"_s;
+    static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC = u"Successfully locked standard instance count..."_s;
+    static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL = u"Failed to lock standard instance count"_s;
     static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
     static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
     static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = u"Notification Level is: %1"_s;
@@ -173,8 +187,8 @@ public:
 
     // Global command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = u"h"_s;
-    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
     static inline const QString CL_OPT_HELP_E_NAME = u"?"_s;
+    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
     static inline const QString CL_OPT_HELP_DESC = u"Prints this help message."_s;
 
     static inline const QString CL_OPT_VERSION_S_NAME = u"v"_s;
@@ -190,7 +204,7 @@ public:
     static inline const QString CL_OPT_SILENT_DESC = u"Silences all messages (takes precedence over quiet mode)."_s;
 
     // Global command line options
-    static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC}; // Boolean option
+    static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_E_NAME, CL_OPT_HELP_L_NAME}, CL_OPT_HELP_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_VERSION{{CL_OPT_VERSION_S_NAME, CL_OPT_VERSION_L_NAME}, CL_OPT_VERSION_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_QUIET{{CL_OPT_QUIET_S_NAME, CL_OPT_QUIET_L_NAME}, CL_OPT_QUIET_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_SILENT{{CL_OPT_SILENT_S_NAME, CL_OPT_SILENT_L_NAME}, CL_OPT_SILENT_DESC}; // Boolean option
@@ -211,7 +225,7 @@ public:
     static inline const QString HELP_COMMAND_TEMPL = u"<br><b>%1:</b> &nbsp;%2"_s;
 
     // Command line messages
-    static inline const QString CL_VERSION_MESSAGE = u"CLI Flashpoint version " PROJECT_VERSION_STR ", designed for use with Flashpoint Archive " PROJECT_TARGET_FP_VER_PFX_STR " series"_s;
+    static inline const QString CL_VERSION_MESSAGE = u"CLI Flashpoint " PROJECT_VERSION_STR ", designed for use with Flashpoint Archive " PROJECT_TARGET_FP_VER_PFX_STR " series"_s;
 
     // Input strings
     static inline const QString MULTI_TITLE_SEL_CAP = u"Title Disambiguation"_s;
@@ -227,6 +241,10 @@ public:
 
     // Meta
     static inline const QString NAME = u"core"_s;
+
+    // Qt Message Handling
+    static inline constinit QtMessageHandler smDefaultMessageHandler = nullptr;
+    static inline QPointer<Core> smCanonCore;
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
@@ -250,6 +268,12 @@ private:
 public:
     explicit Core(QObject* parent);
 
+//-Class Functions------------------------------------------------------------------------------------------------------
+private:
+    // Qt Message Handling - NOTE: Storing a static instance of core is required due to the C-function pointer interface of qInstallMessageHandler()
+    static bool establishCanonCore(Core& cc);
+    static void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg);
+
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;
@@ -258,6 +282,7 @@ private:
 
     // Helper
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
+    void logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg);
 
 public:
     // Setup
@@ -270,6 +295,7 @@ public:
     Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
+    bool blockNewInstances();
     CoreError enqueueStartupTasks();
     void enqueueShutdownTasks();
 #ifdef _WIN32
@@ -280,6 +306,7 @@ public:
     void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     // Notifications/Logging
+    bool isLogOpen() const;
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);
     void logError(QString src, Qx::Error error);
@@ -290,8 +317,10 @@ public:
     int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(const Message& msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
+    QString requestExistingDirPath(const ExistingDirRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);
     void requestClipboardUpdate(const QString& text);
+    bool requestQuestionAnswer(const QString& question);
 
     // Member access
     Fp::Install& fpInstall();
@@ -307,15 +336,20 @@ public:
     QString statusMessage();
     void setStatus(QString heading, QString message);
 
+    // Other
+    BuildInfo buildInfo() const;
+
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
     void errorOccurred(const Core::Error& error);
     void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
+    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void message(const Message& message);
     void clipboardUpdateRequested(const QString& text);
+    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------

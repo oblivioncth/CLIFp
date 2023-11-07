@@ -2,6 +2,7 @@
 
 # Pre-configure target
 set(CLIFP_SOURCE
+    kernel/buildinfo.h
     kernel/core.h
     kernel/core.cpp
     kernel/driver.h
@@ -22,6 +23,8 @@ set(CLIFP_SOURCE
     command/c-share.cpp
     command/c-show.cpp
     command/c-show.h
+    command/c-update.h
+    command/c-update.cpp
     command/title-command.h
     command/title-command.cpp
     task/task.h
@@ -126,10 +129,27 @@ ob_add_cpp_vars(${APP_TARGET_NAME}
     NAME "project_vars"
     PREFIX "PROJECT_"
     VARS
-        VERSION_STR "\"${PROJECT_VERSION}\""
+        VERSION_STR "\"${PROJECT_VERSION_VERBOSE}\""
         SHORT_NAME "\"${APP_ALIAS_NAME}\""
         TARGET_FP_VER_PFX_STR "\"${TARGET_FP_VERSION_PREFIX}\""
         APP_NAME "\"${PROJECT_FORMAL_NAME}\""
+)
+
+## Add build info
+if(BUILD_SHARED_LIBS)
+    set(link_str "Shared")
+else()
+    set(link_str "Static")
+endif()
+
+ob_add_cpp_vars(${APP_TARGET_NAME}
+    NAME "_buildinfo"
+    PREFIX "BUILDINFO_"
+    VARS
+        SYSTEM "\"${CMAKE_SYSTEM_NAME}\""
+        LINKAGE "\"${link_str}\""
+        COMPILER "u\"${CMAKE_CXX_COMPILER_ID}\"_s"
+        COMPILER_VER_STR "u\"${CMAKE_CXX_COMPILER_VERSION}\"_s"
 )
 
 ## Add exe details on Windows

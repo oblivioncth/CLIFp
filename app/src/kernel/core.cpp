@@ -6,6 +6,7 @@
 
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
+#include <qx/core/qx-system.h>
 
 // Magic Enum Includes
 #include <magic_enum_flags.hpp>
@@ -25,7 +26,7 @@
     #include "task/t-awaitdocker.h"
 #endif
 #include "utility.h"
-#include "project_vars.h"
+#include "_buildinfo.h"
 
 //===============================================================================================================
 // CoreError
@@ -61,7 +62,34 @@ Core::Core(QObject* parent) :
     mCriticalErrorOccurred(false),
     mStatusHeading(u"Initializing"_s),
     mStatusMessage(u"..."_s)
-{}
+{
+    establishCanonCore(*this); // Ignore return value as there should never be more than one Core with current design
+}
+
+//-Class Functions------------------------------------------------------------------------------------------------------
+//Private:
+bool Core::establishCanonCore(Core& cc)
+{
+    if(!smDefaultMessageHandler)
+        smDefaultMessageHandler = qInstallMessageHandler(qtMessageHandler);
+
+    if(smCanonCore)
+        return false;
+
+    smCanonCore = &cc;
+    return true;
+}
+
+void Core::qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+    // Log messages
+    if(smCanonCore && smCanonCore->isLogOpen())
+        smCanonCore->logQtMessage(type, context, msg);
+
+    // Defer to default behavior
+    if(smDefaultMessageHandler)
+        smDefaultMessageHandler(type, context, msg);
+}
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -224,6 +252,41 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
     }
 }
 
+void Core::logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+#if defined QT_NO_MESSAGELOGCONTEXT || !defined QT_MESSAGELOGCONTEXT
+    QString msgWithContext = msg;
+#else
+    static const QString cTemplate = u"(%1:%2, %3) %4"_s;
+    static const QString unk = u"Unk."_s;
+    QString msgWithContext = cTemplate.arg(
+        context.file ? QString(context.file) : unk,
+        context.line >= 0 ? QString::number(context.line) : unk,
+        context.function ? QString(context.function) : unk,
+        msg
+    );
+#endif
+
+    switch (type)
+    {
+        case QtDebugMsg:
+            logEvent(NAME, u"SYSTEM DEBUG) "_s + msgWithContext);
+            break;
+        case QtInfoMsg:
+            logEvent(NAME, u"SYSTEM INFO) "_s + msgWithContext);
+            break;
+        case QtWarningMsg:
+            logError(NAME, CoreError(CoreError::InternalError, msgWithContext, Qx::Warning));
+            break;
+        case QtCriticalMsg:
+            logError(NAME, CoreError(CoreError::InternalError, msgWithContext, Qx::Err));
+            break;
+        case QtFatalMsg:
+            logError(NAME, CoreError(CoreError::InternalError, msgWithContext, Qx::Critical));
+            break;
+    }
+}
+
 //Public:
 Qx::Error Core::initialize(QStringList& commandLine)
 {
@@ -246,7 +309,7 @@ Qx::Error Core::initialize(QStringList& commandLine)
             if(!globalOptions.isEmpty())
                 globalOptions += ' '; // Space after every switch except first one
 
-            globalOptions += u"--"_s + (*clOption).names().at(1); // Always use long name
+            globalOptions += u"--"_s + (*clOption).names().constLast(); // Always use long name
 
             // Add value of switch if it takes one
             if(!(*clOption).valueName().isEmpty())
@@ -442,6 +505,13 @@ Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString 
 {
     logEvent(NAME, LOG_EVENT_ADD_APP_SEARCH.arg(name, parent.toString()));
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
+}
+
+bool Core::blockNewInstances()
+{
+    bool b = Qx::enforceSingleInstance(SINGLE_INSTANCE_ID);
+    logEvent(NAME, b ? LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC : LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL);
+    return b;
 }
 
 CoreError Core::enqueueStartupTasks()
@@ -726,6 +796,8 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(NAME, task); }
 void Core::clearTaskQueue() { mTaskQueue = {}; }
 
+bool Core::isLogOpen() const { return mLogger->isOpen(); }
+
 void Core::logCommand(QString src, QString commandName)
 {
     Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_LABEL.arg(commandName));
@@ -839,6 +911,18 @@ QString Core::requestSaveFilePath(const SaveFileRequest& request)
     return *file;
 }
 
+QString Core::requestExistingDirPath(const ExistingDirRequest& request)
+{
+    // Response holder
+    QSharedPointer<QString> dir = QSharedPointer<QString>::create();
+
+    // Emit and get response
+    emit existingDirRequested(dir, request);
+
+    // Return response
+    return *dir;
+}
+
 QString Core::requestItemSelection(const ItemSelectionRequest& request)
 {
     // Response holder
@@ -852,6 +936,24 @@ QString Core::requestItemSelection(const ItemSelectionRequest& request)
 }
 
 void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
+
+bool Core::requestQuestionAnswer(const QString& question)
+{
+    // Show question if allowed
+    if(mNotificationVerbosity != NotificationVerbosity::Silent)
+    {
+        // Response holder
+        QSharedPointer<bool> response = QSharedPointer<bool>::create(false);
+
+        // Emit and get response
+        emit questionAnswerRequested(response, question);
+
+        // Return response
+        return *response;
+    }
+    else
+        return false; // Assume "No"
+}
 
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
@@ -868,4 +970,22 @@ void Core::setStatus(QString heading, QString message)
     mStatusHeading = heading;
     mStatusMessage = message;
     emit statusChanged(heading, message);
+}
+
+BuildInfo Core::buildInfo() const
+{
+    constexpr auto sysOpt = magic_enum::enum_cast<BuildInfo::System>(BUILDINFO_SYSTEM);
+    static_assert(sysOpt.has_value(), "Configured on unsupported system!");
+
+    constexpr auto linkOpt = magic_enum::enum_cast<BuildInfo::Linkage>(BUILDINFO_LINKAGE);
+    static_assert(linkOpt.has_value(), "Invalid BuildInfo linkage string!");
+
+    static BuildInfo info{
+        .system = sysOpt.value(),
+        .linkage = linkOpt.value(),
+        .compiler = BUILDINFO_COMPILER,
+        .compilerVersion = QVersionNumber::fromString(BUILDINFO_COMPILER_VER_STR)
+    };
+
+    return info;
 }

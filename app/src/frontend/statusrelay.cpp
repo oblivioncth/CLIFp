@@ -110,6 +110,16 @@ void StatusRelay::saveFileRequestHandler(QSharedPointer<QString> file, Core::Sav
         qFatal("No response argument provided!");
 }
 
+void StatusRelay::existingDirectoryRequestHandler(QSharedPointer<QString> dir, Core::ExistingDirRequest request)
+{
+    if(dir)
+    {
+        *dir = QFileDialog::getExistingDirectory(nullptr, request.caption, request.dir, request.options);
+    }
+    else
+        qFatal("No response argument provided!");
+}
+
 void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request)
 {
     if(item)
@@ -125,6 +135,15 @@ void StatusRelay::itemSelectionRequestHandler(QSharedPointer<QString> item, cons
 void StatusRelay::clipboardUpdateRequestHandler(const QString& text)
 {
     mSystemClipboard->setText(text);
+}
+
+void StatusRelay::questionAnswerRequestHandler(QSharedPointer<bool> response, const QString& question)
+{
+
+    if(response)
+        *response = QMessageBox::question(nullptr, QString(), question) == QMessageBox::Yes;
+    else
+        qFatal("No response argument provided!");
 }
 
 void StatusRelay::longTaskProgressHandler(quint64 progress)

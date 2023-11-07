@@ -24,7 +24,7 @@ public:
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {ChecksumMismatch, u"The title's Data Pack checksum does not match its record!"_s},
+        {ChecksumMismatch, u"The file's checksum does not match its record!"_s},
         {Incomeplete, u"The download could not be completed."_s}
     };
 
@@ -59,9 +59,9 @@ private:
     static inline const QString NAME = u"TDownload"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_DOWNLOADING_DATA_PACK = u"Downloading Data Pack %1"_s;
-    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = u"Data Pack downloaded successfully"_s;
-    static inline const QString LOG_EVENT_DOWNLOAD_AUTH = u"Data Pack download unexpectedly requires authentication (%1)"_s;
+    static inline const QString LOG_EVENT_DOWNLOADING_FILE = u"Downloading file %1"_s;
+    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = u"File downloaded successfully"_s;
+    static inline const QString LOG_EVENT_DOWNLOAD_AUTH = u"File download unexpectedly requires authentication (%1)"_s;
     static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = u"Stopping current download(s)..."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------

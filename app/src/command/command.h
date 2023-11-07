@@ -108,12 +108,12 @@ private:
 
     // Standard command line option strings
     static inline const QString CL_OPT_HELP_S_NAME = u"h"_s;
-    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
     static inline const QString CL_OPT_HELP_E_NAME = u"?"_s;
+    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
     static inline const QString CL_OPT_HELP_DESC = u"Prints this help message."_s;
 
     // Standard command line options
-    static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_L_NAME, CL_OPT_HELP_E_NAME}, CL_OPT_HELP_DESC}; // Boolean option
+    static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_E_NAME, CL_OPT_HELP_L_NAME}, CL_OPT_HELP_DESC}; // Boolean option
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_STANDARD{&CL_OPTION_HELP};
 
     // Meta
@@ -162,6 +162,8 @@ protected:
     virtual Qx::Error perform() = 0;
 
 public:
+    virtual bool requiresFlashpoint() const;
+    virtual bool autoBlockNewInstances() const;
     Qx::Error process(const QStringList& commandLine);
 };
 

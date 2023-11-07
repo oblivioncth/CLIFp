@@ -19,10 +19,10 @@ class QX_ERROR_TYPE(DriverError, "DriverError", 1201)
 public:
     enum Type
     {
-        NoError = 0,
-        AlreadyOpen = 1,
-        LauncherRunning = 2,
-        InvalidInstall = 3,
+        NoError,
+        AlreadyOpen,
+        LauncherRunning,
+        InvalidInstall,
     };
 
 //-Class Variables-------------------------------------------------------------
@@ -61,12 +61,9 @@ class Driver : public QObject
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
-    // Single Instance ID
-    static inline const QString SINGLE_INSTANCE_ID = u"CLIFp_ONE_INSTANCE"_s; // Basically never change this
-
     // Error Messages
     static inline const QString ERR_LAUNCHER_RUNNING_TIP = u"Please close the Launcher first."_s;
-    static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update CLIFp."_s;
+    static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update (i.e. the 'update' command)."_s;
 
     // Logging
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
@@ -86,6 +83,7 @@ private:
     static inline const QString LOG_EVENT_TASK_SKIP_QUIT = u"Task skipped because the application is quitting"_s;
     static inline const QString LOG_EVENT_QUIT_REQUEST = u"Received quit request"_s;
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = u"Received redundant quit request"_s;
+    static inline const QString LOG_EVENT_CLEARED_UPDATE_CACHE = u"Cleared stale update cache."_s;
 
     // Meta
     static inline const QString NAME = u"driver"_s;
@@ -154,8 +152,10 @@ signals:
     void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void message(const Message& message);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
+    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void clipboardUpdateRequested(const QString& text);
+    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
 
     // Long task
     void longTaskProgressChanged(quint64 progress);

@@ -83,7 +83,7 @@ CommandError Command::parse(const QStringList& commandLine)
             if(!optionsStr.isEmpty())
                 optionsStr += ' '; // Space after every switch except first one
 
-            optionsStr += u"--"_s + (*clOption).names().at(1); // Always use long name
+            optionsStr += u"--"_s + (*clOption).names().constLast(); // Always use long name
 
             // Add value of switch if it takes one
             if(!(*clOption).valueName().isEmpty())
@@ -175,6 +175,10 @@ void Command::showHelp()
 QList<const QCommandLineOption*> Command::options() { return CL_OPTIONS_STANDARD; }
 QSet<const QCommandLineOption*> Command::requiredOptions() { return {}; }
 
+//Public:
+bool Command::requiresFlashpoint() const { return true; }
+bool Command::autoBlockNewInstances() const { return true; }
+
 Qx::Error Command::process(const QStringList& commandLine)
 {
     // Parse and check for valid arguments
@@ -197,3 +201,5 @@ Qx::Error Command::process(const QStringList& commandLine)
     // Perform command
     return perform();
 }
+
+
