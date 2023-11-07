@@ -60,8 +60,6 @@ private:
     static inline const QString DIAG_CAPTION = u"Select a shortcut destination..."_s;
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_FILE_PATH = u"Shortcut path provided is for a file"_s;
-    static inline const QString LOG_EVENT_DIR_PATH = u"Shortcut path provided is for a folder"_s;
     static inline const QString LOG_EVENT_NO_PATH = u"No shortcut path provided, user will be prompted"_s;
     static inline const QString LOG_EVENT_SEL_PATH = u"Shortcut path selected: %1"_s;
     static inline const QString LOG_EVENT_DIAG_CANCEL = u"Shortcut path selection canceled."_s;
@@ -71,14 +69,17 @@ private:
     // Command line option strings
     static inline const QString CL_OPT_PATH_S_NAME = u"p"_s;
     static inline const QString CL_OPT_PATH_L_NAME = u"path"_s;
-    static inline const QString CL_OPT_PATH_DESC = u"Path to new shortcut. Path's ending with "".lnk""//"".desktop"" will be interpreted as a named shortcut file. "
-                                                    "Any other path will be interpreted as a directory and the title will automatically be used "
-                                                    "as the filename"_s;
+    static inline const QString CL_OPT_PATH_DESC = u"Path to a directory for the new shortcut"_s;
+
+    static inline const QString CL_OPT_NAME_S_NAME = u"n"_s;
+    static inline const QString CL_OPT_NAME_L_NAME = u"name"_s;
+    static inline const QString CL_OPT_NAME_DESC = u"Name of the shortcut. Defaults to the name of the title"_s;
 
     // Command line options
     static inline const QCommandLineOption CL_OPTION_PATH{{CL_OPT_PATH_S_NAME, CL_OPT_PATH_L_NAME}, CL_OPT_PATH_DESC, u"path"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_NAME{{CL_OPT_NAME_S_NAME, CL_OPT_NAME_L_NAME}, CL_OPT_NAME_DESC, u"name"_s}; // Takes value
 
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_PATH};
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_PATH, &CL_OPTION_NAME};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_REQUIRED{};
 
 public:
@@ -93,7 +94,6 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     Qx::Error createShortcut(const QString& name, const QDir& dir, QUuid id);
-    QString shortcutExtension() const;
 
 protected:
     QList<const QCommandLineOption*> options() override;

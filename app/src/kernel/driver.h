@@ -152,6 +152,7 @@ signals:
     void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void message(const Message& message);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
+    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void clipboardUpdateRequested(const QString& text);
     void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);

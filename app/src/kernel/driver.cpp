@@ -61,6 +61,7 @@ void Driver::init()
     connect(mCore, &Core::blockingErrorOccurred, this, &Driver::blockingErrorOccurred);
     connect(mCore, &Core::message, this, &Driver::message);
     connect(mCore, &Core::saveFileRequested, this, &Driver::saveFileRequested);
+    connect(mCore, &Core::existingDirRequested, this, &Driver::existingDirRequested);
     connect(mCore, &Core::itemSelectionRequested, this, &Driver::itemSelectionRequested);
     connect(mCore, &Core::clipboardUpdateRequested, this, &Driver::clipboardUpdateRequested);
     connect(mCore, &Core::questionAnswerRequested, this, &Driver::questionAnswerRequested);

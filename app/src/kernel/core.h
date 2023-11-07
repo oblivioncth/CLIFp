@@ -117,6 +117,13 @@ public:
         QFileDialog::Options options;
     };
 
+    struct ExistingDirRequest
+    {
+        QString caption;
+        QString dir;
+        QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+    };
+
     struct ItemSelectionRequest
     {
         QString caption;
@@ -310,6 +317,7 @@ public:
     int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(const Message& msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
+    QString requestExistingDirPath(const ExistingDirRequest& request);
     QString requestItemSelection(const ItemSelectionRequest& request);
     void requestClipboardUpdate(const QString& text);
     bool requestQuestionAnswer(const QString& question);
@@ -337,6 +345,7 @@ signals:
     void errorOccurred(const Core::Error& error);
     void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
     void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
+    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
     void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void message(const Message& message);
     void clipboardUpdateRequested(const QString& text);

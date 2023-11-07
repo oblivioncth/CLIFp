@@ -146,10 +146,10 @@ or
     --msg="I am a message"
 
 ### Global Options:
- -  **-h | --help | -?:** Prints usage information
- -  **-v | --version:** Prints the current version of the tool
- -  **-q | --quiet:** Silences all non-critical messages
- -  **-s | --silent:** Silences all messages (takes precedence over quiet mode)
+- **-h | --help | -?:** Prints usage information
+- **-v | --version:** Prints the current version of the tool
+- **-q | --quiet:** Silences all non-critical messages
+- **-s | --silent:** Silences all messages (takes precedence over quiet mode)
 
 Every command also has a corresponding help switch for command specific usage information.
 
@@ -157,12 +157,12 @@ Every command also has a corresponding help switch for command specific usage in
 Many of CLIFp's commands require a game/animation to be specified, which can be done in several ways. These commands, are known as *title commands* and are noted as such below. The explanation for these common options are shown here instead of being repeated under each individually.
 
 Title Comamnd Shared Options:
- -  **-i | --id:** UUID  of a game
- -  **-t | --title:** The title of a game.
- -  **-T | --title-strict:** Same as **-t**, but only exact matches are considered
- -  **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T**
- -  **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
- -  **-r | --random:** Selects  a  random  title  from  the  database.  Must  be  followed  by  a  library  filter:  `all`/`any`,  `game`/`arcade`,  or `animation`/`theatre`
+- **-i | --id:** UUID  of a game
+- **-t | --title:** The title of a game.
+- **-T | --title-strict:** Same as **-t**, but only exact matches are considered
+- **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T**
+- **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
+- **-r | --random:** Selects  a  random  title  from  the  database.  Must  be  followed  by  a  library  filter:  `all`/`any`,  `game`/`arcade`,  or `animation`/`theatre`
 
 The **-title** and **-subtitle** options are case-insensitive and will match any title that contains the value provided; however, the provided title should match as closely as possible to how it appears within Flashpoint, as checks for close matches are limited due to technical restrictions. If more than one entry is found, a dialog window with more information will be displayed so that the intended title can be selected, though there is a limit to the number of matches.
 
@@ -174,18 +174,11 @@ Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of
 **link** - Creates  a  shortcut  to  a  Flashpoint  title
 
 Options:
- - [Title Command](#title-commands) options
- -  **-p | --path:** Path to new shortcut, defaults to the desktop. Path's ending with ".lnk" (Windows) or ".desktop" (Linux) will be interpreted as a named shortcut file. Any other path will be interpreted as a directory and the title will automatically be used as the filename
+- [Title Command](#title-commands) options
+- **-p | --path:** Path to directory in which to place the shortcut. Prompts if not provided.
+- **-n | --name:** Name of the shortcut. Defaults to the name of the title
 
 Notes:
-
- - On Linux, when providing a full shortcut path via the **--path** switch, the filename component is re-interpreted as the shortcut's display name and the actual filename is set automatically.
-
-   For example, when specifying:
-
-       CLIFp link -p "~/Desktop/Cool Name.desktop" ...
-
-   the display name of the desktop entry will be set to "Cool Name".
  - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
 
 --------------------------------------------------------------------------------
@@ -194,7 +187,7 @@ Notes:
 
 Options:
 
- -  [Title Command](#title-commands) options
+- [Title Command](#title-commands) options
 
 --------------------------------------------------------------------------------
 
@@ -202,15 +195,15 @@ Options:
 
 Options:
 
- -  [Title Command](#title-commands) options
+- [Title Command](#title-commands) options
 
 --------------------------------------------------------------------------------
 
  **run** - Start  Flashpoint's  webserver  and  then  execute  the  provided  application
 
 Options:
- -  **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
- -  **-p | --param:** Command-line parameters to use when starting the application
+- **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
+- **-p | --param:** Command-line parameters to use when starting the application
 
 Requires:
 **-a**
@@ -235,8 +228,8 @@ See http://www.robvanderwoude.com/escapechars.php for more information.
 **share** - Generates a URL for starting a Flashpoint title that can be shared to other users.
 
 Options:
- -  [Title Command](#title-commands) options
- -  **-u | --universal:** Creates a standard HTTPS link that utilizes a redirect page. May be easier to share on some platforms.
+ - [Title Command](#title-commands) options
+ - **-u | --universal:** Creates a standard HTTPS link that utilizes a redirect page. May be easier to share on some platforms.
  - **-c | --configure:** Registers CLIFp as the default handler for "flashpoint" protocol links.
  - **-C | --unconfigure:** Removes CLIFp as the default handler for "flashpoint" protocol links.
 
@@ -250,9 +243,9 @@ Notes:
  **show** - Display  a  message  or  extra  folder
 
 Options:
- -  **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
- -  **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
- -  **-h | --help | -?:** Prints command specific usage information
+ - **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
+ - **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
+ - **-h | --help | -?:** Prints command specific usage information
 
 Requires:
 **-m** or **-e**

@@ -911,6 +911,18 @@ QString Core::requestSaveFilePath(const SaveFileRequest& request)
     return *file;
 }
 
+QString Core::requestExistingDirPath(const ExistingDirRequest& request)
+{
+    // Response holder
+    QSharedPointer<QString> dir = QSharedPointer<QString>::create();
+
+    // Emit and get response
+    emit existingDirRequested(dir, request);
+
+    // Return response
+    return *dir;
+}
+
 QString Core::requestItemSelection(const ItemSelectionRequest& request)
 {
     // Response holder

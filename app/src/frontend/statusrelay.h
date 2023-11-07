@@ -51,6 +51,7 @@ public slots:
     void blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError);
     void messageHandler(const Message& message);
     void saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request);
+    void existingDirectoryRequestHandler(QSharedPointer<QString> dir, Core::ExistingDirRequest request);
     void itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
     void clipboardUpdateRequestHandler(const QString& text);
     void questionAnswerRequestHandler(QSharedPointer<bool> response, const QString& question);
