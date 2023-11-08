@@ -280,7 +280,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
     }
 
     // Set buffer
-    id = !titleId.isNull() ? titleId : addAppId;
+    id = addAppId.isNull() ? titleId : addAppId;
 
     return TitleCommandError();
 }
