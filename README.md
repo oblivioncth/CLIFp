@@ -20,7 +20,7 @@ Play a game:
     CLIFp play -i 37e5c215-9c39-4a3d-9912-b4343a17027e
 
     # Random
-    CLIFp play -r
+    CLIFp play -r any
 
 Play an additional app:
 
