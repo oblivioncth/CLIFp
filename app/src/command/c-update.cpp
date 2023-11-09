@@ -330,9 +330,8 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
         QString tempName = u"clifp_update.zip"_s;
         TDownload* downloadTask = new TDownload(&mCore);
         downloadTask->setStage(Task::Stage::Primary);
-        downloadTask->setTargetFile(aItr->browser_download_url);
-        downloadTask->setDestinationPath(uDownloadDir.absolutePath());
-        downloadTask->setDestinationFilename(tempName);
+        downloadTask->setDescription(u"update"_s);
+        downloadTask->addFile({.target = aItr->browser_download_url, .dest = uDownloadDir.absoluteFilePath(tempName)});
         mCore.enqueueSingleTask(downloadTask);
 
         TExtract* extractTask = new TExtract(&mCore);

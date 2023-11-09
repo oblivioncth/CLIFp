@@ -738,10 +738,8 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
         TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
-        downloadTask->setDestinationPath(packDestFolderPath);
-        downloadTask->setDestinationFilename(packFileName);
-        downloadTask->setTargetFile(gameSourceBase + '/' + packFileName);
-        downloadTask->setSha256(packSha256);
+        downloadTask->setDescription(u"data pack "_s + QFileInfo(packFile).fileName());
+        downloadTask->addFile({.target = gameSourceBase + '/' + packFileName, .dest = packFile.fileName(), .checksum = packSha256});
 
         mTaskQueue.push(downloadTask);
         logTask(NAME, downloadTask);
