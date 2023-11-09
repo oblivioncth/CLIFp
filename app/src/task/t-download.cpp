@@ -37,9 +37,6 @@ TDownload::TDownload(QObject* parent) :
     mDownloadManager.setOverwrite(true);
     mDownloadManager.setVerificationMethod(QCryptographicHash::Sha256);
 
-    // Since this is only for one download, the size will be adjusted to the correct total as soon as the download starts
-    mDownloadManager.setSkipEnumeration(true);
-
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
         int choice;
@@ -80,7 +77,7 @@ QStringList TDownload::members() const
     }
     if(mFiles.size() > 10)
         files += FILE_DOWNLOAD_ELIDE.arg(mFiles.size() - 10) + '\n';
-    files += u"}\n"_s;
+    files += u"}"_s;
     ml.append(files);
     ml.append(u".description() = \""_s + mDescription + u"\""_s);
 
@@ -101,7 +98,7 @@ void TDownload::perform()
 
     // Log/label string
     QString label = LOG_EVENT_DOWNLOAD.arg(mDescription);
-    emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD);
+    emit eventOccurred(NAME, label);
 
     // Start download
     emit longTaskStarted(label);

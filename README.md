@@ -171,6 +171,14 @@ The **-title-strict** and **-subtitle-strict** options only consider exact match
 Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
 
 ### Command List:
+
+**download** - Downloads data packs for games that require them in bulk
+
+Options:
+- **-p | --playlist** Name of the playlist to download games for.
+
+--------------------------------------------------------------------------------
+
 **link** - Creates  a  shortcut  to  a  Flashpoint  title
 
 Options:

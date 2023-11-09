@@ -507,6 +507,56 @@ Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString 
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
 }
 
+QString Core::datapackPath(const QString& packFilename) const
+{
+    static QDir folder(mFlashpointInstall->fullPath() + '/' + mFlashpointInstall->preferences().dataPacksFolderPath);
+    return folder.absoluteFilePath(packFilename);
+}
+
+QUrl Core::datapackUrl(const QString& packFilename) const
+{
+    static QString urlBase = [&packFilename, this]{
+        /* TODO: This is ugly, it would be ideal to handle this more gracefully as a regular error as it once was, but
+         * this function design doesn't really work with that and for now this source can be relied upon.
+         */
+        auto sources = mFlashpointInstall->preferences().gameDataSources;
+        if(!sources.contains(u"Flashpoint Project"_s))
+            qCritical("Expected game data source 'Flashpoint Project' missing!");
+
+        return sources.value(u"Flashpoint Project"_s).arguments.value(0);
+    }();
+
+    return urlBase + '/' + packFilename;
+}
+
+bool Core::datapackIsPresent(const Fp::GameData& gameData)
+{
+    // Get current file checksum if it exists
+    QString packFilename = gameData.path();
+    QFile packFile(datapackPath(packFilename));
+    bool checksumMatches = false;
+
+    if(!gameData.presentOnDisk() || !packFile.exists())
+        return false;
+
+    // Checking the sum in addition to the flag is somewhat overkill, but may help in situations
+    // where the flag is set but the datapack's contents have changed
+    Qx::IoOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, gameData.sha256(), QCryptographicHash::Sha256);
+    if(checksumReport.isFailure())
+    {
+        logError(NAME, checksumReport);
+        return false;
+    }
+
+    if(!checksumMatches)
+    {
+        postError(NAME, CoreError(CoreError::DataPackSumMismatch, packFilename, Qx::Warning));
+        return false;
+    }
+
+    return true;
+}
+
 bool Core::blockNewInstances()
 {
     bool b = Qx::enforceSingleInstance(SINGLE_INSTANCE_ID);
@@ -697,49 +747,20 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
-    // Extract relevant data
-    QString packDestFolderPath = mFlashpointInstall->fullPath() + '/' + mFlashpointInstall->preferences().dataPacksFolderPath;
-    QString packFileName = gameData.path();
-    QString packSha256 = gameData.sha256();
-    QString packParameters = gameData.parameters();
-    QFile packFile(packDestFolderPath + '/' + packFileName);
+    QString packFilename = gameData.path();
+    QString packPath = datapackPath(packFilename);
 
-    // Get current file checksum if it exists
-    bool checksumMatches = false;
-
-    if(gameData.presentOnDisk() && packFile.exists())
+    // Enqueue pack download if it's not available
+    if(!datapackIsPresent(gameData))
     {
-        // Checking the sum in addition to the flag is somewhat overkill, but may help in situations
-        // where the flag is set but the datapack's contents have changed
-        Qx::IoOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, packSha256, QCryptographicHash::Sha256);
-        if(checksumReport.isFailure())
-            logError(NAME, checksumReport);
-
-        if(checksumMatches)
-            logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
-        else
-            postError(NAME, CoreError(CoreError::DataPackSumMismatch, packFileName, Qx::Warning));
-    }
-    else
         logEvent(NAME, LOG_EVENT_DATA_PACK_MISS);
 
-    // Enqueue pack download if it doesn't exist or is different than expected
-    if(!packFile.exists() || !checksumMatches)
-    {
-        if(!mFlashpointInstall->preferences().gameDataSources.contains(u"Flashpoint Project"_s))
-        {
-            CoreError err(CoreError::DataPackSourceMissing, u"Flashpoint Project"_s);
-            postError(NAME, err);
-            return err;
-        }
-
-        Fp::GameDataSource gameSource = mFlashpointInstall->preferences().gameDataSources.value(u"Flashpoint Project"_s);
-        QString gameSourceBase = gameSource.arguments.value(0);
+        QUrl packUrl = datapackUrl(packFilename);
 
         TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
-        downloadTask->setDescription(u"data pack "_s + QFileInfo(packFile).fileName());
-        downloadTask->addFile({.target = gameSourceBase + '/' + packFileName, .dest = packFile.fileName(), .checksum = packSha256});
+        downloadTask->setDescription(u"data pack "_s + packFilename);
+        downloadTask->addFile({.target = packUrl, .dest = packPath, .checksum = gameData.sha256()});
 
         mTaskQueue.push(downloadTask);
         logTask(NAME, downloadTask);
@@ -751,21 +772,24 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
         onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
         onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
         onDiskUpdateTask->setAction([gameDataId, this]{
-            return mFlashpointInstall->database()->updateGameDataOnDiskState(gameDataId, true);
+            return mFlashpointInstall->database()->updateGameDataOnDiskState({gameDataId}, true);
         });
 
         mTaskQueue.push(onDiskUpdateTask);
         logTask(NAME, onDiskUpdateTask);
     }
+    else
+        logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
 
     // Enqueue pack mount or extract
-    if(packParameters.contains(u"-extract"_s))
+
+    if(gameData.parameters().contains(u"-extract"_s))
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
         TExtract* extractTask = new TExtract(this);
         extractTask->setStage(Task::Stage::Auxiliary);
-        extractTask->setPackPath(packDestFolderPath + '/' + packFileName);
+        extractTask->setPackPath(packPath);
         extractTask->setPathInPack(u"content"_s);
         extractTask->setDestinationPath(mFlashpointInstall->preferences().htdocsFolderPath);
 
@@ -780,7 +804,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
         TMount* mountTask = new TMount(this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(gameData.gameId());
-        mountTask->setPath(packDestFolderPath + '/' + packFileName);
+        mountTask->setPath(packPath);
         mountTask->setDaemon(mFlashpointInstall->outfittedDaemon());
 
         mTaskQueue.push(mountTask);
