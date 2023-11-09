@@ -49,7 +49,7 @@ public:
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {InternalError, u"Internal system error."_s},
+        {InternalError, u"Internal error."_s},
         {InvalidOptions, u"Invalid global options provided."_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
