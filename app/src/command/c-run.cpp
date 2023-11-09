@@ -38,18 +38,11 @@ CRun::CRun(Core& coreRef) : Command(coreRef) {}
 //-Instance Functions-------------------------------------------------------------
 //Protected:
 QList<const QCommandLineOption*> CRun::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QSet<const QCommandLineOption*> CRun::requiredOptions() { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
 QString CRun::name() { return NAME; }
 
 Qx::Error CRun::perform()
 {
-    // Make sure that at least an app was provided
-    if(!mParser.isSet(CL_OPTION_PARAM))
-    {
-        CRunError err(CRunError::MissingApp);
-        mCore.logError(NAME, err);
-        return err;
-    }
-
     // Enqueue startup tasks
     if(Qx::Error ee = mCore.enqueueStartupTasks(); ee.isValid())
         return ee;
