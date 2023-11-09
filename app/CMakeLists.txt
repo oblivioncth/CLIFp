@@ -11,6 +11,8 @@ set(CLIFP_SOURCE
     kernel/errorstatus.cpp
     command/command.h
     command/command.cpp
+    command/c-download.h
+    command/c-download.cpp
     command/c-link.h
     command/c-link.cpp
     command/c-play.h

@@ -35,9 +35,7 @@ TDownload::TDownload(QObject* parent) :
 {
     // Setup download manager
     mDownloadManager.setOverwrite(true);
-
-    // Since this is only for one download, the size will be adjusted to the correct total as soon as the download starts
-    mDownloadManager.setSkipEnumeration(true);
+    mDownloadManager.setVerificationMethod(QCryptographicHash::Sha256);
 
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
@@ -69,36 +67,37 @@ QString TDownload::name() const { return NAME; }
 QStringList TDownload::members() const
 {
     QStringList ml = Task::members();
-    ml.append(u".destinationPath() = \""_s + QDir::toNativeSeparators(mDestinationPath) + u"\""_s);
-    ml.append(u".destinationFilename() = \""_s + mDestinationFilename + u"\""_s);
-    ml.append(u".targetFile() = \""_s + mTargetFile.toString() + u"\""_s);
-    ml.append(u".sha256() = "_s + mSha256);
+
+    QString files = u".files() = {\n"_s;
+    for(auto i = 0; i < 10 && i < mFiles.size(); i++)
+    {
+        auto f = mFiles.at(i);
+        bool sum = !f.checksum.isEmpty();
+        files += u"\t"_s + FILE_DOWNLOAD_TEMPLATE.arg(f.target.toString(), f.dest, sum ? f.checksum : FILE_NO_CHECKSUM) + '\n';
+    }
+    if(mFiles.size() > 10)
+        files += FILE_DOWNLOAD_ELIDE.arg(mFiles.size() - 10) + '\n';
+    files += u"}"_s;
+    ml.append(files);
+    ml.append(u".description() = \""_s + mDescription + u"\""_s);
+
     return ml;
 }
 
-QString TDownload::destinationPath() const { return mDestinationPath; }
-QString TDownload::destinationFilename() const { return mDestinationFilename; }
-QUrl TDownload::targetFile() const { return mTargetFile; }
-QString TDownload::sha256() const { return mSha256; }
+QList<Qx::DownloadTask> TDownload::files() const { return mFiles; }
+QString TDownload::description() const { return mDescription; }
 
-void TDownload::setDestinationPath(QString path) { mDestinationPath = path; }
-void TDownload::setDestinationFilename(QString filename) { mDestinationFilename = filename; }
-void TDownload::setTargetFile(QUrl targetFile) { mTargetFile = targetFile; }
-void TDownload::setSha256(QString sha256) { mSha256 = sha256; }
+void TDownload::addFile(const Qx::DownloadTask file) { mFiles.append(file); }
+void TDownload::setDescription(const QString& desc) { mDescription = desc; }
 
 void TDownload::perform()
 {
-    // Setup download
-    QFile file(mDestinationPath + '/' + mDestinationFilename);
-    QFileInfo fileInfo(file);
-    Qx::DownloadTask download{
-        .target = mTargetFile,
-        .dest = fileInfo.absoluteFilePath()
-    };
-    mDownloadManager.appendTask(download);
+    // Add files
+    for(const auto& f : mFiles)
+        mDownloadManager.appendTask(f);
 
     // Log/label string
-    QString label = LOG_EVENT_DOWNLOADING_FILE.arg(fileInfo.fileName());
+    QString label = LOG_EVENT_DOWNLOAD.arg(mDescription);
     emit eventOccurred(NAME, label);
 
     // Start download
@@ -123,28 +122,11 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
 
     // Handle result
     emit longTaskFinished();
-    if(downloadReport.wasSuccessful())
-    {
-        // Confirm checksum is correct, if supplied
-        if(!mSha256.isEmpty())
-        {
-            QFile file(mDestinationPath + '/' + mDestinationFilename);
-            bool checksumMatch;
-            Qx::IoOpReport cr = Qx::fileMatchesChecksum(checksumMatch, file, mSha256, QCryptographicHash::Sha256);
-            if(cr.isFailure() || !checksumMatch)
-            {
-                TDownloadError err(TDownloadError::ChecksumMismatch, cr.isFailure() ? cr.outcomeInfo() : u""_s);
-                errorStatus = err;
-                emit errorOccurred(NAME, errorStatus);
-            }
-        }
-
+    if(downloadReport.wasSuccessful()) 
         emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_SUCC);
-    }
     else
     {
-        TDownloadError err(TDownloadError::Incomeplete, downloadReport.outcomeString());
-        errorStatus = err;
+        errorStatus = TDownloadError(TDownloadError::Incomeplete, downloadReport.outcomeString());
         emit errorOccurred(NAME, errorStatus);
     }
 

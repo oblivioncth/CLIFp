@@ -14,7 +14,7 @@ CPrepare::CPrepare(Core& coreRef) : TitleCommand(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CPrepare::options() { return {&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_TITLE_STRICT}; }
+QList<const QCommandLineOption*> CPrepare::options() { return TitleCommand::options(); }
 QString CPrepare::name() { return NAME; }
 
 Qx::Error CPrepare::perform()

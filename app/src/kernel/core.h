@@ -289,10 +289,13 @@ public:
     Qx::Error initialize(QStringList& commandLine);
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
-    // Helper
+    // Helper (TODO: Move some of these, especially the lower ones, to libfp)
     QString resolveTrueAppPath(const QString& appPath, const QString& platform);
     Qx::Error findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
     Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
+    QString datapackPath(const QString& packFilename) const;
+    QUrl datapackUrl(const QString& packFilename) const;
+    bool datapackIsPresent(const Fp::GameData& gameData);
 
     // Common
     bool blockNewInstances();
