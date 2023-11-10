@@ -85,6 +85,8 @@ public:
     QString name() const override;
     QStringList members() const override;
 
+    bool isEmpty() const;
+    qsizetype fileCount() const;
     QList<Qx::DownloadTask> files() const;
     QString description() const;
 

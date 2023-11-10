@@ -84,6 +84,8 @@ QStringList TDownload::members() const
     return ml;
 }
 
+bool TDownload::isEmpty() const { return mFiles.isEmpty(); }
+qsizetype TDownload::fileCount() const { return mFiles.size(); }
 QList<Qx::DownloadTask> TDownload::files() const { return mFiles; }
 QString TDownload::description() const { return mDescription; }
 

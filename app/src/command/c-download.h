@@ -55,8 +55,9 @@ private:
     static inline const QString STATUS_DOWNLOAD = u"Downloading data packs"_s;
 
     // Logging
-    static inline const QString LOG_PLAYLIST_MATCH = u"Playlist matches ID: %1"_s;
-    static inline const QString LOG_NON_DATAPACK = u"Game %1 does not use a data pack."_s;
+    static inline const QString LOG_EVENT_PLAYLIST_MATCH = u"Playlist matches ID: %1"_s;
+    static inline const QString LOG_EVENT_NON_DATAPACK = u"Game %1 does not use a data pack."_s;
+    static inline const QString LOG_EVENT_NO_OP = u"No datapacks to download."_s;
 
     // Command line option strings
     static inline const QString CL_OPT_PLAYLIST_S_NAME = u"p"_s;

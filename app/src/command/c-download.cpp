@@ -64,7 +64,7 @@ Qx::Error CDownload::perform()
         mCore.postError(NAME, err);
         return err;
     }
-    mCore.logEvent(NAME, LOG_PLAYLIST_MATCH.arg(pItr->id().toString(QUuid::WithoutBraces)));
+    mCore.logEvent(NAME, LOG_EVENT_PLAYLIST_MATCH.arg(pItr->id().toString(QUuid::WithoutBraces)));
 
     // Queue downloads for each game
     TDownload* downloadTask = new TDownload(&mCore);
@@ -85,15 +85,24 @@ Qx::Error CDownload::perform()
 
         if(gameData.isNull())
         {
-            mCore.logEvent(NAME, LOG_NON_DATAPACK.arg(pg.gameId().toString(QUuid::WithoutBraces)));
+            mCore.logEvent(NAME, LOG_EVENT_NON_DATAPACK.arg(pg.gameId().toString(QUuid::WithoutBraces)));
             continue;
         }
+
+        if(tk->datapackIsPresent(gameData))
+            continue;
 
         // Queue download
         downloadTask->addFile({.target = tk->datapackUrl(gameData), .dest = tk->datapackPath(gameData), .checksum = gameData.sha256()});
 
         // Note data id
         dataIds.append(gameData.id());
+    }
+
+    if(downloadTask->isEmpty())
+    {
+        mCore.logEvent(NAME, LOG_EVENT_NO_OP);
+        return CDownloadError();
     }
 
     // Enqueue download task
