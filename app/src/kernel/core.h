@@ -40,9 +40,7 @@ public:
         InvalidOptions,
         TitleNotFound,
         TooManyResults,
-        ConfiguredServerMissing,
-        DataPackSumMismatch,
-        DataPackSourceMissing
+        ConfiguredServerMissing
     };
 
     //-Class Variables-------------------------------------------------------------
@@ -53,9 +51,7 @@ private:
         {InvalidOptions, u"Invalid global options provided."_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
-        {ConfiguredServerMissing, u"The server specified in the Flashpoint config was not found within the Flashpoint services store."_s},
-        {DataPackSumMismatch, u"The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded."_s},
-        {DataPackSourceMissing, u"The expected primary data pack source was missing."_s}
+        {ConfiguredServerMissing, u"The server specified in the Flashpoint config was not found within the Flashpoint services store."_s}
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -289,13 +285,10 @@ public:
     Qx::Error initialize(QStringList& commandLine);
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
-    // Helper (TODO: Move some of these, especially the lower ones, to libfp)
-    QString resolveTrueAppPath(const QString& appPath, const QString& platform);
+    // Helper (TODO: Move some of these to libfp Toolkit)
+    QString resolveFullAppPath(const QString& appPath, const QString& platform);
     Qx::Error findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
     Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
-    QString datapackPath(const QString& packFilename) const;
-    QUrl datapackUrl(const QString& packFilename) const;
-    bool datapackIsPresent(const Fp::GameData& gameData);
 
     // Common
     bool blockNewInstances();

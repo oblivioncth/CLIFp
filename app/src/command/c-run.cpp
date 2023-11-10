@@ -47,8 +47,8 @@ Qx::Error CRun::perform()
     if(Qx::Error ee = mCore.enqueueStartupTasks(); ee.isValid())
         return ee;
 
-    QString inputPath = mCore.resolveTrueAppPath(mParser.value(CL_OPTION_APP), u""_s); // No way of knowing platform
-    QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
+    QString inputPath = mCore.resolveFullAppPath(mParser.value(CL_OPTION_APP), u""_s); // No way of knowing platform
+    QFileInfo inputInfo = QFileInfo(inputPath);
 
     TExec* runTask = new TExec(&mCore);
     runTask->setIdentifier(NAME + u" program"_s);

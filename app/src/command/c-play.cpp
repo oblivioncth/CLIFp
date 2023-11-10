@@ -231,14 +231,14 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     }
     else
     {
-        QString addAppPath = mCore.resolveTrueAppPath(addApp.appPath(), platform);
-        QFileInfo fulladdAppPathInfo(mCore.fpInstall().fullPath() + '/' + addAppPath);
+        QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), platform);
+        QFileInfo addAppPathInfo(addAppPath);
 
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
-        addAppTask->setExecutable(fulladdAppPathInfo.canonicalFilePath());
-        addAppTask->setDirectory(fulladdAppPathInfo.absoluteDir());
+        addAppTask->setExecutable(addAppPathInfo.canonicalFilePath());
+        addAppTask->setDirectory(addAppPathInfo.absoluteDir());
         addAppTask->setParameters(addApp.launchCommand());
         addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
         addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
@@ -247,7 +247,7 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 
 #ifdef _WIN32
         // Add wait task if required
-        if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(fulladdAppPathInfo); ee.isValid())
+        if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(addAppPathInfo); ee.isValid())
             return ee;
 #endif
     }
@@ -258,15 +258,15 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 
 Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
-    QString gamePath = mCore.resolveTrueAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
+    QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
                                                 game.platformName());
-    QFileInfo fullGamePathInfo(mCore.fpInstall().fullPath() + '/' + gamePath);
+    QFileInfo gamePathInfo(gamePath);
 
     TExec* gameTask = new TExec(&mCore);
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
-    gameTask->setExecutable(fullGamePathInfo.canonicalFilePath());
-    gameTask->setDirectory(fullGamePathInfo.absoluteDir());
+    gameTask->setExecutable(gamePathInfo.canonicalFilePath());
+    gameTask->setDirectory(gamePathInfo.absoluteDir());
     gameTask->setParameters(!gameData.isNull() ? gameData.launchCommand() : game.launchCommand());
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
@@ -276,7 +276,7 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
 
 #ifdef _WIN32
     // Add wait task if required
-    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(fullGamePathInfo); ee.isValid())
+    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(gamePathInfo); ee.isValid())
         return ee;
 #endif
 

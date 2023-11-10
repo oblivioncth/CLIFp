@@ -72,6 +72,7 @@ Qx::Error CDownload::perform()
     downloadTask->setDescription(u"playlist data packs"_s);
     QList<int> dataIds;
 
+    const Fp::Toolkit* tk = mCore.fpInstall().toolkit();
     for(const auto& pg : pItr->playlistGames())
     {
         // Get data
@@ -89,8 +90,7 @@ Qx::Error CDownload::perform()
         }
 
         // Queue download
-        QString filename = gameData.path();
-        downloadTask->addFile({.target = mCore.datapackUrl(filename), .dest = mCore.datapackPath(filename), .checksum = gameData.sha256()});
+        downloadTask->addFile({.target = tk->datapackUrl(gameData), .dest = tk->datapackPath(gameData), .checksum = gameData.sha256()});
 
         // Note data id
         dataIds.append(gameData.id());

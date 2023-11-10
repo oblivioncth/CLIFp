@@ -454,45 +454,19 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 }
 
 // TODO: Might make sense to make this a function in libfp
-QString Core::resolveTrueAppPath(const QString& appPath, const QString& platform)
+QString Core::resolveFullAppPath(const QString& appPath, const QString& platform)
 {
-    // If appPath is absolute, convert it to relative temporarily
-    QString transformedPath = appPath;
+    static const QHash<QString, QString> clifpOverrides{
+        {u":browser-mode:"_s, u"FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe"_s}
+    };
 
-    QString fpPath = mFlashpointInstall->fullPath();
-    bool isFpAbsolute = transformedPath.startsWith(fpPath);
-    if(isFpAbsolute)
-    {
-        // Remove FP root and separator
-        transformedPath.remove(fpPath);
-        if(!transformedPath.isEmpty() && (transformedPath.front() == '/' || transformedPath.front() == '\\'))
-            transformedPath = transformedPath.mid(1);
-    }
+    const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
 
-    /* TODO: If this is made into a libfp function, isolate this part of it so it stays here,
-     * or add a map argument to the libfp function that allows for passing custom "swaps"
-     * and then call it with one for the following switch.
-     *
-     * CLIFp doesn't support the Launcher's built in browser (obviously), so manually
-     * override it with Basilisk. Basilisk was removed in FP11 but the app path overrides
-     * contains an entry for it that's appropriate on both platforms.
-     */
-    if(transformedPath == u":browser-mode:"_s)
-        transformedPath = u"FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe"_s;
+    QString swapPath = appPath;
+    if(tk->resolveTrueAppPath(swapPath, platform, clifpOverrides))
+        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, swapPath));
 
-    // Resolve both swap types
-    transformedPath = mFlashpointInstall->resolveExecSwaps(transformedPath, platform);
-    transformedPath = mFlashpointInstall->resolveAppPathOverrides(transformedPath);
-
-    // Rebuild full path if applicable
-    if(isFpAbsolute)
-        transformedPath = fpPath + '/' + transformedPath;
-
-    if(transformedPath != appPath)
-        logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, transformedPath));
-
-    // Convert Windows separators to universal '/'
-    return transformedPath.replace('\\','/');
+    return mFlashpointInstall->fullPath() + '/' + swapPath;
 }
 
 Qx::Error Core::findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle)
@@ -505,56 +479,6 @@ Qx::Error Core::findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString 
 {
     logEvent(NAME, LOG_EVENT_ADD_APP_SEARCH.arg(name, parent.toString()));
     return searchAndFilterEntity(returnBuffer, name, exactName, parent);
-}
-
-QString Core::datapackPath(const QString& packFilename) const
-{
-    static QDir folder(mFlashpointInstall->fullPath() + '/' + mFlashpointInstall->preferences().dataPacksFolderPath);
-    return folder.absoluteFilePath(packFilename);
-}
-
-QUrl Core::datapackUrl(const QString& packFilename) const
-{
-    static QString urlBase = [&packFilename, this]{
-        /* TODO: This is ugly, it would be ideal to handle this more gracefully as a regular error as it once was, but
-         * this function design doesn't really work with that and for now this source can be relied upon.
-         */
-        auto sources = mFlashpointInstall->preferences().gameDataSources;
-        if(!sources.contains(u"Flashpoint Project"_s))
-            qCritical("Expected game data source 'Flashpoint Project' missing!");
-
-        return sources.value(u"Flashpoint Project"_s).arguments.value(0);
-    }();
-
-    return urlBase + '/' + packFilename;
-}
-
-bool Core::datapackIsPresent(const Fp::GameData& gameData)
-{
-    // Get current file checksum if it exists
-    QString packFilename = gameData.path();
-    QFile packFile(datapackPath(packFilename));
-    bool checksumMatches = false;
-
-    if(!gameData.presentOnDisk() || !packFile.exists())
-        return false;
-
-    // Checking the sum in addition to the flag is somewhat overkill, but may help in situations
-    // where the flag is set but the datapack's contents have changed
-    Qx::IoOpReport checksumReport = Qx::fileMatchesChecksum(checksumMatches, packFile, gameData.sha256(), QCryptographicHash::Sha256);
-    if(checksumReport.isFailure())
-    {
-        logError(NAME, checksumReport);
-        return false;
-    }
-
-    if(!checksumMatches)
-    {
-        postError(NAME, CoreError(CoreError::DataPackSumMismatch, packFilename, Qx::Warning));
-        return false;
-    }
-
-    return true;
 }
 
 bool Core::blockNewInstances()
@@ -717,9 +641,11 @@ void Core::enqueueShutdownTasks()
 #ifdef _WIN32
 Qx::Error Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
 {
+    const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
+
     // Add wait for apps that involve secure player
     bool involvesSecurePlayer;
-    Qx::Error securePlayerCheckError = Fp::Install::appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
+    Qx::Error securePlayerCheckError = tk->appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
     if(securePlayerCheckError.isValid())
     {
         postError(NAME, securePlayerCheckError);
@@ -730,7 +656,7 @@ Qx::Error Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
     {
         TBideProcess* waitTask = new TBideProcess(this);
         waitTask->setStage(Task::Stage::Auxiliary);
-        waitTask->setProcessName(Fp::Install::SECURE_PLAYER_INFO.fileName());
+        waitTask->setProcessName(tk->SECURE_PLAYER_INFO.fileName());
 
         mTaskQueue.push(waitTask);
         logTask(NAME, waitTask);
@@ -747,15 +673,17 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 {
     logEvent(NAME, LOG_EVENT_ENQ_DATA_PACK);
 
+    const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
+
     QString packFilename = gameData.path();
-    QString packPath = datapackPath(packFilename);
+    QString packPath = tk->datapackPath(gameData);
 
     // Enqueue pack download if it's not available
-    if(!datapackIsPresent(gameData))
+    if(!tk->datapackIsPresent(gameData))
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_MISS);
 
-        QUrl packUrl = datapackUrl(packFilename);
+        QUrl packUrl = tk->datapackUrl(gameData);
 
         TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
