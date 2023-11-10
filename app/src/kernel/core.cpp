@@ -709,9 +709,12 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     else
         logEvent(NAME, LOG_EVENT_DATA_PACK_FOUND);
 
-    // Enqueue pack mount or extract
+    // Handle datapack parameters
+    Fp::GameDataParameters param = gameData.parameters();
+    if(param.hasError())
+        postError(NAME, CoreError(CoreError::UnknownDatapackParam, param.errorString(), Qx::Warning));
 
-    if(gameData.parameters().contains(u"-extract"_s))
+    if(param.isExtract())
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
