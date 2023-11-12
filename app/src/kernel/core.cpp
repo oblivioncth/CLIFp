@@ -401,7 +401,7 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 
     // Initialize child process env vars
     QProcessEnvironment de = QProcessEnvironment::systemEnvironment();
-    QString fpPath = mFlashpointInstall->fullPath();
+    QString fpPath = mFlashpointInstall->dir().absolutePath();
 
 #ifdef __linux__
     // Add platform support environment variables
@@ -466,7 +466,7 @@ QString Core::resolveFullAppPath(const QString& appPath, const QString& platform
     if(tk->resolveTrueAppPath(swapPath, platform, clifpOverrides))
         logEvent(NAME, LOG_EVENT_APP_PATH_ALT.arg(appPath, swapPath));
 
-    return mFlashpointInstall->fullPath() + '/' + swapPath;
+    return mFlashpointInstall->dir().absoluteFilePath(swapPath);
 }
 
 Qx::Error Core::findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle)
@@ -503,7 +503,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         xhostSet->setIdentifier(u"xhost Set"_s);
         xhostSet->setStage(Task::Stage::Startup);
         xhostSet->setExecutable(u"xhost"_s);
-        xhostSet->setDirectory(mFlashpointInstall->fullPath());
+        xhostSet->setDirectory(mFlashpointInstall->dir());
         xhostSet->setParameters({u"+SI:localuser:root"_s});
         xhostSet->setProcessType(TExec::ProcessType::Blocking);
 
@@ -525,7 +525,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         currentTask->setIdentifier(startEntry.filename);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setExecutable(startEntry.filename);
-        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + startEntry.path);
+        currentTask->setDirectory(mFlashpointInstall->dir().absoluteFilePath(startEntry.path));
         currentTask->setParameters(startEntry.arguments);
         currentTask->setProcessType(TExec::ProcessType::Blocking);
 
@@ -550,7 +550,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         serverTask->setIdentifier(u"Server"_s);
         serverTask->setStage(Task::Stage::Startup);
         serverTask->setExecutable(server.filename);
-        serverTask->setDirectory(mFlashpointInstall->fullPath() + '/' + server.path);
+        serverTask->setDirectory(mFlashpointInstall->dir().absoluteFilePath(server.path));
         serverTask->setParameters(server.arguments);
         serverTask->setProcessType(server.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
@@ -565,7 +565,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         currentTask->setIdentifier(u"Daemon"_s);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setExecutable(d.filename);
-        currentTask->setDirectory(mFlashpointInstall->fullPath() + '/' + d.path);
+        currentTask->setDirectory(mFlashpointInstall->dir().absoluteFilePath(d.path));
         currentTask->setParameters(d.arguments);
         currentTask->setProcessType(d.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
@@ -614,7 +614,7 @@ void Core::enqueueShutdownTasks()
         shutdownTask->setIdentifier(stopEntry.filename);
         shutdownTask->setStage(Task::Stage::Shutdown);
         shutdownTask->setExecutable(stopEntry.filename);
-        shutdownTask->setDirectory(mFlashpointInstall->fullPath() + '/' + stopEntry.path);
+        shutdownTask->setDirectory(mFlashpointInstall->dir().absoluteFilePath(stopEntry.path));
         shutdownTask->setParameters(stopEntry.arguments);
         shutdownTask->setProcessType(TExec::ProcessType::Blocking);
 
@@ -630,7 +630,7 @@ void Core::enqueueShutdownTasks()
         xhostClear->setIdentifier(u"xhost Clear"_s);
         xhostClear->setStage(Task::Stage::Shutdown);
         xhostClear->setExecutable(u"xhost"_s);
-        xhostClear->setDirectory(mFlashpointInstall->fullPath());
+        xhostClear->setDirectory(mFlashpointInstall->dir());
         xhostClear->setParameters({"-SI:localuser:root"});
         xhostClear->setProcessType(TExec::ProcessType::Blocking);
 
@@ -720,7 +720,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
-        QDir extractRoot(mFlashpointInstall->fullPath() + '/' + mFlashpointInstall->preferences().htdocsFolderPath);
+        QDir extractRoot(mFlashpointInstall->dir().absoluteFilePath(mFlashpointInstall->preferences().htdocsFolderPath));
         QString marker = param.extractedMarkerFile();
         // Check if files are already present
         if(!marker.isEmpty() && QFile::exists(extractRoot.absoluteFilePath(marker)))

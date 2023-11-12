@@ -292,7 +292,7 @@ void Driver::drive()
             finish();
             return;
         }
-        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->fullPath())));
+        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->dir().absolutePath())));
 
         // Insert into core
         mCore->attachFlashpoint(std::move(flashpointInstall));
