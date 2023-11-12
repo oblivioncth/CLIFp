@@ -172,6 +172,7 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_FOUND = u"Title Data Pack with correct hash is already present, no need to download"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = u"Title Data Pack requires mounting"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = u"Title Data Pack requires extraction"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED = u"Extracted files already present"_s;
     static inline const QString LOG_EVENT_TASK_ENQ = u"Enqueued %1: {%2}"_s;
     static inline const QString LOG_EVENT_APP_PATH_ALT = u"App path \"%1\" maps to alternative \"%2\"."_s;
 
@@ -303,6 +304,9 @@ public:
     void enqueueSingleTask(Task* task);
 
     // Notifications/Logging
+    /* TODO: Within each place that uses the log options that need the src parameter, like the Commands, and maybe even Core itself, add methods
+     * with the same names that call mCore.logX(NAME, ...) automatically so that NAME doesn't need to be passed every time
+     */
     bool isLogOpen() const;
     void logCommand(QString src, QString commandName);
     void logCommandOptions(QString src, QString commandOptions);

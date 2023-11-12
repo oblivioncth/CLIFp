@@ -720,14 +720,22 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     {
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
-        TExtract* extractTask = new TExtract(this);
-        extractTask->setStage(Task::Stage::Auxiliary);
-        extractTask->setPackPath(packPath);
-        extractTask->setPathInPack(u"content"_s);
-        extractTask->setDestinationPath(mFlashpointInstall->preferences().htdocsFolderPath);
+        QDir extractRoot(mFlashpointInstall->fullPath() + '/' + mFlashpointInstall->preferences().htdocsFolderPath);
+        QString marker = param.extractedMarkerFile();
+        // Check if files are already present
+        if(!marker.isEmpty() && QFile::exists(extractRoot.absoluteFilePath(marker)))
+            logEvent(NAME, LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED);
+        else
+        {
+            TExtract* extractTask = new TExtract(this);
+            extractTask->setStage(Task::Stage::Auxiliary);
+            extractTask->setPackPath(packPath);
+            extractTask->setPathInPack(u"content"_s);
+            extractTask->setDestinationPath(extractRoot.absolutePath());
 
-        mTaskQueue.push(extractTask);
-        logTask(NAME, extractTask);
+            mTaskQueue.push(extractTask);
+            logTask(NAME, extractTask);
+        }
     }
     else
     {
