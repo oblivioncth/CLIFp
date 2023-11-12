@@ -488,7 +488,7 @@ bool Core::blockNewInstances()
     return b;
 }
 
-CoreError Core::enqueueStartupTasks()
+CoreError Core::enqueueStartupTasks(const QString& serverOverride)
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
 
@@ -513,6 +513,7 @@ CoreError Core::enqueueStartupTasks()
 #endif
 
     // Get settings
+    const Fp::Toolkit* fpTk = mFlashpointInstall->toolkit();
     Fp::Services fpServices = mFlashpointInstall->services();
     Fp::Config fpConfig = mFlashpointInstall->config();
     Fp::Preferences fpPreferences = mFlashpointInstall->preferences();
@@ -535,22 +536,23 @@ CoreError Core::enqueueStartupTasks()
     // Add Server entry from services if applicable
     if(fpConfig.startServer)
     {
-        if(!fpServices.server.contains(fpPreferences.server))
+        std::optional<Fp::ServerDaemon> foundServer = fpTk->getServer(serverOverride); // Will pull fpPreferences.server if empty
+        if(!foundServer)
         {
             CoreError err(CoreError::ConfiguredServerMissing);
             postError(NAME, err);
             return err;
         }
 
-        Fp::ServerDaemon configuredServer = fpServices.server.value(fpPreferences.server);
+        Fp::ServerDaemon server = foundServer.value();
 
         TExec* serverTask = new TExec(this);
         serverTask->setIdentifier(u"Server"_s);
         serverTask->setStage(Task::Stage::Startup);
-        serverTask->setExecutable(configuredServer.filename);
-        serverTask->setDirectory(mFlashpointInstall->fullPath() + '/' + configuredServer.path);
-        serverTask->setParameters(configuredServer.arguments);
-        serverTask->setProcessType(configuredServer.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
+        serverTask->setExecutable(server.filename);
+        serverTask->setDirectory(mFlashpointInstall->fullPath() + '/' + server.path);
+        serverTask->setParameters(server.arguments);
+        serverTask->setProcessType(server.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
         mTaskQueue.push(serverTask);
         logTask(NAME, serverTask);

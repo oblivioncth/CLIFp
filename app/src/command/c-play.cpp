@@ -69,16 +69,21 @@ Fp::AddApp CPlay::buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+QString CPlay::getServerOverride(const Fp::GameData& gd)
+{
+    QString override = gd.isNull() ? QString() : gd.parameters().server();
+    if(!override.isNull())
+        mCore.logEvent(NAME, LOG_EVENT_SERVER_OVERRIDE.arg(override));
+
+    return override;
+}
+
 Qx::Error CPlay::handleEntry(const Fp::Game& game)
 {
     mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(game.title()));
 
     Qx::Error sError;
     Fp::Db* db = mCore.fpInstall().database();
-
-    // Enqueue services
-    if(sError = mCore.enqueueStartupTasks(); sError.isValid())
-        return sError;
 
     // Get game data (if present)
     Fp::GameData gameData;
@@ -87,9 +92,17 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
         mCore.postError(NAME, gdErr);
         return gdErr;
     }
+    bool hasDatapack = !gameData.isNull();
 
-    // Check if entry uses a data pack
-    if(!gameData.isNull())
+    // Get server override (if not present, will result in the default server being used)
+    QString serverOverride = getServerOverride(gameData);
+
+    // Enqueue services
+    if(sError = mCore.enqueueStartupTasks(serverOverride); sError.isValid())
+        return sError;
+
+    // Handle datapack tasks
+    if(hasDatapack)
     {
         mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
 
@@ -147,11 +160,6 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     Qx::Error sError;
     Fp::Db* db = mCore.fpInstall().database();
 
-    // Enqueue services if needed
-    bool needsServices = addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_MESSAGE && addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_EXTRAS;
-    if(needsServices && (sError = mCore.enqueueStartupTasks()).isValid())
-        return sError;
-
     // Check if parent entry uses a data pack
     QUuid parentId = addApp.parentId();
     Fp::GameData parentGameData;
@@ -160,8 +168,18 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
         mCore.postError(NAME, gdErr);
         return gdErr;
     }
+    bool hasDatapack = !parentGameData.isNull();
 
-    if(!parentGameData.isNull())
+    // Get server override (if not present, will result in the default server being used)
+    QString serverOverride = getServerOverride(parentGameData);
+
+    // Enqueue services if needed
+    bool needsServices = addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_MESSAGE && addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_EXTRAS;
+    if(needsServices && (sError = mCore.enqueueStartupTasks(serverOverride)).isValid())
+        return sError;
+
+    // Handle datapack tasks
+    if(hasDatapack)
     {
         mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
 

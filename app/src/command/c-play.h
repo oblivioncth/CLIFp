@@ -75,6 +75,7 @@ private:
     static inline const QString LOG_EVENT_ID_MATCH_ADDAPP = u"ID matches additional app: %1 (Child of %2)"_s;
     static inline const QString LOG_EVENT_FOUND_AUTORUN = u"Found autorun-before additional app: %1"_s;
     static inline const QString LOG_EVENT_DATA_PACK_TITLE = u"Selected title uses a data pack"_s;
+    static inline const QString LOG_EVENT_SERVER_OVERRIDE = u"Selected title overrides the server to: %1"_s;
 
 public:
     // Meta
@@ -92,7 +93,7 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    // Queue
+    QString getServerOverride(const Fp::GameData& gd);
     Qx::Error handleEntry(const Fp::Game& game);
     Qx::Error handleEntry(const Fp::AddApp& addApp);
     Qx::Error enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& platform, Task::Stage taskStage);
