@@ -55,7 +55,7 @@ Qx::Error CLink::perform()
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get entry (also confirms that ID is present in database, which is why we do this even if a custom name is set)
-    std::variant<Fp::Game, Fp::AddApp> entry_v;
+    Fp::Entry entry_v;
     Fp::DbError dbError = database->getEntry(entry_v, shortcutId);
     if(dbError.isValid())
     {
@@ -85,7 +85,7 @@ Qx::Error CLink::perform()
         shortcutName = parent.title() + u" ("_s + addApp.name() + u")"_s;
     }
     else
-        qCritical("Invalid variant state for std::variant<Fp::Game, Fp::AddApp>.");
+        qCritical("Invalid variant state for Fp::Entry.");
 
     // Override shortcut name with user input
     if(mParser.isSet(CL_OPTION_NAME))

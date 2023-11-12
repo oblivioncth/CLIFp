@@ -145,7 +145,7 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get main entry info
-    std::variant<Fp::Game, Fp::AddApp> entry_v;
+    Fp::Entry entry_v;
     searchError = database->getEntry(entry_v, mainId);
     if(searchError.isValid())
     {
