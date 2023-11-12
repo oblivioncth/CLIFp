@@ -69,144 +69,133 @@ Fp::AddApp CPlay::buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-Qx::Error CPlay::enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId)
+Qx::Error CPlay::handleEntry(const Fp::Game& game)
 {
-    // Clear standalone check
-    wasStandalone = false;
+    mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(game.title()));
 
-    mCore.logEvent(NAME, LOG_EVENT_ENQ_AUTO);
+    Qx::Error sError;
+    Fp::Db* db = mCore.fpInstall().database();
 
-    // Get entry via ID
-    Fp::Db* database = mCore.fpInstall().database();
+    // Enqueue services
+    if(sError = mCore.enqueueStartupTasks(); sError.isValid())
+        return sError;
 
-    std::variant<Fp::Game, Fp::AddApp> entry;
-    if(Fp::DbError eErr = database->getEntry(entry, targetId); eErr.isValid())
+    // Get game data (if present)
+    Fp::GameData gameData;
+    if(Fp::DbError gdErr = db->getGameData(gameData, game.id()); gdErr.isValid())
     {
-        mCore.postError(NAME, eErr);
-        return eErr;
+        mCore.postError(NAME, gdErr);
+        return gdErr;
     }
 
-    // Enqueue if result is additional app
-    if(std::holds_alternative<Fp::AddApp>(entry))
+    // Check if entry uses a data pack
+    if(!gameData.isNull())
     {
-        // Get add app
-        const Fp::AddApp& addApp = std::get<Fp::AddApp>(entry);
+        mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
 
-        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
-                                                           addApp.parentId().toString(QUuid::WithoutBraces)));
-
-        // Clear queue if this entry is a message or extra
-        if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_MESSAGE || addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
-        {
-            mCore.clearTaskQueue();
-            mCore.logEvent(NAME, LOG_EVENT_QUEUE_CLEARED);
-            wasStandalone = true;
-        }
-
-        // Check if parent entry uses a data pack
-        QUuid parentId = addApp.parentId();
-        Fp::GameData parentGameData;
-        if(Fp::DbError gdErr = database->getGameData(parentGameData, parentId); gdErr.isValid())
-        {
-            mCore.postError(NAME, gdErr);
-            return gdErr;
-        }
-
-        if(!parentGameData.isNull())
-        {
-            mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
-
-            if(Qx::Error ee = mCore.enqueueDataPackTasks(parentGameData); ee.isValid())
-                return ee;
-        }
-
-        // Get parent info to determine platform
-        Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
-
-        Fp::Db::QueryBuffer parentResult;
-
-        if(Fp::DbError pge = database->queryEntrys(parentResult, parentFilter); pge.isValid())
-        {
-            mCore.postError(NAME, pge);
-            return pge;
-        }
-
-        // Advance result to only record
-        parentResult.result.next();
-
-        // Determine platform (don't bother building entire game object since only one value is needed)
-        QString platformName = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString();
-
-        // Enqueue
-        mCore.setStatus(STATUS_PLAY, addApp.name());
-
-        if(Qx::Error ee = enqueueAdditionalApp(addApp, platformName, Task::Stage::Primary); ee.isValid())
-            return ee;
+        if(sError = mCore.enqueueDataPackTasks(gameData); sError.isValid())
+            return sError;
     }
-    else if(std::holds_alternative<Fp::Game>(entry)) // Get auto-run additional apps if result is game
+
+    // Get game's additional apps
+    Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = game.id()};
+
+    Fp::DbError addAppSearchError;
+    Fp::Db::QueryBuffer addAppSearchResult;
+
+    addAppSearchError = db->queryEntrys(addAppSearchResult, addAppFilter);
+    if(addAppSearchError.isValid())
     {
-        // Get game
-        const Fp::Game& game = std::get<Fp::Game>(entry);
-
-        mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(game.title()));
-
-        // Get game data (if present)
-        Fp::GameData gameData;
-        if(Fp::DbError gdErr = database->getGameData(gameData, targetId); gdErr.isValid())
-        {
-            mCore.postError(NAME, gdErr);
-            return gdErr;
-        }
-
-        // Check if entry uses a data pack
-        if(!gameData.isNull())
-        {
-            mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
-
-            if(Qx::Error ee = mCore.enqueueDataPackTasks(gameData); ee.isValid())
-                return ee;
-        }
-
-        // Get game's additional apps
-        Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = targetId};
-
-        Fp::DbError addAppSearchError;
-        Fp::Db::QueryBuffer addAppSearchResult;
-
-        addAppSearchError = database->queryEntrys(addAppSearchResult, addAppFilter);
-        if(addAppSearchError.isValid())
-        {
-            mCore.postError(NAME, addAppSearchError);
-            return addAppSearchError;
-        }
-
-        // Enqueue auto-run before apps
-        for(int i = 0; i < addAppSearchResult.size; i++)
-        {
-            // Go to next record
-            addAppSearchResult.result.next();
-
-            // Build
-            Fp::AddApp addApp = buildAdditionalApp(addAppSearchResult);
-
-            // Enqueue if auto-run before
-            if(addApp.isAutorunBefore())
-            {
-                mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
-
-                if(Qx::Error ee = enqueueAdditionalApp(addApp, game.platformName(), Task::Stage::Auxiliary); ee.isValid())
-                    return ee;
-            }
-        }
-
-        // Enqueue game
-        if(Qx::Error ee = enqueueGame(game, gameData, Task::Stage::Primary); ee.isValid())
-            return ee;
+        mCore.postError(NAME, addAppSearchError);
+        return addAppSearchError;
     }
-    else
-        qFatal("Auto ID search result source must be 'game' or 'additional_app'");
 
-    // Return success
+    // Enqueue auto-run before apps
+    for(int i = 0; i < addAppSearchResult.size; i++)
+    {
+        // Go to next record
+        addAppSearchResult.result.next();
+
+        // Build
+        Fp::AddApp addApp = buildAdditionalApp(addAppSearchResult);
+
+        // Enqueue if auto-run before
+        if(addApp.isAutorunBefore())
+        {
+            mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
+
+            if(sError = enqueueAdditionalApp(addApp, game.platformName(), Task::Stage::Auxiliary); sError.isValid())
+                return sError;
+        }
+    }
+
+    // Enqueue game
+    if(sError = enqueueGame(game, gameData, Task::Stage::Primary); sError.isValid())
+        return sError;
+
+    // Enqueue service shutdown
+    mCore.enqueueShutdownTasks();
+
+    return Qx::Error();
+}
+
+Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
+{
+    mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
+                                                       addApp.parentId().toString(QUuid::WithoutBraces)));
+
+    Qx::Error sError;
+    Fp::Db* db = mCore.fpInstall().database();
+
+    // Enqueue services if needed
+    bool needsServices = addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_MESSAGE && addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_EXTRAS;
+    if(needsServices && (sError = mCore.enqueueStartupTasks()).isValid())
+        return sError;
+
+    // Check if parent entry uses a data pack
+    QUuid parentId = addApp.parentId();
+    Fp::GameData parentGameData;
+    if(Fp::DbError gdErr = db->getGameData(parentGameData, parentId); gdErr.isValid())
+    {
+        mCore.postError(NAME, gdErr);
+        return gdErr;
+    }
+
+    if(!parentGameData.isNull())
+    {
+        mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
+
+        if(sError = mCore.enqueueDataPackTasks(parentGameData); sError.isValid())
+            return sError;
+    }
+
+    // Get parent info to determine platform
+    Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
+
+    Fp::Db::QueryBuffer parentResult;
+
+    if(Fp::DbError pge = db->queryEntrys(parentResult, parentFilter); pge.isValid())
+    {
+        mCore.postError(NAME, pge);
+        return pge;
+    }
+
+    // Advance result to only record
+    parentResult.result.next();
+
+    // Determine platform (don't bother building entire game object since only one value is needed)
+    QString platformName = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString();
+
+    // Enqueue
+    mCore.setStatus(STATUS_PLAY, addApp.name());
+
+    if(sError = enqueueAdditionalApp(addApp, platformName, Task::Stage::Primary); sError.isValid())
+        return sError;
+
+    // Enqueue service shutdown if needed
+    if(needsServices)
+        mCore.enqueueShutdownTasks();
+
     return Qx::Error();
 }
 
@@ -308,19 +297,18 @@ Qx::Error CPlay::perform()
         return ide;
 
 
-    Qx::Error errorStatus;
+    mCore.logEvent(NAME, LOG_EVENT_HANDLING_AUTO);
 
-    // Enqueue required tasks
-    if((errorStatus = mCore.enqueueStartupTasks()).isValid())
-        return errorStatus;
+    // Get entry via ID
+    Fp::Db* db = mCore.fpInstall().database();
 
-    bool standaloneTask;
-    if((errorStatus = enqueueAutomaticTasks(standaloneTask, titleId)).isValid())
-        return errorStatus;
+    Fp::Entry entry;
+    if(Fp::DbError eErr = db->getEntry(entry, titleId); eErr.isValid())
+    {
+        mCore.postError(NAME, eErr);
+        return eErr;
+    }
 
-    if(!standaloneTask)
-        mCore.enqueueShutdownTasks();
-
-    // Return success
-    return Qx::Error();
+    // Handle entry
+    return std::visit([this](auto arg) { return this->handleEntry(arg); }, entry);
 }

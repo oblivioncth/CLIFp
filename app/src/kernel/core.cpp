@@ -747,7 +747,6 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 }
 
 void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(NAME, task); }
-void Core::clearTaskQueue() { mTaskQueue = {}; }
 
 bool Core::isLogOpen() const { return mLogger->isOpen(); }
 
