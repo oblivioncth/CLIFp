@@ -721,7 +721,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
         logEvent(NAME, LOG_EVENT_DATA_PACK_NEEDS_EXTRACT);
 
         QDir extractRoot(mFlashpointInstall->dir().absoluteFilePath(mFlashpointInstall->preferences().htdocsFolderPath));
-        QString marker = param.extractedMarkerFile();
+        QString marker = QDir::fromNativeSeparators(param.extractedMarkerFile());
         // Check if files are already present
         if(!marker.isEmpty() && QFile::exists(extractRoot.absoluteFilePath(marker)))
             logEvent(NAME, LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED);
