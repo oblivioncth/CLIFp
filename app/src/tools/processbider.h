@@ -3,18 +3,18 @@
 
 // Qt Includes
 #include <QThread>
-#include <QMutex>
+#include <QReadWriteLock>
 
 // Qx Includes
-#include <qx/windows/qx-common-windows.h>
-#include <qx/utility/qx-macros.h>
+#include <qx/core/qx-abstracterror.h>
+#include <qx/utility/qx-helpers.h>
 
 /* This uses the approach of sub-classing QThread instead of the worker/object model. This means that by default there is no event
  * loop running in the new thread (not needed with current setup), and that only the contents of run() take place in the new thread,
  * with everything else happening in the thread that contains the instance of this class.
  *
  * This does mean that a Mutex must be used to protected against access to the same data between threads where necessary, but in
- * this case that is desirable as when the parent thread calls `endProcess()` we want it to get blocked if the run() thread is
+ * this case that is desirable as when the parent thread calls `closeProcess()` we want it to get blocked if the run() thread is
  * busy doing work until it goes back to waiting (or the wait process stops on its own), since we want to make sure that the wait
  * process has ended before Driver takes its next steps.
  *
@@ -26,6 +26,10 @@
  * caveats since a thread spawned by the OS is used to trigger the specified callback function. It would potentially be safe if that
  * callback function simply emits an internal signal with a queued connection that then triggers the thread managing the object to
  * handle the quit upon its next event loop cycle.
+ *
+ * NOTE: Technically the thread synchronization here is imperfect as a blocked closeProcess() is unlocked one step before the wait
+ * actually starts so there could be a race between that and the waiter being marked as "in wait". Not a great way to avoid this though
+ * since the lock can't be unlocked any later since the waiting thread deadlocks once the wait is started.
  */
 
 class QX_ERROR_TYPE(ProcessBiderError, "ProcessBiderError", 1235)
@@ -36,16 +40,16 @@ public:
     enum Type
     {
         NoError = 0,
-        HandleAquisition = 1,
-        ProcessHook = 2
+        Wait = 1,
+        Close = 2
     };
 
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {HandleAquisition, u"Could not get a wait handle to a restartable process, the title will likely not work correctly."_s},
-        {ProcessHook, u"Could not hook a restartable process for waiting, the title will likely not work correctly."_s},
+        {Wait, u"Could not setup a wait on the process."_s},
+        {Close, u"Could not close the wait on process."_s},
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -70,6 +74,8 @@ private:
     QString deriveSecondary() const override;
 };
 
+class ProcessWaiter;
+
 class ProcessBider : public QThread
 {
     Q_OBJECT
@@ -84,35 +90,35 @@ private:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
+    // Work
+    ProcessWaiter* mWaiter;
+    QReadWriteLock mRWLock;
+
     // Process Info
     QString mProcessName;
     uint mRespawnGrace;
-
-    // Process Handling
-    HANDLE mProcessHandle;
-    QMutex mProcessHandleMutex;
+    uint mPollRate;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    ProcessBider(QObject* parent = nullptr, uint respawnGrace = 30000);
-
-//-Class Functions---------------------------------------------------------------------------------------------------------
-private:
-    static bool closeAdminProcess(DWORD processId, bool force);
+    ProcessBider(QObject* parent = nullptr, const QString& name = {});
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
+    // Run in wait thread
     ProcessBiderError doWait();
     void run() override;
 
 public:
+    // Run in external thread
+    void setProcessName(const QString& name);
     void setRespawnGrace(uint respawnGrace);
-
-    bool closeProcess();
+    void setPollRate(uint pollRate); // Ignored on Windows
+    ProcessBiderError closeProcess();
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 public slots:
-    void start(QString processName);
+    void start();
 
 signals:
     void statusChanged(QString statusMessage);
