@@ -107,6 +107,46 @@ QString TExec::createEscapedShellArguments()
     return escapedArgs;
 }
 
+void TExec::removeRedundantFullQuotes(QProcess& process)
+{
+    /* Sometimes service arguments have been observed to be "pre-prepped" for shell use by being fully quoted even
+     * when not needed. This is an issue since QProcess will quote non-native arguments automatically when not using
+     * the shell, which we don't for most things other than scripts, so we have to remove such quotes here. Note this
+     * affects all execution tasks though, not just services.
+     */
+    QStringList args = process.arguments();
+    for(QString& a : args)
+    {
+        // Determine if arg is simply fully quoted
+        if(a.size() < 3 || (a.front() != '"' && a.back() != '"')) // min 3 maintains " and "" which theoretically could be significant
+            continue;
+
+        QStringView inner(a.cbegin() + 1, a.cend() - 1);
+        bool redundant = true;
+        bool escaped = false;
+        for(const QChar& c : inner)
+        {
+            if(c == '\\')
+                escaped = true;
+            else if(c == '"' && !escaped)
+            {
+                redundant = false;
+                break;
+            }
+            else
+                escaped = false;
+        }
+
+        if(redundant)
+        {
+            emit eventOccurred(NAME, LOG_EVENT_REMOVED_REDUNDANT_QUOTES.arg(a));
+            a = inner.toString();
+        }
+    }
+
+    process.setArguments(args);
+}
+
 TExecError TExec::cleanStartProcess(QProcess* process)
 {
     // Note directories
@@ -185,6 +225,7 @@ void TExec::perform()
 
     // Prepare process object
     QProcess* taskProcess = prepareProcess(QFileInfo(execPath));
+    removeRedundantFullQuotes(*taskProcess);
     logPreparedProcess(taskProcess);
 
     // Set common process properties

@@ -73,6 +73,7 @@ private:
 
     // Logging - Process Prep
     static inline const QString LOG_EVENT_PREPARING_PROCESS = u"Preparing %1 process '%2' (%3)..."_s;
+    static inline const QString LOG_EVENT_REMOVED_REDUNDANT_QUOTES = u"Removed unnecessary outer quotes on argument (%1)."_s;
     static inline const QString LOG_EVENT_FINAL_EXECUTABLE = u"Final Executable: %1"_s;
     static inline const QString LOG_EVENT_FINAL_PARAMETERS = u"Final Parameters: %1"_s;
 
@@ -133,6 +134,7 @@ private:
     QString escapeForShell(const QString& argStr);
     QString createEscapedShellArguments();
     QProcess* prepareProcess(const QFileInfo& execInfo);
+    void removeRedundantFullQuotes(QProcess& process);
     TExecError cleanStartProcess(QProcess* process);
 
     // Logging
