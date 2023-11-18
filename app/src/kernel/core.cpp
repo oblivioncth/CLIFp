@@ -453,11 +453,11 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 #endif
 }
 
-// TODO: Might make sense to make this a function in libfp
 QString Core::resolveFullAppPath(const QString& appPath, const QString& platform)
 {
+    // We don't have a browser mode. Since Electron bundles chromium, chrome should give the closest experience to the launcher's browser mode.
     static const QHash<QString, QString> clifpOverrides{
-        {u":browser-mode:"_s, u"FPSoftware\\Basilisk-Portable\\Basilisk-Portable.exe"_s}
+        {u":browser-mode:"_s, u"FPSoftware\\startChrome.bat"_s}
     };
 
     const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
