@@ -86,10 +86,11 @@ QString TExec::escapeForShell(const QString& argStr)
     QString escapedArgs;
     bool inQuotes = false;
 
+    auto lastQuoteIdx = argStr.lastIndexOf('"'); // If uneven number of quotes, treat last quote as a regular char
     for(int i = 0; i < argStr.size(); i++)
     {
         const QChar& chr = argStr.at(i);
-        if(chr== '"' && (inQuotes || i != argStr.lastIndexOf('"')))
+        if(chr== '"' && (inQuotes || i != lastQuoteIdx))
             inQuotes = !inQuotes;
 
         escapedArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
