@@ -57,6 +57,9 @@ set(CLIFP_SOURCE
     tools/mounter_qmp.cpp
     tools/mounter_router.h
     tools/mounter_router.cpp
+    tools/processbider_p.h
+    tools/processbider.h
+    tools/processbider.cpp
     frontend/message.h
     frontend/statusrelay.h
     frontend/statusrelay.cpp
@@ -90,8 +93,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
         task/t-exec_win.cpp
         task/t-bideprocess.h
         task/t-bideprocess.cpp
-        tools/processbider.h
-        tools/processbider.cpp
+        tools/processbider_p_win.cpp
     )
 
     list(APPEND CLIFP_LINKS
@@ -106,6 +108,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
         task/t-awaitdocker.h
         task/t-awaitdocker.cpp
         task/t-exec_linux.cpp
+        tools/processbider_p_linux.cpp
     )
     list(APPEND CLIFP_LINKS
         PRIVATE

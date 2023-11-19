@@ -1,52 +1,9 @@
 #ifndef TBIDEPROCESS_H
 #define TBIDEPROCESS_H
 
-// Qx Includes
-#include <qx/utility/qx-macros.h>
-
 // Project Includes
 #include "task/task.h"
 #include "tools/processbider.h"
-
-class QX_ERROR_TYPE(TBideProcessError, "TBideProcessError", 1251)
-{
-    friend class TBideProcess;
-    //-Class Enums-------------------------------------------------------------
-public:
-    enum Type
-    {
-        NoError = 0,
-        CantClose = 1,
-    };
-
-    //-Class Variables-------------------------------------------------------------
-private:
-    static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, u""_s},
-        {CantClose, u"Could not automatically end the running title! It will have to be closed manually."_s},
-    };
-
-    //-Instance Variables-------------------------------------------------------------
-private:
-    Type mType;
-    QString mSpecific;
-
-    //-Constructor-------------------------------------------------------------
-private:
-    TBideProcessError(Type t = NoError, const QString& s = {});
-
-    //-Instance Functions-------------------------------------------------------------
-public:
-    bool isValid() const;
-    Type type() const;
-    QString specific() const;
-
-private:
-    Qx::Severity deriveSeverity() const override;
-    quint32 deriveValue() const override;
-    QString derivePrimary() const override;
-    QString deriveSecondary() const override;
-};
 
 class TBideProcess : public Task
 {

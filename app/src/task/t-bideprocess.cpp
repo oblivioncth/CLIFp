@@ -2,29 +2,6 @@
 #include "t-bideprocess.h"
 
 //===============================================================================================================
-// TBideProcessError
-//===============================================================================================================
-
-//-Constructor-------------------------------------------------------------
-//Private:
-TBideProcessError::TBideProcessError(Type t, const QString& s) :
-    mType(t),
-    mSpecific(s)
-{}
-
-//-Instance Functions-------------------------------------------------------------
-//Public:
-bool TBideProcessError::isValid() const { return mType != NoError; }
-QString TBideProcessError::specific() const { return mSpecific; }
-TBideProcessError::Type TBideProcessError::type() const { return mType; }
-
-//Private:
-Qx::Severity TBideProcessError::deriveSeverity() const { return Qx::Err; }
-quint32 TBideProcessError::deriveValue() const { return mType; }
-QString TBideProcessError::derivePrimary() const { return ERR_STRINGS.value(mType); }
-QString TBideProcessError::deriveSecondary() const { return mSpecific; }
-
-//===============================================================================================================
 // TBideProcess
 //===============================================================================================================
 
@@ -32,9 +9,10 @@ QString TBideProcessError::deriveSecondary() const { return mSpecific; }
 //Public:
 TBideProcess::TBideProcess(QObject* parent) :
     Task(parent),
-    mProcessBider(nullptr, STANDARD_GRACE)
+    mProcessBider(nullptr)
 {
     // Setup bider
+    mProcessBider.setRespawnGrace(STANDARD_GRACE);
     connect(&mProcessBider, &ProcessBider::statusChanged, this,  [this](QString statusMessage){
         emit eventOccurred(NAME, statusMessage);
     });
@@ -61,7 +39,8 @@ void TBideProcess::setProcessName(QString processName) { mProcessName = processN
 void TBideProcess::perform()
 {
     // Start bide
-    mProcessBider.start(mProcessName);
+    mProcessBider.setProcessName(mProcessName);
+    mProcessBider.start();
 }
 
 void TBideProcess::stop()
@@ -69,8 +48,8 @@ void TBideProcess::stop()
     if(mProcessBider.isRunning())
     {
         emit eventOccurred(NAME, LOG_EVENT_STOPPING_BIDE_PROCESS);
-        if(!mProcessBider.closeProcess())
-            emit errorOccurred(NAME, TBideProcessError(TBideProcessError::CantClose));
+        if(ProcessBiderError err = mProcessBider.closeProcess(); err.isValid())
+            emit errorOccurred(NAME, err);
     }
 }
 
