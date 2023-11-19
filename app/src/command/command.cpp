@@ -177,6 +177,7 @@ QSet<const QCommandLineOption*> Command::requiredOptions() { return {}; }
 
 //Public:
 bool Command::requiresFlashpoint() const { return true; }
+bool Command::requiresServices() const { return false; }
 bool Command::autoBlockNewInstances() const { return true; }
 
 Qx::Error Command::process(const QStringList& commandLine)

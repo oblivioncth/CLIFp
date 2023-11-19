@@ -21,7 +21,6 @@ public:
     {
         NoError,
         AlreadyOpen,
-        LauncherRunning,
         InvalidInstall,
     };
 
@@ -30,7 +29,6 @@ private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
         {AlreadyOpen, u"Only one instance of CLIFp can be used at a time!"_s},
-        {LauncherRunning, u"The CLI cannot be used while the Flashpoint Launcher is running."_s},
         {InvalidInstall, u"CLIFp does not appear to be deployed in a valid Flashpoint install"_s}
     };
 
@@ -62,7 +60,6 @@ class Driver : public QObject
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Error Messages
-    static inline const QString ERR_LAUNCHER_RUNNING_TIP = u"Please close the Launcher first."_s;
     static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update (i.e. the 'update' command)."_s;
 
     // Logging
@@ -84,6 +81,7 @@ private:
     static inline const QString LOG_EVENT_QUIT_REQUEST = u"Received quit request"_s;
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = u"Received redundant quit request"_s;
     static inline const QString LOG_EVENT_CLEARED_UPDATE_CACHE = u"Cleared stale update cache."_s;
+    static inline const QString LOG_EVENT_CORE_ABORT = u"Core abort signaled, quitting now."_s;
 
     // Meta
     static inline const QString NAME = u"driver"_s;
@@ -126,6 +124,7 @@ private:
     void cleanup();
 
     void finish();
+    void quit();
 
     // Helper
     std::unique_ptr<Fp::Install> findFlashpointInstall();

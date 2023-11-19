@@ -330,3 +330,6 @@ Qx::Error CPlay::perform()
     // Handle entry
     return std::visit([this](auto arg) { return this->handleEntry(arg); }, entry);
 }
+
+//Public:
+bool CPlay::requiresServices() const { return true; }

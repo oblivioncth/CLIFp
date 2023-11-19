@@ -103,6 +103,9 @@ protected:
     QList<const QCommandLineOption*> options() override;
     QString name() override;
     Qx::Error perform() override;
+
+public:
+    bool requiresServices() const override;
 };
 REGISTER_COMMAND(CPlay::NAME, CPlay, CPlay::DESCRIPTION);
 
