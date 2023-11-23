@@ -163,6 +163,7 @@ protected:
 
 public:
     virtual bool requiresFlashpoint() const;
+    virtual bool requiresServices() const;
     virtual bool autoBlockNewInstances() const;
     Qx::Error process(const QStringList& commandLine);
 };

@@ -15,6 +15,7 @@
 
 // Qx Includes
 #include <qx/io/qx-applicationlogger.h>
+#include <qx/core/qx-processbider.h>
 #include <qx/utility/qx-macros.h>
 
 // libfp Includes
@@ -31,12 +32,14 @@ using ErrorCode = quint32;
 class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 {
     friend class Core;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
         NoError,
         InternalError,
+        CompanionModeLauncherClose,
+        CompanionModeServerOverride,
         InvalidOptions,
         TitleNotFound,
         TooManyResults,
@@ -44,11 +47,13 @@ public:
         UnknownDatapackParam
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
         {InternalError, u"Internal error."_s},
+        {CompanionModeLauncherClose, u"The standard launcher was closed while in companion mode."_s},
+        {CompanionModeServerOverride, u"Cannot enact game server override in companion mode."_s},
         {InvalidOptions, u"Invalid global options provided."_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
@@ -56,17 +61,17 @@ private:
         {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
     Qx::Severity mSeverity;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     CoreError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -85,6 +90,7 @@ class Core : public QObject
 //-Class Enums-----------------------------------------------------------------------
 public:
     enum class NotificationVerbosity { Full, Quiet, Silent };
+    enum ServicesMode { Standalone, Companion };
 
 //-Class Structs---------------------------------------------------------------------
 public:
@@ -154,6 +160,7 @@ public:
 
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
+    static inline const QString LOG_EVENT_MODE_SET = u"Services mode set: %1"_s;
     static inline const QString LOG_EVENT_GLOBAL_OPT = u"Global Options: %1"_s;
     static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC = u"Successfully locked standard instance count..."_s;
     static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL = u"Failed to lock standard instance count"_s;
@@ -175,6 +182,10 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED = u"Extracted files already present"_s;
     static inline const QString LOG_EVENT_TASK_ENQ = u"Enqueued %1: {%2}"_s;
     static inline const QString LOG_EVENT_APP_PATH_ALT = u"App path \"%1\" maps to alternative \"%2\"."_s;
+    static inline const QString LOG_EVENT_SERVICES_FROM_LAUNCHER = u"Using services from standard Launcher due to companion mode."_s;
+    static inline const QString LOG_EVENT_LAUNCHER_WATCH = u"Starting bide on Launcher process..."_s;
+    static inline const QString LOG_EVENT_LAUNCHER_WATCH_HOOKED = u"Launcher hooked for waiting"_s;
+    static inline const QString LOG_EVENT_LAUNCHER_CLOSED_RESULT = u"CLIFp cannot continue running in companion mode without the launcher's services."_s;
 
     // Logging - Title Search
     static inline const QString LOG_EVENT_GAME_SEARCH = u"Searching for game with title '%1'"_s;
@@ -252,6 +263,7 @@ private:
     std::unique_ptr<Qx::ApplicationLogger> mLogger;
 
     // Processing
+    ServicesMode mServicesMode;
     bool mCriticalErrorOccurred;
     NotificationVerbosity mNotificationVerbosity;
     std::queue<Task*> mTaskQueue;
@@ -262,6 +274,7 @@ private:
 
     // Other
     QProcessEnvironment mChildTitleProcEnv;
+    Qx::ProcessBider mLauncherWatcher;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -286,6 +299,8 @@ private:
 public:
     // Setup
     Qx::Error initialize(QStringList& commandLine);
+    void setServicesMode(ServicesMode mode = ServicesMode::Standalone);
+    void watchLauncher();
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
     // Helper (TODO: Move some of these to libfp Toolkit)
@@ -324,6 +339,7 @@ public:
     bool requestQuestionAnswer(const QString& question);
 
     // Member access
+    ServicesMode mode() const;
     Fp::Install& fpInstall();
     const QProcessEnvironment& childTitleProcessEnvironment();
     NotificationVerbosity notifcationVerbosity() const;
@@ -351,6 +367,9 @@ signals:
     void message(const Message& message);
     void clipboardUpdateRequested(const QString& text);
     void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
+
+    // Driver specific
+    void abort(CoreError err);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------

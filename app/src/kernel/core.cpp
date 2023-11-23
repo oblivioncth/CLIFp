@@ -61,7 +61,8 @@ Core::Core(QObject* parent) :
     QObject(parent),
     mCriticalErrorOccurred(false),
     mStatusHeading(u"Initializing"_s),
-    mStatusMessage(u"..."_s)
+    mStatusMessage(u"..."_s),
+    mServicesMode(ServicesMode::Standalone)
 {
     establishCanonCore(*this); // Ignore return value as there should never be more than one Core with current design
 }
@@ -342,41 +343,7 @@ Qx::Error Core::initialize(QStringList& commandLine)
     logEvent(NAME, LOG_EVENT_GLOBAL_OPT.arg(globalOptions));
 
     // Check for valid arguments
-    if(validArgs)
-    {
-        // Handle each global option
-        mNotificationVerbosity = clParser.isSet(CL_OPTION_SILENT) ? NotificationVerbosity::Silent :
-                                 clParser.isSet(CL_OPTION_QUIET) ? NotificationVerbosity::Quiet : NotificationVerbosity::Full;
-        logEvent(NAME, LOG_EVENT_NOTIFCATION_LEVEL.arg(ENUM_NAME(mNotificationVerbosity)));
-
-        if(clParser.isSet(CL_OPTION_VERSION))
-        {
-            showVersion();
-            commandLine.clear(); // Clear args so application terminates after Core setup
-            logEvent(NAME, LOG_EVENT_VER_SHOWN);
-        }
-        else if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) && clParser.positionalArguments().count() == 0)) // Also when no parameters
-        {
-            showHelp();
-            commandLine.clear(); // Clear args so application terminates after Core setup
-            logEvent(NAME, LOG_EVENT_G_HELP_SHOWN);
-        }
-        else
-        {
-            QStringList pArgs = clParser.positionalArguments();
-            if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
-            {
-                logEvent(NAME, LOG_EVENT_PROTOCOL_FORWARD);
-                commandLine = {"play", "-u", pArgs.front()};
-            }
-            else
-                commandLine = pArgs; // Remove core options from command line list
-        }
-
-        // Return success
-        return CoreError();
-    }
-    else
+    if(!validArgs)
     {
         commandLine.clear(); // Clear remaining options since they are now irrelevant
         showHelp();
@@ -386,6 +353,72 @@ Qx::Error Core::initialize(QStringList& commandLine)
         return err;
     }
 
+    // Handle each global option
+    mNotificationVerbosity = clParser.isSet(CL_OPTION_SILENT) ? NotificationVerbosity::Silent :
+                                 clParser.isSet(CL_OPTION_QUIET) ? NotificationVerbosity::Quiet : NotificationVerbosity::Full;
+    logEvent(NAME, LOG_EVENT_NOTIFCATION_LEVEL.arg(ENUM_NAME(mNotificationVerbosity)));
+
+    if(clParser.isSet(CL_OPTION_VERSION))
+    {
+        showVersion();
+        commandLine.clear(); // Clear args so application terminates after Core setup
+        logEvent(NAME, LOG_EVENT_VER_SHOWN);
+    }
+    else if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) && clParser.positionalArguments().count() == 0)) // Also when no parameters
+    {
+        showHelp();
+        commandLine.clear(); // Clear args so application terminates after Core setup
+        logEvent(NAME, LOG_EVENT_G_HELP_SHOWN);
+    }
+    else
+    {
+        QStringList pArgs = clParser.positionalArguments();
+        if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
+        {
+            logEvent(NAME, LOG_EVENT_PROTOCOL_FORWARD);
+            commandLine = {"play", "-u", pArgs.front()};
+        }
+        else
+            commandLine = pArgs; // Remove core options from command line list
+    }
+
+    // Return success
+    return CoreError();
+}
+
+void Core::setServicesMode(ServicesMode mode)
+{
+    logEvent(NAME, LOG_EVENT_MODE_SET.arg(ENUM_NAME(mode)));
+    mServicesMode = mode;
+
+    if(mode == ServicesMode::Companion)
+        watchLauncher();
+}
+
+void Core::watchLauncher()
+{
+    logEvent(NAME, LOG_EVENT_LAUNCHER_WATCH);
+
+    using namespace std::chrono_literals;
+    mLauncherWatcher.setProcessName(Fp::Install::LAUNCHER_NAME);
+#ifdef __linux__
+    mLauncherWatcher.setPollRate(1s); // Generous rate since while we need to know quickly, we don't THAT quickly
+#endif
+    connect(&mLauncherWatcher, &Qx::ProcessBider::established, this, [this]{
+        logEvent(NAME, LOG_EVENT_LAUNCHER_WATCH_HOOKED);
+    });
+    connect(&mLauncherWatcher, &Qx::ProcessBider::errorOccurred, this, [this](Qx::ProcessBiderError err){
+        logError(NAME, err);
+    });
+    connect(&mLauncherWatcher, &Qx::ProcessBider::finished, this, [this]{
+        // Launcher closed (or can't be hooked), need to bail
+        CoreError err(CoreError::CompanionModeLauncherClose, LOG_EVENT_LAUNCHER_CLOSED_RESULT);
+        postError(NAME, err);
+        emit abort(err);
+    });
+
+    mLauncherWatcher.start();
+    // The bide is automatically abandoned when core, and therefore the bider, is destroyed
 }
 
 void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
@@ -491,6 +524,13 @@ bool Core::blockNewInstances()
 CoreError Core::enqueueStartupTasks(const QString& serverOverride)
 {
     logEvent(NAME, LOG_EVENT_ENQ_START);
+    
+    if(mServicesMode == ServicesMode::Companion)
+    {
+        logEvent(NAME, LOG_EVENT_SERVICES_FROM_LAUNCHER);
+        // TODO: Allegedly apache and php are going away at some point so this hopefully isn't needed for long
+        return !serverOverride.isEmpty() ? CoreError(CoreError::CompanionModeServerOverride) : CoreError();
+    }
 
 #ifdef __linux__
     /* On Linux X11 Server needs to be temporarily be set to allow connections from root for docker,
@@ -607,6 +647,13 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
 void Core::enqueueShutdownTasks()
 {
     logEvent(NAME, LOG_EVENT_ENQ_STOP);
+    
+    if(mServicesMode == ServicesMode::Companion)
+    {
+        logEvent(NAME, LOG_EVENT_SERVICES_FROM_LAUNCHER);
+        return;
+    }
+
     // Add Stop entries from services
     for(const Fp::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stop))
     {

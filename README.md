@@ -114,6 +114,7 @@ If the application needs to use files from a Data Pack that pack will need to be
 The applications and arguments that are used for each game/animation can be found within the Flashpoint database ([FP Install Dir]\Data\flashpoint.sqlite)
 
 ### Flashpoint Protocol
+
 CLIFp supports the "flashpoint" protocol, which means it can launch titles through URL with a custom scheme, followed by a title's UUID, like this:
 
     flashpoint://37e5c215-9c39-4a3d-9912-b4343a17027e
@@ -134,6 +135,12 @@ If for whatever reason the service through which you wish to share a link does n
 
 > [!IMPORTANT]
 > You will want to disable the "Register As Protocol Handler" option in the default launcher or else it will replace CLIFp as the "flashpoint" protocol handler every time it's started.
+
+### Companion Mode
+
+It is recommended to only use CLIFp when the regular launcher isn't running as it allows fully independent operation since it can start and stop required services on its own; however, CLIFp can be started while the standard launcher is running, in which case it will run in "Companion Mode" and utilize the launcher's services instead.
+
+The catch with this mode is that CLIFp will be required to shutdown if at any point the standard launcher is closed.
 
 ## All Commands/Options
 

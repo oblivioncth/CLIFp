@@ -1,6 +1,9 @@
 // Unit Include
 #include "driver.h"
 
+// Qt Includes
+#include <QApplication>
+
 // Qx Includes
 #include <qx/core/qx-system.h>
 #include <qx/utility/qx-helpers.h>
@@ -65,6 +68,11 @@ void Driver::init()
     connect(mCore, &Core::itemSelectionRequested, this, &Driver::itemSelectionRequested);
     connect(mCore, &Core::clipboardUpdateRequested, this, &Driver::clipboardUpdateRequested);
     connect(mCore, &Core::questionAnswerRequested, this, &Driver::questionAnswerRequested);
+    connect(mCore, &Core::abort, this, [this](CoreError err){
+        mCore->logEvent(NAME, LOG_EVENT_CORE_ABORT);
+        mErrorStatus = err;
+        quit();
+    });
 
     //-Setup deferred process manager------
     /* NOTE: It looks like the manager should just be a stack member of TExec that is constructed
@@ -166,6 +174,15 @@ void Driver::finish()
     emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
 }
 
+void Driver::quit()
+{
+    mQuitRequested = true;
+
+    // Stop current task (assuming it can be)
+    if(mCurrentTask)
+        mCurrentTask->stop();
+}
+
 // Helper functions
 std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
 {
@@ -257,6 +274,12 @@ void Driver::drive()
     // Create command instance
     std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
+    //-Set Service Mode--------------------------------------------------------------------
+
+    // Check state of standard launcher
+    bool launcherRunning = Qx::processIsRunning(Fp::Install::LAUNCHER_NAME);
+    mCore->setServicesMode(launcherRunning && commandProcessor->requiresServices() ? Core::Companion : Core::Standalone);
+
     //-Restrict app to only one instance---------------------------------------------------
     if(commandProcessor->autoBlockNewInstances() && !mCore->blockNewInstances())
     {
@@ -267,19 +290,9 @@ void Driver::drive()
         return;
     }
 
-    //-Handle Flashpoint Steps----------------------------------------------------------
+    //-Get Flashpoint Install-------------------------------------------------------------
     if(commandProcessor->requiresFlashpoint())
     {
-        // Ensure Flashpoint Launcher isn't running
-        if(Qx::processIsRunning(Fp::Install::LAUNCHER_NAME))
-        {
-            DriverError err(DriverError::LauncherRunning, ERR_LAUNCHER_RUNNING_TIP);
-            mCore->postError(NAME, err);
-            mErrorStatus = err;
-            finish();
-            return;
-        }
-
         // Find and link to Flashpoint Install
         std::unique_ptr<Fp::Install> flashpointInstall;
         mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
@@ -296,6 +309,15 @@ void Driver::drive()
 
         // Insert into core
         mCore->attachFlashpoint(std::move(flashpointInstall));
+    }
+
+    //-Catch early core errors-------------------------------------------------------------------
+    QThread::msleep(100);
+    QApplication::processEvents();
+    if(mErrorStatus.isSet())
+    {
+        finish();
+        return;
     }
 
     //-Process command-----------------------------------------------------------------------------
@@ -333,10 +355,6 @@ void Driver::quitNow()
         return;
     }
 
-    mQuitRequested = true;
     mCore->logEvent(NAME, LOG_EVENT_QUIT_REQUEST);
-
-    // Stop current task (assuming it can be)
-    if(mCurrentTask)
-        mCurrentTask->stop();
+    quit();
 }

@@ -71,3 +71,6 @@ Qx::Error CRun::perform()
     // Return success
     return CRunError();
 }
+
+//Public:
+bool CRun::requiresServices() const { return true; }

@@ -45,3 +45,6 @@ Qx::Error CPrepare::perform()
     // Return success
     return Qx::Error();
 }
+
+//Public:
+bool CPrepare::requiresServices() const { return true; }

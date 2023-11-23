@@ -82,6 +82,9 @@ protected:
     QSet<const QCommandLineOption*> requiredOptions() override;
     QString name() override;
     Qx::Error perform() override;
+
+public:
+    bool requiresServices() const override;
 };
 REGISTER_COMMAND(CRun::NAME, CRun, CRun::DESCRIPTION);
 
