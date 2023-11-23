@@ -59,18 +59,18 @@ MounterProxy::MounterProxy(QObject* parent) :
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
      */
     connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
-        emit eventOccurred(NAME, u"Unexpected use of authentication by PHP server!"_s);
+        signalEventOccurred(u"Unexpected use of authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
-        emit eventOccurred(NAME, u"Unexpected use of PSK authentication by PHP server!"_s);
+        signalEventOccurred(u"Unexpected use of PSK authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
-        emit eventOccurred(NAME, u"Unexpected use of proxy by PHP server!"_s);
+        signalEventOccurred(u"Unexpected use of proxy by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
         Q_UNUSED(reply);
         QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, u","_s);
-        emit eventOccurred(NAME, u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
+        signalEventOccurred(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
     });
 }
 
@@ -84,13 +84,16 @@ void MounterProxy::finish(const MounterProxyError& errorState)
 
 void MounterProxy::noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data)
 {
-    emit eventOccurred(NAME, EVENT_REQUEST_SENT.arg(ENUM_NAME(op), url.toString(), QString::fromLatin1(data)));
+    signalEventOccurred(EVENT_REQUEST_SENT.arg(ENUM_NAME(op), url.toString(), QString::fromLatin1(data)));
 }
 
 void MounterProxy::noteProxyResponse(const QString& response)
 {
-    emit eventOccurred(NAME, EVENT_PROXY_RESPONSE.arg(response));
+    signalEventOccurred(EVENT_PROXY_RESPONSE.arg(response));
 }
+
+void MounterProxy::signalEventOccurred(const QString& event) { emit eventOccurred(NAME, event); }
+void MounterProxy::signalErrorOccurred(const MounterProxyError& errorMessage) { emit errorOccurred(NAME, errorMessage); }
 
 //Public:
 bool MounterProxy::isMounting() { return mMounting; }
@@ -112,7 +115,7 @@ void MounterProxy::proxyMountFinishedHandler(QNetworkReply* reply)
     if(reply->error() != QNetworkReply::NoError)
     {
         err = MounterProxyError(MounterProxyError::ProxyMount, reply->errorString());
-        emit errorOccurred(NAME, err);
+        signalErrorOccurred(err);
     }
     else
     {
@@ -126,7 +129,7 @@ void MounterProxy::proxyMountFinishedHandler(QNetworkReply* reply)
 //Public Slots:
 void MounterProxy::mount()
 {
-    emit eventOccurred(NAME, EVENT_MOUNTING);
+    signalEventOccurred(EVENT_MOUNTING);
 
     //-Create mount request-------------------------
 

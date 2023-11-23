@@ -146,7 +146,7 @@ void TMount::stop()
 {
     if(mMounting)
     {
-        emit eventOccurred(NAME, LOG_EVENT_STOPPING_MOUNT);
+        emitEventOccurred(LOG_EVENT_STOPPING_MOUNT);
 
         // TODO: This could benefit from the mounters using a shared base, or
         // some other kind of type erasure like the duck typing above.

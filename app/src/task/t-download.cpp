@@ -40,20 +40,20 @@ TDownload::TDownload(QObject* parent) :
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
         int choice;
-        emit blockingErrorOccurred(NAME, &choice, errorMsg, QMessageBox::Yes | QMessageBox::No);
+        emitBlockingErrorOccurred(&choice, errorMsg, QMessageBox::Yes | QMessageBox::No);
         *ignore = choice == QMessageBox::Yes;
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::authenticationRequired, this, [this](QString prompt) {
-        emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
+        emitEventOccurred(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::preSharedKeyAuthenticationRequired, this, [this](QString prompt) {
-        emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
+        emitEventOccurred(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::proxyAuthenticationRequired, this, [this](QString prompt) {
-        emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
+        emitEventOccurred(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &TDownload::longTaskTotalChanged);
@@ -100,7 +100,7 @@ void TDownload::perform()
 
     // Log/label string
     QString label = LOG_EVENT_DOWNLOAD.arg(mDescription);
-    emit eventOccurred(NAME, label);
+    emitEventOccurred(label);
 
     // Start download
     emit longTaskStarted(label);
@@ -111,7 +111,7 @@ void TDownload::stop()
 {
     if(mDownloadManager.isProcessing())
     {
-        emit eventOccurred(NAME, LOG_EVENT_STOPPING_DOWNLOADS);
+        emitEventOccurred(LOG_EVENT_STOPPING_DOWNLOADS);
         mDownloadManager.abort();
     }
 }
@@ -125,11 +125,11 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
     // Handle result
     emit longTaskFinished();
     if(downloadReport.wasSuccessful()) 
-        emit eventOccurred(NAME, LOG_EVENT_DOWNLOAD_SUCC);
+        emitEventOccurred(LOG_EVENT_DOWNLOAD_SUCC);
     else
     {
         errorStatus = TDownloadError(TDownloadError::Incomeplete, downloadReport.outcomeString());
-        emit errorOccurred(NAME, errorStatus);
+        emitErrorOccurred(errorStatus);
     }
 
     emit complete(errorStatus);

@@ -34,9 +34,9 @@ CLink::CLink(Core& coreRef) : TitleCommand(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CLink::options() { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
-QSet<const QCommandLineOption*> CLink::requiredOptions() { return CL_OPTIONS_REQUIRED + TitleCommand::requiredOptions(); }
-QString CLink::name() { return NAME; }
+QList<const QCommandLineOption*> CLink::options() const { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
+QSet<const QCommandLineOption*> CLink::requiredOptions() const { return CL_OPTIONS_REQUIRED + TitleCommand::requiredOptions(); }
+QString CLink::name() const { return NAME; }
 
 Qx::Error CLink::perform()
 {
@@ -59,7 +59,7 @@ Qx::Error CLink::perform()
     Fp::DbError dbError = database->getEntry(entry_v, shortcutId);
     if(dbError.isValid())
     {
-        mCore.postError(NAME, dbError);
+        postError(dbError);
         return dbError;
     }
 
@@ -76,7 +76,7 @@ Qx::Error CLink::perform()
         Fp::DbError dbError = database->getEntry(entry_v, addApp.parentId());
         if(dbError.isValid())
         {
-            mCore.postError(NAME, dbError);
+            postError(dbError);
             return dbError;
         }
         Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
@@ -96,7 +96,7 @@ Qx::Error CLink::perform()
         shortcutDir = mParser.value(CL_OPTION_PATH);
     else
     {
-        mCore.logEvent(NAME, LOG_EVENT_NO_PATH);
+        logEvent(LOG_EVENT_NO_PATH);
 
         // Prompt user for path
         Core::ExistingDirRequest edr{
@@ -107,12 +107,12 @@ Qx::Error CLink::perform()
 
         if(selectedPath.isEmpty())
         {
-            mCore.logEvent(NAME, LOG_EVENT_DIAG_CANCEL);
+            logEvent(LOG_EVENT_DIAG_CANCEL);
             return CLinkError();
         }
         else
         {
-            mCore.logEvent(NAME, LOG_EVENT_SEL_PATH.arg(QDir::toNativeSeparators(selectedPath)));
+            logEvent(LOG_EVENT_SEL_PATH.arg(QDir::toNativeSeparators(selectedPath)));
             shortcutDir = selectedPath;
         }
     }
@@ -123,10 +123,10 @@ Qx::Error CLink::perform()
         if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
         {
             CLinkError err(CLinkError::InvalidPath);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
-        mCore.logEvent(NAME, LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));
+        logEvent(LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));
     }
 
     // Create shortcut

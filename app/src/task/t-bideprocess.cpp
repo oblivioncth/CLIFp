@@ -39,17 +39,17 @@ TBideProcess::TBideProcess(QObject* parent) :
     mProcessBider.setRespawnGrace(grace);
     mProcessBider.setInitialGrace(true); // Process will be stopped at first
     connect(&mProcessBider, &Qx::ProcessBider::established, this, [this]{
-        emit eventOccurred(NAME, LOG_EVENT_BIDE_RUNNING.arg(mProcessName));
-        emit eventOccurred(NAME, LOG_EVENT_BIDE_ON.arg(mProcessName));
+        emitEventOccurred(LOG_EVENT_BIDE_RUNNING.arg(mProcessName));
+        emitEventOccurred(LOG_EVENT_BIDE_ON.arg(mProcessName));
     });
     connect(&mProcessBider, &Qx::ProcessBider::processStopped, this, [this]{
-        emit eventOccurred(NAME, LOG_EVENT_BIDE_QUIT.arg(mProcessName));
+        emitEventOccurred(LOG_EVENT_BIDE_QUIT.arg(mProcessName));
     });
     connect(&mProcessBider, &Qx::ProcessBider::graceStarted, this, [this]{
-        emit eventOccurred(NAME, LOG_EVENT_BIDE_GRACE.arg(QString::number(grace.count()), mProcessName));
+        emitEventOccurred(LOG_EVENT_BIDE_GRACE.arg(QString::number(grace.count()), mProcessName));
     });
     connect(&mProcessBider, &Qx::ProcessBider::errorOccurred, this, [this](Qx::ProcessBiderError err){
-        emit errorOccurred(NAME, err);
+        emitErrorOccurred(err);
     });
     connect(&mProcessBider, &Qx::ProcessBider::finished, this, &TBideProcess::postBide);
 }
@@ -79,7 +79,7 @@ void TBideProcess::stop()
 {
     if(mProcessBider.isBiding())
     {
-        emit eventOccurred(NAME, LOG_EVENT_STOPPING_BIDE_PROCESS);
+        emitEventOccurred(LOG_EVENT_STOPPING_BIDE_PROCESS);
         mProcessBider.closeProcess();
     }
 }
@@ -92,7 +92,7 @@ void TBideProcess::postBide(Qx::ProcessBider::ResultType type)
         emit complete(TBideProcessError(mProcessName, TBideProcessError::BideFail));
     else
     {
-        emit eventOccurred(NAME, LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
+        emitEventOccurred(LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
         emit complete(TBideProcessError());
     }
 }

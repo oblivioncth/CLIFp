@@ -156,10 +156,20 @@ private:
 
 protected:
     // Command specific
-    virtual QList<const QCommandLineOption*> options() = 0;
-    virtual QSet<const QCommandLineOption*> requiredOptions();
-    virtual QString name() = 0;
+    virtual QList<const QCommandLineOption*> options() const = 0;
+    virtual QSet<const QCommandLineOption*> requiredOptions() const;
+    virtual QString name() const = 0;
     virtual Qx::Error perform() = 0;
+
+    // Notifications/Logging (core-forwarders)
+    void logCommand(QString commandName) const;
+    void logCommandOptions(QString commandOptions) const;
+    void logError(Qx::Error error) const;
+    void logEvent(QString event) const;
+    void logTask(const Task* task) const;
+    ErrorCode logFinish(Qx::Error errorState) const;
+    void postError(Qx::Error error, bool log = true) const;
+    int postBlockingError(Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton) const;
 
 public:
     virtual bool requiresFlashpoint() const;

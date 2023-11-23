@@ -37,9 +37,9 @@ CRun::CRun(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CRun::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-QSet<const QCommandLineOption*> CRun::requiredOptions() { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
-QString CRun::name() { return NAME; }
+QList<const QCommandLineOption*> CRun::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QSet<const QCommandLineOption*> CRun::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
+QString CRun::name() const { return NAME; }
 
 Qx::Error CRun::perform()
 {

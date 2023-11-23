@@ -91,6 +91,9 @@ public:
 private:
     void finish(const MounterRouterError& result);
 
+    void signalEventOccurred(const QString& event);
+    void signalErrorOccurred(const MounterRouterError& errorMessage);
+
 public:
     bool isMounting();
 
@@ -109,8 +112,8 @@ public slots:
     void abort();
 
 signals:
-    void eventOccurred(QString name, QString event);
-    void errorOccurred(QString name, MounterRouterError errorMessage);
+    void eventOccurred(const QString& name, const QString& event);
+    void errorOccurred(const QString& name, const MounterRouterError& errorMessage);
     void mountFinished(MounterRouterError errorState);
 };
 

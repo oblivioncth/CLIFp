@@ -73,14 +73,14 @@ QString CPlay::getServerOverride(const Fp::GameData& gd)
 {
     QString override = gd.isNull() ? QString() : gd.parameters().server();
     if(!override.isNull())
-        mCore.logEvent(NAME, LOG_EVENT_SERVER_OVERRIDE.arg(override));
+        logEvent(LOG_EVENT_SERVER_OVERRIDE.arg(override));
 
     return override;
 }
 
 Qx::Error CPlay::handleEntry(const Fp::Game& game)
 {
-    mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_TITLE.arg(game.title()));
+    logEvent(LOG_EVENT_ID_MATCH_TITLE.arg(game.title()));
 
     Qx::Error sError;
     Fp::Db* db = mCore.fpInstall().database();
@@ -89,7 +89,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
     Fp::GameData gameData;
     if(Fp::DbError gdErr = db->getGameData(gameData, game.id()); gdErr.isValid())
     {
-        mCore.postError(NAME, gdErr);
+        postError(gdErr);
         return gdErr;
     }
     bool hasDatapack = !gameData.isNull();
@@ -104,7 +104,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
     // Handle datapack tasks
     if(hasDatapack)
     {
-        mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
+        logEvent(LOG_EVENT_DATA_PACK_TITLE);
 
         if(sError = mCore.enqueueDataPackTasks(gameData); sError.isValid())
             return sError;
@@ -119,7 +119,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
     addAppSearchError = db->queryEntrys(addAppSearchResult, addAppFilter);
     if(addAppSearchError.isValid())
     {
-        mCore.postError(NAME, addAppSearchError);
+        postError(addAppSearchError);
         return addAppSearchError;
     }
 
@@ -135,7 +135,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
         // Enqueue if auto-run before
         if(addApp.isAutorunBefore())
         {
-            mCore.logEvent(NAME, LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
+            logEvent(LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
 
             if(sError = enqueueAdditionalApp(addApp, game.platformName(), Task::Stage::Auxiliary); sError.isValid())
                 return sError;
@@ -154,7 +154,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
 
 Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 {
-    mCore.logEvent(NAME, LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
+    logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
                                                        addApp.parentId().toString(QUuid::WithoutBraces)));
 
     Qx::Error sError;
@@ -165,7 +165,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     Fp::GameData parentGameData;
     if(Fp::DbError gdErr = db->getGameData(parentGameData, parentId); gdErr.isValid())
     {
-        mCore.postError(NAME, gdErr);
+        postError(gdErr);
         return gdErr;
     }
     bool hasDatapack = !parentGameData.isNull();
@@ -181,7 +181,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     // Handle datapack tasks
     if(hasDatapack)
     {
-        mCore.logEvent(NAME, LOG_EVENT_DATA_PACK_TITLE);
+        logEvent(LOG_EVENT_DATA_PACK_TITLE);
 
         if(sError = mCore.enqueueDataPackTasks(parentGameData); sError.isValid())
             return sError;
@@ -194,7 +194,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 
     if(Fp::DbError pge = db->queryEntrys(parentResult, parentFilter); pge.isValid())
     {
-        mCore.postError(NAME, pge);
+        postError(pge);
         return pge;
     }
 
@@ -292,8 +292,8 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
 }
 
 //Protected:
-QList<const QCommandLineOption*> CPlay::options() { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
-QString CPlay::name() { return NAME; }
+QList<const QCommandLineOption*> CPlay::options() const { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
+QString CPlay::name() const { return NAME; }
 
 Qx::Error CPlay::perform()
 {
@@ -305,7 +305,7 @@ Qx::Error CPlay::perform()
         if(!urlMatch.hasMatch())
         {
             CPlayError err(CPlayError::InvalidUrl);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
 
@@ -315,7 +315,7 @@ Qx::Error CPlay::perform()
         return ide;
 
 
-    mCore.logEvent(NAME, LOG_EVENT_HANDLING_AUTO);
+    logEvent(LOG_EVENT_HANDLING_AUTO);
 
     // Get entry via ID
     Fp::Db* db = mCore.fpInstall().database();
@@ -323,7 +323,7 @@ Qx::Error CPlay::perform()
     Fp::Entry entry;
     if(Fp::DbError eErr = db->getEntry(entry, titleId); eErr.isValid())
     {
-        mCore.postError(NAME, eErr);
+        postError(eErr);
         return eErr;
     }
 

@@ -62,12 +62,12 @@ void TExtra::perform()
     {
         // Open extra
         QDesktopServices::openUrl(QUrl::fromLocalFile(mDirectory.absolutePath()));
-        emit eventOccurred(NAME, LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(mDirectory.path())));
+        emitEventOccurred(LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(mDirectory.path())));
     }
     else
     {
         errorStatus = TExtraError(TExtraError::NotFound, QDir::toNativeSeparators(mDirectory.path()));
-        emit errorOccurred(NAME, errorStatus);
+        emitErrorOccurred(errorStatus);
     }
 
     emit complete(errorStatus);

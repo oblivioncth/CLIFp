@@ -31,13 +31,13 @@ void TSleep::setDuration(uint msecs) { mDuration = msecs; }
 
 void TSleep::perform()
 {
-    emit eventOccurred(NAME, LOG_EVENT_START_SLEEP.arg(mDuration));
+    emitEventOccurred(LOG_EVENT_START_SLEEP.arg(mDuration));
     mSleeper.start(mDuration);
 }
 
 void TSleep::stop()
 {
-    emit eventOccurred(NAME, LOG_EVENT_SLEEP_INTERUPTED);
+    emitEventOccurred(LOG_EVENT_SLEEP_INTERUPTED);
     mSleeper.stop();
     emit complete(Qx::Error());
 }
@@ -46,6 +46,6 @@ void TSleep::stop()
 //Privates Slots:
 void TSleep::timerFinished()
 {
-    emit eventOccurred(NAME, LOG_EVENT_FINISH_SLEEP);
+    emitEventOccurred(LOG_EVENT_FINISH_SLEEP);
     emit complete(Qx::Error());
 }

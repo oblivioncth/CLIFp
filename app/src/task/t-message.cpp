@@ -38,7 +38,7 @@ void TMessage::perform()
         .blocking = mBlocking,
         .selectable = mSelectable
     });
-    emit eventOccurred(NAME, LOG_EVENT_SHOW_MESSAGE);
+    emitEventOccurred(LOG_EVENT_SHOW_MESSAGE);
 
     // Return success
     emit complete(Qx::Error());

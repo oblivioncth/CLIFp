@@ -31,11 +31,11 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     // Check for creation failure
     if(shortcutError.isValid())
     {
-        mCore.postError(NAME, shortcutError);
+        postError(shortcutError);
         return shortcutError;
     }
     else
-        mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullShortcutPath)));
+        logEvent(LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullShortcutPath)));
 
     // Return success
     return CLinkError();

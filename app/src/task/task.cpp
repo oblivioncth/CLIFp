@@ -22,6 +22,12 @@ Task::Task(QObject* parent) :
 {}
 
 //-Instance Functions-------------------------------------------------------------
+//Protected:
+// Notifications/Logging (signal-forwarders)
+void Task::emitEventOccurred(const QString& event) { emit eventOccurred(name(), event); }
+void Task::emitErrorOccurred(const Qx::Error& error) { emit errorOccurred(name(), error); }
+void Task::emitBlockingErrorOccurred(int* response, const Qx::Error& error, QMessageBox::StandardButtons choices) { emit blockingErrorOccurred(name(), response, error, choices); }
+
 //Public:
 QStringList Task::members() const { return {u".stage() = "_s + ENUM_NAME(mStage)}; }
 

@@ -196,8 +196,8 @@ private:
     Qx::Error installUpdate(const QFileInfo& existingAppInfo) const;
 
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QString name() const override;
     Qx::Error perform() override;
 
 public:

@@ -296,6 +296,20 @@ private:
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
     void logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg);
 
+    /* TODO: See if instead of repeating these with auto-source overloads everywhere if instead a template function can be made that just works
+     * in all places where core is available. This would likely require a public ::NAME static member for each type that uses core, though this
+     * would be tricky for the tasks that emit signals instead of using core directly.
+     */
+    // Notifications/Logging (self-forwarders)
+    void logCommand(const QString& commandName);
+    void logCommandOptions(const QString& commandOptions);
+    void logError(const Qx::Error& error);
+    void logEvent(const QString& event);
+    void logTask(const Task* task);
+    ErrorCode logFinish(const Qx::Error& errorState);
+    void postError(const Qx::Error& error, bool log = true);
+    int postBlockingError(const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+
 public:
     // Setup
     Qx::Error initialize(QStringList& commandLine);
@@ -323,14 +337,14 @@ public:
      * with the same names that call mCore.logX(NAME, ...) automatically so that NAME doesn't need to be passed every time
      */
     bool isLogOpen() const;
-    void logCommand(QString src, QString commandName);
-    void logCommandOptions(QString src, QString commandOptions);
-    void logError(QString src, Qx::Error error);
-    void logEvent(QString src, QString event);
-    void logTask(QString src, const Task* task);
-    ErrorCode logFinish(QString src, Qx::Error errorState);
-    void postError(QString src, Qx::Error error, bool log = true);
-    int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    void logCommand(const QString& src, const QString& commandName);
+    void logCommandOptions(const QString& src, const QString& commandOptions);
+    void logError(const QString& src, const Qx::Error& error);
+    void logEvent(const QString& src, const QString& event);
+    void logTask(const QString& src, const Task* task);
+    ErrorCode logFinish(const QString& src, const Qx::Error& errorState);
+    void postError(const QString& src, const Qx::Error& error, bool log = true);
+    int postBlockingError(const QString& src, const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(const Message& msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestExistingDirPath(const ExistingDirRequest& request);

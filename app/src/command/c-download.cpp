@@ -38,9 +38,9 @@ CDownload::CDownload(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CDownload::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-QSet<const QCommandLineOption*> CDownload::requiredOptions() { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
-QString CDownload::name() { return NAME; }
+QList<const QCommandLineOption*> CDownload::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QSet<const QCommandLineOption*> CDownload::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
+QString CDownload::name() const { return NAME; }
 
 Qx::Error CDownload::perform()
 {
@@ -61,10 +61,10 @@ Qx::Error CDownload::perform()
     if(pItr == playlists.cend())
     {
         CDownloadError err(CDownloadError::InvalidPlaylist, playlistName);
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
-    mCore.logEvent(NAME, LOG_EVENT_PLAYLIST_MATCH.arg(pItr->id().toString(QUuid::WithoutBraces)));
+    logEvent(LOG_EVENT_PLAYLIST_MATCH.arg(pItr->id().toString(QUuid::WithoutBraces)));
 
     // Queue downloads for each game
     TDownload* downloadTask = new TDownload(&mCore);
@@ -79,13 +79,13 @@ Qx::Error CDownload::perform()
         Fp::GameData gameData;
         if(Fp::DbError gdErr = db->getGameData(gameData, pg.gameId()); gdErr.isValid())
         {
-            mCore.postError(NAME, gdErr);
+            postError(gdErr);
             return gdErr;
         }
 
         if(gameData.isNull())
         {
-            mCore.logEvent(NAME, LOG_EVENT_NON_DATAPACK.arg(pg.gameId().toString(QUuid::WithoutBraces)));
+            logEvent(LOG_EVENT_NON_DATAPACK.arg(pg.gameId().toString(QUuid::WithoutBraces)));
             continue;
         }
 
@@ -101,7 +101,7 @@ Qx::Error CDownload::perform()
 
     if(downloadTask->isEmpty())
     {
-        mCore.logEvent(NAME, LOG_EVENT_NO_OP);
+        logEvent(LOG_EVENT_NO_OP);
         return CDownloadError();
     }
 

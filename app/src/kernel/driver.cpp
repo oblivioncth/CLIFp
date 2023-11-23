@@ -69,7 +69,7 @@ void Driver::init()
     connect(mCore, &Core::clipboardUpdateRequested, this, &Driver::clipboardUpdateRequested);
     connect(mCore, &Core::questionAnswerRequested, this, &Driver::questionAnswerRequested);
     connect(mCore, &Core::abort, this, [this](CoreError err){
-        mCore->logEvent(NAME, LOG_EVENT_CORE_ABORT);
+        logEvent(LOG_EVENT_CORE_ABORT);
         mErrorStatus = err;
         quit();
     });
@@ -85,8 +85,9 @@ void Driver::init()
      * would make deleting the object slightly tricky. This way it can just be parented to core
      */
     DeferredProcessManager* dpm = new DeferredProcessManager(mCore);
-    connect(dpm, &DeferredProcessManager::eventOccurred, mCore, &Core::logEvent);
-    connect(dpm, &DeferredProcessManager::errorOccurred, mCore, &Core::logError);
+    // qOverload because it gets confused with the shorter versions within core even though they're private :/
+    connect(dpm, &DeferredProcessManager::eventOccurred, mCore, qOverload<const QString&, const QString&>(&Core::logEvent));
+    connect(dpm, &DeferredProcessManager::errorOccurred, mCore, qOverload<const QString&, const Qx::Error&>(&Core::logError));
     TExec::installDeferredProcessManager(dpm);
 }
 
@@ -102,7 +103,7 @@ void Driver::startNextTask()
     mCurrentTaskNumber++;
 
     // Log task start
-    mCore->logEvent(NAME, LOG_EVENT_TASK_START.arg(QString::number(mCurrentTaskNumber),
+    logEvent(LOG_EVENT_TASK_START.arg(QString::number(mCurrentTaskNumber),
                                                    mCurrentTask->name(),
                                                    ENUM_NAME(mCurrentTask->stage())));
 
@@ -110,7 +111,7 @@ void Driver::startNextTask()
     bool isShutdown = mCurrentTask->stage() == Task::Stage::Shutdown;
     if(mErrorStatus.isSet() && !isShutdown)
     {
-        mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP_ERROR);
+        logEvent(LOG_EVENT_TASK_SKIP_ERROR);
 
         // Queue up finished handler directly (executes on next event loop cycle) since task was skipped
         // Can't connect directly because newer connect syntax doesn't support default args
@@ -118,7 +119,7 @@ void Driver::startNextTask()
     }
     else if(mQuitRequested && !isShutdown)
     {
-        mCore->logEvent(NAME, LOG_EVENT_TASK_SKIP_QUIT);
+        logEvent(LOG_EVENT_TASK_SKIP_QUIT);
 
         // Queue up finished handler directly (executes on next event loop cycle) since task was skipped
         // Can't connect directly because newer connect syntax doesn't support default args
@@ -128,7 +129,7 @@ void Driver::startNextTask()
     {
         // Connect task notifiers
         connect(mCurrentTask, &Task::notificationReady, mCore, &Core::postMessage);
-        connect(mCurrentTask, &Task::eventOccurred, mCore, &Core::logEvent);
+        connect(mCurrentTask, &Task::eventOccurred, mCore, qOverload<const QString&, const QString&>(&Core::logEvent));
         connect(mCurrentTask, &Task::errorOccurred, mCore, [this](QString taskName, Qx::Error error){
             mCore->postError(taskName, error); // Can't connect directly because newer connect syntax doesn't support default args
         });
@@ -151,13 +152,13 @@ void Driver::startNextTask()
 
 void Driver::cleanup()
 {
-    mCore->logEvent(NAME, LOG_EVENT_CLEANUP_START);
+    logEvent(LOG_EVENT_CLEANUP_START);
 
     // Close each remaining child process
-    mCore->logEvent(NAME, LOG_EVENT_ENDING_CHILD_PROCESSES);
+    logEvent(LOG_EVENT_ENDING_CHILD_PROCESSES);
     TExec::deferredProcessManager()->closeProcesses();
 
-    mCore->logEvent(NAME, LOG_EVENT_CLEANUP_FINISH);
+    logEvent(LOG_EVENT_CLEANUP_FINISH);
 }
 
 void Driver::finish()
@@ -166,12 +167,12 @@ void Driver::finish()
     if(CUpdate::isUpdateCacheClearable())
     {
         if(CUpdateError err = CUpdate::clearUpdateCache(); err.isValid())
-            mCore->logError(NAME, err);
+            logError(err);
         else
-            mCore->logEvent(NAME, LOG_EVENT_CLEARED_UPDATE_CACHE);
+            logEvent(LOG_EVENT_CLEARED_UPDATE_CACHE);
     }
 
-    emit finished(mCore->logFinish(NAME, mErrorStatus.value()));
+    emit finished(logFinish(mErrorStatus.value()));
 }
 
 void Driver::quit()
@@ -191,7 +192,7 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
 
     do
     {
-        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
+        logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
 
         // Attempt to instantiate
         fpInstall = std::make_unique<Fp::Install>(currentDir.absolutePath());
@@ -199,7 +200,7 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
         {
             if(fpInstall->outfittedDaemon() == Fp::Daemon::Unknown)
             {
-                mCore->logError(NAME, Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
+                logError(Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
                 fpInstall.reset();
             }
             else
@@ -207,7 +208,7 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
         }
         else
         {
-            mCore->logError(NAME, fpInstall->error().setSeverity(Qx::Warning));
+            logError(fpInstall->error().setSeverity(Qx::Warning));
             fpInstall.reset();
         }
     }
@@ -217,7 +218,15 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
     return std::move(fpInstall);
 }
 
-
+// Notifications/Logging (core-forwarders)
+void Driver::logCommand(QString commandName) { Q_ASSERT(mCore); mCore->logCommand(NAME, commandName); }
+void Driver::logCommandOptions(QString commandOptions) { Q_ASSERT(mCore); mCore->logCommandOptions(NAME, commandOptions); }
+void Driver::logError(Qx::Error error) { Q_ASSERT(mCore); mCore->logError(NAME, error); }
+void Driver::logEvent(QString event) { Q_ASSERT(mCore); mCore->logEvent(NAME, event); }
+void Driver::logTask(const Task* task) { Q_ASSERT(mCore); mCore->logTask(NAME, task); }
+ErrorCode Driver::logFinish(Qx::Error errorState) { Q_ASSERT(mCore); return mCore->logFinish(NAME, errorState); }
+void Driver::postError(Qx::Error error, bool log) { Q_ASSERT(mCore); mCore->postError(NAME, error, log); }
+int Driver::postBlockingError(Qx::Error error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { Q_ASSERT(mCore); return mCore->postBlockingError(NAME, error, log); }
 
 //-Slots--------------------------------------------------------------------------------
 //Private:
@@ -227,11 +236,11 @@ void Driver::completeTaskHandler(Qx::Error e)
     if(e.isValid())
     {
         mErrorStatus = e;
-        mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH_ERR.arg(mCurrentTaskNumber)); // Record early end of task
+        logEvent(LOG_EVENT_TASK_FINISH_ERR.arg(mCurrentTaskNumber)); // Record early end of task
     }
 
     // Cleanup handled task
-    mCore->logEvent(NAME, LOG_EVENT_TASK_FINISH.arg(mCurrentTaskNumber));
+    logEvent(LOG_EVENT_TASK_FINISH.arg(mCurrentTaskNumber));
     qxDelete(mCurrentTask);
 
     // Perform next task if any remain
@@ -239,7 +248,7 @@ void Driver::completeTaskHandler(Qx::Error e)
         startNextTask();
     else
     {
-        mCore->logEvent(NAME, LOG_EVENT_QUEUE_FINISH);
+        logEvent(LOG_EVENT_QUEUE_FINISH);
         cleanup();
         finish();
     }
@@ -265,7 +274,7 @@ void Driver::drive()
     // Check for valid command
     if(CommandError ce = Command::isRegistered(commandStr); ce.isValid())
     {
-        mCore->postError(NAME, ce);
+        postError(ce);
         mErrorStatus = ce;
         finish();
         return;
@@ -284,7 +293,7 @@ void Driver::drive()
     if(commandProcessor->autoBlockNewInstances() && !mCore->blockNewInstances())
     {
         DriverError err(DriverError::AlreadyOpen);
-        mCore->postError(NAME, err);
+        postError(err);
         mErrorStatus = err;
         finish();
         return;
@@ -295,17 +304,17 @@ void Driver::drive()
     {
         // Find and link to Flashpoint Install
         std::unique_ptr<Fp::Install> flashpointInstall;
-        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_SEARCH);
+        logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
 
         if(!(flashpointInstall = findFlashpointInstall()))
         {
             DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
-            mCore->postError(NAME, err);
+            postError(err);
             mErrorStatus = err;
             finish();
             return;
         }
-        mCore->logEvent(NAME, LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->dir().absolutePath())));
+        logEvent(LOG_EVENT_FLASHPOINT_LINK.arg(QDir::toNativeSeparators(flashpointInstall->dir().absolutePath())));
 
         // Insert into core
         mCore->attachFlashpoint(std::move(flashpointInstall));
@@ -329,11 +338,11 @@ void Driver::drive()
     }
 
     //-Handle Tasks-----------------------------------------------------------------------
-    mCore->logEvent(NAME, LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
+    logEvent(LOG_EVENT_TASK_COUNT.arg(mCore->taskCount()));
     if(mCore->hasTasks())
     {
         // Process task queue
-        mCore->logEvent(NAME, LOG_EVENT_QUEUE_START);
+        logEvent(LOG_EVENT_QUEUE_START);
         startNextTask();
     }
     else
@@ -351,10 +360,10 @@ void Driver::quitNow()
     // Handle quit state
     if(mQuitRequested)
     {
-        mCore->logEvent(NAME, LOG_EVENT_QUIT_REQUEST_REDUNDANT);
+        logEvent(LOG_EVENT_QUIT_REQUEST_REDUNDANT);
         return;
     }
 
-    mCore->logEvent(NAME, LOG_EVENT_QUIT_REQUEST);
+    logEvent(LOG_EVENT_QUIT_REQUEST);
     quit();
 }

@@ -110,6 +110,9 @@ private:
     void finish();
     void createMountPoint();
 
+    void signalEventOccurred(const QString& event);
+    void signalErrorOccurred(const MounterQmpError& errorMessage);
+
 public:
     bool isMounting();
 
@@ -143,9 +146,9 @@ public slots:
     void abort();
 
 signals:
-    void eventOccurred(QString name, QString event);
-    void errorOccurred(QString name, MounterQmpError errorMessage);
-    void mountFinished(MounterQmpError errorState);
+    void eventOccurred(const QString& name, const QString& event);
+    void errorOccurred(const QString& name, const MounterQmpError& errorMessage);
+    void mountFinished(const MounterQmpError& errorState);
 };
 
 #endif // MOUNTER_QMP_H

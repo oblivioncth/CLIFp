@@ -209,7 +209,7 @@ QString CUpdate::getTargetAssetName(const QString& tagName) const
 CUpdateError CUpdate::handleTransfers(const UpdateTransfers& transfers) const
 {
     auto doTransfer = [&](const FileTransfer& ft, bool mkpath, bool move, bool overwrite){
-        mCore.logEvent(NAME, LOG_EVENT_FILE_TRANSFER.arg(ft.source, ft.dest));
+        logEvent(LOG_EVENT_FILE_TRANSFER.arg(ft.source, ft.dest));
 
         if(mkpath)
         {
@@ -225,12 +225,12 @@ CUpdateError CUpdate::handleTransfers(const UpdateTransfers& transfers) const
     };
 
     // Backup, and note for restore
-    mCore.logEvent(NAME, LOG_EVENT_BACKUP_FILES);
+    logEvent(LOG_EVENT_BACKUP_FILES);
     QList<FileTransfer> restoreTransfers;
     QScopeGuard restoreOnFail([&]{
         if(!restoreTransfers.isEmpty())
         {
-            mCore.logEvent(NAME, LOG_EVENT_RESTORE_FILES);
+            logEvent(LOG_EVENT_RESTORE_FILES);
             for(const auto& t : restoreTransfers) doTransfer(t, false, true, true);
         }
     });
@@ -240,20 +240,20 @@ CUpdateError CUpdate::handleTransfers(const UpdateTransfers& transfers) const
         if(!doTransfer(ft, true, true, true))
         {
             CUpdateError err(CUpdateError::TransferFail, ft.dest);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
         restoreTransfers << FileTransfer{.source = ft.dest, .dest = ft.source};
     }
 
     // Install
-    mCore.logEvent(NAME, LOG_EVENT_INSTALL_FILES);
+    logEvent(LOG_EVENT_INSTALL_FILES);
     for(const auto& ft : transfers.install)
     {
         if(!doTransfer(ft, true, false, false))
         {
             CUpdateError err(CUpdateError::TransferFail, ft.dest);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
     }
@@ -268,19 +268,19 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     if(!mCore.blockNewInstances())
     {
         CUpdateError err(CUpdateError::AlreadyOpen);
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
 
     // Check for update
     mCore.setStatus(STATUS, STATUS_CHECKING);
-    mCore.logEvent(NAME, LOG_EVENT_CHECKING_FOR_NEWER_VERSION);
+    logEvent(LOG_EVENT_CHECKING_FOR_NEWER_VERSION);
 
     // Get new release data
     ReleaseData rd;
     if(CUpdateError ue = getLatestReleaseData(rd); ue.isValid())
     {
-        mCore.postError(NAME, ue);
+        postError(ue);
         return ue;
     }
 
@@ -291,17 +291,17 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     if(newVersion.isNull())
     {
         CUpdateError err(CUpdateError::InvalidReleaseVersion);
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
 
     if(newVersion <= currentVersion)
     {
         mCore.postMessage(Message{.text = MSG_NO_UPDATES});
-        mCore.logEvent(NAME, MSG_NO_UPDATES);
+        logEvent(MSG_NO_UPDATES);
         return CUpdateError();
     }
-    mCore.logEvent(NAME, LOG_EVENT_UPDATE_AVAILABLE.arg(rd.tag_name));
+    logEvent(LOG_EVENT_UPDATE_AVAILABLE.arg(rd.tag_name));
 
     // Get current build info
     BuildInfo bi = mCore.buildInfo();
@@ -315,13 +315,13 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
 
     if(aItr == rd.assets.cend())
     {
-        mCore.postError(NAME, Qx::GenericError(Qx::Warning, 12181, WRN_NO_MATCHING_BUILD_P, WRN_NO_MATCHING_BUILD_S));
+        postError(Qx::GenericError(Qx::Warning, 12181, WRN_NO_MATCHING_BUILD_P, WRN_NO_MATCHING_BUILD_S));
         return CUpdateError();
     }
 
     if(mCore.requestQuestionAnswer(QUES_UPDATE.arg(rd.name)))
     {
-        mCore.logEvent(NAME, LOG_EVENT_UPDATE_ACCEPED);
+        logEvent(LOG_EVENT_UPDATE_ACCEPED);
 
         // Queue update
         QDir uDownloadDir = updateDownloadDir();
@@ -354,7 +354,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
         smPersistCache = true;
     }
     else
-        mCore.logEvent(NAME, LOG_EVENT_UPDATE_REJECTED);
+        logEvent(LOG_EVENT_UPDATE_REJECTED);
 
     return CUpdateError();
 }
@@ -371,7 +371,7 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
 
     do
     {
-        mCore.logEvent(NAME, LOG_EVENT_WAITING_ON_OLD_CLOSE.arg(totalGrace - currentGrace));
+        logEvent(LOG_EVENT_WAITING_ON_OLD_CLOSE.arg(totalGrace - currentGrace));
         QThread::msleep(step);
         currentGrace += step;
         haveLock = mCore.blockNewInstances();
@@ -382,18 +382,18 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
     if(!haveLock)
     {
         CUpdateError err(CUpdateError::OldProcessNotFinished, "Aborting update.");
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
 
     //-Install update------------------------------------------------------------
-    mCore.logEvent(NAME, LOG_EVENT_INSTALLING_UPDATE);
+    logEvent(LOG_EVENT_INSTALLING_UPDATE);
 
     // Ensure old executable exists where expected
     if(!existingAppInfo.exists())
     {
         CUpdateError err(CUpdateError::InvalidPath, "Missing " + existingAppInfo.absoluteFilePath());
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
 
@@ -410,7 +410,7 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
     QStringList updateFiles;
     if(Qx::IoOpReport rep = determineNewFiles(updateFiles, ts.updateRoot); rep.isFailure())
     {
-        mCore.postError(NAME, rep);
+        postError(rep);
         return rep;
     }
 
@@ -421,14 +421,14 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
         return err;
 
     // Success
-    mCore.logEvent(NAME, MSG_UPDATE_COMPLETE);
+    logEvent(MSG_UPDATE_COMPLETE);
     mCore.postMessage(Message{.text = MSG_UPDATE_COMPLETE});
     return CUpdateError();
 }
 
 //Protected:
-QList<const QCommandLineOption*> CUpdate::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-QString CUpdate::name() { return NAME; }
+QList<const QCommandLineOption*> CUpdate::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QString CUpdate::name() const { return NAME; }
 
 Qx::Error CUpdate::perform()
 {

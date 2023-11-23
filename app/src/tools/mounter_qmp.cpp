@@ -74,7 +74,7 @@ void MounterQmp::finish()
 
 void MounterQmp::createMountPoint()
 {
-    emit eventOccurred(NAME, EVENT_CREATING_MOUNT_POINT);
+    signalEventOccurred(EVENT_CREATING_MOUNT_POINT);
 
     // Build commands
     QString blockDevAddCmd = u"blockdev-add"_s;
@@ -113,6 +113,9 @@ void MounterQmp::createMountPoint()
     // Await finished() signal...
 }
 
+void MounterQmp::signalEventOccurred(const QString& event) { emit eventOccurred(NAME, event); }
+void MounterQmp::signalErrorOccurred(const MounterQmpError& errorMessage) { emit errorOccurred(NAME, errorMessage); }
+
 //Public:
 bool MounterQmp::isMounting() { return mMounting; }
 
@@ -136,12 +139,12 @@ void MounterQmp::qmpiConnectedHandler(QJsonObject version, QJsonArray capabiliti
     QString versionStr = formatter.toJson(QJsonDocument::Compact);
     formatter.setArray(capabilities);
     QString capabilitiesStr = formatter.toJson(QJsonDocument::Compact);
-    emit eventOccurred(NAME, EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
+    signalEventOccurred(EVENT_QMP_WELCOME_MESSAGE.arg(versionStr, capabilitiesStr));
 }
 
 void MounterQmp::qmpiCommandsExhaustedHandler()
 {
-    emit eventOccurred(NAME, EVENT_DISCONNECTING_FROM_QEMU);
+    signalEventOccurred(EVENT_DISCONNECTING_FROM_QEMU);
     mQemuMounter.disconnectFromHost();
 }
 
@@ -157,7 +160,7 @@ void MounterQmp::qmpiConnectionErrorHandler(QAbstractSocket::SocketError error)
     MounterQmpError err(MounterQmpError::QemuConnection, ENUM_NAME(error));
     mErrorStatus = err;
 
-    emit errorOccurred(NAME, err);
+    signalErrorOccurred(err);
 }
 
 void MounterQmp::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
@@ -165,7 +168,7 @@ void MounterQmp::qmpiCommunicationErrorHandler(Qmpi::CommunicationError error)
     MounterQmpError err(MounterQmpError::QemuCommunication, ENUM_NAME(error));
     mErrorStatus = err;
 
-    emit errorOccurred(NAME, err);
+    signalErrorOccurred(err);
 }
 
 void MounterQmp::qmpiCommandErrorHandler(QString errorClass, QString description, std::any context)
@@ -175,13 +178,13 @@ void MounterQmp::qmpiCommandErrorHandler(QString errorClass, QString description
     MounterQmpError err(MounterQmpError::QemuCommand, commandErr);
     mErrorStatus = err;
 
-    emit errorOccurred(NAME, err);
+    signalErrorOccurred(err);
     mQemuMounter.abort();
 }
 
 void MounterQmp::qmpiCommandResponseHandler(QJsonValue value, std::any context)
 {
-    emit eventOccurred(NAME, EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::asString(value)));
+    signalEventOccurred(EVENT_QMP_COMMAND_RESPONSE.arg(std::any_cast<QString>(context), Qx::asString(value)));
 }
 
 void MounterQmp::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateTime timestamp)
@@ -189,14 +192,14 @@ void MounterQmp::qmpiEventOccurredHandler(QString name, QJsonObject data, QDateT
     QJsonDocument formatter(data);
     QString dataStr = formatter.toJson(QJsonDocument::Compact);
     QString timestampStr = timestamp.toString(u"hh:mm:s s.zzz"_s);
-    emit eventOccurred(NAME, EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
+    signalEventOccurred(EVENT_QMP_EVENT.arg(name, dataStr, timestampStr));
 }
 
 //Public Slots:
 void MounterQmp::mount()
 {
     // Connect to QEMU instance
-    emit eventOccurred(NAME, EVENT_CONNECTING_TO_QEMU);
+    signalEventOccurred(EVENT_CONNECTING_TO_QEMU);
     mQemuMounter.connectToHost();
 
     // Await readyForCommands() signal...
@@ -210,7 +213,7 @@ void MounterQmp::abort()
         MounterQmpError err(MounterQmpError::QemuConnection, ERR_QMP_CONNECTION_ABORT);
         mErrorStatus = err;
 
-        emit errorOccurred(NAME, err);
+        signalErrorOccurred(err);
         mQemuMounter.abort(); // Call last here because it causes finished signal to emit immediately
     }
 }

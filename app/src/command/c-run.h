@@ -78,9 +78,9 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QSet<const QCommandLineOption*> requiredOptions() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QSet<const QCommandLineOption*> requiredOptions() const override;
+    QString name() const override;
     Qx::Error perform() override;
 
 public:

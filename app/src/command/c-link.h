@@ -96,9 +96,9 @@ private:
     Qx::Error createShortcut(const QString& name, const QDir& dir, QUuid id);
 
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QSet<const QCommandLineOption*> requiredOptions() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QSet<const QCommandLineOption*> requiredOptions() const override;
+    QString name() const override;
     Qx::Error perform() override ;
 };
 REGISTER_COMMAND(CLink::NAME, CLink, CLink::DESCRIPTION);

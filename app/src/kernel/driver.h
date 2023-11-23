@@ -129,6 +129,16 @@ private:
     // Helper
     std::unique_ptr<Fp::Install> findFlashpointInstall();
 
+    // Notifications/Logging (core-forwarders)
+    void logCommand(QString commandName);
+    void logCommandOptions(QString commandOptions);
+    void logError(Qx::Error error);
+    void logEvent(QString event);
+    void logTask(const Task* task);
+    ErrorCode logFinish(Qx::Error errorState);
+    void postError(Qx::Error error, bool log = true);
+    int postBlockingError(Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
     void completeTaskHandler(Qx::Error e = {});

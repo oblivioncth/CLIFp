@@ -100,8 +100,8 @@ private:
     Qx::Error enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
 
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QString name() const override;
     Qx::Error perform() override;
 
 public:

@@ -46,7 +46,7 @@ private slots:
     void processStandardErrorHandler();
 
 signals:
-    void eventOccurred(QString name, QString event);
+    void eventOccurred(const QString& name, const QString& event);
     void finished();
 };
 

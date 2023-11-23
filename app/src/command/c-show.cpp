@@ -38,8 +38,8 @@ CShow::CShow(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CShow::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-QString CShow::name() { return NAME; }
+QList<const QCommandLineOption*> CShow::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QString CShow::name() const { return NAME; }
 
 Qx::Error CShow::perform()
 {
@@ -65,7 +65,7 @@ Qx::Error CShow::perform()
     else
     {
         CShowError err(CShowError::MissingThing);
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
 
