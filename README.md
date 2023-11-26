@@ -45,7 +45,12 @@ Update:
 ## Compatability
 
 ### General
-All Flashpoint features are generally supported, other than editing configuration files and user data (like playlists) and querying title meta-data through the command-line, and searching is more limited. See the [All Commands/Options](#all-commandsoptions) section for more information.
+
+Most flashpoint features are supported. The regular launcher still must be used for the following:
+- Changing user configuration, like preferences, playlists, etc.
+- Updating the launcher and downloading game updates
+
+See the [All Commands/Options](#all-commandsoptions) section for more information.
 
 While constantly testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection.
 
@@ -105,7 +110,7 @@ Or if feeling spontaneous, use the **-r** switch, followed by a library filter t
 See the [All Commands/Options](#all-commandsoptions) section for more information.
 
 **Direct Execution:**
-The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's webserver and then start the application specified with the provided parameters:
+The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's services and then start the application specified with the provided parameters:
 
     CLIFp run --app="FPSoftware\Flash\flashplayer_32_sa.exe" --param="http://www.mowa.org/work/buttons/buttons_art/basic.swf"
 
@@ -214,7 +219,7 @@ Options:
 
 --------------------------------------------------------------------------------
 
- **run** - Start  Flashpoint's  webserver  and  then  execute  the  provided  application
+ **run** - Start  Flashpoint's  services and  then  execute  the  provided  application
 
 Options:
 - **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
