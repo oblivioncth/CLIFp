@@ -163,6 +163,8 @@ void Driver::cleanup()
 
 void Driver::finish()
 {
+    logEvent(LOG_EVENT_FINISH);
+
     // Clear update cache
     if(CUpdate::isUpdateCacheClearable())
     {

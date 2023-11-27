@@ -82,6 +82,7 @@ private:
     static inline const QString LOG_EVENT_QUIT_REQUEST_REDUNDANT = u"Received redundant quit request"_s;
     static inline const QString LOG_EVENT_CLEARED_UPDATE_CACHE = u"Cleared stale update cache."_s;
     static inline const QString LOG_EVENT_CORE_ABORT = u"Core abort signaled, quitting now."_s;
+    static inline const QString LOG_EVENT_FINISH = u"Finishing run..."_s;
 
     // Meta
     static inline const QString NAME = u"driver"_s;

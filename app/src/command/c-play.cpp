@@ -314,6 +314,9 @@ Qx::Error CPlay::perform()
     else if(Qx::Error ide = getTitleId(titleId); ide.isValid())
         return ide;
 
+    // Bail if ID is missing (user cancel)
+    if(titleId.isNull())
+        return CPlayError();
 
     logEvent(LOG_EVENT_HANDLING_AUTO);
 
