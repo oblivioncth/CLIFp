@@ -14,15 +14,13 @@ class QX_ERROR_TYPE(CRunError, "CRunError", 1215)
 public:
     enum Type
     {
-        NoError = 0,
-        MissingApp = 1
+        NoError = 0
     };
 
     //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
-        {NoError, u""_s},
-        {MissingApp, u"No application to run was provided."_s}
+        {NoError, u""_s}
     };
 
     //-Instance Variables-------------------------------------------------------------
@@ -67,6 +65,7 @@ private:
     static inline const QCommandLineOption CL_OPTION_APP{{CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, u"application"_s}; // Takes value
     static inline const QCommandLineOption CL_OPTION_PARAM{{CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, u"parameters"_s}; // Takes value
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_APP, &CL_OPTION_PARAM};
+    static inline const QSet<const QCommandLineOption*> CL_OPTIONS_REQUIRED{&CL_OPTION_APP};
 
 public:
     // Meta
@@ -79,9 +78,13 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QSet<const QCommandLineOption*> requiredOptions() const override;
+    QString name() const override;
     Qx::Error perform() override;
+
+public:
+    bool requiresServices() const override;
 };
 REGISTER_COMMAND(CRun::NAME, CRun, CRun::DESCRIPTION);
 

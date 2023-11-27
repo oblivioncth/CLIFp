@@ -91,6 +91,9 @@ private:
     void noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data);
     void noteProxyResponse(const QString& response);
 
+    void signalEventOccurred(const QString& event);
+    void signalErrorOccurred(const MounterProxyError& errorMessage);
+
 public:
     bool isMounting();
 
@@ -109,9 +112,9 @@ public slots:
     void abort();
 
 signals:
-    void eventOccurred(QString name, const QString& event);
-    void errorOccurred(QString name, MounterProxyError errorMessage);
-    void mountFinished(MounterProxyError errorState);
+    void eventOccurred(const QString& name, const QString& event);
+    void errorOccurred(const QString& name, const MounterProxyError& errorMessage);
+    void mountFinished(const MounterProxyError& errorState);
 
     // For now these just cause a busy state
     void mountProgress(qint64 progress);

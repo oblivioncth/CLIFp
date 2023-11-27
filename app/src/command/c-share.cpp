@@ -41,20 +41,20 @@ CShare::CShare(Core& coreRef) : TitleCommand(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CShare::options() { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
-QString CShare::name() { return NAME; }
+QList<const QCommandLineOption*> CShare::options() const { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
+QString CShare::name() const { return NAME; }
 
 Qx::Error CShare::perform()
 {
     // Prioritize scheme (un)registration
     if(mParser.isSet(CL_OPTION_CONFIGURE))
     {
-        mCore.logEvent(NAME, LOG_EVENT_REGISTRATION);
+        logEvent(LOG_EVENT_REGISTRATION);
 
         if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME))
         {
             CShareError err(CShareError::RegistrationFailed);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
 
@@ -68,7 +68,7 @@ Qx::Error CShare::perform()
     }
     else if(mParser.isSet(CL_OPTION_UNCONFIGURE))
     {
-        mCore.logEvent(NAME, LOG_EVENT_UNREGISTRATION);
+        logEvent(LOG_EVENT_UNREGISTRATION);
 
 #ifdef __linux__ // Function is too jank on linux right now, so always fail/no-op there
         if(true)
@@ -77,7 +77,7 @@ Qx::Error CShare::perform()
 #endif
         {
             CShareError err(CShareError::UnregistrationFailed);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
 
@@ -100,7 +100,7 @@ Qx::Error CShare::perform()
     // Generate URL
     QString idStr = shareId.toString(QUuid::WithoutBraces);
     QString shareUrl = mParser.isSet(CL_OPTION_UNIVERSAL) ? SCHEME_TEMPLATE_UNI.arg(idStr) : SCHEME_TEMPLATE_STD.arg(idStr);
-    mCore.logEvent(NAME, LOG_EVENT_URL.arg(shareUrl));
+    logEvent(LOG_EVENT_URL.arg(shareUrl));
 
     // Add URL to clipboard
     mCore.requestClipboardUpdate(shareUrl);

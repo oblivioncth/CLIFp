@@ -135,7 +135,7 @@ private:
     Qx::Error getRandomSelectionInfo(QString& infoBuffer, QUuid mainId, QUuid subId);
 
 protected:
-    virtual QList<const QCommandLineOption*> options() override;
+    virtual QList<const QCommandLineOption*> options() const override;
     Qx::Error getTitleId(QUuid& id);
 };
 

@@ -86,10 +86,11 @@ QString TExec::escapeForShell(const QString& argStr)
     QString escapedArgs;
     bool inQuotes = false;
 
+    auto lastQuoteIdx = argStr.lastIndexOf('"'); // If uneven number of quotes, treat last quote as a regular char
     for(int i = 0; i < argStr.size(); i++)
     {
         const QChar& chr = argStr.at(i);
-        if(chr== '"' && (inQuotes || i != argStr.lastIndexOf('"')))
+        if(chr== '"' && (inQuotes || i != lastQuoteIdx))
             inQuotes = !inQuotes;
 
         escapedArgs.append((!inQuotes && escapeChars.contains(chr)) ? '^' + chr : chr);
@@ -112,8 +113,8 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 
 void TExec::logPreparedProcess(const QProcess* process)
 {
-    emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
-    emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->nativeArguments().isEmpty() ?
+    emitEventOccurred(LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
+    emitEventOccurred(LOG_EVENT_FINAL_PARAMETERS.arg(!process->nativeArguments().isEmpty() ?
                                                             process->nativeArguments() :
                                                             !process->arguments().isEmpty() ?
                                                             u"{\""_s + process->arguments().join(uR"(", ")"_s) + u"\"}"_s :

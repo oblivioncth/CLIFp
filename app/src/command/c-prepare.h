@@ -28,9 +28,12 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QString name() const override;
     Qx::Error perform() override;
+
+public:
+    bool requiresServices() const override;
 };
 REGISTER_COMMAND(CPrepare::NAME, CPrepare, CPrepare::DESCRIPTION);
 

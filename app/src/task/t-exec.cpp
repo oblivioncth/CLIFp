@@ -85,7 +85,7 @@ QString TExec::createEscapedShellArguments()
         QString args = std::get<QString>(mParameters);
         escapedArgs = escapeForShell(args);
         if(args != escapedArgs)
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
+            emitEventOccurred(LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
     }
     else
     {
@@ -99,12 +99,52 @@ QString TExec::createEscapedShellArguments()
         QStringList rebuild = QProcess::splitCommand(escapedArgs);
         if(rebuild != parameters)
         {
-            emit eventOccurred(NAME, LOG_EVENT_ARGS_ESCAPED.arg(u"{\""_s + parameters.join(uR"(", ")"_s) + u"\"}"_s,
+            emitEventOccurred(LOG_EVENT_ARGS_ESCAPED.arg(u"{\""_s + parameters.join(uR"(", ")"_s) + u"\"}"_s,
                                                                 u"{\""_s + rebuild.join(uR"(", ")"_s) + u"\"}"_s));
         }
     }
 
     return escapedArgs;
+}
+
+void TExec::removeRedundantFullQuotes(QProcess& process)
+{
+    /* Sometimes service arguments have been observed to be "pre-prepped" for shell use by being fully quoted even
+     * when not needed. This is an issue since QProcess will quote non-native arguments automatically when not using
+     * the shell, which we don't for most things other than scripts, so we have to remove such quotes here. Note this
+     * affects all execution tasks though, not just services.
+     */
+    QStringList args = process.arguments();
+    for(QString& a : args)
+    {
+        // Determine if arg is simply fully quoted
+        if(a.size() < 3 || (a.front() != '"' && a.back() != '"')) // min 3 maintains " and "" which theoretically could be significant
+            continue;
+
+        QStringView inner(a.cbegin() + 1, a.cend() - 1);
+        bool redundant = true;
+        bool escaped = false;
+        for(const QChar& c : inner)
+        {
+            if(c == '\\')
+                escaped = true;
+            else if(c == '"' && !escaped)
+            {
+                redundant = false;
+                break;
+            }
+            else
+                escaped = false;
+        }
+
+        if(redundant)
+        {
+            emitEventOccurred(LOG_EVENT_REMOVED_REDUNDANT_QUOTES.arg(a));
+            a = inner.toString();
+        }
+    }
+
+    process.setArguments(args);
 }
 
 TExecError TExec::cleanStartProcess(QProcess* process)
@@ -115,27 +155,27 @@ TExecError TExec::cleanStartProcess(QProcess* process)
 
     // Go to working directory
     QDir::setCurrent(newDirPath);
-    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(newDirPath)));
+    emitEventOccurred(LOG_EVENT_CD.arg(QDir::toNativeSeparators(newDirPath)));
 
     // Start process
     process->start();
-    emit eventOccurred(NAME, LOG_EVENT_STARTING.arg(mIdentifier, process->program()));
+    emitEventOccurred(LOG_EVENT_STARTING.arg(mIdentifier, process->program()));
 
     // Return to previous working directory
     QDir::setCurrent(currentDirPath);
-    emit eventOccurred(NAME, LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
+    emitEventOccurred(LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
 
     // Make sure process starts
     if(!process->waitForStarted())
     {
         TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(process->program(), ENUM_NAME(process->error())));
-        emit errorOccurred(NAME, err);
+        emitErrorOccurred(err);
         delete process; // Clear finished process handle from heap
         return err;
     }
 
     // Return success
-    emit eventOccurred(NAME, LOG_EVENT_STARTED_PROCESS.arg(mIdentifier));
+    emitEventOccurred(LOG_EVENT_STARTED_PROCESS.arg(mIdentifier));
     return TExecError();
 }
 
@@ -171,20 +211,21 @@ void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
 void TExec::perform()
 {
-    emit eventOccurred(NAME, LOG_EVENT_PREPARING_PROCESS.arg(ENUM_NAME(mProcessType), mIdentifier, mExecutable));
+    emitEventOccurred(LOG_EVENT_PREPARING_PROCESS.arg(ENUM_NAME(mProcessType), mIdentifier, mExecutable));
 
     // Get final executable path
     QString execPath = resolveExecutablePath();
     if(execPath.isEmpty())
     {
         TExecError err(TExecError::CouldNotFind, mExecutable, mStage == Stage::Shutdown ? Qx::Err : Qx::Critical);
-        emit errorOccurred(NAME, err);
+        emitErrorOccurred(err);
         emit complete(err);
         return;
     }
 
     // Prepare process object
     QProcess* taskProcess = prepareProcess(QFileInfo(execPath));
+    removeRedundantFullQuotes(*taskProcess);
     logPreparedProcess(taskProcess);
 
     // Set common process properties
@@ -234,7 +275,7 @@ void TExec::perform()
             if(!taskProcess->startDetached())
             {
                 TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(taskProcess->program(), ENUM_NAME(taskProcess->error())));
-                emit errorOccurred(NAME, err);
+                emitErrorOccurred(err);
                 emit complete(err);
                 return;
             }
@@ -249,7 +290,7 @@ void TExec::stop()
 {
     if(mBlockingProcessManager)
     {
-        emit eventOccurred(NAME, LOG_EVENT_STOPPING_BLOCKING_PROCESS.arg(mIdentifier));
+        emitEventOccurred(LOG_EVENT_STOPPING_BLOCKING_PROCESS.arg(mIdentifier));
         mBlockingProcessManager->closeProcess();
     }
 }

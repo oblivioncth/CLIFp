@@ -14,8 +14,8 @@ CPrepare::CPrepare(Core& coreRef) : TitleCommand(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CPrepare::options() { return {&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_TITLE_STRICT}; }
-QString CPrepare::name() { return NAME; }
+QList<const QCommandLineOption*> CPrepare::options() const { return TitleCommand::options(); }
+QString CPrepare::name() const { return NAME; }
 
 Qx::Error CPrepare::perform()
 {
@@ -28,7 +28,7 @@ Qx::Error CPrepare::perform()
     Fp::GameData titleGameData;
     if(Fp::DbError gdErr = mCore.fpInstall().database()->getGameData(titleGameData, id); gdErr.isValid())
     {
-        mCore.postError(NAME, gdErr);
+        postError(gdErr);
         return gdErr;
     }
 
@@ -40,8 +40,11 @@ Qx::Error CPrepare::perform()
         mCore.setStatus(STATUS_PREPARE, id.toString(QUuid::WithoutBraces));
     }
     else
-        mCore.logError(NAME, Qx::GenericError(Qx::Warning, 12141, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
+        logError(Qx::GenericError(Qx::Warning, 12141, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));
 
     // Return success
     return Qx::Error();
 }
+
+//Public:
+bool CPrepare::requiresServices() const { return true; }

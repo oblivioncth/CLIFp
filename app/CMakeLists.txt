@@ -11,6 +11,8 @@ set(CLIFP_SOURCE
     kernel/errorstatus.cpp
     command/command.h
     command/command.cpp
+    command/c-download.h
+    command/c-download.cpp
     command/c-link.h
     command/c-link.cpp
     command/c-play.h
@@ -88,8 +90,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
         task/t-exec_win.cpp
         task/t-bideprocess.h
         task/t-bideprocess.cpp
-        tools/processbider.h
-        tools/processbider.cpp
     )
 
     list(APPEND CLIFP_LINKS

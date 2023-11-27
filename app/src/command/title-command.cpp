@@ -41,7 +41,7 @@ TitleCommand::TitleCommand(Core& coreRef) :
 //Private:
 Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Db::LibraryFilter lbFilter)
 {
-    mCore.logEvent(NAME, LOG_EVENT_SEL_RAND);
+    logEvent(LOG_EVENT_SEL_RAND);
 
     // Reset buffers
     mainIdBuffer = QUuid();
@@ -58,7 +58,7 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
     searchError = database->queryAllGameIds(mainGameIdQuery, lbFilter);
     if(searchError.isValid())
     {
-        mCore.postError(NAME, searchError);
+        postError(searchError);
         return searchError;
     }
 
@@ -76,13 +76,13 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
         if(!gameId.isNull())
             playableIds.append(gameId);
         else
-            mCore.logError(NAME, Qx::GenericError(Qx::Warning, 12011, LOG_WRN_INVALID_RAND_ID.arg(gameIdString)));
+            logError(Qx::GenericError(Qx::Warning, 12011, LOG_WRN_INVALID_RAND_ID.arg(gameIdString)));
     }
-    mCore.logEvent(NAME, LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIds.size())));
+    logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIds.size())));
 
     // Select main game
     mainIdBuffer = playableIds.value(QRandomGenerator::global()->bounded(playableIds.size()));
-    mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_ID.arg(mainIdBuffer.toString(QUuid::WithoutBraces)));
+    logEvent(LOG_EVENT_INIT_RAND_ID.arg(mainIdBuffer.toString(QUuid::WithoutBraces)));
 
     // Get entry's playable additional apps
     Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = mainIdBuffer, .playableOnly = true};
@@ -91,10 +91,10 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
     searchError = database->queryEntrys(addAppQuery, addAppFilter);
     if(searchError.isValid())
     {
-        mCore.postError(NAME, searchError);
+        postError(searchError);
         return searchError;
     }
-    mCore.logEvent(NAME, LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
+    logEvent(LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
 
     QVector<QUuid> playableSubIds;
 
@@ -110,18 +110,18 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
         if(!addAppId.isNull())
             playableSubIds.append(addAppId);
         else
-            mCore.logError(NAME, Qx::GenericError(Qx::Warning, 12101, LOG_WRN_INVALID_RAND_ID.arg(addAppIdString)));
+            logError(Qx::GenericError(Qx::Warning, 12101, LOG_WRN_INVALID_RAND_ID.arg(addAppIdString)));
     }
 
     // Select final ID
     int randIndex = QRandomGenerator::global()->bounded(playableSubIds.size() + 1);
 
     if(randIndex == 0)
-        mCore.logEvent(NAME, LOG_EVENT_RAND_DET_PRIM);
+        logEvent(LOG_EVENT_RAND_DET_PRIM);
     else
     {
         subIdBuffer = playableSubIds.value(randIndex - 1);
-        mCore.logEvent(NAME, LOG_EVENT_RAND_DET_ADD_APP.arg(subIdBuffer.toString(QUuid::WithoutBraces)));
+        logEvent(LOG_EVENT_RAND_DET_ADD_APP.arg(subIdBuffer.toString(QUuid::WithoutBraces)));
     }
 
     // Return success
@@ -130,7 +130,7 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
 
 Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId, QUuid subId)
 {
-    mCore.logEvent(NAME, LOG_EVENT_RAND_GET_INFO);
+    logEvent(LOG_EVENT_RAND_GET_INFO);
 
     // Reset buffer
     infoBuffer = QString();
@@ -145,11 +145,11 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get main entry info
-    std::variant<Fp::Game, Fp::AddApp> entry_v;
+    Fp::Entry entry_v;
     searchError = database->getEntry(entry_v, mainId);
     if(searchError.isValid())
     {
-        mCore.postError(NAME, searchError);
+        postError(searchError);
         return searchError;
     }
 
@@ -171,7 +171,7 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
         searchError = database->getEntry(entry_v, subId);
         if(searchError.isValid())
         {
-            mCore.postError(NAME, searchError);
+            postError(searchError);
             return searchError;
         }
 
@@ -190,7 +190,7 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
 }
 
 //Protected:
-QList<const QCommandLineOption*> TitleCommand::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QList<const QCommandLineOption*> TitleCommand::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
 
 Qx::Error TitleCommand::getTitleId(QUuid& id)
 {
@@ -207,7 +207,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         if((titleId = QUuid(idStr)).isNull())
         {
             TitleCommandError err(TitleCommandError::InvalidId, idStr);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
     }
@@ -253,7 +253,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         else
         {
             TitleCommandError err(TitleCommandError::InvalidRandomFilter, rawRandFilter);
-            mCore.postError(NAME, err);
+            postError(err);
             return err;
         }
 
@@ -275,7 +275,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
     else
     {
         TitleCommandError err(TitleCommandError::MissingTitle);
-        mCore.postError(NAME, err);
+        postError(err);
         return err;
     }
 

@@ -45,7 +45,12 @@ Update:
 ## Compatability
 
 ### General
-All Flashpoint features are generally supported, other than editing configuration files and user data (like playlists) and querying title meta-data through the command-line, and searching is more limited. See the [All Commands/Options](#all-commandsoptions) section for more information.
+
+Most flashpoint features are supported. The regular launcher still must be used for the following:
+- Changing user configuration, like preferences, playlists, etc.
+- Updating the launcher and downloading game updates
+
+See the [All Commands/Options](#all-commandsoptions) section for more information.
 
 While constantly testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection.
 
@@ -105,7 +110,7 @@ Or if feeling spontaneous, use the **-r** switch, followed by a library filter t
 See the [All Commands/Options](#all-commandsoptions) section for more information.
 
 **Direct Execution:**
-The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's webserver and then start the application specified with the provided parameters:
+The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's services and then start the application specified with the provided parameters:
 
     CLIFp run --app="FPSoftware\Flash\flashplayer_32_sa.exe" --param="http://www.mowa.org/work/buttons/buttons_art/basic.swf"
 
@@ -114,6 +119,7 @@ If the application needs to use files from a Data Pack that pack will need to be
 The applications and arguments that are used for each game/animation can be found within the Flashpoint database ([FP Install Dir]\Data\flashpoint.sqlite)
 
 ### Flashpoint Protocol
+
 CLIFp supports the "flashpoint" protocol, which means it can launch titles through URL with a custom scheme, followed by a title's UUID, like this:
 
     flashpoint://37e5c215-9c39-4a3d-9912-b4343a17027e
@@ -134,6 +140,12 @@ If for whatever reason the service through which you wish to share a link does n
 
 > [!IMPORTANT]
 > You will want to disable the "Register As Protocol Handler" option in the default launcher or else it will replace CLIFp as the "flashpoint" protocol handler every time it's started.
+
+### Companion Mode
+
+It is recommended to only use CLIFp when the regular launcher isn't running as it allows fully independent operation since it can start and stop required services on its own; however, CLIFp can be started while the standard launcher is running, in which case it will run in "Companion Mode" and utilize the launcher's services instead.
+
+The catch with this mode is that CLIFp will be required to shutdown if at any point the standard launcher is closed.
 
 ## All Commands/Options
 
@@ -171,6 +183,14 @@ The **-title-strict** and **-subtitle-strict** options only consider exact match
 Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
 
 ### Command List:
+
+**download** - Downloads data packs for games that require them in bulk
+
+Options:
+- **-p | --playlist** Name of the playlist to download games for.
+
+--------------------------------------------------------------------------------
+
 **link** - Creates  a  shortcut  to  a  Flashpoint  title
 
 Options:
@@ -199,7 +219,7 @@ Options:
 
 --------------------------------------------------------------------------------
 
- **run** - Start  Flashpoint's  webserver  and  then  execute  the  provided  application
+ **run** - Start  Flashpoint's  services and  then  execute  the  provided  application
 
 Options:
 - **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch

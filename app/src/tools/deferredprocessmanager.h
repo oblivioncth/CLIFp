@@ -54,8 +54,8 @@ private slots:
     void processStandardErrorHandler();
 
 signals:
-    void eventOccurred(QString name, QString event);
-    void errorOccurred(QString name, Qx::GenericError error);
+    void eventOccurred(const QString& name, const QString& event);
+    void errorOccurred(const QString& name, const Qx::GenericError& error);
 };
 
 #endif // DEFERREDPROCESSMANAGER_H

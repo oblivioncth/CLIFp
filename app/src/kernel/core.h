@@ -15,6 +15,7 @@
 
 // Qx Includes
 #include <qx/io/qx-applicationlogger.h>
+#include <qx/core/qx-processbider.h>
 #include <qx/utility/qx-macros.h>
 
 // libfp Includes
@@ -31,44 +32,46 @@ using ErrorCode = quint32;
 class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 {
     friend class Core;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
         NoError,
         InternalError,
+        CompanionModeLauncherClose,
+        CompanionModeServerOverride,
         InvalidOptions,
         TitleNotFound,
         TooManyResults,
         ConfiguredServerMissing,
-        DataPackSumMismatch,
-        DataPackSourceMissing
+        UnknownDatapackParam
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {InternalError, u"Internal system error."_s},
+        {InternalError, u"Internal error."_s},
+        {CompanionModeLauncherClose, u"The standard launcher was closed while in companion mode."_s},
+        {CompanionModeServerOverride, u"Cannot enact game server override in companion mode."_s},
         {InvalidOptions, u"Invalid global options provided."_s},
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
-        {ConfiguredServerMissing, u"The server specified in the Flashpoint config was not found within the Flashpoint services store."_s},
-        {DataPackSumMismatch, u"The existing Data Pack of the selected title does not contain the data expected. It will be re-downloaded."_s},
-        {DataPackSourceMissing, u"The expected primary data pack source was missing."_s}
+        {ConfiguredServerMissing, u"The configured server was not found within the Flashpoint services store."_s},
+        {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
     Qx::Severity mSeverity;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     CoreError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -87,6 +90,7 @@ class Core : public QObject
 //-Class Enums-----------------------------------------------------------------------
 public:
     enum class NotificationVerbosity { Full, Quiet, Silent };
+    enum ServicesMode { Standalone, Companion };
 
 //-Class Structs---------------------------------------------------------------------
 public:
@@ -156,6 +160,7 @@ public:
 
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
+    static inline const QString LOG_EVENT_MODE_SET = u"Services mode set: %1"_s;
     static inline const QString LOG_EVENT_GLOBAL_OPT = u"Global Options: %1"_s;
     static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_SUCC = u"Successfully locked standard instance count..."_s;
     static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL = u"Failed to lock standard instance count"_s;
@@ -174,8 +179,13 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_FOUND = u"Title Data Pack with correct hash is already present, no need to download"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = u"Title Data Pack requires mounting"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = u"Title Data Pack requires extraction"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED = u"Extracted files already present"_s;
     static inline const QString LOG_EVENT_TASK_ENQ = u"Enqueued %1: {%2}"_s;
     static inline const QString LOG_EVENT_APP_PATH_ALT = u"App path \"%1\" maps to alternative \"%2\"."_s;
+    static inline const QString LOG_EVENT_SERVICES_FROM_LAUNCHER = u"Using services from standard Launcher due to companion mode."_s;
+    static inline const QString LOG_EVENT_LAUNCHER_WATCH = u"Starting bide on Launcher process..."_s;
+    static inline const QString LOG_EVENT_LAUNCHER_WATCH_HOOKED = u"Launcher hooked for waiting"_s;
+    static inline const QString LOG_EVENT_LAUNCHER_CLOSED_RESULT = u"CLIFp cannot continue running in companion mode without the launcher's services."_s;
 
     // Logging - Title Search
     static inline const QString LOG_EVENT_GAME_SEARCH = u"Searching for game with title '%1'"_s;
@@ -253,6 +263,7 @@ private:
     std::unique_ptr<Qx::ApplicationLogger> mLogger;
 
     // Processing
+    ServicesMode mServicesMode;
     bool mCriticalErrorOccurred;
     NotificationVerbosity mNotificationVerbosity;
     std::queue<Task*> mTaskQueue;
@@ -263,6 +274,7 @@ private:
 
     // Other
     QProcessEnvironment mChildTitleProcEnv;
+    Qx::ProcessBider mLauncherWatcher;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -284,37 +296,55 @@ private:
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
     void logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg);
 
+    /* TODO: See if instead of repeating these with auto-source overloads everywhere if instead a template function can be made that just works
+     * in all places where core is available. This would likely require a public ::NAME static member for each type that uses core, though this
+     * would be tricky for the tasks that emit signals instead of using core directly.
+     */
+    // Notifications/Logging (self-forwarders)
+    void logCommand(const QString& commandName);
+    void logCommandOptions(const QString& commandOptions);
+    void logError(const Qx::Error& error);
+    void logEvent(const QString& event);
+    void logTask(const Task* task);
+    ErrorCode logFinish(const Qx::Error& errorState);
+    void postError(const Qx::Error& error, bool log = true);
+    int postBlockingError(const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+
 public:
     // Setup
     Qx::Error initialize(QStringList& commandLine);
+    void setServicesMode(ServicesMode mode = ServicesMode::Standalone);
+    void watchLauncher();
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
 
-    // Helper
-    QString resolveTrueAppPath(const QString& appPath, const QString& platform);
+    // Helper (TODO: Move some of these to libfp Toolkit)
+    QString resolveFullAppPath(const QString& appPath, const QString& platform);
     Qx::Error findGameIdFromTitle(QUuid& returnBuffer, QString title, bool exactTitle = true);
     Qx::Error findAddAppIdFromName(QUuid& returnBuffer, QUuid parent, QString name, bool exactName = true);
 
     // Common
     bool blockNewInstances();
-    CoreError enqueueStartupTasks();
+    CoreError enqueueStartupTasks(const QString& serverOverride = {});
     void enqueueShutdownTasks();
 #ifdef _WIN32
     Qx::Error conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
 #endif
     Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);
-    void clearTaskQueue(); // TODO: See if this can be done away with, it's awkward (i.e. not fill queue in first place). Think I tried to before though.
 
     // Notifications/Logging
+    /* TODO: Within each place that uses the log options that need the src parameter, like the Commands, and maybe even Core itself, add methods
+     * with the same names that call mCore.logX(NAME, ...) automatically so that NAME doesn't need to be passed every time
+     */
     bool isLogOpen() const;
-    void logCommand(QString src, QString commandName);
-    void logCommandOptions(QString src, QString commandOptions);
-    void logError(QString src, Qx::Error error);
-    void logEvent(QString src, QString event);
-    void logTask(QString src, const Task* task);
-    ErrorCode logFinish(QString src, Qx::Error errorState);
-    void postError(QString src, Qx::Error error, bool log = true);
-    int postBlockingError(QString src, Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    void logCommand(const QString& src, const QString& commandName);
+    void logCommandOptions(const QString& src, const QString& commandOptions);
+    void logError(const QString& src, const Qx::Error& error);
+    void logEvent(const QString& src, const QString& event);
+    void logTask(const QString& src, const Task* task);
+    ErrorCode logFinish(const QString& src, const Qx::Error& errorState);
+    void postError(const QString& src, const Qx::Error& error, bool log = true);
+    int postBlockingError(const QString& src, const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
     void postMessage(const Message& msg);
     QString requestSaveFilePath(const SaveFileRequest& request);
     QString requestExistingDirPath(const ExistingDirRequest& request);
@@ -323,6 +353,7 @@ public:
     bool requestQuestionAnswer(const QString& question);
 
     // Member access
+    ServicesMode mode() const;
     Fp::Install& fpInstall();
     const QProcessEnvironment& childTitleProcessEnvironment();
     NotificationVerbosity notifcationVerbosity() const;
@@ -350,6 +381,9 @@ signals:
     void message(const Message& message);
     void clipboardUpdateRequested(const QString& text);
     void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
+
+    // Driver specific
+    void abort(CoreError err);
 };
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------

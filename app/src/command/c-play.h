@@ -69,13 +69,13 @@ private:
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL};
 
     // Logging - Messages
-    static inline const QString LOG_EVENT_ENQ_AUTO = u"Enqueuing automatic tasks..."_s;
+    static inline const QString LOG_EVENT_HANDLING_AUTO = u"Handling automatic tasks..."_s;
     static inline const QString LOG_EVENT_URL_ID = u"ID from URL: %1"_s;
     static inline const QString LOG_EVENT_ID_MATCH_TITLE = u"ID matches main title: %1"_s;
     static inline const QString LOG_EVENT_ID_MATCH_ADDAPP = u"ID matches additional app: %1 (Child of %2)"_s;
-    static inline const QString LOG_EVENT_QUEUE_CLEARED = u"Previous queue entries cleared due to auto task being a Message/Extra"_s;
     static inline const QString LOG_EVENT_FOUND_AUTORUN = u"Found autorun-before additional app: %1"_s;
     static inline const QString LOG_EVENT_DATA_PACK_TITLE = u"Selected title uses a data pack"_s;
+    static inline const QString LOG_EVENT_SERVER_OVERRIDE = u"Selected title overrides the server to: %1"_s;
 
 public:
     // Meta
@@ -93,16 +93,19 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    // Queue
-     //TODO: Eventually rework to return via ref arg a list of tasks and a bool if app is message/extra so that startup tasks can be enqueued afterwords and queue clearing is unnecessary
-    Qx::Error enqueueAutomaticTasks(bool& wasStandalone, QUuid targetId);
+    QString getServerOverride(const Fp::GameData& gd);
+    Qx::Error handleEntry(const Fp::Game& game);
+    Qx::Error handleEntry(const Fp::AddApp& addApp);
     Qx::Error enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& platform, Task::Stage taskStage);
     Qx::Error enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
 
 protected:
-    QList<const QCommandLineOption*> options() override;
-    QString name() override;
+    QList<const QCommandLineOption*> options() const override;
+    QString name() const override;
     Qx::Error perform() override;
+
+public:
+    bool requiresServices() const override;
 };
 REGISTER_COMMAND(CPlay::NAME, CPlay, CPlay::DESCRIPTION);
 

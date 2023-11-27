@@ -37,25 +37,18 @@ CRun::CRun(Core& coreRef) : Command(coreRef) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
-QList<const QCommandLineOption*> CRun::options() { return CL_OPTIONS_SPECIFIC + Command::options(); }
-QString CRun::name() { return NAME; }
+QList<const QCommandLineOption*> CRun::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
+QSet<const QCommandLineOption*> CRun::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
+QString CRun::name() const { return NAME; }
 
 Qx::Error CRun::perform()
 {
-    // Make sure that at least an app was provided
-    if(!mParser.isSet(CL_OPTION_PARAM))
-    {
-        CRunError err(CRunError::MissingApp);
-        mCore.logError(NAME, err);
-        return err;
-    }
-
     // Enqueue startup tasks
     if(Qx::Error ee = mCore.enqueueStartupTasks(); ee.isValid())
         return ee;
 
-    QString inputPath = mCore.resolveTrueAppPath(mParser.value(CL_OPTION_APP), u""_s); // No way of knowing platform
-    QFileInfo inputInfo = QFileInfo(mCore.fpInstall().fullPath() + '/' + inputPath);
+    QString inputPath = mCore.resolveFullAppPath(mParser.value(CL_OPTION_APP), u""_s); // No way of knowing platform
+    QFileInfo inputInfo = QFileInfo(inputPath);
 
     TExec* runTask = new TExec(&mCore);
     runTask->setIdentifier(NAME + u" program"_s);
@@ -78,3 +71,6 @@ Qx::Error CRun::perform()
     // Return success
     return CRunError();
 }
+
+//Public:
+bool CRun::requiresServices() const { return true; }

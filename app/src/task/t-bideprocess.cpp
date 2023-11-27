@@ -7,22 +7,22 @@
 
 //-Constructor-------------------------------------------------------------
 //Private:
-TBideProcessError::TBideProcessError(Type t, const QString& s) :
+TBideProcessError::TBideProcessError(const QString& pn, Type t) :
     mType(t),
-    mSpecific(s)
+    mProcessName(pn)
 {}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
 bool TBideProcessError::isValid() const { return mType != NoError; }
-QString TBideProcessError::specific() const { return mSpecific; }
 TBideProcessError::Type TBideProcessError::type() const { return mType; }
+QString TBideProcessError::processName() const { return mProcessName; }
 
 //Private:
-Qx::Severity TBideProcessError::deriveSeverity() const { return Qx::Err; }
+Qx::Severity TBideProcessError::deriveSeverity() const { return Qx::Critical; }
 quint32 TBideProcessError::deriveValue() const { return mType; }
 QString TBideProcessError::derivePrimary() const { return ERR_STRINGS.value(mType); }
-QString TBideProcessError::deriveSecondary() const { return mSpecific; }
+QString TBideProcessError::deriveSecondary() const { return mProcessName; }
 
 //===============================================================================================================
 // TBideProcess
@@ -31,17 +31,27 @@ QString TBideProcessError::deriveSecondary() const { return mSpecific; }
 //-Constructor--------------------------------------------------------------------
 //Public:
 TBideProcess::TBideProcess(QObject* parent) :
-    Task(parent),
-    mProcessBider(nullptr, STANDARD_GRACE)
+    Task(parent)
 {
     // Setup bider
-    connect(&mProcessBider, &ProcessBider::statusChanged, this,  [this](QString statusMessage){
-        emit eventOccurred(NAME, statusMessage);
+    using namespace std::chrono_literals;
+    static const auto grace = 2s;
+    mProcessBider.setRespawnGrace(grace);
+    mProcessBider.setInitialGrace(true); // Process will be stopped at first
+    connect(&mProcessBider, &Qx::ProcessBider::established, this, [this]{
+        emitEventOccurred(LOG_EVENT_BIDE_RUNNING.arg(mProcessName));
+        emitEventOccurred(LOG_EVENT_BIDE_ON.arg(mProcessName));
     });
-    connect(&mProcessBider, &ProcessBider::errorOccurred, this, [this](ProcessBiderError errorMessage){
-        emit errorOccurred(NAME, errorMessage);
+    connect(&mProcessBider, &Qx::ProcessBider::processStopped, this, [this]{
+        emitEventOccurred(LOG_EVENT_BIDE_QUIT.arg(mProcessName));
     });
-    connect(&mProcessBider, &ProcessBider::bideFinished, this, &TBideProcess::postBide);
+    connect(&mProcessBider, &Qx::ProcessBider::graceStarted, this, [this]{
+        emitEventOccurred(LOG_EVENT_BIDE_GRACE.arg(QString::number(grace.count()), mProcessName));
+    });
+    connect(&mProcessBider, &Qx::ProcessBider::errorOccurred, this, [this](Qx::ProcessBiderError err){
+        emitErrorOccurred(err);
+    });
+    connect(&mProcessBider, &Qx::ProcessBider::finished, this, &TBideProcess::postBide);
 }
 
 //-Instance Functions-------------------------------------------------------------
@@ -61,22 +71,28 @@ void TBideProcess::setProcessName(QString processName) { mProcessName = processN
 void TBideProcess::perform()
 {
     // Start bide
-    mProcessBider.start(mProcessName);
+    mProcessBider.setProcessName(mProcessName);
+    mProcessBider.start();
 }
 
 void TBideProcess::stop()
 {
-    if(mProcessBider.isRunning())
+    if(mProcessBider.isBiding())
     {
-        emit eventOccurred(NAME, LOG_EVENT_STOPPING_BIDE_PROCESS);
-        if(!mProcessBider.closeProcess())
-            emit errorOccurred(NAME, TBideProcessError(TBideProcessError::CantClose));
+        emitEventOccurred(LOG_EVENT_STOPPING_BIDE_PROCESS);
+        mProcessBider.closeProcess();
     }
 }
 
 //-Signals & Slots-------------------------------------------------------------------------------------------------------
 //Private Slots:
-void TBideProcess::postBide(Qx::Error errorStatus)
+void TBideProcess::postBide(Qx::ProcessBider::ResultType type)
 {
-    emit complete(errorStatus);
+    if(type == Qx::ProcessBider::Fail)\
+        emit complete(TBideProcessError(mProcessName, TBideProcessError::BideFail));
+    else
+    {
+        emitEventOccurred(LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
+        emit complete(TBideProcessError());
+    }
 }

@@ -215,13 +215,13 @@ void TExtract::perform()
 {
     // Log string
     QFileInfo packFileInfo(mPackPath);
-    emit eventOccurred(NAME, LOG_EVENT_EXTRACTING_ARCHIVE.arg(packFileInfo.fileName()));
+    emitEventOccurred(LOG_EVENT_EXTRACTING_ARCHIVE.arg(packFileInfo.fileName()));
 
     // Extract pack
     Extractor extractor(mPackPath, mPathInPack, mDestinationPath);
     TExtractError ee = extractor.extract();
     if(ee.isValid())
-        emit errorOccurred(NAME, ee);
+        emitErrorOccurred(ee);
 
     emit complete(ee);
 }

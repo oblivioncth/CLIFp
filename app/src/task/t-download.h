@@ -11,33 +11,31 @@
 class QX_ERROR_TYPE(TDownloadError, "TDownloadError", 1252)
 {
     friend class TDownload;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
         NoError = 0,
-        ChecksumMismatch = 1,
         Incomeplete = 2
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {ChecksumMismatch, u"The file's checksum does not match its record!"_s},
-        {Incomeplete, u"The download could not be completed."_s}
+        {Incomeplete, u"The download(s) could not be completed."_s}
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     TDownloadError(Type t = NoError, const QString& s = {});
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -59,25 +57,24 @@ private:
     static inline const QString NAME = u"TDownload"_s;
 
     // Logging
-    static inline const QString LOG_EVENT_DOWNLOADING_FILE = u"Downloading file %1"_s;
-    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = u"File downloaded successfully"_s;
+    static inline const QString LOG_EVENT_DOWNLOAD = u"Downloading %1"_s;
+    static inline const QString LOG_EVENT_DOWNLOAD_SUCC = u"File(s) downloaded successfully"_s;
     static inline const QString LOG_EVENT_DOWNLOAD_AUTH = u"File download unexpectedly requires authentication (%1)"_s;
     static inline const QString LOG_EVENT_STOPPING_DOWNLOADS = u"Stopping current download(s)..."_s;
+
+    // Members
+    static inline const QString FILE_NO_CHECKSUM = u"NO SUM"_s;
+    static inline const QString FILE_DOWNLOAD_TEMPLATE = uR"("%1" -> "%2" (%3))"_s;
+    static inline const QString FILE_DOWNLOAD_ELIDE = u"+%1 more..."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
     Qx::AsyncDownloadManager mDownloadManager;
-    /* NOTE: If it ever becomes required to perform multiple downloads in a run the DM instance should
-     * be made a static member of TDownload, or all downloads need to be determined at the same time
-     * and the task made capable of holding all of them
-     */
 
     // Data
-    QString mDestinationPath;
-    QString mDestinationFilename;
-    QUrl mTargetFile;
-    QString mSha256;
+    QList<Qx::DownloadTask> mFiles;
+    QString mDescription;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -88,15 +85,13 @@ public:
     QString name() const override;
     QStringList members() const override;
 
-    QString destinationPath() const;
-    QString destinationFilename() const;
-    QUrl targetFile() const;
-    QString sha256() const;
+    bool isEmpty() const;
+    qsizetype fileCount() const;
+    QList<Qx::DownloadTask> files() const;
+    QString description() const;
 
-    void setDestinationPath(QString path);
-    void setDestinationFilename(QString filename);
-    void setTargetFile(QUrl targetFile);
-    void setSha256(QString sha256);
+    void addFile(const Qx::DownloadTask file);
+    void setDescription(const QString& desc);
 
     void perform() override;
     void stop() override;

@@ -102,7 +102,7 @@ CommandError Command::parse(const QStringList& commandLine)
     else
     {
         CommandError parseErr = CommandError(ERR_INVALID_ARGS).wDetails(mParser.errorText());
-        mCore.postError(NAME, parseErr);
+        postError(parseErr);
         return parseErr;
     }
 }
@@ -135,7 +135,7 @@ CommandError Command::checkRequiredOptions()
 
 void Command::showHelp()
 {
-    mCore.logEvent(name(), LOG_EVENT_C_HELP_SHOWN.arg(name()));
+    logEvent(LOG_EVENT_C_HELP_SHOWN.arg(name()));
     // Help string
     static QString helpStr;
 
@@ -172,11 +172,22 @@ void Command::showHelp()
 }
 
 //Protected:
-QList<const QCommandLineOption*> Command::options() { return CL_OPTIONS_STANDARD; }
-QSet<const QCommandLineOption*> Command::requiredOptions() { return {}; }
+QList<const QCommandLineOption*> Command::options() const { return CL_OPTIONS_STANDARD; }
+QSet<const QCommandLineOption*> Command::requiredOptions() const { return {}; }
+
+// Notifications/Logging (core-forwarders)
+void Command::logCommand(QString commandName) const {mCore.logCommand(name(), commandName); }
+void Command::logCommandOptions(QString commandOptions) const {mCore.logCommandOptions(name(), commandOptions); }
+void Command::logError(Qx::Error error) const {mCore.logError(name(), error); }
+void Command::logEvent(QString event) const {mCore.logEvent(name(), event); }
+void Command::logTask(const Task* task) const {mCore.logTask(name(), task); }
+ErrorCode Command::logFinish(Qx::Error errorState) const {return mCore.logFinish(name(), errorState); }
+void Command::postError(Qx::Error error, bool log) const {mCore.postError(name(), error, log); }
+int Command::postBlockingError(Qx::Error error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) const {return mCore.postBlockingError(name(), error, log); }
 
 //Public:
 bool Command::requiresFlashpoint() const { return true; }
+bool Command::requiresServices() const { return false; }
 bool Command::autoBlockNewInstances() const { return true; }
 
 Qx::Error Command::process(const QStringList& commandLine)
@@ -194,7 +205,7 @@ Qx::Error Command::process(const QStringList& commandLine)
     processError = checkRequiredOptions();
     if(processError.isValid())
     {
-        mCore.postError(NAME, processError);
+        postError(processError);
         return processError;
     }
 
