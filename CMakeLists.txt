@@ -79,7 +79,7 @@ ob_fetch_qx(
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("e65151253813b8da7d7f9b8849810f58dd5e9a50")
+ob_fetch_libfp("89430b79c7b06f67c1219008a07a1b1daf6d443f")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
