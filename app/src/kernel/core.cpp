@@ -436,9 +436,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     mFlashpointInstall = std::move(flashpointInstall);
 
     // Note install details
-    logEvent(LOG_EVENT_FLASHPOINT_VERSION_TXT.arg(mFlashpointInstall->nameVersionString()));
-    logEvent(LOG_EVENT_FLASHPOINT_VERSION.arg(mFlashpointInstall->version().toString()));
-    logEvent(LOG_EVENT_FLASHPOINT_EDITION.arg(ENUM_NAME(mFlashpointInstall->edition())));
+    auto info = mFlashpointInstall->versionInfo();
+    logEvent(LOG_EVENT_FLASHPOINT_VERSION_TXT.arg(info->fullString()));
+    logEvent(LOG_EVENT_FLASHPOINT_VERSION.arg(info->version().toString()));
+    logEvent(LOG_EVENT_FLASHPOINT_EDITION.arg(ENUM_NAME(info->edition())));
     logEvent(LOG_EVENT_OUTFITTED_DAEMON.arg(ENUM_NAME(mFlashpointInstall->outfittedDaemon())));
 
     // Initialize child process env vars
