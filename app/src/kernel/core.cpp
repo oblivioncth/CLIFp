@@ -733,20 +733,23 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
     const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
 
-    QString packFilename = gameData.path();
     QString packPath = tk->datapackPath(gameData);
+    QString packFilename = tk->datapackFilename(gameData);
 
     // Enqueue pack download if it's not available
     if(!tk->datapackIsPresent(gameData))
     {
         logEvent(LOG_EVENT_DATA_PACK_MISS);
 
-        QUrl packUrl = tk->datapackUrl(gameData);
-
         TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
         downloadTask->setDescription(u"data pack "_s + packFilename);
-        downloadTask->addFile({.target = packUrl, .dest = packPath, .checksum = gameData.sha256()});
+        TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
+        if(packError.isValid())
+        {
+            postError(packError);
+            return packError;
+        }
 
         mTaskQueue.push(downloadTask);
         logTask(downloadTask);

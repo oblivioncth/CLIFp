@@ -1,6 +1,9 @@
 // Unit Include
 #include "t-download.h"
 
+// Flashpoint Includes
+#include <fp/fp-toolkit.h>
+
 //===============================================================================================================
 // TDownloadError
 //===============================================================================================================
@@ -90,6 +93,20 @@ QList<Qx::DownloadTask> TDownload::files() const { return mFiles; }
 QString TDownload::description() const { return mDescription; }
 
 void TDownload::addFile(const Qx::DownloadTask file) { mFiles.append(file); }
+
+TDownloadError TDownload::addDatapack(const Fp::Toolkit* tk, const Fp::GameData* gameData)
+{
+    // TODO: CDownload runs this in a loop, which is why Q_UNLIKELY is used, but in the long run a different approach in which download
+    // ability is checked for once ahead of time is probably best
+    if(Q_UNLIKELY(!tk->canDownloadDatapacks()))
+        return TDownloadError(TDownloadError::OfflineEdition, tk->datapackFilename(*gameData));
+
+    // TODO: This makes it apparent that a class like "CompleteGameData" might be warranted, with a constructor that takes GameData and
+    // Toolkit and then produces a representation of the GameData with a complete path/url, though the URL would be null for Ultimate
+    addFile({.target = tk->datapackUrl(*gameData), .dest = tk->datapackPath(*gameData), .checksum = gameData->sha256()});
+    return TDownloadError();
+}
+
 void TDownload::setDescription(const QString& desc) { mDescription = desc; }
 
 void TDownload::perform()

@@ -92,8 +92,13 @@ Qx::Error CDownload::perform()
         if(tk->datapackIsPresent(gameData))
             continue;
 
-        // Queue download
-        downloadTask->addFile({.target = tk->datapackUrl(gameData), .dest = tk->datapackPath(gameData), .checksum = gameData.sha256()});
+        // Queue download, if possible
+        TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
+        if(packError.isValid())
+        {
+            postError(packError);
+            return packError;
+        }
 
         // Note data id
         dataIds.append(gameData.id());

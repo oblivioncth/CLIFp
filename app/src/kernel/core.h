@@ -58,7 +58,7 @@ private:
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
         {ConfiguredServerMissing, u"The configured server was not found within the Flashpoint services store."_s},
-        {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
+        {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
