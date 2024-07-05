@@ -72,14 +72,14 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.5.6"
+    REF "037a16dd85bb4de9419c7f095a520e898ccacebc"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("89430b79c7b06f67c1219008a07a1b1daf6d443f")
+ob_fetch_libfp("c14360d4306e6f74bce06f98414a3a51f0cf9cd8")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
