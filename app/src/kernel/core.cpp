@@ -448,8 +448,11 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 
 #ifdef __linux__
     //-Mimic startup script setup-------------------------
+    logEvent(LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS);
+
     QString winFpPath = u"Z:"_s + QString(fpPath).replace('/', '\\');
     bool immutable = mFlashpointInstall->dir().exists(u"Libraries"_s); // NOTE: This check likely will need to be modified over time
+    logEvent(LOG_EVENT_LINUX_BUILD_TYPE.arg(immutable ? u"isn't"_s : u"is"_s));
 
     // Add platform support environment variables
     de.insert(u"DIR"_s, fpPath);
@@ -471,7 +474,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
          */
         int gtkRes = QProcess::execute(u"sh"_s, {u"-c"_s, u"ldconfig -p | grep libgtk-3.so >/dev/null 2>&1"_s});
         if(gtkRes != 0)
+        {
+            logEvent(LOG_EVENT_LINUX_GTK3_MISSING);
             de.insert(u"GTK_USE_PORTAL"_s, "1");
+        }
     }
     else
         de.insert(u"LD_LIBRARY_PATH"_s, fpPath + u"/Legacy"_s);
@@ -481,7 +487,7 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
          */
     QFile ruffle(fpPath + u"/Data/Ruffle/standalone/latest/ruffle"_s); // TODO: Might want to add this under Fp::Install
     if(!ruffle.setPermissions(QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther))
-        qWarning("Failed to mark ruffle as executable!");
+        logEvent(LOG_ERR_FAILED_SETTING_RUFFLE_PERMS);
 #endif
 
     TExec::setDefaultProcessEnvironment(de);

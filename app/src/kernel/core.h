@@ -157,6 +157,7 @@ public:
     // Logging - Errors
     static inline const QString LOG_ERR_INVALID_PARAM = u"Invalid parameters provided"_s;
     static inline const QString LOG_ERR_CRITICAL = u"Aborting execution due to previous critical errors"_s;
+    static inline const QString LOG_ERR_FAILED_SETTING_RUFFLE_PERMS= u"Failed to mark ruffle as executable!"_s;
 
     // Logging - Messages
     static inline const QString LOG_EVENT_INIT = u"Initializing CLIFp..."_s;
@@ -186,6 +187,11 @@ public:
     static inline const QString LOG_EVENT_LAUNCHER_WATCH = u"Starting bide on Launcher process..."_s;
     static inline const QString LOG_EVENT_LAUNCHER_WATCH_HOOKED = u"Launcher hooked for waiting"_s;
     static inline const QString LOG_EVENT_LAUNCHER_CLOSED_RESULT = u"CLIFp cannot continue running in companion mode without the launcher's services."_s;
+
+    // Logging - Linux Specific Startup Steps
+    static inline const QString LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS= u"Handling Linux specific startup steps..."_s;
+    static inline const QString LOG_EVENT_LINUX_BUILD_TYPE = u"Linux build %1 mutable."_s;
+    static inline const QString LOG_EVENT_LINUX_GTK3_MISSING = u"GTK3 isn't installed, setting GTK_USE_PORTAL=1"_s;
 
     // Logging - Title Search
     static inline const QString LOG_EVENT_GAME_SEARCH = u"Searching for game with title '%1'"_s;
