@@ -1,5 +1,5 @@
 // Unit Includes
-#include "mounter_proxy.h"
+#include "mounter_game_server.h"
 
 // Qt Includes
 #include <QAuthenticator>
@@ -20,22 +20,22 @@
 
 //-Constructor-------------------------------------------------------------
 //Private:
-MounterProxyError::MounterProxyError(Type t, const QString& s) :
+MounterGameServerError::MounterGameServerError(Type t, const QString& s) :
     mType(t),
     mSpecific(s)
 {}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
-bool MounterProxyError::isValid() const { return mType != NoError; }
-QString MounterProxyError::specific() const { return mSpecific; }
-MounterProxyError::Type MounterProxyError::type() const { return mType; }
+bool MounterGameServerError::isValid() const { return mType != NoError; }
+QString MounterGameServerError::specific() const { return mSpecific; }
+MounterGameServerError::Type MounterGameServerError::type() const { return mType; }
 
 //Private:
-Qx::Severity MounterProxyError::deriveSeverity() const { return Qx::Critical; }
-quint32 MounterProxyError::deriveValue() const { return mType; }
-QString MounterProxyError::derivePrimary() const { return ERR_STRINGS.value(mType); }
-QString MounterProxyError::deriveSecondary() const { return mSpecific; }
+Qx::Severity MounterGameServerError::deriveSeverity() const { return Qx::Critical; }
+quint32 MounterGameServerError::deriveValue() const { return mType; }
+QString MounterGameServerError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString MounterGameServerError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
 // Mounter
@@ -43,17 +43,17 @@ QString MounterProxyError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-MounterProxy::MounterProxy(QObject* parent) :
+MounterGameServer::MounterGameServer(QObject* parent) :
     QObject(parent),
     mMounting(false),
-    mProxyServerPort(0)
+    mGameServerPort(0)
 {
     // Setup Network Access Manager
     mNam.setAutoDeleteReplies(true);
-    mNam.setTransferTimeout(PROXY_TRANSFER_TIMEOUT);
+    mNam.setTransferTimeout(GAME_SERVER_TRANSFER_TIMEOUT);
 
     // Connections - Work
-    connect(&mNam, &QNetworkAccessManager::finished, this, &MounterProxy::proxyMountFinishedHandler);
+    connect(&mNam, &QNetworkAccessManager::finished, this, &MounterGameServer::gameServerMountFinishedHandler);
 
     /* Network check (none of these should be triggered, they are here in case a FP update would required
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
@@ -76,45 +76,45 @@ MounterProxy::MounterProxy(QObject* parent) :
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 //Private:
-void MounterProxy::finish(const MounterProxyError& errorState)
+void MounterGameServer::finish(const MounterGameServerError& errorState)
 {
     mMounting = false;
     emit mountFinished(errorState);
 }
 
-void MounterProxy::noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data)
+void MounterGameServer::noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data)
 {
     signalEventOccurred(EVENT_REQUEST_SENT.arg(ENUM_NAME(op), url.toString(), QString::fromLatin1(data)));
 }
 
-void MounterProxy::noteProxyResponse(const QString& response)
+void MounterGameServer::noteProxyResponse(const QString& response)
 {
-    signalEventOccurred(EVENT_PROXY_RESPONSE.arg(response));
+    signalEventOccurred(EVENT_GAMESERVER_RESPONSE.arg(response));
 }
 
-void MounterProxy::signalEventOccurred(const QString& event) { emit eventOccurred(NAME, event); }
-void MounterProxy::signalErrorOccurred(const MounterProxyError& errorMessage) { emit errorOccurred(NAME, errorMessage); }
+void MounterGameServer::signalEventOccurred(const QString& event) { emit eventOccurred(NAME, event); }
+void MounterGameServer::signalErrorOccurred(const MounterGameServerError& errorMessage) { emit errorOccurred(NAME, errorMessage); }
 
 //Public:
-bool MounterProxy::isMounting() { return mMounting; }
+bool MounterGameServer::isMounting() { return mMounting; }
 
-quint16 MounterProxy::proxyServerPort() const { return mProxyServerPort; }
-QString MounterProxy::filePath() const { return mFilePath; }
+quint16 MounterGameServer::gameServerPort() const { return mGameServerPort; }
+QString MounterGameServer::filePath() const { return mFilePath; }
 
-void MounterProxy::setProxyServerPort(quint16 port) { mProxyServerPort = port; }
-void MounterProxy::setFilePath(const QString& path) { mFilePath = QDir::toNativeSeparators(path); }
+void MounterGameServer::setGameServerPort(quint16 port) { mGameServerPort = port; }
+void MounterGameServer::setFilePath(const QString& path) { mFilePath = QDir::toNativeSeparators(path); }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Private Slots:
-void MounterProxy::proxyMountFinishedHandler(QNetworkReply* reply)
+void MounterGameServer::gameServerMountFinishedHandler(QNetworkReply* reply)
 {
-    assert(reply == mProxyMountReply.get());
+    assert(reply == mGameServerMountReply.get());
 
-    MounterProxyError err;
+    MounterGameServerError err;
 
     if(reply->error() != QNetworkReply::NoError)
     {
-        err = MounterProxyError(MounterProxyError::ProxyMount, reply->errorString());
+        err = MounterGameServerError(MounterGameServerError::ProxyMount, reply->errorString());
         signalErrorOccurred(err);
     }
     else
@@ -127,7 +127,7 @@ void MounterProxy::proxyMountFinishedHandler(QNetworkReply* reply)
 }
 
 //Public Slots:
-void MounterProxy::mount()
+void MounterGameServer::mount()
 {
     signalEventOccurred(EVENT_MOUNTING);
 
@@ -137,7 +137,7 @@ void MounterProxy::mount()
     QUrl mountUrl;
     mountUrl.setScheme(u"http"_s);
     mountUrl.setHost(u"localhost"_s);
-    mountUrl.setPort(mProxyServerPort);
+    mountUrl.setPort(mGameServerPort);
     mountUrl.setPath(u"/fpProxy/api/mountzip"_s);
 
     // Req
@@ -159,16 +159,16 @@ void MounterProxy::mount()
     QByteArray data = jdData.toJson(QJsonDocument::Compact);
 
     //-POST Request---------------------------------
-    mProxyMountReply = mNam.post(mountReq, data);
+    mGameServerMountReply = mNam.post(mountReq, data);
 
     // Log request
-    noteProxyRequest(mProxyMountReply->operation(), mountUrl, data);
+    noteProxyRequest(mGameServerMountReply->operation(), mountUrl, data);
 
     // Await finished() signal...
 }
 
-void MounterProxy::abort()
+void MounterGameServer::abort()
 {
-    if(mProxyMountReply && mProxyMountReply->isRunning())
-        mProxyMountReply->abort();
+    if(mGameServerMountReply && mGameServerMountReply->isRunning())
+        mGameServerMountReply->abort();
 }

@@ -29,7 +29,7 @@ TMount::TMount(QObject* parent) :
 //-Instance Functions-------------------------------------------------------------
 //Private:
 template<typename M>
-    requires Qx::any_of<M, MounterProxy, MounterQmp, MounterRouter>
+    requires Qx::any_of<M, MounterGameServer, MounterQmp, MounterRouter>
 void TMount::initMounter(M*& mounter)
 {
     mounter = new M(this);
@@ -79,7 +79,7 @@ void TMount::perform()
     {
         initMounter(mMounterProxy);
         mMounterProxy->setFilePath(mPath);
-        mMounterProxy->setProxyServerPort(22501);
+        mMounterProxy->setGameServerPort(22501);
     }
     else
     {

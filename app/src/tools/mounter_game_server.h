@@ -1,5 +1,5 @@
-#ifndef MOUNTER_PROXY_H
-#define MOUNTER_PROXY_H
+#ifndef MOUNTER_GAME_SERVER_H
+#define MOUNTER_GAME_SERVER_H
 
 // Qt Includes
 #include <QObject>
@@ -11,9 +11,9 @@
 #include <qx/core/qx-error.h>
 #include <qx/utility/qx-macros.h>
 
-class QX_ERROR_TYPE(MounterProxyError, "MounterError", 1232)
+class QX_ERROR_TYPE(MounterGameServerError, "MounterError", 1232)
 {
-    friend class MounterProxy;
+    friend class MounterGameServer;
 //-Class Enums-------------------------------------------------------------
 public:
     enum Type
@@ -36,7 +36,7 @@ private:
 
 //-Constructor-------------------------------------------------------------
 private:
-    MounterProxyError(Type t = NoError, const QString& s = {});
+    MounterGameServerError(Type t = NoError, const QString& s = {});
 
 //-Instance Functions-------------------------------------------------------------
 public:
@@ -51,7 +51,7 @@ private:
     QString deriveSecondary() const override;
 };
 
-class MounterProxy : public QObject
+class MounterGameServer : public QObject
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -60,52 +60,52 @@ private:
     static inline const QString NAME = u"Mounter"_s;
 
     // Events - External
-    static inline const QString EVENT_PROXY_RESPONSE = u"Proxy Response: \"%1\""_s;
+    static inline const QString EVENT_GAMESERVER_RESPONSE = u"Game Server Response: \"%1\""_s;
 
     // Events - Internal
-    static inline const QString EVENT_MOUNTING = u"Mounting data pack via proxy server..."_s;
+    static inline const QString EVENT_MOUNTING = u"Mounting data pack via game server..."_s;
     static inline const QString EVENT_REQUEST_SENT = u"Sent HTTP request\n"
                                                      "\tOperation: %1\n"
                                                      "\tURL: %2\n"
                                                      "\tData: %3"_s;
 
     // Connections
-    static const int PROXY_TRANSFER_TIMEOUT = 30000; // ms
+    static const int GAME_SERVER_TRANSFER_TIMEOUT = 30000; // ms
 
 //-Instance Variables------------------------------------------------------------------------------------------------------------
 private:
     bool mMounting;
-    int mProxyServerPort;
+    int mGameServerPort;
     QString mFilePath;
 
     QNetworkAccessManager mNam;
-    QPointer<QNetworkReply> mProxyMountReply;
+    QPointer<QNetworkReply> mGameServerMountReply;
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit MounterProxy(QObject* parent = nullptr);
+    explicit MounterGameServer(QObject* parent = nullptr);
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
-    void finish(const MounterProxyError& errorState);
+    void finish(const MounterGameServerError& errorState);
     void noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data);
     void noteProxyResponse(const QString& response);
 
     void signalEventOccurred(const QString& event);
-    void signalErrorOccurred(const MounterProxyError& errorMessage);
+    void signalErrorOccurred(const MounterGameServerError& errorMessage);
 
 public:
     bool isMounting();
 
-    quint16 proxyServerPort() const;
+    quint16 gameServerPort() const;
     QString filePath() const;
 
-    void setProxyServerPort(quint16 port);
+    void setGameServerPort(quint16 port);
     void setFilePath(const QString& path);
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
-    void proxyMountFinishedHandler(QNetworkReply* reply);
+    void gameServerMountFinishedHandler(QNetworkReply* reply);
 
 public slots:
     void mount();
@@ -113,12 +113,12 @@ public slots:
 
 signals:
     void eventOccurred(const QString& name, const QString& event);
-    void errorOccurred(const QString& name, const MounterProxyError& errorMessage);
-    void mountFinished(const MounterProxyError& errorState);
+    void errorOccurred(const QString& name, const MounterGameServerError& errorMessage);
+    void mountFinished(const MounterGameServerError& errorState);
 
     // For now these just cause a busy state
     void mountProgress(qint64 progress);
     void mountProgressMaximumChanged(qint64 maximum);
 };
 
-#endif // MOUNTER_PROXY_H
+#endif // MOUNTER_GAME_SERVER_H
