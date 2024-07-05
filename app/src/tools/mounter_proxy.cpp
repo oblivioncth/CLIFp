@@ -144,12 +144,15 @@ void MounterProxy::mount()
     QNetworkRequest mountReq(mountUrl);
 
     // Header
-    mountReq.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    // These headers are used by the stock launcher, but don't seem to be needed
-    //
-    // mountReq.setRawHeader("Connection"_ba, "close"_ba);
-    // mountReq.setRawHeader("Accept"_ba, "application/json, text/plain, */*"_ba);
-    // mountReq.setRawHeader("Accept-Encoding"_ba, "gzip, compress, deflate, br"_ba);
+    mountReq.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_ba);
+    /* These following headers are used by the stock launcher, but don't seem to be needed;
+     * however, we include them anyway out of posterity in hopes of avoiding future issues
+     * in case FPGS starts caring
+     */
+    mountReq.setHeader(QNetworkRequest::UserAgentHeader, "axios/1.6.8"_ba);
+    mountReq.setRawHeader("Connection"_ba, "close"_ba);
+    mountReq.setRawHeader("Accept"_ba, "application/json, text/plain, */*"_ba);
+    mountReq.setRawHeader("Accept-Encoding"_ba, "gzip, compress, deflate, br"_ba);
 
     // Data
     QJsonDocument jdData(QJsonObject{{u"filePath"_s, mFilePath}});
