@@ -38,6 +38,7 @@ TDownload::TDownload(QObject* parent) :
 {
     // Setup download manager
     mDownloadManager.setOverwrite(true);
+    mDownloadManager.setDeletePartialDownloads(true);
     mDownloadManager.setVerificationMethod(QCryptographicHash::Sha256);
 
     // Download event handlers
