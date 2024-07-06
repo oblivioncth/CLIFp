@@ -295,7 +295,7 @@ void Core::logEvent(const QString& event) { logEvent(NAME, event); }
 void Core::logTask(const Task* task) { logTask(NAME, task); }
 ErrorCode Core::logFinish(const Qx::Error& errorState) { return logFinish(NAME, errorState); }
 void Core::postError(const Qx::Error& error, bool log) { postError(NAME, error, log); }
-int Core::postBlockingError(const Qx::Error& error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { return postBlockingError(NAME, error, log); }
+int Core::postBlockingError(const Qx::Error& error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { return postBlockingError(NAME, error, log, bs, def); }
 
 //Public:
 Qx::Error Core::initialize(QStringList& commandLine)
