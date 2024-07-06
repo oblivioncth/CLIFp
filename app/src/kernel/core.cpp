@@ -587,7 +587,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
     {
         // Copy backup prefix
         QDir winePrefixBak(mFlashpointInstall->dir().absolutePath() + u"/FPSoftware/.winebak"_s);
-        if(Qx::copyDirectory(winePrefixBak, winePrefix, true, false).isFailure())
+        if(Qx::copyDirectory(winePrefixBak, winePrefix, true, Qx::ReplaceMode::Skip).isFailure())
             qWarning("Failed to restore WINE prefix backup");
 
         // Setup WINE registry modification
@@ -762,7 +762,7 @@ void Core::enqueueShutdownTasks()
     wineSaveBackup->setDescription(u"Backup Flash WINE saves"_s);
     wineSaveBackup->setAction([saveSrc, saveDest]{
         saveDest.mkpath(u"."_s);
-        return Qx::copyDirectory(saveSrc, saveDest, true, false);
+        return Qx::copyDirectory(saveSrc, saveDest, true, Qx::ReplaceMode::Skip);
     });
 
     mTaskQueue.push(wineSaveBackup);
