@@ -10,10 +10,18 @@
 
 //-Constructor-------------------------------------------------------------
 //Private:
-TDownloadError::TDownloadError(Type t, const QString& s) :
+TDownloadError::TDownloadError(Type t, const QString& s, const QString& d) :
     mType(t),
-    mSpecific(s)
+    mSpecific(s),
+    mDetails(d)
 {}
+
+TDownloadError::TDownloadError(Qx::DownloadManagerReport dmReport)
+{
+    mType = dmReport.wasSuccessful() ? NoError : Incomplete;
+    mSpecific = dmReport.outcomeString();
+    mDetails = dmReport.details();
+}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
@@ -26,6 +34,7 @@ Qx::Severity TDownloadError::deriveSeverity() const { return Qx::Critical; }
 quint32 TDownloadError::deriveValue() const { return mType; }
 QString TDownloadError::derivePrimary() const { return ERR_STRINGS.value(mType); }
 QString TDownloadError::deriveSecondary() const { return mSpecific; }
+QString TDownloadError::deriveDetails() const { return mDetails; }
 
 //===============================================================================================================
 // TDownload
@@ -146,7 +155,7 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
         emitEventOccurred(LOG_EVENT_DOWNLOAD_SUCC);
     else
     {
-        errorStatus = TDownloadError(TDownloadError::Incomeplete, downloadReport.outcomeString());
+        errorStatus = TDownloadError(downloadReport);
         emitErrorOccurred(errorStatus);
     }
 

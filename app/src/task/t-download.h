@@ -23,7 +23,7 @@ public:
     enum Type
     {
         NoError,
-        Incomeplete,
+        Incomplete,
         OfflineEdition
     };
 
@@ -31,7 +31,7 @@ public:
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {Incomeplete, u"The download(s) could not be completed."_s},
+        {Incomplete, u"The download(s) could not be completed."_s},
         {OfflineEdition, u"A datapack download was prompted in an offline edition of Flashpoint."_s}
     };
 
@@ -39,10 +39,12 @@ private:
 private:
     Type mType;
     QString mSpecific;
+    QString mDetails;
 
 //-Constructor-------------------------------------------------------------
 private:
-    TDownloadError(Type t = NoError, const QString& s = {});
+    TDownloadError(Type t = NoError, const QString& s = {}, const QString& d = {});
+    TDownloadError(Qx::DownloadManagerReport dmReport);
 
 //-Instance Functions-------------------------------------------------------------
 public:
@@ -55,6 +57,7 @@ private:
     quint32 deriveValue() const override;
     QString derivePrimary() const override;
     QString deriveSecondary() const override;
+    QString deriveDetails() const override;
 };
 
 class TDownload : public Task
