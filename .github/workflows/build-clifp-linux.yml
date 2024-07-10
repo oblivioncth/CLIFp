@@ -63,6 +63,9 @@ jobs:
       run: sudo apt-get install libegl1-mesa-dev
     - name: Install Wayland
       run: sudo apt-get install libwayland-dev
+    - name: Install DBus
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install libdbus-1-dev
     - name: Checkout CLIFp
       uses: actions/checkout@v4
       with:
