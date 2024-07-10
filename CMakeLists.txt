@@ -44,6 +44,7 @@ endif()
 # Import Qt
 set(CLIFP_QT_COMPONENTS
     Core
+    Core5Compat
     Gui
     Widgets
     Sql
