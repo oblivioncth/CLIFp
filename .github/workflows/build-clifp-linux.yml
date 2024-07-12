@@ -68,6 +68,8 @@ jobs:
       run: sudo apt-get install libdbus-1-dev
     - name: Install libzstd-dev
       run: sudo apt-get install libzstd-dev
+    - name: Install libdbus-1-dev
+      run: sudo apt-get install libdbus-1-dev
     - name: Checkout CLIFp
       uses: actions/checkout@v4
       with:
