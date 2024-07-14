@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("6f3d5a21e1bb1c1eb3f07d08cf757a14a85e0b21")
+fetch_ob_cmake("3e6aaf407ba9e2c6025d35702fde3361dca5a0db")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -50,6 +50,10 @@ set(CLIFP_QT_COMPONENTS
     Sql
     Network
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+     list(APPEND CLIFP_QT_COMPONENTS WaylandClient) # To enable wayland support
+endif()
 
 # Find Qt package
 add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
