@@ -53,8 +53,8 @@ Qx::Error CRun::perform()
     TExec* runTask = new TExec(&mCore);
     runTask->setIdentifier(NAME + u" program"_s);
     runTask->setStage(Task::Stage::Primary);
-    runTask->setExecutable(inputInfo.canonicalFilePath());
-    runTask->setDirectory(inputInfo.canonicalPath());
+    runTask->setExecutable(QDir::cleanPath(inputInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
+    runTask->setDirectory(inputInfo.absolutePath());
     runTask->setParameters(mParser.value(CL_OPTION_PARAM));
     runTask->setEnvironment(mCore.childTitleProcessEnvironment());
     runTask->setProcessType(TExec::ProcessType::Blocking);

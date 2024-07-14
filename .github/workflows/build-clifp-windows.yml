@@ -17,12 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lib_linkage: [shared, static]
-        include:
-          - lib_linkage: shared
-            cmake_bsl: ON
-          - lib_linkage: static
-            cmake_bsl: OFF
+        linkage: [{type: shared, cmake_bsl: ON}, {type: static, cmake_bsl: OFF}]
     runs-on: windows-latest
     env:
       vs_dir: C:/Program Files/Microsoft Visual Studio/2022/Enterprise
@@ -37,14 +32,14 @@ jobs:
     - name: Install Qt (custom build)
       uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
-        version: 6.6.0
+        version: 6.7.2
         os: windows
         compiler: msvc2022
-        linkage: ${{ matrix.lib_linkage }}
+        linkage: ${{ matrix.linkage.type }}
         path: ${{ env.qt_install_dir }}
         credentials: ${{ secrets.qt_ffynnon_cred }}
     - name: Checkout CLIFp
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ${{ env.clifp_src_suffix }}
         fetch-depth: 0 # Required for verbose versioning to work correctly
@@ -55,7 +50,7 @@ jobs:
         echo "Setup C++ Build Environment..."
         CALL "${{ env.vs_dir }}\Common7\Tools\VsDevCmd.bat" -arch=amd64
         echo "Configure CMake using Qt wrapper..."
-        CALL "${{ env.qt_cmake }}" -G "${{ env.cmake_gen }}" -S "${{ env.clifp_src_dir}}" -B "${{ env.clifp_build_dir }}" -D BUILD_SHARED_LIBS=${{ matrix.cmake_bsl }}
+        CALL "${{ env.qt_cmake }}" -G "${{ env.cmake_gen }}" -S "${{ env.clifp_src_dir}}" -B "${{ env.clifp_build_dir }}" -D BUILD_SHARED_LIBS=${{ matrix.linkage.cmake_bsl }}
         echo "Changing to build directory..."
         cd "%clifp_build_dir%"
         echo "Building CLIFp release..."
@@ -70,7 +65,7 @@ jobs:
         $artifact_name=$((Get-ChildItem -Path "${{ env.clifp_package_path }}" -Filter *.zip)[0].BaseName) + ' [msvc]'
         echo "current_artifact_name=$artifact_name" >> $Env:GITHUB_ENV
     - name: Upload CLIFp build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.current_artifact_name }}
         path: ${{ env.clifp_install_path }}

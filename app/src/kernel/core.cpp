@@ -295,7 +295,7 @@ void Core::logEvent(const QString& event) { logEvent(NAME, event); }
 void Core::logTask(const Task* task) { logTask(NAME, task); }
 ErrorCode Core::logFinish(const Qx::Error& errorState) { return logFinish(NAME, errorState); }
 void Core::postError(const Qx::Error& error, bool log) { postError(NAME, error, log); }
-int Core::postBlockingError(const Qx::Error& error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { return postBlockingError(NAME, error, log); }
+int Core::postBlockingError(const Qx::Error& error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { return postBlockingError(NAME, error, log, bs, def); }
 
 //Public:
 Qx::Error Core::initialize(QStringList& commandLine)
@@ -436,37 +436,58 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     mFlashpointInstall = std::move(flashpointInstall);
 
     // Note install details
-    logEvent(LOG_EVENT_FLASHPOINT_VERSION_TXT.arg(mFlashpointInstall->nameVersionString()));
-    logEvent(LOG_EVENT_FLASHPOINT_VERSION.arg(mFlashpointInstall->version().toString()));
-    logEvent(LOG_EVENT_FLASHPOINT_EDITION.arg(ENUM_NAME(mFlashpointInstall->edition())));
+    auto info = mFlashpointInstall->versionInfo();
+    logEvent(LOG_EVENT_FLASHPOINT_VERSION_TXT.arg(info->fullString()));
+    logEvent(LOG_EVENT_FLASHPOINT_VERSION.arg(info->version().toString()));
+    logEvent(LOG_EVENT_FLASHPOINT_EDITION.arg(ENUM_NAME(info->edition())));
     logEvent(LOG_EVENT_OUTFITTED_DAEMON.arg(ENUM_NAME(mFlashpointInstall->outfittedDaemon())));
 
     // Initialize child process env vars
     QProcessEnvironment de = QProcessEnvironment::systemEnvironment();
-    QString fpPath = mFlashpointInstall->dir().absolutePath();
+    const QString fpPath = mFlashpointInstall->dir().absolutePath();
 
 #ifdef __linux__
+    //-Mimic startup script setup-------------------------
+    logEvent(LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS);
+
+    QString winFpPath = u"Z:"_s + QString(fpPath).replace('/', '\\');
+    bool immutable = mFlashpointInstall->dir().exists(u"Libraries"_s); // NOTE: This check likely will need to be modified over time
+    logEvent(LOG_EVENT_LINUX_BUILD_TYPE.arg(immutable ? u"isn't"_s : u"is"_s));
+
     // Add platform support environment variables
-    if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Qemu) // Appimage based build
+    de.insert(u"DIR"_s, fpPath);
+    de.insert(u"FP_STARTUP_PATH"_s, winFpPath + u"\\FPSoftware"_s);
+    de.insert(u"FP_BROWSER_PLUGINS"_s, winFpPath + u"\\FPSoftware\\BrowserPlugins"_s);
+    de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
+
+    if(immutable)
     {
+        de.insert(u"LD_LIBRARY_PATH"_s, fpPath + u"/Libraries/lib"_s);
         QString pathValue = de.value(u"PATH"_s);
-        pathValue.prepend(fpPath + u"/FPSoftware/FPWine/bin:"_s + fpPath + u"/FPSoftware/FPQemuPHP:"_s);
+        pathValue.prepend(fpPath + u"/Libraries/bin:"_s);
         de.insert(u"PATH"_s, pathValue);
         qputenv("PATH", pathValue.toLocal8Bit()); // Path needs to be updated for self as well
 
-        de.insert(u"GTK_USE_PORTAL"_s, "1");
-        de.remove(u"LD_PRELOAD"_s);
+        /* This step likely isn't necesary, as it seems to be done only for the launcher, which of course
+         * we replace (and we use Qt so GTK doesn't really come into play); however, since this variable
+         * is exported it does affect child processes so we include this anyway just in case.
+         */
+        int gtkRes = QProcess::execute(u"sh"_s, {u"-c"_s, u"ldconfig -p | grep libgtk-3.so >/dev/null 2>&1"_s});
+        if(gtkRes != 0)
+        {
+            logEvent(LOG_EVENT_LINUX_GTK3_MISSING);
+            de.insert(u"GTK_USE_PORTAL"_s, "1");
+        }
     }
-    else // Regular Linux build
-    {
-        QString winFpPath = u"Z:"_s + fpPath;
+    else
+        de.insert(u"LD_LIBRARY_PATH"_s, fpPath + u"/Legacy"_s);
 
-        de.insert(u"DIR"_s, fpPath);
-        de.insert(u"WINDOWS_DIR"_s, winFpPath);
-        de.insert(u"FP_STARTUP_PATH"_s, winFpPath + u"\\FPSoftware"_s);
-        de.insert(u"FP_BROWSER_PLUGINS"_s, winFpPath + u"\\FPSoftware\\BrowserPlugins"_s);
-        de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
-    }
+    /* Ensure ruffle has execute permissions (may not be present). The launcher delays this action until 15
+         * seconds after start since it may update Ruffle, but we don't touch it so we don't have to wait
+         */
+    QFile ruffle(fpPath + u"/Data/Ruffle/standalone/latest/ruffle"_s); // TODO: Might want to add this under Fp::Install
+    if(!ruffle.setPermissions(QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther))
+        logEvent(LOG_ERR_FAILED_SETTING_RUFFLE_PERMS);
 #endif
 
     TExec::setDefaultProcessEnvironment(de);
@@ -559,6 +580,43 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         mTaskQueue.push(xhostSet);
         logTask(xhostSet);
     }
+
+    // Setup WINE prefix if not present
+    QDir winePrefix(mFlashpointInstall->dir().absolutePath() + u"/FPSoftware/Wine"_s);
+    if(!winePrefix.exists())
+    {
+        // Copy backup prefix
+        QDir winePrefixBak(mFlashpointInstall->dir().absolutePath() + u"/FPSoftware/.winebak"_s);
+        if(Qx::copyDirectory(winePrefixBak, winePrefix, true, Qx::ReplaceMode::Skip).isFailure())
+            qWarning("Failed to restore WINE prefix backup");
+
+        // Setup WINE registry modification
+        auto wineEnv = TExec::defaultProcessEnvironment();
+        wineEnv.insert(u"WINEDLLOVERRIDES"_s, u"control.exe,explorer.exe,mscoree,plugplay.exe,services.exe,winedevice.exe,winemenubuilder.exe=d"_s);
+
+        TExec* wineReg = new TExec(this);
+        wineReg->setIdentifier(u"WINE Registry Setup"_s);
+        wineReg->setStage(Task::Stage::Startup);
+        wineReg->setExecutable(u"wine"_s);
+        wineReg->setDirectory(mFlashpointInstall->dir());
+        wineReg->setParameters(QStringList{
+            u"reg"_s,
+            u"add"_s,
+            u"HKLM\\Software\\Wine\\MSHTML\\2.47.4"_s,
+            u"/v"_s,
+            u"GeckoPath"_s,
+            u"/d"_s,
+            u"C:\\windows\\syswow64\\gecko\\2.47.4\\wine_gecko\\"_s,
+            u"/reg:32"_s,
+            u"/f"_s
+        });
+        wineReg->setEnvironment(wineEnv);
+        wineReg->setProcessType(TExec::ProcessType::Blocking);
+
+        mTaskQueue.push(wineReg);
+        logTask(wineReg);
+    }
+
 #endif
 
     // Get settings
@@ -693,6 +751,22 @@ void Core::enqueueShutdownTasks()
         mTaskQueue.push(xhostClear);
         logTask(xhostClear);
     }
+
+    // Backup WINE flash saves
+    QString uname = qgetenv("USER");
+    QDir saveSrc(mFlashpointInstall->dir().absoluteFilePath(u"FPSoftware/Wine/drive_c/users/"_s + uname + u"/AppData/Roaming/Macromedia/Flash Player/#SharedObjects"_s));
+    QDir saveDest(mFlashpointInstall->dir().absoluteFilePath(u"FPSoftware/.winebak/drive_c/users/"_s + uname + u"/AppData/Roaming/Macromedia/Flash Player"_s));
+
+    TGeneric* wineSaveBackup = new TGeneric(this);
+    wineSaveBackup->setStage(Task::Stage::Shutdown);
+    wineSaveBackup->setDescription(u"Backup Flash WINE saves"_s);
+    wineSaveBackup->setAction([saveSrc, saveDest]{
+        saveDest.mkpath(u"."_s);
+        return Qx::copyDirectory(saveSrc, saveDest, true, Qx::ReplaceMode::Skip);
+    });
+
+    mTaskQueue.push(wineSaveBackup);
+    logTask(wineSaveBackup);
 #endif
 }
 
@@ -733,20 +807,23 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
     const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
 
-    QString packFilename = gameData.path();
     QString packPath = tk->datapackPath(gameData);
+    QString packFilename = tk->datapackFilename(gameData);
 
     // Enqueue pack download if it's not available
     if(!tk->datapackIsPresent(gameData))
     {
         logEvent(LOG_EVENT_DATA_PACK_MISS);
 
-        QUrl packUrl = tk->datapackUrl(gameData);
-
         TDownload* downloadTask = new TDownload(this);
         downloadTask->setStage(Task::Stage::Auxiliary);
         downloadTask->setDescription(u"data pack "_s + packFilename);
-        downloadTask->addFile({.target = packUrl, .dest = packPath, .checksum = gameData.sha256()});
+        TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
+        if(packError.isValid())
+        {
+            postError(packError);
+            return packError;
+        }
 
         mTaskQueue.push(downloadTask);
         logTask(downloadTask);

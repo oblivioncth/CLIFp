@@ -210,6 +210,10 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
             postError(err);
             return err;
         }
+        QUuid origId = titleId;
+        titleId = mCore.fpInstall().database()->handleGameRedirects(titleId); // Redirect shortcut
+        if(titleId != origId)
+            logEvent(LOG_EVENT_GAME_REDIRECT.arg(origId.toString(QUuid::WithoutBraces), titleId.toString(QUuid::WithoutBraces)));
     }
     else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
     {

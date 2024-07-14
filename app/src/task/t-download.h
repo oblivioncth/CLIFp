@@ -8,6 +8,13 @@
 // Project Includes
 #include "task/task.h"
 
+// FP Forward Declarations
+namespace Fp
+{
+    class Toolkit;
+    class GameData;
+}
+
 class QX_ERROR_TYPE(TDownloadError, "TDownloadError", 1252)
 {
     friend class TDownload;
@@ -15,25 +22,29 @@ class QX_ERROR_TYPE(TDownloadError, "TDownloadError", 1252)
 public:
     enum Type
     {
-        NoError = 0,
-        Incomeplete = 2
+        NoError,
+        Incomplete,
+        OfflineEdition
     };
 
 //-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {Incomeplete, u"The download(s) could not be completed."_s}
+        {Incomplete, u"The download(s) could not be completed."_s},
+        {OfflineEdition, u"A datapack download was prompted in an offline edition of Flashpoint."_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
+    QString mDetails;
 
 //-Constructor-------------------------------------------------------------
 private:
-    TDownloadError(Type t = NoError, const QString& s = {});
+    TDownloadError(Type t = NoError, const QString& s = {}, const QString& d = {});
+    TDownloadError(Qx::DownloadManagerReport dmReport);
 
 //-Instance Functions-------------------------------------------------------------
 public:
@@ -46,6 +57,7 @@ private:
     quint32 deriveValue() const override;
     QString derivePrimary() const override;
     QString deriveSecondary() const override;
+    QString deriveDetails() const override;
 };
 
 class TDownload : public Task
@@ -91,6 +103,7 @@ public:
     QString description() const;
 
     void addFile(const Qx::DownloadTask file);
+    TDownloadError addDatapack(const Fp::Toolkit* tk, const Fp::GameData* gameData);
     void setDescription(const QString& desc);
 
     void perform() override;

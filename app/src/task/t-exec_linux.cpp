@@ -89,12 +89,11 @@ QString TExec::resolveExecutablePath()
      * of how the system would handle it.
      */
 
-    // Exception: If a windows batch script is called for (shouldn't happen), see if there is a matching shell script
-    // as a last resort
+    // Exception: If a windows batch script is called for by this point (uncommon), see if there is a matching shell script
     QFileInfo execInfo(mExecutable);
     if(execInfo.suffix() == SHELL_EXT_WIN)
     {
-        execInfo.setFile(mExecutable.chopped(sizeof(SHELL_EXT_WIN)) + SHELL_EXT_LINUX);
+        execInfo.setFile(mExecutable.chopped(SHELL_EXT_WIN.size()) + SHELL_EXT_LINUX);
         emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
     }
 
