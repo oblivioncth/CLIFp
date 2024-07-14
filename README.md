@@ -9,7 +9,7 @@ Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completel
 
 ## Quickstart
 
-Download the latest **static** [release](https://github.com/oblivioncth/CLIFp/releases) that's appropriate for your system and place it in the root of your Flashpoint directory.
+Download the latest [release](https://github.com/oblivioncth/CLIFp/releases) that's appropriate for your system (see [Release Builds](#release-builds) for guidance on that) and place it in the root of your Flashpoint directory.
 
 Play a game:
 
@@ -305,3 +305,30 @@ The functionality of the tray icon may be expanded upon in future releases.
 
 ### Details
 The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.
+
+## Release Builds
+For guidance on which release build is likely best for your system, compare your system to the table below and try whichever is most comparable to yours in the order shown. The compiler used is somewhat arbitrary, so equivalent compilers are combined in the table. If one build type with a given compiler does not work for you it's unlikely the other listed as part of the same line will, but you can try it if you want.
+
+| System                                    | Builds                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| Windows                                   | 1) Windows Static <br> 2) Windows Shared                                 |
+| Ubuntu 24.04, Ubuntu 22.02, Arch, SteamOS | 1) Linux Static Clang++14/GCC++12 <br> 2) Linux Shared Clang++14/GCC++12 |
+| Ubuntu 20.04                              | 1) Linux Static Clang++12 <br> 2) Linux Shared Clang++12                 |
+
+Note that for shared builds, you must place the entire directory structure of the release in your Flashpoint folder and run CLIFp from within it's bin directory, like so:
+```
+Flashpoint/
+├── CLIFp/
+│   ├── bin/
+│   │   └── clifp.exe
+│   ├── cmake
+│   ├── LICENSE
+│   ├── README.md
+│   └── ...
+├── version.txt
+├── preferences.json
+└── ...
+```
+For static builds you can simply take the CLIFp executable out of the bin directory and place it directly in your Flashpoint folder.
+
+Remember these are just guidelines. Ultimately use whichever build you like, or build CLIFp yourself.
