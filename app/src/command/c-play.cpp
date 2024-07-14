@@ -244,7 +244,7 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
-        addAppTask->setExecutable(addAppPathInfo.canonicalFilePath());
+        addAppTask->setExecutable(QDir::cleanPath(addAppPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
         addAppTask->setDirectory(addAppPathInfo.absoluteDir());
         addAppTask->setParameters(addApp.launchCommand());
         addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
@@ -272,7 +272,7 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
     TExec* gameTask = new TExec(&mCore);
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
-    gameTask->setExecutable(gamePathInfo.canonicalFilePath());
+    gameTask->setExecutable(QDir::cleanPath(gamePathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
     gameTask->setDirectory(gamePathInfo.absoluteDir());
     gameTask->setParameters(!gameData.isNull() ? gameData.launchCommand() : game.launchCommand());
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
@@ -314,6 +314,9 @@ Qx::Error CPlay::perform()
     else if(Qx::Error ide = getTitleId(titleId); ide.isValid())
         return ide;
 
+    // Bail if ID is missing (user cancel)
+    if(titleId.isNull())
+        return CPlayError();
 
     logEvent(LOG_EVENT_HANDLING_AUTO);
 

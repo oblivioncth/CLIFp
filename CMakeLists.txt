@@ -6,14 +6,14 @@ cmake_minimum_required(VERSION 3.24.0...3.26.0)
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.10
+    VERSION 0.9.11
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.3.4")
+fetch_ob_cmake("v0.3.5")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 12.1)
+set(TARGET_FP_VERSION_PREFIX 13.0)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
@@ -44,11 +44,16 @@ endif()
 # Import Qt
 set(CLIFP_QT_COMPONENTS
     Core
+    Core5Compat
     Gui
     Widgets
     Sql
     Network
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+     list(APPEND CLIFP_QT_COMPONENTS WaylandClient) # To enable wayland support
+endif()
 
 # Find Qt package
 add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
@@ -72,14 +77,14 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.5.6"
+    REF "v0.5.7"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("v0.5.2")
+ob_fetch_libfp("v0.5.3")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)

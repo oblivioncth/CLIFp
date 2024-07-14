@@ -51,8 +51,8 @@ set(CLIFP_SOURCE
     tools/blockingprocessmanager.cpp
     tools/deferredprocessmanager.h
     tools/deferredprocessmanager.cpp
-    tools/mounter_proxy.h
-    tools/mounter_proxy.cpp
+    tools/mounter_game_server.h
+    tools/mounter_game_server.cpp
     tools/mounter_qmp.h
     tools/mounter_qmp.cpp
     tools/mounter_router.h

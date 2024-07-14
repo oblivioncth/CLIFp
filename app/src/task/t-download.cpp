@@ -1,16 +1,27 @@
 // Unit Include
 #include "t-download.h"
 
+// Flashpoint Includes
+#include <fp/fp-toolkit.h>
+
 //===============================================================================================================
 // TDownloadError
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
 //Private:
-TDownloadError::TDownloadError(Type t, const QString& s) :
+TDownloadError::TDownloadError(Type t, const QString& s, const QString& d) :
     mType(t),
-    mSpecific(s)
+    mSpecific(s),
+    mDetails(d)
 {}
+
+TDownloadError::TDownloadError(Qx::DownloadManagerReport dmReport)
+{
+    mType = dmReport.wasSuccessful() ? NoError : Incomplete;
+    mSpecific = dmReport.outcomeString();
+    mDetails = dmReport.details();
+}
 
 //-Instance Functions-------------------------------------------------------------
 //Public:
@@ -23,6 +34,7 @@ Qx::Severity TDownloadError::deriveSeverity() const { return Qx::Critical; }
 quint32 TDownloadError::deriveValue() const { return mType; }
 QString TDownloadError::derivePrimary() const { return ERR_STRINGS.value(mType); }
 QString TDownloadError::deriveSecondary() const { return mSpecific; }
+QString TDownloadError::deriveDetails() const { return mDetails; }
 
 //===============================================================================================================
 // TDownload
@@ -35,6 +47,7 @@ TDownload::TDownload(QObject* parent) :
 {
     // Setup download manager
     mDownloadManager.setOverwrite(true);
+    mDownloadManager.setDeletePartialDownloads(true);
     mDownloadManager.setVerificationMethod(QCryptographicHash::Sha256);
 
     // Download event handlers
@@ -90,6 +103,20 @@ QList<Qx::DownloadTask> TDownload::files() const { return mFiles; }
 QString TDownload::description() const { return mDescription; }
 
 void TDownload::addFile(const Qx::DownloadTask file) { mFiles.append(file); }
+
+TDownloadError TDownload::addDatapack(const Fp::Toolkit* tk, const Fp::GameData* gameData)
+{
+    // TODO: CDownload runs this in a loop, which is why Q_UNLIKELY is used, but in the long run a different approach in which download
+    // ability is checked for once ahead of time is probably best
+    if(Q_UNLIKELY(!tk->canDownloadDatapacks()))
+        return TDownloadError(TDownloadError::OfflineEdition, tk->datapackFilename(*gameData));
+
+    // TODO: This makes it apparent that a class like "CompleteGameData" might be warranted, with a constructor that takes GameData and
+    // Toolkit and then produces a representation of the GameData with a complete path/url, though the URL would be null for Ultimate
+    addFile({.target = tk->datapackUrl(*gameData), .dest = tk->datapackPath(*gameData), .checksum = gameData->sha256()});
+    return TDownloadError();
+}
+
 void TDownload::setDescription(const QString& desc) { mDescription = desc; }
 
 void TDownload::perform()
@@ -128,7 +155,7 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
         emitEventOccurred(LOG_EVENT_DOWNLOAD_SUCC);
     else
     {
-        errorStatus = TDownloadError(TDownloadError::Incomeplete, downloadReport.outcomeString());
+        errorStatus = TDownloadError(downloadReport);
         emitErrorOccurred(errorStatus);
     }
 

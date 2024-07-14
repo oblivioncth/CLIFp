@@ -260,7 +260,8 @@ void TExec::perform()
             }
 
             if(smDeferredProcessManager)
-                smDeferredProcessManager->manage(mIdentifier, taskProcess); // Add process to list for deferred termination
+                smDeferredProcessManager->manage(mIdentifier, taskProcess); // NOLINT(clang-analyzer-cplusplus.NewDelete) Add process to list for deferred termination
+
             else
                 qWarning("Deferred process started without a deferred process manager installed!");
             break;

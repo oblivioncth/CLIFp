@@ -12,7 +12,7 @@
 
 // Project Includes
 #include "task/task.h"
-#include "tools/mounter_proxy.h"
+#include "tools/mounter_game_server.h"
 #include "tools/mounter_qmp.h"
 #include "tools/mounter_router.h"
 
@@ -32,7 +32,7 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Mounters
-    MounterProxy* mMounterProxy;
+    MounterGameServer* mMounterProxy;
     MounterQmp* mMounterQmp;
     MounterRouter* mMounterRouter;
 
@@ -51,7 +51,7 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     template<typename M>
-        requires Qx::any_of<M, MounterProxy, MounterQmp, MounterRouter>
+        requires Qx::any_of<M, MounterGameServer, MounterQmp, MounterRouter>
     void initMounter(M*& mounter);
 
 public:

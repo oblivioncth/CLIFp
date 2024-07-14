@@ -18,35 +18,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04]
-        compiler: [clang]
-        lib_linkage: [shared, static]
-        include:
-          - os: ubuntu-20.04
-            compiler: clang
-            c_comp: clang-12
-            cxx_comp: clang++-12
-            qt_comp: clang12            
-          - os: ubuntu-22.04
-            compiler: gcc
-            c_comp: gcc-12
-            cxx_comp: g++-12
-            qt_comp: clang14
-            lib_linkage: shared
-          - os: ubuntu-22.04
-            compiler: gcc
-            c_comp: gcc-12
-            cxx_comp: g++-12
-            qt_comp: clang14
-            lib_linkage: static
-          - os: ubuntu-22.04
-            compiler: clang
-            c_comp: clang-14
-            cxx_comp: clang++-14
-            qt_comp: clang14
-          - lib_linkage: shared
-            cmake_bsl: ON
-          - lib_linkage: static
-            cmake_bsl: OFF
+        compiler: [{c: gcc-12, cxx: g++-12, qt: clang14}, {c: clang-12, cxx: clang++-12, qt: clang12}, {c: clang-14, cxx: clang++-14, qt: clang14}]
+        linkage: [{type: shared, cmake_bsl: ON}, {type: static, cmake_bsl: OFF}]
+        exclude:
+            - os: ubuntu-20.04
+              compiler: {c: gcc-12, cxx: g++-12, qt: clang14}
+            - os: ubuntu-20.04
+              compiler: {c: clang-14, cxx: clang++-14, qt: clang14}
+            - os: ubuntu-22.04
+              compiler: {c: clang-12, cxx: clang++-12, qt: clang12}
     runs-on: ${{ matrix.os }}
     env:
       cmake_gen: Ninja Multi-Config
@@ -60,21 +40,14 @@ jobs:
     - name: Install Qt (custom build)
       uses: oblivioncth/actions/general/install-and-cache-qt-from-ffynnon@dev
       with:
-        version: 6.6.0
+        version: 6.7.2
         os: linux
-        compiler: ${{ matrix.qt_comp }}
-        linkage: ${{ matrix.lib_linkage }}
+        compiler: ${{ matrix.compiler.qt }}
+        linkage: ${{ matrix.linkage.type }}
         path: ${{ env.qt_install_dir }}
         credentials: ${{ secrets.qt_ffynnon_cred }}
     - name: Update package index
       run: sudo apt-get update
-    - name: WORKAROUND FOR https://github.com/actions/runner-images/issues/8659
-      if: matrix.os == 'ubuntu-22.04'
-      run: |
-        echo "TEMPORARY WORKAROUND FOR GITHUB RUNNER BUG #8659\n\nRemoving GCC 13 as it breaks Clang14"
-        sudo rm -f /etc/apt/sources.list.d/ubuntu-toolchain-r-ubuntu-test-jammy.list
-        sudo apt-get update
-        sudo apt-get install -y --allow-downgrades libc6=2.35-0ubuntu3.4 libc6-dev=2.35-0ubuntu3.4 libstdc++6=12.3.0-1ubuntu1~22.04 libgcc-s1=12.3.0-1ubuntu1~22.04
     - name: Install OpenGL lib
       run: sudo apt-get install libglu1-mesa-dev
     - name: Install XCB Related libs
@@ -90,8 +63,17 @@ jobs:
       run: sudo apt-get install libegl1-mesa-dev
     - name: Install Wayland
       run: sudo apt-get install libwayland-dev
+    - name: Install DBus [22.04]
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install libdbus-1-dev
+    - name: Install libzstd-dev
+      run: sudo apt-get install libzstd-dev
+    - name: Install libdbus-1-dev
+      run: sudo apt-get install libdbus-1-dev
+    - name: Install libbrotli-dev
+      run: sudo apt-get install libbrotli-dev
     - name: Checkout CLIFp
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ${{ env.clifp_src_suffix }}
         fetch-depth: 0 # Required for verbose versioning to work correctly
@@ -99,7 +81,7 @@ jobs:
       working-directory: ${{ env.clifp_src_dir }}
       run: |
         echo Configuring CMake...
-        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D BUILD_SHARED_LIBS="${{ matrix.cmake_bsl }}" -D CMAKE_CXX_COMPILER="${{ matrix.cxx_comp }}" -D CMAKE_C_COMPILER="${{ matrix.c_comp }}"
+        "$qt_cmake" -G "$cmake_gen" -S "$clifp_src_dir" -B "$clifp_build_dir" -D BUILD_SHARED_LIBS="${{ matrix.linkage.cmake_bsl }}" -D CMAKE_CXX_COMPILER="${{ matrix.compiler.cxx }}" -D CMAKE_C_COMPILER="${{ matrix.compiler.c }}"
         echo Changing to build directory...
         cd "$clifp_build_dir"
         echo Building CLIFp Release...
@@ -112,10 +94,10 @@ jobs:
     - name: Get CLIFp artifact name
       run: |
         cpack_name=$(find "${{ env.clifp_package_path }}" -type f -name "*.zip")
-        artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.cxx_comp }}]"
+        artifact_name="$(basename "$cpack_name" .zip) [${{ matrix.compiler.cxx }}]"
         echo "current_artifact_name=$artifact_name" >> $GITHUB_ENV
     - name: Upload CLIFp build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.current_artifact_name }}
         path: ${{ env.clifp_install_path }}

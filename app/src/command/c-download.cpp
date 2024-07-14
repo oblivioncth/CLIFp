@@ -75,6 +75,10 @@ Qx::Error CDownload::perform()
     const Fp::Toolkit* tk = mCore.fpInstall().toolkit();
     for(const auto& pg : pItr->playlistGames())
     {
+        /* TODO: This doesn't handle Game Redirects, i.e. if one ID on a playlist becomes a redirect entry in the future.
+         * Either need to add redirects here, or implement them in the DB module of libfp (full implementation).
+         */
+
         // Get data
         Fp::GameData gameData;
         if(Fp::DbError gdErr = db->getGameData(gameData, pg.gameId()); gdErr.isValid())
@@ -92,8 +96,13 @@ Qx::Error CDownload::perform()
         if(tk->datapackIsPresent(gameData))
             continue;
 
-        // Queue download
-        downloadTask->addFile({.target = tk->datapackUrl(gameData), .dest = tk->datapackPath(gameData), .checksum = gameData.sha256()});
+        // Queue download, if possible
+        TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
+        if(packError.isValid())
+        {
+            postError(packError);
+            return packError;
+        }
 
         // Note data id
         dataIds.append(gameData.id());

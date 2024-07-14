@@ -59,6 +59,7 @@ private:
     static inline const QString LOG_EVENT_SEL_RAND = u"Selecting a playable title at random..."_s;
     static inline const QString LOG_EVENT_INIT_RAND_ID = u"Randomly chose primary title is \"%1\""_s;
     static inline const QString LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT = u"Chosen title has %1 playable additional-apps"_s;
+    static inline const QString LOG_EVENT_GAME_REDIRECT = u"Game redirected: %1 -> %2"_s;
     static inline const QString LOG_EVENT_RAND_DET_PRIM = u"Selected primary title"_s;
     static inline const QString LOG_EVENT_RAND_DET_ADD_APP = u"Selected additional-app \"%1\""_s;
     static inline const QString LOG_EVENT_RAND_GET_INFO = u"Querying random game info..."_s;
