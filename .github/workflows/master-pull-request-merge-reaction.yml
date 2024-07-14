@@ -91,7 +91,7 @@ jobs:
         path: ${{ github.workspace }}/redirector
     - name: Deploy pages artifact
       id: page-deployment
-      uses: actions/deploy-pages@v1
+      uses: actions/deploy-pages@v4
 
   create-release:
     name: Create GitHub release
@@ -114,7 +114,7 @@ jobs:
           7z a "${{ env.zips_path }}/${name}.zip" "${path}/*"
         }
     - name: Generate release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: "CLIFp Release v${{ needs.tag_master_and_sync_dev.outputs.new_version }} (Targets FP ${{ needs.tag_master_and_sync_dev.outputs.target_fp_version }})"
         tag_name: "v${{ needs.tag_master_and_sync_dev.outputs.new_version }}"
