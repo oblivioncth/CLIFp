@@ -55,7 +55,7 @@ See the [All Commands/Options](#all-commandsoptions) section for more informatio
 While constantly testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection.
 
 ### Version Matching
-Each release of this application targets a specific version series of Flashpoint Archive, which are composed of a major and minor version number, and are designed to work with all Flashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of Flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
+Each release of this application targets a specific version series of Flashpoint Archive, which are composed of a major and minor version number, and are designed to work with al lashpoint updates within that series. For example, a FIL release that targets Flashpoint 10.1 is intended to be used with any version of Flashpoint that fits the scheme `10.1.x.x`, such as `10.1`, `10.1.0.3`, `10.1.2`, etc, but **not**  `10.2`.
 
 Using a version of CLIFp with a version of Flashpoint different than its target version is discouraged as some features may not work correctly or at all and in some cases the utility may fail to function entirely; **however**, given its design, CLIFp is likely to continue working with newer versions of FP that are released without requiring an update, unless that new version contains significant technical changes.
 
@@ -110,7 +110,7 @@ Or if feeling spontaneous, use the **-r** switch, followed by a library filter t
 See the [All Commands/Options](#all-commandsoptions) section for more information.
 
 **Direct Execution:**
-The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's services and then start the application specified with the provided parameters:
+The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's sevices and then start the application specified with the provided parameters:
 
     CLIFp run --app="FPSoftware\Flash\flashplayer_32_sa.exe" --param="http://www.mowa.org/work/buttons/buttons_art/basic.swf"
 
@@ -208,6 +208,11 @@ Notes:
 Options:
 
 - [Title Command](#title-commands) options
+
+Notes:
+ - You can use `--` to pass arguments directly to the title's underlying executable/script, which can be useful for testing or customizing your experience:
+     
+       CLIFp play -t "One Stick Man!" -- -monitor 2
 
 --------------------------------------------------------------------------------
 
@@ -323,7 +328,7 @@ Flashpoint/
 │   │   └── clifp.exe
 │   ├── cmake
 │   ├── LICENSE
-│   ├── README.md
+│   ├── README.txtmd
 │   └── ...
 ├── version.txt
 ├── preferences.json

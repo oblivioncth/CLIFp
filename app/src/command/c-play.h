@@ -10,7 +10,7 @@
 class QX_ERROR_TYPE(CPlayError, "CPlayError", 1212)
 {
     friend class CPlay;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
@@ -18,23 +18,23 @@ public:
         InvalidUrl = 1,
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
         {InvalidUrl, u"The provided 'flashpoint://' scheme URL is invalid."_s}
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     CPlayError(Type t = NoError, const QString& s = {});
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -93,6 +93,7 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
+    void addPassthroughParameters(QString& param);
     QString getServerOverride(const Fp::GameData& gd);
     Qx::Error handleEntry(const Fp::Game& game);
     Qx::Error handleEntry(const Fp::AddApp& addApp);
