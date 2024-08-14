@@ -209,6 +209,11 @@ Options:
 
 - [Title Command](#title-commands) options
 
+Notes:
+ - You can use `--` to pass arguments directly to the title's underlying executable/script, which can be useful for testing or customizing your experience:
+     
+       CLIFp play -t "One Stick Man!" -- -monitor 2
+
 --------------------------------------------------------------------------------
 
  **prepare** - Initializes  Flashpoint  for  playing  the  provided  Data  Pack  based  title  by  UUID.  If  the  title  does  not  use  a  Data  Pack  this  command  has  no  effect.
