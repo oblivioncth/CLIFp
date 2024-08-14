@@ -176,6 +176,7 @@ public:
     static inline const QString LOG_EVENT_ENQ_START = u"Enqueuing startup tasks..."_s;
     static inline const QString LOG_EVENT_ENQ_STOP = u"Enqueuing shutdown tasks..."_s;
     static inline const QString LOG_EVENT_ENQ_DATA_PACK = u"Enqueuing Data Pack tasks..."_s;
+    static inline const QString LOG_EVENT_DATA_PACK_PATH = u"Title Data Pack path is: %1"_s;
     static inline const QString LOG_EVENT_DATA_PACK_MISS = u"Title Data Pack is not available locally"_s;
     static inline const QString LOG_EVENT_DATA_PACK_FOUND = u"Title Data Pack with correct hash is already present, no need to download"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = u"Title Data Pack requires mounting"_s;
