@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.24.0...3.26.0)
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.11
+    VERSION 0.9.12
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
@@ -84,7 +84,7 @@ ob_fetch_qx(
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("9fd47ecae0ba6a9befa6d587b6375f0e31f81062")
+ob_fetch_libfp("v0.5.4")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
