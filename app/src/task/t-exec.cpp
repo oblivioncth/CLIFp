@@ -7,6 +7,8 @@
 // Project Includes
 #include "utility.h"
 
+// TODO: See if any quote handling here can be replaced with std::quoted()
+
 //===============================================================================================================
 // TExecError
 //===============================================================================================================
@@ -39,13 +41,13 @@ QString TExecError::deriveSecondary() const { return mSpecific; }
 //Public:
 TExec::TExec(QObject* parent) :
     Task(parent),
-    mEnvironment(smDefaultEnv),
-    mBlockingProcessManager(nullptr)
+    mBlockingProcessManager(nullptr),
+    mEnvironment(smDefaultEnv)
 {}
 
 //-Class Functions----------------------------------------------------------------
-//Private:
-QString TExec::collapseArguments(const QStringList& args)
+//Public:
+QString TExec::joinArguments(const QStringList& args)
 {
     QString reduction;
     for(int i = 0; i < args.size(); i++)
@@ -67,7 +69,6 @@ QString TExec::collapseArguments(const QStringList& args)
     return reduction;
 }
 
-//Public:
 void TExec::installDeferredProcessManager(DeferredProcessManager* manager) { smDeferredProcessManager = manager; }
 DeferredProcessManager* TExec::deferredProcessManager() { return smDeferredProcessManager; }
 void TExec::setDefaultProcessEnvironment(const QProcessEnvironment pe) { smDefaultEnv = pe; }
@@ -91,7 +92,7 @@ QString TExec::createEscapedShellArguments()
     {
         // Collapse
         QStringList parameters = std::get<QStringList>(mParameters);
-        QString collapsedParameters = collapseArguments(parameters);
+        QString collapsedParameters = joinArguments(parameters);
 
         // Escape
         escapedArgs = escapeForShell(collapsedParameters);
@@ -204,6 +205,13 @@ QString TExec::identifier() const { return mIdentifier; }
 
 void TExec::setExecutable(QString executable) { mExecutable = executable; }
 void TExec::setDirectory(QDir directory) { mDirectory = directory; }
+
+/* TODO: Initial testing shows that it may be safe to simply use QProcess::splitCommand() on all single string
+ * commands so that they can universally be stored as a QStringList and bypass the need for QProcess::setNativeArguments(),
+ * but this would be a huge change that would needs lots of testing (especially for sh/bat), and perhaps even a separate build
+ * for people willing to test to test it for a while since it has the potential to break many games if it doesn't work
+ * out as initially hopped.
+ */
 void TExec::setParameters(const std::variant<QString, QStringList>& parameters) { mParameters = parameters; }
 void TExec::setEnvironment(const QProcessEnvironment& environment) { mEnvironment = environment; }
 void TExec::setProcessType(ProcessType processType) { mProcessType = processType; }
