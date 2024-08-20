@@ -118,10 +118,8 @@ public:
     TExec(QObject* parent);
 
 //-Class Functions-----------------------------------------------------------------------------------------------------
-private:
-    static QString collapseArguments(const QStringList& args);
-
 public:
+    static QString joinArguments(const QStringList& args);
     static void installDeferredProcessManager(DeferredProcessManager* manager);
     static DeferredProcessManager* deferredProcessManager();
     static void setDefaultProcessEnvironment(const QProcessEnvironment pe);

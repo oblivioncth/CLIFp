@@ -69,6 +69,17 @@ Fp::AddApp CPlay::buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+void CPlay::addPassthroughParameters(QString& param)
+{
+    // Consider all positional arguments (can be explicitly added with "-- <args>") to be passthrough
+    QStringList ptp = mParser.positionalArguments();
+    if(!ptp.isEmpty())
+    {
+        param.append(u' ');
+        param.append(TExec::joinArguments(ptp));
+    }
+}
+
 QString CPlay::getServerOverride(const Fp::GameData& gd)
 {
     QString override = gd.isNull() ? QString() : gd.parameters().server();
@@ -240,13 +251,15 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     {
         QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), platform);
         QFileInfo addAppPathInfo(addAppPath);
+        QString param = addApp.launchCommand();
+        addPassthroughParameters(param);
 
         TExec* addAppTask = new TExec(&mCore);
         addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
         addAppTask->setExecutable(QDir::cleanPath(addAppPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
         addAppTask->setDirectory(addAppPathInfo.absoluteDir());
-        addAppTask->setParameters(addApp.launchCommand());
+        addAppTask->setParameters(param);
         addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
         addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
 
@@ -268,13 +281,15 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
     QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
                                                 game.platformName());
     QFileInfo gamePathInfo(gamePath);
+    QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
+    addPassthroughParameters(param);
 
     TExec* gameTask = new TExec(&mCore);
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
     gameTask->setExecutable(QDir::cleanPath(gamePathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
     gameTask->setDirectory(gamePathInfo.absoluteDir());
-    gameTask->setParameters(!gameData.isNull() ? gameData.launchCommand() : game.launchCommand());
+    gameTask->setParameters(param);
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 

@@ -809,6 +809,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
     QString packPath = tk->datapackPath(gameData);
     QString packFilename = tk->datapackFilename(gameData);
+    logEvent(LOG_EVENT_DATA_PACK_PATH.arg(packPath));
 
     // Enqueue pack download if it's not available
     if(!tk->datapackIsPresent(gameData))

@@ -6,11 +6,12 @@ labels: bug
 assignees: oblivioncth
 
 ---
-
 ### STOP
-If this is a bug that actually pertains to OFILb (the LaunchBox import tool) please use the issue tracker for [that repository](https://github.com/oblivioncth/OFILb/issues) instead.
+If this is a bug that actually pertains to FIL (the launcher import tool) please use the issue tracker for [that repository](https://github.com/oblivioncth/FIL/issues) instead.
 
-### When submitting a bug please use this template:
+### When submitting a bug please use this template as an example:
+**MAKE SURE TO ATTACH YOUR CLIFP.LOG FILE**
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
@@ -33,3 +34,5 @@ If applicable, add screenshots to help explain your problem.
 
 **Additional context**
 Add any other context about the problem here.
+
+
