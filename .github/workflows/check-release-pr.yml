@@ -1,0 +1,10 @@
+name: Check Release PR
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: master
+
+jobs:
+  check-pr-correctness:
+    name: Release PR Correctness Check
+    uses: oblivioncth/actions/.github/workflows/validate-release-pr.yml@v1

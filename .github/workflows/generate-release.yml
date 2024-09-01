@@ -1,0 +1,74 @@
+name: Generate Release
+on:
+  workflow_run:
+    workflows: Build Project
+    types: completed
+    branches: master
+    
+jobs:
+  create-release-suffix:
+    name: Create Release Name Suffix
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      suffix: ${{ steps.form_suffix.outputs.suffix }}
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v4
+    - name: Get target FP version
+      id: check_target_fp
+      env:
+        match_start: set\(TARGET_FP_VERSION_PREFIX
+        match_end: \)
+      shell: pwsh
+      run: |
+        $project_lists = Get-Content -Raw CMakeLists.txt
+        if(!($project_lists -match '(?<=${{ env.match_start }})(.*)(?=${{ env.match_end }})')){
+          throw "Could not get target FP version!"
+        }
+        $target_version = "v$($Matches[1].Trim())"
+        echo "fp_version=$target_version" >> $Env:GITHUB_ENV
+    - name: Form suffix
+      id: form_suffix
+      run: |
+        suffix="(Targets FP $fp_version)"
+        echo "suffix=$suffix" >> $GITHUB_OUTPUT
+  
+  update-redirect:
+    name: Update redirect page
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    if: github.event.workflow_run.conclusion == 'success'
+    environment:
+      name: github-pages
+      url: ${{ steps.page-deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Setup pages
+      uses: actions/configure-pages@v4
+    - name: Upload pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{ github.workspace }}/redirector
+    - name: Deploy pages artifact
+      id: page-deployment
+      uses: actions/deploy-pages@v4
+  
+  generate-release:
+    name: Generate Release
+    needs: create-release-suffix
+    permissions:
+      actions: read
+      contents: write
+      pages: write
+      id-token: write
+    if: github.event.workflow_run.conclusion == 'success'
+    uses: oblivioncth/actions/.github/workflows/generate-cxx-release.yml@v1
+    with:
+        artifacts_run_id: ${{ github.event.workflow_run.id }}
+        name_suffix: ${{ needs.create-release-suffix.outputs.suffix }}
