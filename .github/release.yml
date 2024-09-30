@@ -2,6 +2,9 @@ changelog:
   exclude:
     labels:
       - release
+      - common-sync
+    authors:
+      - oby-bot
   categories:
     - title: Breaking Changes
       labels:
