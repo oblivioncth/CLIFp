@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.3.5")
+fetch_ob_cmake("v0.3.7.1")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -56,8 +56,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 endif()
 
 # Find Qt package
-add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060000)
-find_package(Qt6 REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS})
+include(OB/Qt)
+ob_find_package_qt(REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS})
 
 # Fetch Qx (build and import from source)
 set(CLIFP_QX_COMPONENTS
@@ -77,18 +77,18 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.5.7"
+    REF "b29e03cf42dfed65a5ecaf18ce192f3051f0e25f"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("v0.5.4")
+ob_fetch_libfp("183a479d00235d332aa1046a9b5ba98f62699752")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
-ob_fetch_qi_qmp("v0.2.2")
+ob_fetch_qi_qmp("5d7d30b061cdcf5f5159f20d7f6e6be81b1b0170")
 
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
