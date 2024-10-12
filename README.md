@@ -5,7 +5,7 @@ CLIFp (pronounced "Cliff-P", or just "Cliff") is an alternative launcher for [Fl
 
 Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completely in the background so that the only windows seen during use are the same ones present while running standard Flashpoint. It automatically terminates once the target application has exited, requiring no manual tasks or clean-up by the user.
 
-[![Dev Builds](https://github.com/oblivioncth/CLIFp/actions/workflows/push-reaction.yml/badge.svg?branch=dev)](https://github.com/oblivioncth/CLIFp/actions/workflows/push-reaction.yml)
+[![Dev Builds](https://github.com/oblivioncth/CLIFp/actions/workflows/build-project.yml/badge.svg?branch=dev)](https://github.com/oblivioncth/CLIFp/actions/workflows/build-project.yml)
 
 ## Quickstart
 
@@ -34,7 +34,7 @@ Create a share link for other users
 
     # Enable CLIFp to open share links (only needs to be done once)
     CLIFp share -c
-    
+
     # Create link to game
     CLIFp share -t "The Ultimate Showdown of Ultimate Destiny"
 
@@ -211,7 +211,7 @@ Options:
 
 Notes:
  - You can use `--` to pass arguments directly to the title's underlying executable/script, which can be useful for testing or customizing your experience:
-     
+
        CLIFp play -t "One Stick Man!" -- -monitor 2
 
 --------------------------------------------------------------------------------
@@ -310,6 +310,29 @@ The functionality of the tray icon may be expanded upon in future releases.
 
 ### Details
 The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.
+
+### Building
+Ensure Qt6 is installed and locatable by CMake (or alternatively use the `qt-cmake` script that comes with Qt in-place of the`cmake` command).
+
+Should work with MSVC, MINGW64, clang, and gcc.
+
+```
+# Acquire source
+git clone https://github.com/oblivioncth/CLIFp
+
+# Configure (ninja optional, but recommended)
+cmake -S CLIFp -B build-CLIFp -G "Ninja Multi-config"
+
+# Build
+cmake --build build-CLIFp
+
+# Install
+cmake --install build-CLIFp
+
+# Run
+cd "build-CLIFp/out/install/bin"
+clifp
+```
 
 ## Release Builds
 For guidance on which release build is likely best for your system, compare your system to the table below and try whichever is most comparable to yours in the order shown. The compiler used is somewhat arbitrary, so equivalent compilers are combined in the table. If one build type with a given compiler does not work for you it's unlikely the other listed as part of the same line will, but you can try it if you want.
