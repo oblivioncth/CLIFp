@@ -91,7 +91,10 @@ void StatusRelay::messageHandler(const Message& message)
         msg->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     if(message.blocking)
+    {
         msg->exec();
+        delete msg;
+    }
     else
     {
         msg->setAttribute(Qt::WA_DeleteOnClose);
