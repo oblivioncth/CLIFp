@@ -943,6 +943,14 @@ ErrorCode Core::logFinish(const QString& src, const Qx::Error& errorState)
     return code;
 }
 
+void Core::postDirective(const Directive& directive)
+{
+    std::visit(qxFuncAggregate{
+       [this](const AsyncDirective& ad) { emit asyncDirectiveAccounced(ad); },
+       [this](const SyncDirective& sd) { emit syncDirectiveAccounced(sd); }
+    }, directive);
+}
+
 void Core::postError(const QString& src, const Qx::Error& error, bool log)
 {
     // Logging
@@ -991,64 +999,6 @@ int Core::postBlockingError(const QString& src, const Qx::Error& error, bool log
     }
     else
         return def;
-}
-
-void Core::postMessage(const Message& msg) { emit message(msg); }
-
-QString Core::requestSaveFilePath(const SaveFileRequest& request)
-{
-    // Response holder
-    QSharedPointer<QString> file = QSharedPointer<QString>::create();
-
-    // Emit and get response
-    emit saveFileRequested(file, request);
-
-    // Return response
-    return *file;
-}
-
-QString Core::requestExistingDirPath(const ExistingDirRequest& request)
-{
-    // Response holder
-    QSharedPointer<QString> dir = QSharedPointer<QString>::create();
-
-    // Emit and get response
-    emit existingDirRequested(dir, request);
-
-    // Return response
-    return *dir;
-}
-
-QString Core::requestItemSelection(const ItemSelectionRequest& request)
-{
-    // Response holder
-    QSharedPointer<QString> item = QSharedPointer<QString>::create();
-
-    // Emit and get response
-    emit itemSelectionRequested(item, request);
-
-    // Return response
-    return *item;
-}
-
-void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
-
-bool Core::requestQuestionAnswer(const QString& question)
-{
-    // Show question if allowed
-    if(mNotificationVerbosity != NotificationVerbosity::Silent)
-    {
-        // Response holder
-        QSharedPointer<bool> response = QSharedPointer<bool>::create(false);
-
-        // Emit and get response
-        emit questionAnswerRequested(response, question);
-
-        // Return response
-        return *response;
-    }
-    else
-        return false; // Assume "No"
 }
 
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }

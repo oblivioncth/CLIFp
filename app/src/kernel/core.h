@@ -23,6 +23,7 @@
 
 // Project Includes
 #include "task/task.h"
+#include "frontend/directive.h"
 #include "project_vars.h"
 #include "kernel/buildinfo.h"
 
@@ -91,49 +92,6 @@ class Core : public QObject
 public:
     enum class NotificationVerbosity { Full, Quiet, Silent };
     enum ServicesMode { Standalone, Companion };
-
-//-Class Structs---------------------------------------------------------------------
-public:
-    /* TODO: These should be made their own files like message.h is in frontend
-     * (or one file, like "requests.h"), or message.h should be removed with its
-     * struct moved to here
-     */
-    struct Error
-    {
-        QString source;
-        Qx::Error errorInfo;
-    };
-
-    struct BlockingError
-    {
-        QString source;
-        Qx::Error errorInfo;
-        QMessageBox::StandardButtons choices;
-        QMessageBox::StandardButton defaultChoice;
-    };
-
-    struct SaveFileRequest
-    {
-        QString caption;
-        QString dir;
-        QString filter;
-        QString* selectedFilter = nullptr;
-        QFileDialog::Options options;
-    };
-
-    struct ExistingDirRequest
-    {
-        QString caption;
-        QString dir;
-        QFileDialog::Options options = QFileDialog::ShowDirsOnly;
-    };
-
-    struct ItemSelectionRequest
-    {
-        QString caption;
-        QString label;
-        QStringList items;
-    };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
@@ -315,7 +273,7 @@ private:
     void logTask(const Task* task);
     ErrorCode logFinish(const Qx::Error& errorState);
     void postError(const Qx::Error& error, bool log = true);
-    int postBlockingError(const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
+    int postBlockingError(const Qx::Error& error, bool log = true, DBlockingError::Choices bs = QMessageBox::Ok, DBlockingError::Choice def = DBlockingError::Choice::No);
 
 public:
     // Setup
@@ -339,10 +297,7 @@ public:
     Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);
 
-    // Notifications/Logging
-    /* TODO: Within each place that uses the log options that need the src parameter, like the Commands, and maybe even Core itself, add methods
-     * with the same names that call mCore.logX(NAME, ...) automatically so that NAME doesn't need to be passed every time
-     */
+    // Logging
     bool isLogOpen() const;
     void logCommand(const QString& src, const QString& commandName);
     void logCommandOptions(const QString& src, const QString& commandOptions);
@@ -350,14 +305,12 @@ public:
     void logEvent(const QString& src, const QString& event);
     void logTask(const QString& src, const Task* task);
     ErrorCode logFinish(const QString& src, const Qx::Error& errorState);
+
+    // Directives
+    void postDirective(const Directive& directive);
     void postError(const QString& src, const Qx::Error& error, bool log = true);
-    int postBlockingError(const QString& src, const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
-    void postMessage(const Message& msg);
-    QString requestSaveFilePath(const SaveFileRequest& request);
-    QString requestExistingDirPath(const ExistingDirRequest& request);
-    QString requestItemSelection(const ItemSelectionRequest& request);
-    void requestClipboardUpdate(const QString& text);
-    bool requestQuestionAnswer(const QString& question);
+    int postBlockingError(const QString& src, const Qx::Error& error, bool log = true, DBlockingError::Choices bs = DBlockingError::Choice::Ok, DBlockingError::Choice def = DBlockingError::Choice::No);
+
 
     // Member access
     ServicesMode mode() const;
@@ -380,21 +333,11 @@ public:
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
     void statusChanged(const QString& statusHeading, const QString& statusMessage);
-    void errorOccurred(const Core::Error& error);
-    void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
-    void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
-    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
-    void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
-    void message(const Message& message);
-    void clipboardUpdateRequested(const QString& text);
-    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
+    void asyncDirectiveAccounced(const AsyncDirective& aDirective);
+    void syncDirectiveAccounced(const SyncDirective& sDirective);
 
     // Driver specific
     void abort(CoreError err);
 };
-
-//-Metatype Declarations-----------------------------------------------------------------------------------------
-Q_DECLARE_METATYPE(Core::Error);
-Q_DECLARE_METATYPE(Core::BlockingError);
 
 #endif // CORE_H

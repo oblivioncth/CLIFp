@@ -169,7 +169,7 @@ protected:
     void logTask(const Task* task) const;
     ErrorCode logFinish(Qx::Error errorState) const;
     void postError(Qx::Error error, bool log = true) const;
-    int postBlockingError(Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton) const;
+    int postBlockingError(Qx::Error error, bool log = true, DBlockingError::Choices bs = DBlockingError::Choice::Ok, DBlockingError::Choice def = DBlockingError::Choice::No) const;
 
 public:
     virtual bool requiresFlashpoint() const;

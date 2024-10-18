@@ -9,7 +9,7 @@
 #include <qx/core/qx-error.h>
 
 // Project Includes
-#include "frontend/message.h"
+#include "frontend/directive.h"
 
 class Task : public QObject
 {
