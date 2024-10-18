@@ -31,6 +31,9 @@ private:
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
+    // Director
+    Director* mDirector; // TODO: Won't need to store this once the old mounter are dropped; pass to final mounters constructor
+
     // Mounters
     MounterGameServer* mMounterProxy;
     MounterQmp* mMounterQmp;
@@ -46,7 +49,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TMount(QObject* parent);
+    TMount(Core& core);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

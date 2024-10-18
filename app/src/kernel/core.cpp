@@ -53,47 +53,23 @@ QString CoreError::derivePrimary() const { return ERR_STRINGS.value(mType); }
 QString CoreError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
-// CORE
+// Core
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------
+//Public:
 Core::Core(QObject* parent) :
     QObject(parent),
-    mCriticalErrorOccurred(false),
+    Directorate(&mDirector),
+    mServicesMode(ServicesMode::Standalone),
     mStatusHeading(u"Initializing"_s),
-    mStatusMessage(u"..."_s),
-    mServicesMode(ServicesMode::Standalone)
-{
-    establishCanonCore(*this); // Ignore return value as there should never be more than one Core with current design
-}
-
-//-Class Functions------------------------------------------------------------------------------------------------------
-//Private:
-bool Core::establishCanonCore(Core& cc)
-{
-    if(!smDefaultMessageHandler)
-        smDefaultMessageHandler = qInstallMessageHandler(qtMessageHandler);
-
-    if(smCanonCore)
-        return false;
-
-    smCanonCore = &cc;
-    return true;
-}
-
-void Core::qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
-{
-    // Log messages
-    if(smCanonCore && smCanonCore->isLogOpen())
-        smCanonCore->logQtMessage(type, context, msg);
-
-    // Defer to default behavior
-    if(smDefaultMessageHandler)
-        smDefaultMessageHandler(type, context, msg);
-}
+    mStatusMessage(u"..."_s)
+{}
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+QString Core::name() const { return NAME; }
+
 bool Core::isActionableOptionSet(const QCommandLineParser& clParser) const
 {
     QSet<const QCommandLineOption*>::const_iterator i;
@@ -139,13 +115,13 @@ void Core::showHelp()
     }
 
     // Show help
-    postMessage(Message{.text = helpStr});
+    postDirective<DMessage>(helpStr);
 }
 
 void Core::showVersion()
 {
     setStatus(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
-    postMessage(Message{.text = CL_VERSION_MESSAGE});
+    postDirective<DMessage>(CL_VERSION_MESSAGE);
 }
 
 Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
@@ -167,7 +143,7 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
 
     if((searchError = mFlashpointInstall->database()->queryEntrys(searchResult, filter)).isValid())
     {
-        postError(searchError);
+        postDirective<DError>(searchError);
         return searchError;
     }
 
@@ -176,7 +152,7 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
     if(searchResult.size < 1)
     {
         CoreError err(CoreError::TitleNotFound, name);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
     else if(searchResult.size == 1)
@@ -197,7 +173,7 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
     else if (searchResult.size > FIND_ENTRY_LIMIT)
     {
         CoreError err(CoreError::TooManyResults, name);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
     else
@@ -233,12 +209,13 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         }
 
         // Get user choice
-        Core::ItemSelectionRequest isr{
+        QString userChoice = idChoices.front(); // Default
+        postDirective(DItemSelection{
             .caption = MULTI_TITLE_SEL_CAP,
             .label = MULTI_TITLE_SEL_LABEL,
-            .items = idChoices
-        };
-        QString userChoice = requestItemSelection(isr);
+            .items = idChoices,
+            .response = &userChoice
+        });
 
         if(userChoice.isNull())
             logEvent(LOG_EVENT_TITLE_SEL_CANCELED);
@@ -252,50 +229,6 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         return CoreError();
     }
 }
-
-void Core::logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg)
-{
-#if defined QT_NO_MESSAGELOGCONTEXT || !defined QT_MESSAGELOGCONTEXT
-    QString msgWithContext = msg;
-#else
-    static const QString cTemplate = u"(%1:%2, %3) %4"_s;
-    static const QString unk = u"Unk."_s;
-    QString msgWithContext = cTemplate.arg(
-        context.file ? QString(context.file) : unk,
-        context.line >= 0 ? QString::number(context.line) : unk,
-        context.function ? QString(context.function) : unk,
-        msg
-    );
-#endif
-
-    switch (type)
-    {
-        case QtDebugMsg:
-            logEvent(u"SYSTEM DEBUG) "_s + msgWithContext);
-            break;
-        case QtInfoMsg:
-            logEvent(u"SYSTEM INFO) "_s + msgWithContext);
-            break;
-        case QtWarningMsg:
-            logError(CoreError(CoreError::InternalError, msgWithContext, Qx::Warning));
-            break;
-        case QtCriticalMsg:
-            logError(CoreError(CoreError::InternalError, msgWithContext, Qx::Err));
-            break;
-        case QtFatalMsg:
-            logError(CoreError(CoreError::InternalError, msgWithContext, Qx::Critical));
-            break;
-    }
-}
-
-void Core::logCommand(const QString& commandName) { logCommand(NAME, commandName); }
-void Core::logCommandOptions(const QString& commandOptions) { logCommandOptions(NAME, commandOptions); }
-void Core::logError(const Qx::Error& error) { logError(NAME, error); }
-void Core::logEvent(const QString& event) { logEvent(NAME, event); }
-void Core::logTask(const Task* task) { logTask(NAME, task); }
-ErrorCode Core::logFinish(const Qx::Error& errorState) { return logFinish(NAME, errorState); }
-void Core::postError(const Qx::Error& error, bool log) { postError(NAME, error, log); }
-int Core::postBlockingError(const Qx::Error& error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { return postBlockingError(NAME, error, log, bs, def); }
 
 //Public:
 Qx::Error Core::initialize(QStringList& commandLine)
@@ -332,18 +265,8 @@ Qx::Error Core::initialize(QStringList& commandLine)
     // Remove app name from command line string
     commandLine.removeFirst();
 
-    // Create logger instance
-    QString logPath = CLIFP_DIR_PATH + '/' + CLIFP_CUR_APP_BASENAME  + '.' + LOG_FILE_EXT;
-    mLogger = std::make_unique<Qx::ApplicationLogger>(logPath);
-    mLogger->setApplicationName(PROJECT_SHORT_NAME);
-    mLogger->setApplicationVersion(PROJECT_VERSION_STR);
-    mLogger->setApplicationArguments(commandLine);
-    mLogger->setMaximumEntries(LOG_MAX_ENTRIES);
-
     // Open log
-    Qx::IoOpReport logOpen = mLogger->openLog();
-    if(logOpen.isFailure())
-        postError(Qx::Error(logOpen).setSeverity(Qx::Warning), false);
+    mDirector.openLog(commandLine);
 
     // Log initialization step
     logEvent(LOG_EVENT_INIT);
@@ -358,14 +281,14 @@ Qx::Error Core::initialize(QStringList& commandLine)
         showHelp();
 
         CoreError err(CoreError::InvalidOptions, clParser.errorText());
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 
     // Handle each global option
-    mNotificationVerbosity = clParser.isSet(CL_OPTION_SILENT) ? NotificationVerbosity::Silent :
-                                 clParser.isSet(CL_OPTION_QUIET) ? NotificationVerbosity::Quiet : NotificationVerbosity::Full;
-    logEvent(LOG_EVENT_NOTIFCATION_LEVEL.arg(ENUM_NAME(mNotificationVerbosity)));
+    Director::Verbosity v = clParser.isSet(CL_OPTION_SILENT) ? Director::Verbosity::Silent :
+                            clParser.isSet(CL_OPTION_QUIET) ? Director::Verbosity::Quiet : Director::Verbosity::Full;
+    mDirector.setVerbosity(v);
 
     if(clParser.isSet(CL_OPTION_VERSION))
     {
@@ -422,7 +345,7 @@ void Core::watchLauncher()
     connect(&mLauncherWatcher, &Qx::ProcessBider::finished, this, [this]{
         // Launcher closed (or can't be hooked), need to bail
         CoreError err(CoreError::CompanionModeLauncherClose, LOG_EVENT_LAUNCHER_CLOSED_RESULT);
-        postError(err);
+        postDirective<DError>(err);
         emit abort(err);
     });
 
@@ -569,7 +492,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
 
     if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Docker)
     {
-        TExec* xhostSet = new TExec(this);
+        TExec* xhostSet = new TExec(*this);
         xhostSet->setIdentifier(u"xhost Set"_s);
         xhostSet->setStage(Task::Stage::Startup);
         xhostSet->setExecutable(u"xhost"_s);
@@ -594,7 +517,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         auto wineEnv = TExec::defaultProcessEnvironment();
         wineEnv.insert(u"WINEDLLOVERRIDES"_s, u"control.exe,explorer.exe,mscoree,plugplay.exe,services.exe,winedevice.exe,winemenubuilder.exe=d"_s);
 
-        TExec* wineReg = new TExec(this);
+        TExec* wineReg = new TExec(*this);
         wineReg->setIdentifier(u"WINE Registry Setup"_s);
         wineReg->setStage(Task::Stage::Startup);
         wineReg->setExecutable(u"wine"_s);
@@ -628,7 +551,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
     // Add Start entries from services
     for(const Fp::StartStop& startEntry : qAsConst(fpServices.start))
     {
-        TExec* currentTask = new TExec(this);
+        TExec* currentTask = new TExec(*this);
         currentTask->setIdentifier(startEntry.filename);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setExecutable(startEntry.filename);
@@ -647,13 +570,13 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         if(!foundServer)
         {
             CoreError err(CoreError::ConfiguredServerMissing);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
 
         Fp::ServerDaemon server = foundServer.value();
 
-        TExec* serverTask = new TExec(this);
+        TExec* serverTask = new TExec(*this);
         serverTask->setIdentifier(u"Server"_s);
         serverTask->setStage(Task::Stage::Startup);
         serverTask->setExecutable(server.filename);
@@ -668,7 +591,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
     // Add Daemon entry from services
     for(const Fp::ServerDaemon& d : qAsConst(fpServices.daemon))
     {
-        TExec* currentTask = new TExec(this);
+        TExec* currentTask = new TExec(*this);
         currentTask->setIdentifier(u"Daemon"_s);
         currentTask->setStage(Task::Stage::Startup);
         currentTask->setExecutable(d.filename);
@@ -684,7 +607,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
     // On Linux the startup tasks take a while so make sure the docker image is actually running before proceeding
     if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Docker)
     {
-        TAwaitDocker* dockerWait = new TAwaitDocker(this);
+        TAwaitDocker* dockerWait = new TAwaitDocker(*this);
         dockerWait->setStage(Task::Stage::Startup);
         // NOTE: Other than maybe picking it out of the 2nd argument of the stop docker StartStop, there's no clean way to get this name
         dockerWait->setImageName(u"gamezip"_s);
@@ -700,7 +623,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
      * This is especially important for docker, as the mount server inside seems to take an extra moment to initialize (gives
      * "Connection Closed" if a mount attempt is made right away).
      */
-    TSleep* initDelay = new TSleep(this);
+    TSleep* initDelay = new TSleep(*this);
     initDelay->setStage(Task::Stage::Startup);
     initDelay->setDuration(1500); // NOTE: Might need to be made longer
 
@@ -724,7 +647,7 @@ void Core::enqueueShutdownTasks()
     // Add Stop entries from services
     for(const Fp::StartStop& stopEntry : qxAsConst(mFlashpointInstall->services().stop))
     {
-        TExec* shutdownTask = new TExec(this);
+        TExec* shutdownTask = new TExec(*this);
         shutdownTask->setIdentifier(stopEntry.filename);
         shutdownTask->setStage(Task::Stage::Shutdown);
         shutdownTask->setExecutable(stopEntry.filename);
@@ -740,7 +663,7 @@ void Core::enqueueShutdownTasks()
     // Undo xhost permissions modifications related to docker
     if(mFlashpointInstall->outfittedDaemon() == Fp::Daemon::Docker)
     {
-        TExec* xhostClear = new TExec(this);
+        TExec* xhostClear = new TExec(*this);
         xhostClear->setIdentifier(u"xhost Clear"_s);
         xhostClear->setStage(Task::Stage::Shutdown);
         xhostClear->setExecutable(u"xhost"_s);
@@ -757,7 +680,7 @@ void Core::enqueueShutdownTasks()
     QDir saveSrc(mFlashpointInstall->dir().absoluteFilePath(u"FPSoftware/Wine/drive_c/users/"_s + uname + u"/AppData/Roaming/Macromedia/Flash Player/#SharedObjects"_s));
     QDir saveDest(mFlashpointInstall->dir().absoluteFilePath(u"FPSoftware/.winebak/drive_c/users/"_s + uname + u"/AppData/Roaming/Macromedia/Flash Player"_s));
 
-    TGeneric* wineSaveBackup = new TGeneric(this);
+    TGeneric* wineSaveBackup = new TGeneric(*this);
     wineSaveBackup->setStage(Task::Stage::Shutdown);
     wineSaveBackup->setDescription(u"Backup Flash WINE saves"_s);
     wineSaveBackup->setAction([saveSrc, saveDest]{
@@ -780,13 +703,13 @@ Qx::Error Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
     Qx::Error securePlayerCheckError = tk->appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
     if(securePlayerCheckError.isValid())
     {
-        postError(securePlayerCheckError);
+        postDirective<DError>(securePlayerCheckError);
         return securePlayerCheckError;
     }
 
     if(involvesSecurePlayer)
     {
-        TBideProcess* waitTask = new TBideProcess(this);
+        TBideProcess* waitTask = new TBideProcess(*this);
         waitTask->setStage(Task::Stage::Auxiliary);
         waitTask->setProcessName(tk->SECURE_PLAYER_INFO.fileName());
 
@@ -816,13 +739,13 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     {
         logEvent(LOG_EVENT_DATA_PACK_MISS);
 
-        TDownload* downloadTask = new TDownload(this);
+        TDownload* downloadTask = new TDownload(*this);
         downloadTask->setStage(Task::Stage::Auxiliary);
         downloadTask->setDescription(u"data pack "_s + packFilename);
         TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
         if(packError.isValid())
         {
-            postError(packError);
+            postDirective<DError>(packError);
             return packError;
         }
 
@@ -832,7 +755,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
         // Add task to update DB with onDiskState
         int gameDataId = gameData.id();
 
-        TGeneric* onDiskUpdateTask = new TGeneric(this);
+        TGeneric* onDiskUpdateTask = new TGeneric(*this);
         onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
         onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
         onDiskUpdateTask->setAction([gameDataId, this]{
@@ -848,7 +771,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     // Handle datapack parameters
     Fp::GameDataParameters param = gameData.parameters();
     if(param.hasError())
-        postError(CoreError(CoreError::UnknownDatapackParam, param.errorString(), Qx::Warning));
+        postDirective<DError>(CoreError(CoreError::UnknownDatapackParam, param.errorString(), Qx::Warning));
 
     if(param.isExtract())
     {
@@ -861,7 +784,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
             logEvent(LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED);
         else
         {
-            TExtract* extractTask = new TExtract(this);
+            TExtract* extractTask = new TExtract(*this);
             extractTask->setStage(Task::Stage::Auxiliary);
             extractTask->setPackPath(packPath);
             extractTask->setPathInPack(u"content"_s);
@@ -876,7 +799,7 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
         logEvent(LOG_EVENT_DATA_PACK_NEEDS_MOUNT);
 
         // Create task
-        TMount* mountTask = new TMount(this);
+        TMount* mountTask = new TMount(*this);
         mountTask->setStage(Task::Stage::Auxiliary);
         mountTask->setTitleId(gameData.gameId());
         mountTask->setPath(packPath);
@@ -892,168 +815,10 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 
 void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(task); }
 
-bool Core::isLogOpen() const { return mLogger->isOpen(); }
-
-void Core::logCommand(const QString& src, const QString& commandName)
-{
-    Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_LABEL.arg(commandName));
-    if(logReport.isFailure())
-        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
-}
-
-void Core::logCommandOptions(const QString& src, const QString& commandOptions)
-{
-    Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, COMMAND_OPT_LABEL.arg(commandOptions));
-    if(logReport.isFailure())
-        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
-}
-
-void Core::logError(const QString& src, const Qx::Error& error)
-{
-    Qx::IoOpReport logReport = mLogger->recordErrorEvent(src, error);
-
-    if(logReport.isFailure())
-        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
-
-    if(error.severity() == Qx::Critical)
-        mCriticalErrorOccurred = true;
-}
-
-void Core::logEvent(const QString& src, const QString& event)
-{
-    Qx::IoOpReport logReport = mLogger->recordGeneralEvent(src, event);
-    if(logReport.isFailure())
-        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
-}
-
-void Core::logTask(const QString& src, const Task* task) { logEvent(src, LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(u", "_s))); }
-
-ErrorCode Core::logFinish(const QString& src, const Qx::Error& errorState)
-{
-    if(mCriticalErrorOccurred)
-        logEvent(src, LOG_ERR_CRITICAL);
-
-    ErrorCode code = errorState.typeCode();
-
-    Qx::IoOpReport logReport = mLogger->finish(code);
-    if(logReport.isFailure())
-        postError(src, Qx::Error(logReport).setSeverity(Qx::Warning), false);
-
-    // Return exit code so main function can return with this one
-    return code;
-}
-
-void Core::postError(const QString& src, const Qx::Error& error, bool log)
-{
-    // Logging
-    if(log)
-        logError(src, error);
-
-    // Show error if applicable
-    if(mNotificationVerbosity == NotificationVerbosity::Full ||
-       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.severity() == Qx::Critical))
-    {
-        // Box error
-        Error e;
-        e.source = src;
-        e.errorInfo = error;
-
-        // Emit
-        emit errorOccurred(e);
-    }
-}
-
-int Core::postBlockingError(const QString& src, const Qx::Error& error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def)
-{
-    // Logging
-    if(log)
-        logError(src, error);
-
-    // Show error if applicable
-    if(mNotificationVerbosity == NotificationVerbosity::Full ||
-       (mNotificationVerbosity == NotificationVerbosity::Quiet && error.severity() == Qx::Critical))
-    {
-        // Box error
-        BlockingError be;
-        be.source = src;
-        be.errorInfo = error;
-        be.choices = bs;
-        be.defaultChoice = def;
-
-        // Response holder
-        QSharedPointer<int> response = QSharedPointer<int>::create(def);
-
-        // Emit and get response
-        emit blockingErrorOccurred(response, be);
-
-        // Return response
-        return *response;
-    }
-    else
-        return def;
-}
-
-void Core::postMessage(const Message& msg) { emit message(msg); }
-
-QString Core::requestSaveFilePath(const SaveFileRequest& request)
-{
-    // Response holder
-    QSharedPointer<QString> file = QSharedPointer<QString>::create();
-
-    // Emit and get response
-    emit saveFileRequested(file, request);
-
-    // Return response
-    return *file;
-}
-
-QString Core::requestExistingDirPath(const ExistingDirRequest& request)
-{
-    // Response holder
-    QSharedPointer<QString> dir = QSharedPointer<QString>::create();
-
-    // Emit and get response
-    emit existingDirRequested(dir, request);
-
-    // Return response
-    return *dir;
-}
-
-QString Core::requestItemSelection(const ItemSelectionRequest& request)
-{
-    // Response holder
-    QSharedPointer<QString> item = QSharedPointer<QString>::create();
-
-    // Emit and get response
-    emit itemSelectionRequested(item, request);
-
-    // Return response
-    return *item;
-}
-
-void Core::requestClipboardUpdate(const QString& text) { emit clipboardUpdateRequested(text); }
-
-bool Core::requestQuestionAnswer(const QString& question)
-{
-    // Show question if allowed
-    if(mNotificationVerbosity != NotificationVerbosity::Silent)
-    {
-        // Response holder
-        QSharedPointer<bool> response = QSharedPointer<bool>::create(false);
-
-        // Emit and get response
-        emit questionAnswerRequested(response, question);
-
-        // Return response
-        return *response;
-    }
-    else
-        return false; // Assume "No"
-}
-
+Director* Core::director() { return &mDirector; }
+Core::ServicesMode Core::mode() const { return mServicesMode; }
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
 const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
-Core::NotificationVerbosity Core::notifcationVerbosity() const { return mNotificationVerbosity; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
 Task* Core::frontTask() { return mTaskQueue.front(); }
@@ -1063,9 +828,12 @@ QString Core::statusHeading() { return mStatusHeading; }
 QString Core::statusMessage() { return mStatusMessage;}
 void Core::setStatus(QString heading, QString message)
 {
+    /* TODO: Probably can do away with this and just use postDirective<DStatusUpdate>() where it's needed.
+     * The stored status is never used currently and I can't think of any reason it would b
+     */
     mStatusHeading = heading;
     mStatusMessage = message;
-    emit statusChanged(heading, message);
+    postDirective<DStatusUpdate>(heading, message);
 }
 
 BuildInfo Core::buildInfo() const

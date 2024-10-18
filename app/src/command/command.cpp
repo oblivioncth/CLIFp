@@ -7,6 +7,9 @@
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
 
+// Project Includes
+#include "kernel/core.h"
+
 //===============================================================================================================
 // CommandError
 //===============================================================================================================
@@ -43,7 +46,10 @@ QString CommandError::errorString() const { return mString; }
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-Command::Command(Core& coreRef) : mCore(coreRef) {}
+Command::Command(Core& coreRef) :
+    Directorate(coreRef.director()),
+    mCore(coreRef)
+{}
 
 //-Class Functions------------------------------------------------------------------
 //Private:
@@ -93,16 +99,19 @@ CommandError Command::parse(const QStringList& commandLine)
     if(optionsStr.isEmpty())
         optionsStr = Core::LOG_NO_PARAMS;
 
-    // Log command
-    mCore.logCommand(NAME, commandLine.first());
-    mCore.logCommandOptions(NAME, optionsStr);
+    /* Log command (ensure "Command" name is used)
+     *
+     * TODO: Do we really want to force "Command" here? Don't recall why
+     */
+    Command::logCommand(commandLine.first());
+    Command::logCommandOptions(optionsStr);
 
     if(validArgs)
         return CommandError();
     else
     {
         CommandError parseErr = CommandError(ERR_INVALID_ARGS).wDetails(mParser.errorText());
-        postError(parseErr);
+        postDirective<DError>(parseErr);
         return parseErr;
     }
 }
@@ -168,22 +177,13 @@ void Command::showHelp()
     }
 
     // Show help
-    mCore.postMessage(Message{.text = helpStr});
+    postDirective<DMessage>(helpStr);
 }
 
 //Protected:
 QList<const QCommandLineOption*> Command::options() const { return CL_OPTIONS_STANDARD; }
 QSet<const QCommandLineOption*> Command::requiredOptions() const { return {}; }
-
-// Notifications/Logging (core-forwarders)
-void Command::logCommand(QString commandName) const {mCore.logCommand(name(), commandName); }
-void Command::logCommandOptions(QString commandOptions) const {mCore.logCommandOptions(name(), commandOptions); }
-void Command::logError(Qx::Error error) const {mCore.logError(name(), error); }
-void Command::logEvent(QString event) const {mCore.logEvent(name(), event); }
-void Command::logTask(const Task* task) const {mCore.logTask(name(), task); }
-ErrorCode Command::logFinish(Qx::Error errorState) const {return mCore.logFinish(name(), errorState); }
-void Command::postError(Qx::Error error, bool log) const {mCore.postError(name(), error, log); }
-int Command::postBlockingError(Qx::Error error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) const {return mCore.postBlockingError(name(), error, log); }
+QString Command::name() const { return NAME; };
 
 //Public:
 bool Command::requiresFlashpoint() const { return true; }
@@ -205,7 +205,7 @@ Qx::Error Command::process(const QStringList& commandLine)
     processError = checkRequiredOptions();
     if(processError.isValid())
     {
-        postError(processError);
+        postDirective<DError>(processError);
         return processError;
     }
 

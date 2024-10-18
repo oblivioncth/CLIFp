@@ -3,10 +3,11 @@
 
 // Qt Includes
 #include <QObject>
+#include <QThread>
 
 // Project Includes
 #include "frontend/statusrelay.h"
-#include "kernel/core.h"
+#include "kernel/director.h"
 
 class Controller : public QObject
 {

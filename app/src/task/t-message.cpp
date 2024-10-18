@@ -7,8 +7,8 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TMessage::TMessage(QObject* parent) :
-    Task(parent)
+TMessage::TMessage(Core& core) :
+    Task(core)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -33,12 +33,12 @@ void TMessage::setSelectable(bool sel) { mSelectable = sel; }
 
 void TMessage::perform()
 {
-    emit notificationReady(Message{
-        .text = mText,
-        .blocking = mBlocking,
-        .selectable = mSelectable
-    });
-    emitEventOccurred(LOG_EVENT_SHOW_MESSAGE);
+    if(mBlocking)
+        postDirective<DBlockingMessage>(mText, mSelectable);
+    else
+        postDirective<DMessage>(mText, mSelectable);
+
+    logEvent(LOG_EVENT_SHOW_MESSAGE);
 
     // Return success
     emit complete(Qx::Error());

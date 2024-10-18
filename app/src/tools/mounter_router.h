@@ -11,6 +11,9 @@
 #include <qx/core/qx-error.h>
 #include <qx/utility/qx-macros.h>
 
+// Project Includes
+#include "kernel/directorate.h"
+
 class QX_ERROR_TYPE(MounterRouterError, "MounterRouterError", 1234)
 {
     friend class MounterRouter;
@@ -51,7 +54,7 @@ private:
     QString deriveSecondary() const override;
 };
 
-class MounterRouter : public QObject
+class MounterRouter : public QObject, public Directorate
 {
     Q_OBJECT
 
@@ -85,16 +88,14 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit MounterRouter(QObject* parent = nullptr);
+    explicit MounterRouter(QObject* parent, Director* director);
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
     void finish(const MounterRouterError& result);
 
-    void signalEventOccurred(const QString& event);
-    void signalErrorOccurred(const MounterRouterError& errorMessage);
-
 public:
+    QString name() const override;
     bool isMounting();
 
     quint16 routerPort() const;
@@ -112,8 +113,6 @@ public slots:
     void abort();
 
 signals:
-    void eventOccurred(const QString& name, const QString& event);
-    void errorOccurred(const QString& name, const MounterRouterError& errorMessage);
     void mountFinished(MounterRouterError errorState);
 };
 

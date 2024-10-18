@@ -2,6 +2,7 @@
 #include "blockingprocessmanager.h"
 
 // Project Includes
+#include "kernel/core.h"
 #include "utility.h"
 
 //===============================================================================================================
@@ -10,8 +11,9 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-BlockingProcessManager::BlockingProcessManager(QProcess* process, const QString& identifier, QObject* parent) :
-    QObject(parent),
+BlockingProcessManager::BlockingProcessManager(Core& core, QProcess* process, const QString& identifier) :
+    QObject(&core),
+    Directorate(core.director()),
     mProcess(process),
     mIdentifier(identifier)
 {
@@ -26,7 +28,7 @@ BlockingProcessManager::BlockingProcessManager(QProcess* process, const QString&
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-void BlockingProcessManager::signalEvent(const QString& event) { emit eventOccurred(NAME, event); }
+QString BlockingProcessManager::name() const { return NAME; }
 
 void BlockingProcessManager::signalProcessDataReceived(const QString& msgTemplate)
 {
@@ -41,7 +43,7 @@ void BlockingProcessManager::signalProcessDataReceived(const QString& msgTemplat
         output.chop(1);
 
     // Signal data
-    signalEvent(msgTemplate.arg(pid, output));
+    logEvent(msgTemplate.arg(pid, output));
 }
 
 //Public:
@@ -91,7 +93,7 @@ void BlockingProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
     mProcess->close(); // Wipe IO buffers for posterity
 
     // Notify process end
-    signalEvent(LOG_EVENT_PROCCESS_CLOSED.arg(mIdentifier, program, status, code));
+    logEvent(LOG_EVENT_PROCCESS_CLOSED.arg(mIdentifier, program, status, code));
 
     // Notify management completion
     emit finished();

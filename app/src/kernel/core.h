@@ -14,7 +14,6 @@
 #include <QFileDialog>
 
 // Qx Includes
-#include <qx/io/qx-applicationlogger.h>
 #include <qx/core/qx-processbider.h>
 #include <qx/utility/qx-macros.h>
 
@@ -22,12 +21,10 @@
 #include <fp/fp-install.h>
 
 // Project Includes
+#include "kernel/buildinfo.h"
+#include "kernel/directorate.h"
 #include "task/task.h"
 #include "project_vars.h"
-#include "kernel/buildinfo.h"
-
-// General Aliases
-using ErrorCode = quint32;
 
 class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 {
@@ -37,7 +34,6 @@ public:
     enum Type
     {
         NoError,
-        InternalError,
         CompanionModeLauncherClose,
         CompanionModeServerOverride,
         InvalidOptions,
@@ -51,7 +47,6 @@ public:
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
-        {InternalError, u"Internal error."_s},
         {CompanionModeLauncherClose, u"The standard launcher was closed while in companion mode."_s},
         {CompanionModeServerOverride, u"Cannot enact game server override in companion mode."_s},
         {InvalidOptions, u"Invalid global options provided."_s},
@@ -84,56 +79,12 @@ private:
     QString deriveSecondary() const override;
 };
 
-class Core : public QObject
+class Core : public QObject, public Directorate
 {
     Q_OBJECT;
 //-Class Enums-----------------------------------------------------------------------
 public:
-    enum class NotificationVerbosity { Full, Quiet, Silent };
     enum ServicesMode { Standalone, Companion };
-
-//-Class Structs---------------------------------------------------------------------
-public:
-    /* TODO: These should be made their own files like message.h is in frontend
-     * (or one file, like "requests.h"), or message.h should be removed with its
-     * struct moved to here
-     */
-    struct Error
-    {
-        QString source;
-        Qx::Error errorInfo;
-    };
-
-    struct BlockingError
-    {
-        QString source;
-        Qx::Error errorInfo;
-        QMessageBox::StandardButtons choices;
-        QMessageBox::StandardButton defaultChoice;
-    };
-
-    struct SaveFileRequest
-    {
-        QString caption;
-        QString dir;
-        QString filter;
-        QString* selectedFilter = nullptr;
-        QFileDialog::Options options;
-    };
-
-    struct ExistingDirRequest
-    {
-        QString caption;
-        QString dir;
-        QFileDialog::Options options = QFileDialog::ShowDirsOnly;
-    };
-
-    struct ItemSelectionRequest
-    {
-        QString caption;
-        QString label;
-        QStringList items;
-    };
 
 //-Class Variables------------------------------------------------------------------------------------------------------
 public:
@@ -145,18 +96,12 @@ public:
     static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
     static inline const QString STATUS_DISPLAY_VERSION = u"Version"_s;
 
-    // Logging - Primary Labels
-    static inline const QString COMMAND_LABEL = u"Command: %1"_s;
-    static inline const QString COMMAND_OPT_LABEL = u"Command Options: %1"_s;
-
     // Logging - Primary Values
-    static inline const QString LOG_FILE_EXT = u"log"_s;
+
     static inline const QString LOG_NO_PARAMS = u"*None*"_s;
-    static const int LOG_MAX_ENTRIES = 50;
 
     // Logging - Errors
     static inline const QString LOG_ERR_INVALID_PARAM = u"Invalid parameters provided"_s;
-    static inline const QString LOG_ERR_CRITICAL = u"Aborting execution due to previous critical errors"_s;
     static inline const QString LOG_ERR_FAILED_SETTING_RUFFLE_PERMS= u"Failed to mark ruffle as executable!"_s;
 
     // Logging - Messages
@@ -167,7 +112,6 @@ public:
     static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL = u"Failed to lock standard instance count"_s;
     static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
     static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
-    static inline const QString LOG_EVENT_NOTIFCATION_LEVEL = u"Notification Level is: %1"_s;
     static inline const QString LOG_EVENT_PROTOCOL_FORWARD = u"Delegated protocol request to 'play'"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION_TXT = u"Flashpoint version.txt: %1"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION = u"Flashpoint version: %1"_s;
@@ -182,7 +126,6 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = u"Title Data Pack requires mounting"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = u"Title Data Pack requires extraction"_s;
     static inline const QString LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED = u"Extracted files already present"_s;
-    static inline const QString LOG_EVENT_TASK_ENQ = u"Enqueued %1: {%2}"_s;
     static inline const QString LOG_EVENT_APP_PATH_ALT = u"App path \"%1\" maps to alternative \"%2\"."_s;
     static inline const QString LOG_EVENT_SERVICES_FROM_LAUNCHER = u"Using services from standard Launcher due to companion mode."_s;
     static inline const QString LOG_EVENT_LAUNCHER_WATCH = u"Starting bide on Launcher process..."_s;
@@ -259,20 +202,16 @@ public:
     // Meta
     static inline const QString NAME = u"core"_s;
 
-    // Qt Message Handling
-    static inline constinit QtMessageHandler smDefaultMessageHandler = nullptr;
-    static inline QPointer<Core> smCanonCore;
-
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
+    // Director
+    Director mDirector;
+
     // Handles
     std::unique_ptr<Fp::Install> mFlashpointInstall;
-    std::unique_ptr<Qx::ApplicationLogger> mLogger;
 
     // Processing
     ServicesMode mServicesMode;
-    bool mCriticalErrorOccurred;
-    NotificationVerbosity mNotificationVerbosity;
     std::queue<Task*> mTaskQueue;
 
     // Info
@@ -287,35 +226,15 @@ private:
 public:
     explicit Core(QObject* parent);
 
-//-Class Functions------------------------------------------------------------------------------------------------------
-private:
-    // Qt Message Handling - NOTE: Storing a static instance of core is required due to the C-function pointer interface of qInstallMessageHandler()
-    static bool establishCanonCore(Core& cc);
-    static void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg);
-
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
+    QString name() const override;
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;
     void showHelp();
     void showVersion();
 
     // Helper
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
-    void logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg);
-
-    /* TODO: See if instead of repeating these with auto-source overloads everywhere if instead a template function can be made that just works
-     * in all places where core is available. This would likely require a public ::NAME static member for each type that uses core, though this
-     * would be tricky for the tasks that emit signals instead of using core directly.
-     */
-    // Notifications/Logging (self-forwarders)
-    void logCommand(const QString& commandName);
-    void logCommandOptions(const QString& commandOptions);
-    void logError(const Qx::Error& error);
-    void logEvent(const QString& event);
-    void logTask(const Task* task);
-    ErrorCode logFinish(const Qx::Error& errorState);
-    void postError(const Qx::Error& error, bool log = true);
-    int postBlockingError(const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
 
 public:
     // Setup
@@ -339,31 +258,11 @@ public:
     Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);
 
-    // Notifications/Logging
-    /* TODO: Within each place that uses the log options that need the src parameter, like the Commands, and maybe even Core itself, add methods
-     * with the same names that call mCore.logX(NAME, ...) automatically so that NAME doesn't need to be passed every time
-     */
-    bool isLogOpen() const;
-    void logCommand(const QString& src, const QString& commandName);
-    void logCommandOptions(const QString& src, const QString& commandOptions);
-    void logError(const QString& src, const Qx::Error& error);
-    void logEvent(const QString& src, const QString& event);
-    void logTask(const QString& src, const Task* task);
-    ErrorCode logFinish(const QString& src, const Qx::Error& errorState);
-    void postError(const QString& src, const Qx::Error& error, bool log = true);
-    int postBlockingError(const QString& src, const Qx::Error& error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
-    void postMessage(const Message& msg);
-    QString requestSaveFilePath(const SaveFileRequest& request);
-    QString requestExistingDirPath(const ExistingDirRequest& request);
-    QString requestItemSelection(const ItemSelectionRequest& request);
-    void requestClipboardUpdate(const QString& text);
-    bool requestQuestionAnswer(const QString& question);
-
     // Member access
+    Director* director();
     ServicesMode mode() const;
     Fp::Install& fpInstall();
     const QProcessEnvironment& childTitleProcessEnvironment();
-    NotificationVerbosity notifcationVerbosity() const;
     size_t taskCount() const;
     bool hasTasks() const;
     Task* frontTask();
@@ -379,22 +278,7 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
-    void statusChanged(const QString& statusHeading, const QString& statusMessage);
-    void errorOccurred(const Core::Error& error);
-    void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
-    void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
-    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
-    void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
-    void message(const Message& message);
-    void clipboardUpdateRequested(const QString& text);
-    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
-
-    // Driver specific
     void abort(CoreError err);
 };
-
-//-Metatype Declarations-----------------------------------------------------------------------------------------
-Q_DECLARE_METATYPE(Core::Error);
-Q_DECLARE_METATYPE(Core::BlockingError);
 
 #endif // CORE_H

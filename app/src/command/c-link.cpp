@@ -1,6 +1,9 @@
 // Unit Include
 #include "c-link.h"
 
+// Project Includes
+#include "kernel/core.h"
+
 //===============================================================================================================
 // CLinkError
 //===============================================================================================================
@@ -59,7 +62,7 @@ Qx::Error CLink::perform()
     Fp::DbError dbError = database->getEntry(entry_v, shortcutId);
     if(dbError.isValid())
     {
-        postError(dbError);
+        postDirective<DError>(dbError);
         return dbError;
     }
 
@@ -76,7 +79,7 @@ Qx::Error CLink::perform()
         Fp::DbError dbError = database->getEntry(entry_v, addApp.parentId());
         if(dbError.isValid())
         {
-            postError(dbError);
+            postDirective<DError>(dbError);
             return dbError;
         }
         Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
@@ -99,11 +102,12 @@ Qx::Error CLink::perform()
         logEvent(LOG_EVENT_NO_PATH);
 
         // Prompt user for path
-        Core::ExistingDirRequest edr{
+        QString selectedPath; // Default is empty dir
+        postDirective(DExistingDir{
             .caption = DIAG_CAPTION,
-            .dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)
-        };
-        QString selectedPath = mCore.requestExistingDirPath(edr);
+            .startingDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+            .response = &selectedPath
+        });
 
         if(selectedPath.isEmpty())
         {
@@ -123,7 +127,7 @@ Qx::Error CLink::perform()
         if(!shortcutDir.mkpath(shortcutDir.absolutePath()))
         {
             CLinkError err(CLinkError::InvalidPath);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
         logEvent(LOG_EVENT_CREATED_DIR_PATH.arg(QDir::toNativeSeparators(shortcutDir.absolutePath())));

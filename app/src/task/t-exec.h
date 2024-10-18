@@ -104,6 +104,7 @@ private:
 private:
     // Functional
     BlockingProcessManager* mBlockingProcessManager;
+    Core& mCore;
 
     // Data
     QString mExecutable;
@@ -115,7 +116,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TExec(QObject* parent);
+    TExec(Core& core);
 
 //-Class Functions-----------------------------------------------------------------------------------------------------
 public:

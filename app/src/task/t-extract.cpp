@@ -187,8 +187,8 @@ public:
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TExtract::TExtract(QObject* parent) :
-    Task(parent)
+TExtract::TExtract(Core& core) :
+    Task(core)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -215,13 +215,13 @@ void TExtract::perform()
 {
     // Log string
     QFileInfo packFileInfo(mPackPath);
-    emitEventOccurred(LOG_EVENT_EXTRACTING_ARCHIVE.arg(packFileInfo.fileName()));
+    logEvent(LOG_EVENT_EXTRACTING_ARCHIVE.arg(packFileInfo.fileName()));
 
     // Extract pack
     Extractor extractor(mPackPath, mPathInPack, mDestinationPath);
     TExtractError ee = extractor.extract();
     if(ee.isValid())
-        emitErrorOccurred(ee);
+        postDirective<DError>(ee);
 
     emit complete(ee);
 }

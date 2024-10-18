@@ -4,6 +4,9 @@
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
 
+// Project Includes
+#include "kernel/core.h"
+
 //===============================================================================================================
 // TitleCommandError
 //===============================================================================================================
@@ -58,7 +61,7 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
     searchError = database->queryAllGameIds(mainGameIdQuery, lbFilter);
     if(searchError.isValid())
     {
-        postError(searchError);
+        postDirective<DError>(searchError);
         return searchError;
     }
 
@@ -91,7 +94,7 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
     searchError = database->queryEntrys(addAppQuery, addAppFilter);
     if(searchError.isValid())
     {
-        postError(searchError);
+        postDirective<DError>(searchError);
         return searchError;
     }
     logEvent(LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
@@ -149,7 +152,7 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
     searchError = database->getEntry(entry_v, mainId);
     if(searchError.isValid())
     {
-        postError(searchError);
+        postDirective<DError>(searchError);
         return searchError;
     }
 
@@ -171,7 +174,7 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
         searchError = database->getEntry(entry_v, subId);
         if(searchError.isValid())
         {
-            postError(searchError);
+            postDirective<DError>(searchError);
             return searchError;
         }
 
@@ -207,7 +210,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         if((titleId = QUuid(idStr)).isNull())
         {
             TitleCommandError err(TitleCommandError::InvalidId, idStr);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
         QUuid origId = titleId;
@@ -257,7 +260,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         else
         {
             TitleCommandError err(TitleCommandError::InvalidRandomFilter, rawRandFilter);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
 
@@ -265,21 +268,17 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         if(Qx::Error re = randomlySelectId(titleId, addAppId, randFilter); re.isValid())
             return re;
 
-        // Show selection info
-        if(mCore.notifcationVerbosity() == Core::NotificationVerbosity::Full)
-        {
-            QString selInfo;
-            if(Qx::Error rse = getRandomSelectionInfo(selInfo, titleId, addAppId); rse.isValid())
-                return rse;
+        QString selInfo;
+        if(Qx::Error rse = getRandomSelectionInfo(selInfo, titleId, addAppId); rse.isValid())
+            return rse;
 
-            // Display selection info
-            mCore.postMessage(Message{.text = selInfo});
-        }
+        // Display selection info
+        postDirective<DMessage>(selInfo);
     }
     else
     {
         TitleCommandError err(TitleCommandError::MissingTitle);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 

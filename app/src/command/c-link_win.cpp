@@ -31,7 +31,7 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     // Check for creation failure
     if(shortcutError.isValid())
     {
-        postError(shortcutError);
+        postDirective<DError>(shortcutError);
         return shortcutError;
     }
     else

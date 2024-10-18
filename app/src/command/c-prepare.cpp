@@ -4,6 +4,9 @@
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
 
+// Project Includes
+#include "kernel/core.h"
+
 //===============================================================================================================
 // CPREPARE
 //===============================================================================================================
@@ -28,7 +31,7 @@ Qx::Error CPrepare::perform()
     Fp::GameData titleGameData;
     if(Fp::DbError gdErr = mCore.fpInstall().database()->getGameData(titleGameData, id); gdErr.isValid())
     {
-        postError(gdErr);
+        postDirective<DError>(gdErr);
         return gdErr;
     }
 

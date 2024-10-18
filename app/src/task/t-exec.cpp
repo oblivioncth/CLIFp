@@ -5,6 +5,7 @@
 #include <qx/core/qx-regularexpression.h>
 
 // Project Includes
+#include "kernel/core.h"
 #include "utility.h"
 
 // TODO: See if any quote handling here can be replaced with std::quoted()
@@ -39,9 +40,10 @@ QString TExecError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-TExec::TExec(QObject* parent) :
-    Task(parent),
+TExec::TExec(Core& core) :
+    Task(core),
     mBlockingProcessManager(nullptr),
+    mCore(core),
     mEnvironment(smDefaultEnv)
 {}
 
@@ -86,7 +88,7 @@ QString TExec::createEscapedShellArguments()
         QString args = std::get<QString>(mParameters);
         escapedArgs = escapeForShell(args);
         if(args != escapedArgs)
-            emitEventOccurred(LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
+            logEvent(LOG_EVENT_ARGS_ESCAPED.arg(args, escapedArgs));
     }
     else
     {
@@ -100,7 +102,7 @@ QString TExec::createEscapedShellArguments()
         QStringList rebuild = QProcess::splitCommand(escapedArgs);
         if(rebuild != parameters)
         {
-            emitEventOccurred(LOG_EVENT_ARGS_ESCAPED.arg(u"{\""_s + parameters.join(uR"(", ")"_s) + u"\"}"_s,
+            logEvent(LOG_EVENT_ARGS_ESCAPED.arg(u"{\""_s + parameters.join(uR"(", ")"_s) + u"\"}"_s,
                                                                 u"{\""_s + rebuild.join(uR"(", ")"_s) + u"\"}"_s));
         }
     }
@@ -140,7 +142,7 @@ void TExec::removeRedundantFullQuotes(QProcess& process)
 
         if(redundant)
         {
-            emitEventOccurred(LOG_EVENT_REMOVED_REDUNDANT_QUOTES.arg(a));
+            logEvent(LOG_EVENT_REMOVED_REDUNDANT_QUOTES.arg(a));
             a = inner.toString();
         }
     }
@@ -156,27 +158,27 @@ TExecError TExec::cleanStartProcess(QProcess* process)
 
     // Go to working directory
     QDir::setCurrent(newDirPath);
-    emitEventOccurred(LOG_EVENT_CD.arg(QDir::toNativeSeparators(newDirPath)));
+    logEvent(LOG_EVENT_CD.arg(QDir::toNativeSeparators(newDirPath)));
 
     // Start process
     process->start();
-    emitEventOccurred(LOG_EVENT_STARTING.arg(mIdentifier, process->program()));
+    logEvent(LOG_EVENT_STARTING.arg(mIdentifier, process->program()));
 
     // Return to previous working directory
     QDir::setCurrent(currentDirPath);
-    emitEventOccurred(LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
+    logEvent(LOG_EVENT_CD.arg(QDir::toNativeSeparators(currentDirPath)));
 
     // Make sure process starts
     if(!process->waitForStarted())
     {
         TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(process->program(), ENUM_NAME(process->error())));
-        emitErrorOccurred(err);
+        postDirective<DError>(err);
         delete process; // Clear finished process handle from heap
         return err;
     }
 
     // Return success
-    emitEventOccurred(LOG_EVENT_STARTED_PROCESS.arg(mIdentifier));
+    logEvent(LOG_EVENT_STARTED_PROCESS.arg(mIdentifier));
     return TExecError();
 }
 
@@ -219,14 +221,14 @@ void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
 void TExec::perform()
 {
-    emitEventOccurred(LOG_EVENT_PREPARING_PROCESS.arg(ENUM_NAME(mProcessType), mIdentifier, mExecutable));
+    logEvent(LOG_EVENT_PREPARING_PROCESS.arg(ENUM_NAME(mProcessType), mIdentifier, mExecutable));
 
     // Get final executable path
     QString execPath = resolveExecutablePath();
     if(execPath.isEmpty())
     {
         TExecError err(TExecError::CouldNotFind, mExecutable, mStage == Stage::Shutdown ? Qx::Err : Qx::Critical);
-        emitErrorOccurred(err);
+        postDirective<DError>(err);
         emit complete(err);
         return;
     }
@@ -244,8 +246,7 @@ void TExec::perform()
     {
         case ProcessType::Blocking:
             // Setup blocking process manager (it adopts the process)
-            mBlockingProcessManager = new BlockingProcessManager(taskProcess, mIdentifier, this);
-            connect(mBlockingProcessManager, &BlockingProcessManager::eventOccurred, this, &TExec::eventOccurred);
+            mBlockingProcessManager = new BlockingProcessManager(mCore, taskProcess, mIdentifier);
             connect(mBlockingProcessManager, &BlockingProcessManager::finished, this, &TExec::postBlockingProcess);
 
             // Setup and start process
@@ -259,8 +260,8 @@ void TExec::perform()
             return;
 
         case ProcessType::Deferred:
-             // Can't use 'this' as parent since process will outlive this instance, so use parent of task
-            taskProcess->setParent(this->parent());
+             // Can't use 'this' as parent since process will outlive this instance, so use core
+            taskProcess->setParent(&mCore);
             if(TExecError se = cleanStartProcess(taskProcess); se.isValid())
             {
                 emit complete(se);
@@ -284,7 +285,7 @@ void TExec::perform()
             if(!taskProcess->startDetached())
             {
                 TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(taskProcess->program(), ENUM_NAME(taskProcess->error())));
-                emitErrorOccurred(err);
+                postDirective<DError>(err);
                 emit complete(err);
                 return;
             }
@@ -299,7 +300,7 @@ void TExec::stop()
 {
     if(mBlockingProcessManager)
     {
-        emitEventOccurred(LOG_EVENT_STOPPING_BLOCKING_PROCESS.arg(mIdentifier));
+        logEvent(LOG_EVENT_STOPPING_BLOCKING_PROCESS.arg(mIdentifier));
         mBlockingProcessManager->closeProcess();
     }
 }

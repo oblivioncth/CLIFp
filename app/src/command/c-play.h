@@ -6,6 +6,7 @@
 
 // Project Includes
 #include "command/title-command.h"
+#include "task/task.h"
 
 class QX_ERROR_TYPE(CPlayError, "CPlayError", 1212)
 {

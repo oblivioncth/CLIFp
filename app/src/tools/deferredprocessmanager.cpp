@@ -5,6 +5,7 @@
 #include <qx/core/qx-system.h>
 
 // Project Includes
+#include "kernel/core.h"
 #include "utility.h"
 
 //===============================================================================================================
@@ -13,17 +14,17 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-DeferredProcessManager::DeferredProcessManager(QObject* parent) :
-    QObject(parent),
+DeferredProcessManager::DeferredProcessManager(Core& core) :
+    QObject(&core),
+    Directorate(core.director()),
     mClosingClients(false)
 {}
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-void DeferredProcessManager::signalEvent(const QString& event) { emit eventOccurred(NAME, event); }
-void DeferredProcessManager::signalError(const Qx::GenericError& error) { emit errorOccurred(NAME, error); }
+QString DeferredProcessManager::name() const { return NAME; }
 
-void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const QString& msgTemplate)
+void DeferredProcessManager::handleProcessDataReceived(QProcess* process, const QString& msgTemplate)
 {
     // Assemble details
     QString identifier = process->objectName();
@@ -38,17 +39,17 @@ void DeferredProcessManager::signalProcessDataReceived(QProcess* process, const 
         output.chop(1);
 
     // Signal data
-    signalEvent(msgTemplate.arg(identifier, program, pid, output));
+    logEvent(msgTemplate.arg(identifier, program, pid, output));
 }
 
-void DeferredProcessManager::signalProcessStdOutMessage(QProcess* process)
+void DeferredProcessManager::handleProcessStdOutMessage(QProcess* process)
 {
-    signalProcessDataReceived(process, LOG_EVENT_PROCCESS_STDOUT);
+    handleProcessDataReceived(process, LOG_EVENT_PROCCESS_STDOUT);
 }
 
-void DeferredProcessManager::signalProcessStdErrMessage(QProcess* process)
+void DeferredProcessManager::handleProcessStdErrMessage(QProcess* process)
 {
-    signalProcessDataReceived(process, LOG_EVENT_PROCCESS_STDERR);
+    handleProcessDataReceived(process, LOG_EVENT_PROCCESS_STDERR);
 }
 
 // Public:
@@ -127,10 +128,10 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
     // Flush incomplete messages
     process->setReadChannel(QProcess::StandardOutput);
     if(!process->atEnd())
-        signalProcessStdOutMessage(process);
+        handleProcessStdOutMessage(process);
     process->setReadChannel(QProcess::StandardError);
     if(!process->atEnd())
-        signalProcessStdErrMessage(process);
+        handleProcessStdErrMessage(process);
 
     // Assemble details
     QString identifier = process->objectName();
@@ -144,9 +145,9 @@ void DeferredProcessManager::processFinishedHandler(int exitCode, QProcess::Exit
 
     // Emit message based on whether the process was expected to be closed
     if(mClosingClients)
-        signalEvent(LOG_EVENT_PROCCESS_CLOSED.arg(identifier, program, status, code));
+        logEvent(LOG_EVENT_PROCCESS_CLOSED.arg(identifier, program, status, code));
     else
-        signalError(Qx::GenericError(Qx::Warning, 12311, ERR_PROCESS_END_PREMATURE.arg(identifier, program, status, code)));
+        postDirective<DError>(Qx::GenericError(Qx::Warning, 12311, ERR_PROCESS_END_PREMATURE.arg(identifier, program, status, code)));
 }
 
 void DeferredProcessManager::processStandardOutHandler()
@@ -159,7 +160,7 @@ void DeferredProcessManager::processStandardOutHandler()
     // Signal data if complete message is in buffer
     process->setReadChannel(QProcess::StandardOutput);
     if(process->canReadLine())
-        signalProcessStdOutMessage(process);
+        handleProcessStdOutMessage(process);
 }
 
 void DeferredProcessManager::processStandardErrorHandler()
@@ -172,5 +173,5 @@ void DeferredProcessManager::processStandardErrorHandler()
     // Signal data if complete message is in buffer
     process->setReadChannel(QProcess::StandardError);
     if(process->canReadLine())
-        signalProcessStdErrMessage(process);
+        handleProcessStdErrMessage(process);
 }

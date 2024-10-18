@@ -1,6 +1,9 @@
 #ifndef TITLE_COMMAND_H
 #define TITLE_COMMAND_H
 
+// libfp Includes
+#include <fp/fp-db.h>
+
 // Project Includes
 #include "command/command.h"
 

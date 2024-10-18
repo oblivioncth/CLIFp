@@ -10,7 +10,12 @@
 #include <qx/core/qx-genericerror.h>
 #include <qx/utility/qx-macros.h>
 
-class DeferredProcessManager : public QObject
+// Project Includes
+#include "kernel/directorate.h"
+
+class Core;
+
+class DeferredProcessManager : public QObject, public Directorate
 {
     Q_OBJECT;
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -33,15 +38,14 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    DeferredProcessManager(QObject* parent);
+    DeferredProcessManager(Core& core);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    void signalEvent(const QString& event);
-    void signalError(const Qx::GenericError& error);
-    void signalProcessDataReceived(QProcess* process, const QString& msgTemplate);
-    void signalProcessStdOutMessage(QProcess* process);
-    void signalProcessStdErrMessage(QProcess* process);
+    QString name() const override;
+    void handleProcessDataReceived(QProcess* process, const QString& msgTemplate);
+    void handleProcessStdOutMessage(QProcess* process);
+    void handleProcessStdErrMessage(QProcess* process);
 
 public:
     void manage(const QString& identifier, QProcess* process);
@@ -52,10 +56,6 @@ private slots:
     void processFinishedHandler(int exitCode, QProcess::ExitStatus exitStatus);
     void processStandardOutHandler();
     void processStandardErrorHandler();
-
-signals:
-    void eventOccurred(const QString& name, const QString& event);
-    void errorOccurred(const QString& name, const Qx::GenericError& error);
 };
 
 #endif // DEFERREDPROCESSMANAGER_H

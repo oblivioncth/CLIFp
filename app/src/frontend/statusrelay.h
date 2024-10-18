@@ -6,15 +6,16 @@
 #include <QProgressDialog>
 #include <QSystemTrayIcon>
 #include <QMenu>
-#include <QAuthenticator>
-#include <QInputDialog>
 #include <QClipboard>
+#include <QMessageBox>
 
 // Qx Includes
+#include <qx/core/qx-bimap.h>
 #include <qx/utility/qx-macros.h>
+#include <qx/utility/qx-concepts.h>
 
 // Project Includes
-#include "kernel/core.h"
+#include "kernel/directive.h"
 
 class StatusRelay : public QObject
 {
@@ -23,6 +24,14 @@ class StatusRelay : public QObject
 private:
     // System Messages
     static inline const QString SYS_TRAY_STATUS = u"CLIFp is running"_s;
+
+//-Class Variables--------------------------------------------------------------------------------------------------------
+private:
+    Qx::Bimap<DBlockingError::Choice, QMessageBox::StandardButton> smChoiceButtonMap{
+        {DBlockingError::Choice::Ok, QMessageBox::Ok},
+        {DBlockingError::Choice::Yes, QMessageBox::Yes},
+        {DBlockingError::Choice::No, QMessageBox::No},
+    };
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 public:
@@ -40,27 +49,40 @@ public:
 
 //-Instance Functions--------------------------------------------------------------------------------------------------
 private:
+    QMessageBox::StandardButtons choicesToButtons(DBlockingError::Choices cs);
+
+    template<class MessageT>
+        requires Qx::any_of<MessageT, DMessage, DBlockingMessage>
+    QMessageBox* prepareMessageBox(const MessageT& dMsg);
+
+//-Instance Functions--------------------------------------------------------------------------------------------------
+private:
     void setupTrayIcon();
     void setupProgressDialog();
 
+    // Async directive handlers
+    void handleMessage(const DMessage& d);
+    void handleError(const DError& d);
+    void handleProcedureStart(const DProcedureStart& d);
+    void handleProcedureStop(const DProcedureStop& d);
+    void handleProcedureProgress(const DProcedureProgress& d);
+    void handleProcedureScale(const DProcedureScale& d);
+    void handleClipboardUpdate(const DClipboardUpdate& d);
+    void handleStatusUpdate(const DStatusUpdate& d);
+
+    // Sync directive handlers
+    void handleBlockingMessage(const DBlockingMessage& d);
+    void handleBlockingError(const DBlockingError& d);
+    void handleSaveFilename(const DSaveFilename& d);
+    void handleExistingDir(const DExistingDir& d);
+    void handleItemSelection(const DItemSelection& d);
+    void handleYesOrNo(const DYesOrNo& d);
+
 //-Signals & Slots------------------------------------------------------------------------------------------------------
 public slots:
-    // Request/status handlers
-    void statusChangeHandler(const QString& statusHeading, const QString& statusMessage);
-    void errorHandler(Core::Error error);
-    void blockingErrorHandler(QSharedPointer<int> response, Core::BlockingError blockingError);
-    void messageHandler(const Message& message);
-    void saveFileRequestHandler(QSharedPointer<QString> file, Core::SaveFileRequest request);
-    void existingDirectoryRequestHandler(QSharedPointer<QString> dir, Core::ExistingDirRequest request);
-    void itemSelectionRequestHandler(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
-    void clipboardUpdateRequestHandler(const QString& text);
-    void questionAnswerRequestHandler(QSharedPointer<bool> response, const QString& question);
-
-    // Long Job
-    void longTaskProgressHandler(quint64 progress);
-    void longTaskTotalHandler(quint64 total);
-    void longTaskStartedHandler(QString task);
-    void longTaskFinishedHandler();
+    // Directive handlers
+    void asyncDirectiveHandler(const AsyncDirective& aDirective);
+    void syncDirectiveHandler(const SyncDirective& sDirective);
 
 signals:
     void longTaskCanceled();

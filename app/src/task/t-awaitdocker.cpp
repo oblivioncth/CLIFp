@@ -30,8 +30,8 @@ QString TAwaitDockerError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TAwaitDocker::TAwaitDocker(QObject* parent) :
-    Task(parent)
+TAwaitDocker::TAwaitDocker(Core& core) :
+    Task(core)
 {
     // Setup event listener
     mEventListener.setProgram(DOCKER);
@@ -67,7 +67,7 @@ TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
     if(!dockerPs.waitForStarted(1000))
     {
         TAwaitDockerError err(TAwaitDockerError::DirectQueryFailed);
-        emit errorOccurred(NAME, err);
+        postDirective<DError>(err);
         return err;
     }
     if(!dockerPs.waitForFinished(1000))
@@ -76,7 +76,7 @@ TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
         dockerPs.waitForFinished();
 
         TAwaitDockerError err(TAwaitDockerError::DirectQueryFailed);
-        emit errorOccurred(NAME, err);
+        postDirective<DError>(err);
         return err;
     }
 
@@ -105,7 +105,7 @@ TAwaitDockerError TAwaitDocker::startEventListener()
     if(!mEventListener.waitForStarted(1000))
     {
         TAwaitDockerError err(TAwaitDockerError::ListenFailed);
-        emit errorOccurred(NAME, err);
+        postDirective<DError>(err);
         return err;
     }
     mTimeoutTimer.start(mTimeout);
@@ -115,7 +115,7 @@ TAwaitDockerError TAwaitDocker::startEventListener()
 
 void TAwaitDocker::stopEventListening()
 {
-    emit eventOccurred(NAME, LOG_EVENT_STOPPING_LISTENER);
+    logEvent(LOG_EVENT_STOPPING_LISTENER);
 
     // Just kill it, clean shutdown isn't needed
     mEventListener.close();
@@ -144,7 +144,7 @@ void TAwaitDocker::perform()
     TAwaitDockerError errorStatus;
 
     // Check if image is running
-    emit eventOccurred(NAME, LOG_EVENT_DIRECT_QUERY.arg(mImageName));
+    logEvent(LOG_EVENT_DIRECT_QUERY.arg(mImageName));
 
     bool running;
     errorStatus = imageRunningCheck(running);
@@ -155,7 +155,7 @@ void TAwaitDocker::perform()
     }
 
     // Listen for image started event
-    emit eventOccurred(NAME, LOG_EVENT_STARTING_LISTENER);
+    logEvent(LOG_EVENT_STARTING_LISTENER);
     errorStatus = startEventListener();
     if(errorStatus.isValid())
         emit complete(errorStatus);
@@ -188,7 +188,7 @@ void TAwaitDocker::eventDataReceived()
         if(eventData == mImageName)
         {
             mTimeoutTimer.stop();
-            emit eventOccurred(NAME, LOG_EVENT_START_RECEIVED);
+            logEvent(LOG_EVENT_START_RECEIVED);
             stopEventListening();
             emit complete(TAwaitDockerError());
         }
@@ -205,13 +205,13 @@ void TAwaitDocker::timeoutOccurred()
 
     if(running)
     {
-        emit eventOccurred(NAME, LOG_EVENT_FINAL_CHECK_PASS);
+        logEvent(LOG_EVENT_FINAL_CHECK_PASS);
         emit complete(TAwaitDockerError());
     }
     else
     {
         TAwaitDockerError err(TAwaitDockerError::StartFailed, mImageName);
-        emit errorOccurred(NAME, err);
+        postDirective<DError>(err);
         emit complete(err);
     }
 }

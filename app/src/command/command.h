@@ -1,13 +1,17 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+// Qt Includes
+#include <QCommandLineParser>
+
 // Qx Includes
 #include <qx/utility/qx-macros.h>
 
-// Project Includes 
-#include "kernel/core.h"
+// Project Includes
+#include "kernel/directorate.h"
 
 class CommandFactory;
+class Core;
 
 //-Macros-------------------------------------------------------------------------------------------------------------------
 #define REGISTER_COMMAND(name, command, desc) \
@@ -27,10 +31,10 @@ class QX_ERROR_TYPE(CommandError, "CommandError", 1210)
 public:
     enum Type
     {
-        NoError = 0,
-        InvalidArguments = 1,
-        InvalidCommand = 2,
-        MissingRequiredOption = 3
+        NoError,
+        InvalidArguments,
+        InvalidCommand,
+        MissingRequiredOption
     };
 
 //-Class Variables------------------------------------------------------------------------------------------------
@@ -74,7 +78,7 @@ public:
     QString errorString() const;
 };
 
-class Command
+class Command : public Directorate
 {
 //-Class Structs------------------------------------------------------------------------------------------------------
 protected:
@@ -160,16 +164,6 @@ protected:
     virtual QSet<const QCommandLineOption*> requiredOptions() const;
     virtual QString name() const = 0;
     virtual Qx::Error perform() = 0;
-
-    // Notifications/Logging (core-forwarders)
-    void logCommand(QString commandName) const;
-    void logCommandOptions(QString commandOptions) const;
-    void logError(Qx::Error error) const;
-    void logEvent(QString event) const;
-    void logTask(const Task* task) const;
-    ErrorCode logFinish(Qx::Error errorState) const;
-    void postError(Qx::Error error, bool log = true) const;
-    int postBlockingError(Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton) const;
 
 public:
     virtual bool requiresFlashpoint() const;

@@ -40,8 +40,9 @@ QString MounterRouterError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-MounterRouter::MounterRouter(QObject* parent) :
+MounterRouter::MounterRouter(QObject* parent, Director* director) :
     QObject(parent),
+    Directorate(director),
     mMounting(false),
     mRouterPort(0)
 {
@@ -56,18 +57,18 @@ MounterRouter::MounterRouter(QObject* parent) :
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
      */
     connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
-        signalEventOccurred(u"Unexpected use of authentication by PHP server!"_s);
+        logEvent(u"Unexpected use of authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
-        signalEventOccurred(u"Unexpected use of PSK authentication by PHP server!"_s);
+        logEvent(u"Unexpected use of PSK authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
-        signalEventOccurred(u"Unexpected use of proxy by PHP server!"_s);
+        logEvent(u"Unexpected use of proxy by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
         Q_UNUSED(reply);
         QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, u","_s);
-        signalEventOccurred(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
+        logEvent(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
     });
 }
 
@@ -80,6 +81,7 @@ void MounterRouter::finish(const MounterRouterError& result)
 }
 
 //Public:
+QString MounterRouter::name() const { return NAME; }
 bool MounterRouter::isMounting() { return mMounting; }
 
 quint16 MounterRouter::routerPort() const { return mRouterPort; }
@@ -87,9 +89,6 @@ QString MounterRouter::mountValue() const { return mMountValue; }
 
 void MounterRouter::setRouterPort(quint16 port) { mRouterPort = port; }
 void MounterRouter::setMountValue(const QString& value) { mMountValue = value; }
-
-void MounterRouter::signalEventOccurred(const QString& event) { emit eventOccurred(NAME, event); }
-void MounterRouter::signalErrorOccurred(const MounterRouterError& errorMessage) { emit errorOccurred(NAME, errorMessage); }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 //Private Slots:
@@ -103,12 +102,12 @@ void MounterRouter::mountFinishedHandler(QNetworkReply* reply)
     if(reply->error() != QNetworkReply::NoError && reply->error() != QNetworkReply::InternalServerError)
     {
         err = MounterRouterError(MounterRouterError::Failed, reply->errorString());
-        signalErrorOccurred(err);
+        postDirective<DError>(err);
     }
     else
     {
         QByteArray response = reply->readAll();
-        signalEventOccurred(EVENT_ROUTER_RESPONSE.arg(response));
+        logEvent(EVENT_ROUTER_RESPONSE.arg(response));
     }
 
     finish(err);
@@ -117,7 +116,7 @@ void MounterRouter::mountFinishedHandler(QNetworkReply* reply)
 //Public Slots:
 void MounterRouter::mount()
 {
-    signalEventOccurred(EVENT_MOUNTING_THROUGH_ROUTER);
+    logEvent(EVENT_MOUNTING_THROUGH_ROUTER);
 
     // Create mount request
     QUrl mountUrl;
@@ -138,7 +137,7 @@ void MounterRouter::mount()
     mRouterMountReply = mNam.get(mountReq);
 
     // Log request
-    signalEventOccurred(EVENT_REQUEST_SENT.arg(ENUM_NAME(mRouterMountReply->operation()), mountUrl.toString()));
+    logEvent(EVENT_REQUEST_SENT.arg(ENUM_NAME(mRouterMountReply->operation()), mountUrl.toString()));
 
     // Await finished() signal...
 }

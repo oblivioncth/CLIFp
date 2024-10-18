@@ -12,6 +12,9 @@
 // QI-QMP Includes
 #include <qi-qmp/qmpi.h>
 
+// Project Includes
+#include "kernel/directorate.h"
+
 class QX_ERROR_TYPE(MounterQmpError, "MounterQmpError", 1233)
 {
     friend class MounterQmp;
@@ -56,7 +59,7 @@ private:
     QString deriveSecondary() const override;
 };
 
-class MounterQmp : public QObject
+class MounterQmp : public QObject, public Directorate
 {
     Q_OBJECT
 
@@ -103,17 +106,15 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit MounterQmp(QObject* parent = nullptr);
+    explicit MounterQmp(QObject* parent, Director* director);
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
     void finish();
     void createMountPoint();
 
-    void signalEventOccurred(const QString& event);
-    void signalErrorOccurred(const MounterQmpError& errorMessage);
-
 public:
+    QString name() const override;
     bool isMounting();
 
     QString driveId() const;
@@ -146,8 +147,6 @@ public slots:
     void abort();
 
 signals:
-    void eventOccurred(const QString& name, const QString& event);
-    void errorOccurred(const QString& name, const MounterQmpError& errorMessage);
     void mountFinished(const MounterQmpError& errorState);
 };
 

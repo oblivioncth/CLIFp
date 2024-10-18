@@ -5,6 +5,11 @@ set(CLIFP_SOURCE
     kernel/buildinfo.h
     kernel/core.h
     kernel/core.cpp
+    kernel/directive.h
+    kernel/director.h
+    kernel/director.cpp
+    kernel/directorate.h
+    kernel/directorate.cpp
     kernel/driver.h
     kernel/driver.cpp
     kernel/errorstatus.h
@@ -57,7 +62,6 @@ set(CLIFP_SOURCE
     tools/mounter_qmp.cpp
     tools/mounter_router.h
     tools/mounter_router.cpp
-    frontend/message.h
     frontend/statusrelay.h
     frontend/statusrelay.cpp
     controller.h
