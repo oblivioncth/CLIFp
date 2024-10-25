@@ -94,7 +94,7 @@ QString TExec::resolveExecutablePath()
     if(execInfo.suffix() == SHELL_EXT_WIN)
     {
         execInfo.setFile(mExecutable.chopped(SHELL_EXT_WIN.size()) + SHELL_EXT_LINUX);
-        emit eventOccurred(NAME, LOG_EVENT_FORCED_BASH);
+        logEvent(LOG_EVENT_FORCED_BASH);
     }
 
     // Mostly standard processing
@@ -144,7 +144,7 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 {
     if(execInfo.suffix() == EXECUTABLE_EXT_WIN)
     {
-        emit eventOccurred(NAME, LOG_EVENT_FORCED_WIN);
+        logEvent(LOG_EVENT_FORCED_WIN);
 
         // Resolve passed parameters
         QStringList exeParam = std::holds_alternative<QString>(mParameters) ?
@@ -172,8 +172,8 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 
 void TExec::logPreparedProcess(const QProcess* process)
 {
-    emit eventOccurred(NAME, LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
-    emit eventOccurred(NAME, LOG_EVENT_FINAL_PARAMETERS.arg(!process->arguments().isEmpty() ?
-                                                            u"{\""_s + process->arguments().join(uR"(", ")"_s) + u"\"}"_s :
-                                                            u""_s));
+    logEvent(LOG_EVENT_FINAL_EXECUTABLE.arg(process->program()));
+    logEvent(LOG_EVENT_FINAL_PARAMETERS.arg(!process->arguments().isEmpty() ?
+                                            u"{\""_s + process->arguments().join(uR"(", ")"_s) + u"\"}"_s :
+                                            u""_s));
 }

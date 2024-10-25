@@ -2,7 +2,7 @@
 #include <QApplication>
 
 // Project Includes
-#include "kernel/core.h"
+#include "kernel/directive.h"
 #include "controller.h"
 #ifdef __linux__
     #include "utility.h"
@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
 #endif
 
     // Register metatypes
-    qRegisterMetaType<Core::Error>();
-    qRegisterMetaType<Core::BlockingError>();
+    qRegisterMetaType<AsyncDirective>();
+    qRegisterMetaType<SyncDirective>();
 
     // Create application controller
     Controller appController(&app);

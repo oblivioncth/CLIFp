@@ -7,8 +7,8 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TGeneric::TGeneric(QObject* parent) :
-    Task(parent)
+TGeneric::TGeneric(Core& core) :
+    Task(core)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -28,12 +28,12 @@ void TGeneric::setAction(std::function<Qx::Error()> action) { mAction = action; 
 
 void TGeneric::perform()
 {
-    emitEventOccurred(LOG_EVENT_START_ACTION.arg(mDescription));
+    logEvent(LOG_EVENT_START_ACTION.arg(mDescription));
 
     Qx::Error err = mAction();
     if(err.isValid())
-        emitErrorOccurred(err);
+        postDirective<DError>(err);
 
-    emitEventOccurred(LOG_EVENT_END_ACTION);
+    logEvent(LOG_EVENT_END_ACTION);
     emit complete(err);
 }

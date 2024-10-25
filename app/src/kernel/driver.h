@@ -10,9 +10,10 @@
 
 // Project Includes
 #include "kernel/errorstatus.h"
+#include "kernel/directorate.h"
 #include "kernel/core.h"
 
-class QX_ERROR_TYPE(DriverError, "DriverError", 1201)
+class QX_ERROR_TYPE(DriverError, "DriverError", 1202)
 {
     friend class Driver;
 //-Class Enums-------------------------------------------------------------
@@ -54,7 +55,7 @@ private:
     QString deriveSecondary() const override;
 };
 
-class Driver : public QObject
+class Driver : public QObject, public Directorate
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -117,6 +118,8 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------------
 private:
+    QString name() const override;
+
     // Setup
     void init();
 
@@ -129,16 +132,6 @@ private:
 
     // Helper
     std::unique_ptr<Fp::Install> findFlashpointInstall();
-
-    // Notifications/Logging (core-forwarders)
-    void logCommand(QString commandName);
-    void logCommandOptions(QString commandOptions);
-    void logError(Qx::Error error);
-    void logEvent(QString event);
-    void logTask(const Task* task);
-    ErrorCode logFinish(Qx::Error errorState);
-    void postError(Qx::Error error, bool log = true);
-    int postBlockingError(Qx::Error error, bool log = true, QMessageBox::StandardButtons bs = QMessageBox::Ok, QMessageBox::StandardButton def = QMessageBox::NoButton);
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 private slots:
@@ -156,22 +149,9 @@ signals:
     // Worker status
     void finished(ErrorCode errorCode);
 
-    // Core forwarders
-    void statusChanged(const QString& statusHeading, const QString& statusMessage);
-    void errorOccurred(const Core::Error& error);
-    void blockingErrorOccurred(QSharedPointer<int> response, const Core::BlockingError& blockingError);
-    void message(const Message& message);
-    void saveFileRequested(QSharedPointer<QString> file, const Core::SaveFileRequest& request);
-    void existingDirRequested(QSharedPointer<QString> dir, const Core::ExistingDirRequest& request);
-    void itemSelectionRequested(QSharedPointer<QString> item, const Core::ItemSelectionRequest& request);
-    void clipboardUpdateRequested(const QString& text);
-    void questionAnswerRequested(QSharedPointer<bool> response, const QString& question);
-
-    // Long task
-    void longTaskProgressChanged(quint64 progress);
-    void longTaskTotalChanged(quint64 total);
-    void longTaskStarted(QString task);
-    void longTaskFinished();
+    // Director forwarders
+    void asyncDirectiveAccounced(const AsyncDirective& aDirective);
+    void syncDirectiveAccounced(const SyncDirective& sDirective);
 };
 
 #endif // DRIVER_H

@@ -77,7 +77,7 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "b29e03cf42dfed65a5ecaf18ce192f3051f0e25f"
+    REF "0715db2b21a0cd02a71786184b3fe40bf9e38183"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
@@ -99,7 +99,7 @@ ob_fetch_quazip(
 
 # Fetch Neargye's Magic Enum
 include(OB/FetchMagicEnum)
-ob_fetch_magicenum("v0.9.3")
+ob_fetch_magicenum("v0.9.6")
 
 # Process Targets
 set(APP_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})

@@ -6,6 +6,7 @@
 
 // Project Includes
 #include "c-play.h"
+#include "project_vars.h"
 #include "utility.h"
 
 //===============================================================================================================
@@ -20,7 +21,7 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     if(!Utility::installAppIconForUser())
     {
         CLinkError err(CLinkError::IconInstallFailed);
-        mCore.postError(NAME, err);
+        postDirective<DError>(err);
         return err;
     }
 
@@ -41,11 +42,11 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     // Check for write error
     if(writeReport.isFailure())
     {
-        mCore.postError(NAME, writeReport);
+        postDirective<DError>(writeReport);
         return writeReport;
     }
 
-    mCore.logEvent(NAME, LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullEntryPath)));
+    logEvent(LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullEntryPath)));
 
     // Return success
     return CLinkError();

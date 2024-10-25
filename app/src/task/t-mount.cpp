@@ -9,6 +9,7 @@
 #include <qx/core/qx-base85.h>
 
 // Project Includes
+#include "kernel/core.h"
 #include "utility.h"
 
 //===============================================================================================================
@@ -17,8 +18,9 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TMount::TMount(QObject* parent) :
-    Task(parent),
+TMount::TMount(Core& core) :
+    Task(core),
+    mDirector(core.director()),
     mMounterProxy(nullptr),
     mMounterQmp(nullptr),
     mMounterRouter(nullptr),
@@ -32,10 +34,7 @@ template<typename M>
     requires Qx::any_of<M, MounterGameServer, MounterQmp, MounterRouter>
 void TMount::initMounter(M*& mounter)
 {
-    mounter = new M(this);
-
-    connect(mounter, &M::eventOccurred, this, &Task::eventOccurred);
-    connect(mounter, &M::errorOccurred, this, &Task::errorOccurred);
+    mounter = new M(this, mDirector);
     connect(mounter, &M::mountFinished, this, &TMount::mounterFinishHandler);
 }
 
@@ -67,11 +66,11 @@ void TMount::perform()
     QString label = LOG_EVENT_MOUNTING_DATA_PACK.arg(packFileInfo.fileName());
 
     // Start mount
-    emit longTaskStarted(label);
+    postDirective<DProcedureStart>(label);
 
     // Update state
-    emit longTaskProgressChanged(0);
-    emit longTaskTotalChanged(0); // Cause busy state
+    postDirective<DProcedureProgress>(0u);
+    postDirective<DProcedureScale>(0u); // Cause busy state
 
     //-Setup Mounter(s)------------------------------------
 
@@ -146,7 +145,7 @@ void TMount::stop()
 {
     if(mMounting)
     {
-        emitEventOccurred(LOG_EVENT_STOPPING_MOUNT);
+        logEvent(LOG_EVENT_STOPPING_MOUNT);
 
         // TODO: This could benefit from the mounters using a shared base, or
         // some other kind of type erasure like the duck typing above.
@@ -179,6 +178,6 @@ void TMount::postMount(Qx::Error errorStatus)
     mMounterRouter = nullptr;
 
     // Handle result
-    emit longTaskFinished();
+    postDirective<DProcedureStop>();
     emit complete(errorStatus);
 }

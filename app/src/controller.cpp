@@ -30,24 +30,13 @@ Controller::Controller(QObject* parent) :
     connect(driver, &Driver::finished, &mWorkerThread, &QThread::quit); // Have driver finish cause thread finish
     connect(&mWorkerThread, &QThread::finished, this, &Controller::finisher); // Finish execution when thread quits
 
-    // Connect driver - Status/Non-blocking
-    connect(driver, &Driver::statusChanged, &mStatusRelay, &StatusRelay::statusChangeHandler);
-    connect(driver, &Driver::errorOccurred, &mStatusRelay, &StatusRelay::errorHandler);
-    connect(driver, &Driver::longTaskProgressChanged, &mStatusRelay, &StatusRelay::longTaskProgressHandler);
-    connect(driver, &Driver::longTaskTotalChanged, &mStatusRelay, &StatusRelay::longTaskTotalHandler);
-    connect(driver, &Driver::longTaskStarted, &mStatusRelay, &StatusRelay::longTaskStartedHandler);
-    connect(driver, &Driver::longTaskFinished, &mStatusRelay, &StatusRelay::longTaskFinishedHandler);
+    // Connect driver - Directives
+    connect(driver, &Driver::asyncDirectiveAccounced, &mStatusRelay, &StatusRelay::asyncDirectiveHandler);
+    connect(driver, &Driver::syncDirectiveAccounced, &mStatusRelay, &StatusRelay::syncDirectiveHandler, Qt::BlockingQueuedConnection);
+
+    // Connect driver - Task Cancellation
     connect(&mStatusRelay, &StatusRelay::longTaskCanceled, driver, &Driver::cancelActiveLongTask);
     connect(&mStatusRelay, &StatusRelay::longTaskCanceled, this, &Controller::longTaskCanceledHandler);
-    connect(driver, &Driver::clipboardUpdateRequested, &mStatusRelay, &StatusRelay::clipboardUpdateRequestHandler);
-
-    // Connect driver - Response Requests/Blocking (BlockingQueuedConnection since response must be waited for)
-    connect(driver, &Driver::message, &mStatusRelay, &StatusRelay::messageHandler, Qt::BlockingQueuedConnection); // Allows optional blocking
-    connect(driver, &Driver::blockingErrorOccurred, &mStatusRelay, &StatusRelay::blockingErrorHandler, Qt::BlockingQueuedConnection);
-    connect(driver, &Driver::saveFileRequested, &mStatusRelay, &StatusRelay::saveFileRequestHandler, Qt::BlockingQueuedConnection);
-    connect(driver, &Driver::existingDirRequested, &mStatusRelay, &StatusRelay::existingDirectoryRequestHandler, Qt::BlockingQueuedConnection);
-    connect(driver, &Driver::itemSelectionRequested, &mStatusRelay, &StatusRelay::itemSelectionRequestHandler, Qt::BlockingQueuedConnection);
-    connect(driver, &Driver::questionAnswerRequested, &mStatusRelay, &StatusRelay::questionAnswerRequestHandler, Qt::BlockingQueuedConnection);
 
     // Connect quit handler
     connect(&mStatusRelay, &StatusRelay::quitRequested, this, &Controller::quitRequestHandler);

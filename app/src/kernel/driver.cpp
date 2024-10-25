@@ -38,7 +38,7 @@ QString DriverError::derivePrimary() const { return ERR_STRINGS.value(mType); }
 QString DriverError::deriveSecondary() const { return mSpecific; }
 
 //===============================================================================================================
-// DRIVER
+// Driver
 //===============================================================================================================
 
 //-Constructor--------------------------------------------------------------------
@@ -53,26 +53,23 @@ Driver::Driver(QStringList arguments) :
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+QString Driver::name() const { return NAME; }
+
 void Driver::init()
 {
-    // Create core
+    // Create core, attach director to self
     mCore = new Core(this);
+    Director* dtor = mCore->director();
+    setDirector(mCore->director());
 
-    //-Setup Core---------------------------
-    connect(mCore, &Core::statusChanged, this, &Driver::statusChanged);
-    connect(mCore, &Core::errorOccurred, this, &Driver::errorOccurred);
-    connect(mCore, &Core::blockingErrorOccurred, this, &Driver::blockingErrorOccurred);
-    connect(mCore, &Core::message, this, &Driver::message);
-    connect(mCore, &Core::saveFileRequested, this, &Driver::saveFileRequested);
-    connect(mCore, &Core::existingDirRequested, this, &Driver::existingDirRequested);
-    connect(mCore, &Core::itemSelectionRequested, this, &Driver::itemSelectionRequested);
-    connect(mCore, &Core::clipboardUpdateRequested, this, &Driver::clipboardUpdateRequested);
-    connect(mCore, &Core::questionAnswerRequested, this, &Driver::questionAnswerRequested);
+    //-Setup Core & Director---------------------------
     connect(mCore, &Core::abort, this, [this](CoreError err){
         logEvent(LOG_EVENT_CORE_ABORT);
         mErrorStatus = err;
         quit();
     });
+    connect(dtor, &Director::announceAsyncDirective, this, &Driver::asyncDirectiveAccounced);
+    connect(dtor, &Director::announceSyncDirective, this, &Driver::syncDirectiveAccounced);
 
     //-Setup deferred process manager------
     /* NOTE: It looks like the manager should just be a stack member of TExec that is constructed
@@ -84,10 +81,7 @@ void Driver::init()
      * task except from the correct thread (which would only ever happen anyway), but then that
      * would make deleting the object slightly tricky. This way it can just be parented to core
      */
-    DeferredProcessManager* dpm = new DeferredProcessManager(mCore);
-    // qOverload because it gets confused with the shorter versions within core even though they're private :/
-    connect(dpm, &DeferredProcessManager::eventOccurred, mCore, qOverload<const QString&, const QString&>(&Core::logEvent));
-    connect(dpm, &DeferredProcessManager::errorOccurred, mCore, qOverload<const QString&, const Qx::Error&>(&Core::logError));
+    DeferredProcessManager* dpm = new DeferredProcessManager(*mCore);
     TExec::installDeferredProcessManager(dpm);
 }
 
@@ -127,21 +121,6 @@ void Driver::startNextTask()
     }
     else
     {
-        // Connect task notifiers
-        connect(mCurrentTask, &Task::notificationReady, mCore, &Core::postMessage);
-        connect(mCurrentTask, &Task::eventOccurred, mCore, qOverload<const QString&, const QString&>(&Core::logEvent));
-        connect(mCurrentTask, &Task::errorOccurred, mCore, [this](QString taskName, Qx::Error error){
-            mCore->postError(taskName, error); // Can't connect directly because newer connect syntax doesn't support default args
-        });
-        connect(mCurrentTask, &Task::blockingErrorOccurred, this,
-                [this](QString taskName, int* response, Qx::Error error, QMessageBox::StandardButtons choices) {
-            *response = mCore->postBlockingError(taskName, error, true, choices);
-        });
-        connect(mCurrentTask, &Task::longTaskStarted, this, &Driver::longTaskStarted);
-        connect(mCurrentTask, &Task::longTaskTotalChanged, this, &Driver::longTaskTotalChanged);
-        connect(mCurrentTask, &Task::longTaskProgressChanged, this, &Driver::longTaskProgressChanged);
-        connect(mCurrentTask, &Task::longTaskFinished, this, &Driver::longTaskFinished);
-
         // QueuedConnection, allow event processing between tasks
         connect(mCurrentTask, &Task::complete, this, &Driver::completeTaskHandler, Qt::QueuedConnection);
 
@@ -220,16 +199,6 @@ std::unique_ptr<Fp::Install> Driver::findFlashpointInstall()
     return std::move(fpInstall);
 }
 
-// Notifications/Logging (core-forwarders)
-void Driver::logCommand(QString commandName) { Q_ASSERT(mCore); mCore->logCommand(NAME, commandName); }
-void Driver::logCommandOptions(QString commandOptions) { Q_ASSERT(mCore); mCore->logCommandOptions(NAME, commandOptions); }
-void Driver::logError(Qx::Error error) { Q_ASSERT(mCore); mCore->logError(NAME, error); }
-void Driver::logEvent(QString event) { Q_ASSERT(mCore); mCore->logEvent(NAME, event); }
-void Driver::logTask(const Task* task) { Q_ASSERT(mCore); mCore->logTask(NAME, task); }
-ErrorCode Driver::logFinish(Qx::Error errorState) { Q_ASSERT(mCore); return mCore->logFinish(NAME, errorState); }
-void Driver::postError(Qx::Error error, bool log) { Q_ASSERT(mCore); mCore->postError(NAME, error, log); }
-int Driver::postBlockingError(Qx::Error error, bool log, QMessageBox::StandardButtons bs, QMessageBox::StandardButton def) { Q_ASSERT(mCore); return mCore->postBlockingError(NAME, error, log); }
-
 //-Slots--------------------------------------------------------------------------------
 //Private:
 void Driver::completeTaskHandler(Qx::Error e)
@@ -276,7 +245,7 @@ void Driver::drive()
     // Check for valid command
     if(CommandError ce = Command::isRegistered(commandStr); ce.isValid())
     {
-        postError(ce);
+        postDirective<DError>(ce);
         mErrorStatus = ce;
         finish();
         return;
@@ -295,7 +264,7 @@ void Driver::drive()
     if(commandProcessor->autoBlockNewInstances() && !mCore->blockNewInstances())
     {
         DriverError err(DriverError::AlreadyOpen);
-        postError(err);
+        postDirective<DError>(err);
         mErrorStatus = err;
         finish();
         return;
@@ -311,7 +280,7 @@ void Driver::drive()
         if(!(flashpointInstall = findFlashpointInstall()))
         {
             DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
-            postError(err);
+            postDirective<DError>(err);
             mErrorStatus = err;
             finish();
             return;

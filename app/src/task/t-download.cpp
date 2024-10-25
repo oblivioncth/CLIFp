@@ -42,8 +42,8 @@ QString TDownloadError::deriveDetails() const { return mDetails; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-TDownload::TDownload(QObject* parent) :
-    Task(parent)
+TDownload::TDownload(Core& core) :
+    Task(core)
 {
     // Setup download manager
     mDownloadManager.setOverwrite(true);
@@ -52,25 +52,34 @@ TDownload::TDownload(QObject* parent) :
 
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
-        int choice;
-        emitBlockingErrorOccurred(&choice, errorMsg, QMessageBox::Yes | QMessageBox::No);
-        *ignore = choice == QMessageBox::Yes;
+        DBlockingError::Choice choice;
+        postDirective(DBlockingError{
+            .error = errorMsg,
+            .choices = DBlockingError::Choice::Yes | DBlockingError::Choice::No,
+            .defaultChoice = DBlockingError::Choice::No,
+            .response = &choice
+        });
+        *ignore = choice == DBlockingError::Choice::Yes;
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::authenticationRequired, this, [this](QString prompt) {
-        emitEventOccurred(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
+        logEvent(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::preSharedKeyAuthenticationRequired, this, [this](QString prompt) {
-        emitEventOccurred(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
+        logEvent(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::proxyAuthenticationRequired, this, [this](QString prompt) {
-        emitEventOccurred(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
+        logEvent(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
-    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, &TDownload::longTaskTotalChanged);
-    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, &TDownload::longTaskProgressChanged);
+    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, [this](quint64 total){
+        postDirective<DProcedureScale>(total);
+    });
+    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, [this](quint64 bytes){
+        postDirective<DProcedureProgress>(bytes);
+    });
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::finished, this, &TDownload::postDownload);
 }
 
@@ -127,10 +136,10 @@ void TDownload::perform()
 
     // Log/label string
     QString label = LOG_EVENT_DOWNLOAD.arg(mDescription);
-    emitEventOccurred(label);
+    logEvent(label);
 
     // Start download
-    emit longTaskStarted(label);
+    postDirective<DProcedureStart>(label);
     mDownloadManager.processQueue();
 }
 
@@ -138,7 +147,7 @@ void TDownload::stop()
 {
     if(mDownloadManager.isProcessing())
     {
-        emitEventOccurred(LOG_EVENT_STOPPING_DOWNLOADS);
+        logEvent(LOG_EVENT_STOPPING_DOWNLOADS);
         mDownloadManager.abort();
     }
 }
@@ -150,13 +159,13 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
     Qx::Error errorStatus;
 
     // Handle result
-    emit longTaskFinished();
+    postDirective<DProcedureStop>();
     if(downloadReport.wasSuccessful()) 
-        emitEventOccurred(LOG_EVENT_DOWNLOAD_SUCC);
+        logEvent(LOG_EVENT_DOWNLOAD_SUCC);
     else
     {
         errorStatus = TDownloadError(downloadReport);
-        emitErrorOccurred(errorStatus);
+        postDirective<DError>(errorStatus);
     }
 
     emit complete(errorStatus);

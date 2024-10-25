@@ -2,6 +2,7 @@
 #include "task.h"
 
 // Project Includes
+#include "kernel/core.h"
 #include "utility.h"
 
 /* TODO: If a task ever needs to be executed conditionally (after being enqueued), create a Condition class with
@@ -17,17 +18,12 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-Task::Task(QObject* parent) :
-    QObject(parent)
+Task::Task(Core& core) :
+    QObject(&core),
+    Directorate(core.director())
 {}
 
 //-Instance Functions-------------------------------------------------------------
-//Protected:
-// Notifications/Logging (signal-forwarders)
-void Task::emitEventOccurred(const QString& event) { emit eventOccurred(name(), event); }
-void Task::emitErrorOccurred(const Qx::Error& error) { emit errorOccurred(name(), error); }
-void Task::emitBlockingErrorOccurred(int* response, const Qx::Error& error, QMessageBox::StandardButtons choices) { emit blockingErrorOccurred(name(), response, error, choices); }
-
 //Public:
 QStringList Task::members() const { return {u".stage() = "_s + ENUM_NAME(mStage)}; }
 

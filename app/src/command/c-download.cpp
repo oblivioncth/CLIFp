@@ -2,6 +2,7 @@
 #include "c-download.h"
 
 // Project Includes
+#include "kernel/core.h"
 #include "task/t-download.h"
 #include "task/t-generic.h"
 
@@ -61,13 +62,13 @@ Qx::Error CDownload::perform()
     if(pItr == playlists.cend())
     {
         CDownloadError err(CDownloadError::InvalidPlaylist, playlistName);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
     logEvent(LOG_EVENT_PLAYLIST_MATCH.arg(pItr->id().toString(QUuid::WithoutBraces)));
 
     // Queue downloads for each game
-    TDownload* downloadTask = new TDownload(&mCore);
+    TDownload* downloadTask = new TDownload(mCore);
     downloadTask->setStage(Task::Stage::Primary);
     downloadTask->setDescription(u"playlist data packs"_s);
     QList<int> dataIds;
@@ -83,7 +84,7 @@ Qx::Error CDownload::perform()
         Fp::GameData gameData;
         if(Fp::DbError gdErr = db->getGameData(gameData, pg.gameId()); gdErr.isValid())
         {
-            postError(gdErr);
+            postDirective<DError>(gdErr);
             return gdErr;
         }
 
@@ -100,7 +101,7 @@ Qx::Error CDownload::perform()
         TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
         if(packError.isValid())
         {
-            postError(packError);
+            postDirective<DError>(packError);
             return packError;
         }
 
@@ -119,7 +120,7 @@ Qx::Error CDownload::perform()
 
     // Enqueue onDiskState update task
     Core* corePtr = &mCore; // Safe, will outlive task
-    TGeneric* onDiskUpdateTask = new TGeneric(corePtr);
+    TGeneric* onDiskUpdateTask = new TGeneric(mCore);
     onDiskUpdateTask->setStage(Task::Stage::Primary);
     onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
     onDiskUpdateTask->setAction([dataIds, corePtr]{

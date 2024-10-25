@@ -4,12 +4,13 @@
 // Qt Includes
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QStandardPaths>
 
 // Qx Includes
-#include <qx/core/qx-json.h>
 #include <qx/core/qx-genericerror.h>
 
 // Project Includes
+#include "kernel/core.h"
 #include "task/t-download.h"
 #include "task/t-extract.h"
 #include "task/t-exec.h"
@@ -240,7 +241,7 @@ CUpdateError CUpdate::handleTransfers(const UpdateTransfers& transfers) const
         if(!doTransfer(ft, true, true, true))
         {
             CUpdateError err(CUpdateError::TransferFail, ft.dest);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
         restoreTransfers << FileTransfer{.source = ft.dest, .dest = ft.source};
@@ -253,7 +254,7 @@ CUpdateError CUpdate::handleTransfers(const UpdateTransfers& transfers) const
         if(!doTransfer(ft, true, false, false))
         {
             CUpdateError err(CUpdateError::TransferFail, ft.dest);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
     }
@@ -268,7 +269,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     if(!mCore.blockNewInstances())
     {
         CUpdateError err(CUpdateError::AlreadyOpen);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 
@@ -280,7 +281,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     ReleaseData rd;
     if(CUpdateError ue = getLatestReleaseData(rd); ue.isValid())
     {
-        postError(ue);
+        postDirective<DError>(ue);
         return ue;
     }
 
@@ -291,13 +292,13 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     if(newVersion.isNull())
     {
         CUpdateError err(CUpdateError::InvalidReleaseVersion);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 
     if(newVersion <= currentVersion)
     {
-        mCore.postMessage(Message{.text = MSG_NO_UPDATES});
+        postDirective<DMessage>(MSG_NO_UPDATES);
         logEvent(MSG_NO_UPDATES);
         return CUpdateError();
     }
@@ -315,11 +316,13 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
 
     if(aItr == rd.assets.cend())
     {
-        postError(Qx::GenericError(Qx::Warning, 12181, WRN_NO_MATCHING_BUILD_P, WRN_NO_MATCHING_BUILD_S));
+        postDirective<DError>(Qx::GenericError(Qx::Warning, 12181, WRN_NO_MATCHING_BUILD_P, WRN_NO_MATCHING_BUILD_S));
         return CUpdateError();
     }
 
-    if(mCore.requestQuestionAnswer(QUES_UPDATE.arg(rd.name)))
+    bool shouldUpdate = false;
+    postDirective<DYesOrNo>(QUES_UPDATE.arg(rd.name), &shouldUpdate);
+    if(shouldUpdate)
     {
         logEvent(LOG_EVENT_UPDATE_ACCEPED);
 
@@ -328,19 +331,19 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
         QDir uDataDir = updateDataDir();
 
         QString tempName = u"clifp_update.zip"_s;
-        TDownload* downloadTask = new TDownload(&mCore);
+        TDownload* downloadTask = new TDownload(mCore);
         downloadTask->setStage(Task::Stage::Primary);
         downloadTask->setDescription(u"update"_s);
         downloadTask->addFile({.target = aItr->browser_download_url, .dest = uDownloadDir.absoluteFilePath(tempName)});
         mCore.enqueueSingleTask(downloadTask);
 
-        TExtract* extractTask = new TExtract(&mCore);
+        TExtract* extractTask = new TExtract(mCore);
         extractTask->setStage(Task::Stage::Primary);
         extractTask->setPackPath(uDownloadDir.absoluteFilePath(tempName));
         extractTask->setDestinationPath(uDataDir.absolutePath());
         mCore.enqueueSingleTask(extractTask);
 
-        TExec* execTask = new TExec(&mCore);
+        TExec* execTask = new TExec(mCore);
         execTask->setStage(Task::Stage::Primary);
         execTask->setIdentifier(UPDATE_STAGE_NAME);
         QString newAppExecPath = uDataDir.absolutePath() + u"/bin"_s;
@@ -382,7 +385,7 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
     if(!haveLock)
     {
         CUpdateError err(CUpdateError::OldProcessNotFinished, "Aborting update.");
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 
@@ -393,7 +396,7 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
     if(!existingAppInfo.exists())
     {
         CUpdateError err(CUpdateError::InvalidPath, "Missing " + existingAppInfo.absoluteFilePath());
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 
@@ -410,7 +413,7 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
     QStringList updateFiles;
     if(Qx::IoOpReport rep = determineNewFiles(updateFiles, ts.updateRoot); rep.isFailure())
     {
-        postError(rep);
+        postDirective<DError>(rep);
         return rep;
     }
 
@@ -422,7 +425,7 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
 
     // Success
     logEvent(MSG_UPDATE_COMPLETE);
-    mCore.postMessage(Message{.text = MSG_UPDATE_COMPLETE});
+    postDirective<DMessage>(MSG_UPDATE_COMPLETE);
     return CUpdateError();
 }
 

@@ -5,6 +5,7 @@
 #include <qx/core/qx-system.h>
 
 // Project Includes
+#include "kernel/core.h"
 #include "task/t-message.h"
 #include "utility.h"
 
@@ -54,12 +55,12 @@ Qx::Error CShare::perform()
         if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME))
         {
             CShareError err(CShareError::RegistrationFailed);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
 
         // Enqueue success message task
-        TMessage* successMsg = new TMessage(&mCore);
+        TMessage* successMsg = new TMessage(mCore);
         successMsg->setStage(Task::Stage::Primary);
         successMsg->setText(MSG_REGISTRATION_COMPLETE);
         mCore.enqueueSingleTask(successMsg);
@@ -77,12 +78,12 @@ Qx::Error CShare::perform()
 #endif
         {
             CShareError err(CShareError::UnregistrationFailed);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
 
         // Enqueue success message task
-        TMessage* successMsg = new TMessage(&mCore);
+        TMessage* successMsg = new TMessage(mCore);
         successMsg->setStage(Task::Stage::Primary);
         successMsg->setText(MSG_UNREGISTRATION_COMPLETE);
         mCore.enqueueSingleTask(successMsg);
@@ -103,10 +104,10 @@ Qx::Error CShare::perform()
     logEvent(LOG_EVENT_URL.arg(shareUrl));
 
     // Add URL to clipboard
-    mCore.requestClipboardUpdate(shareUrl);
+    postDirective<DClipboardUpdate>(shareUrl);
 
     // Enqueue message task
-    TMessage* urlMsg = new TMessage(&mCore);
+    TMessage* urlMsg = new TMessage(mCore);
     urlMsg->setStage(Task::Stage::Primary);
     urlMsg->setText(MSG_GENERATED_URL.arg(shareUrl));
     urlMsg->setSelectable(true);

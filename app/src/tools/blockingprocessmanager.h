@@ -9,7 +9,12 @@
 #include <qx/core/qx-genericerror.h>
 #include <qx/utility/qx-macros.h>
 
-class BlockingProcessManager : public QObject
+// Project Includes
+#include "kernel/directorate.h"
+
+class Core;
+
+class BlockingProcessManager : public QObject, public Directorate
 {
     Q_OBJECT;
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -29,11 +34,11 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    BlockingProcessManager(QProcess* process, const QString& identifier, QObject* parent);
+    BlockingProcessManager(Core& core, QProcess* process, const QString& identifier);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    void signalEvent(const QString& event);
+    QString name() const override;
     void signalProcessDataReceived(const QString& msgTemplate);
 
 public:
@@ -46,7 +51,6 @@ private slots:
     void processStandardErrorHandler();
 
 signals:
-    void eventOccurred(const QString& name, const QString& event);
     void finished();
 };
 

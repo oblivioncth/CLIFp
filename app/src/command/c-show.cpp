@@ -2,6 +2,7 @@
 #include "c-show.h"
 
 // Project Includes
+#include "kernel/core.h"
 #include "task/t-message.h"
 #include "task/t-extra.h"
 
@@ -46,7 +47,7 @@ Qx::Error CShow::perform()
     // Enqueue show task
     if(mParser.isSet(CL_OPTION_MSG))
     {
-        TMessage* messageTask = new TMessage(&mCore);
+        TMessage* messageTask = new TMessage(mCore);
         messageTask->setStage(Task::Stage::Primary);
         messageTask->setText(mParser.value(CL_OPTION_MSG));
 
@@ -55,7 +56,7 @@ Qx::Error CShow::perform()
     }
     else if(mParser.isSet(CL_OPTION_EXTRA))
     {
-        TExtra* extraTask = new TExtra(&mCore);
+        TExtra* extraTask = new TExtra(mCore);
         extraTask->setStage(Task::Stage::Primary);
         extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + '/' + mParser.value(CL_OPTION_EXTRA)));
 
@@ -65,7 +66,7 @@ Qx::Error CShow::perform()
     else
     {
         CShowError err(CShowError::MissingThing);
-        postError(err);
+        postDirective<DError>(err);
         return err;
     }
 

@@ -7,8 +7,8 @@
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TSleep::TSleep(QObject* parent) :
-    Task(parent)
+TSleep::TSleep(Core& core) :
+    Task(core)
 {
     // Setup timer
     mSleeper.setSingleShot(true);
@@ -31,13 +31,13 @@ void TSleep::setDuration(uint msecs) { mDuration = msecs; }
 
 void TSleep::perform()
 {
-    emitEventOccurred(LOG_EVENT_START_SLEEP.arg(mDuration));
+    logEvent(LOG_EVENT_START_SLEEP.arg(mDuration));
     mSleeper.start(mDuration);
 }
 
 void TSleep::stop()
 {
-    emitEventOccurred(LOG_EVENT_SLEEP_INTERUPTED);
+    logEvent(LOG_EVENT_SLEEP_INTERUPTED);
     mSleeper.stop();
     emit complete(Qx::Error());
 }
@@ -46,6 +46,6 @@ void TSleep::stop()
 //Privates Slots:
 void TSleep::timerFinished()
 {
-    emitEventOccurred(LOG_EVENT_FINISH_SLEEP);
+    logEvent(LOG_EVENT_FINISH_SLEEP);
     emit complete(Qx::Error());
 }

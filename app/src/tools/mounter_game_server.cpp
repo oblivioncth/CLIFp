@@ -43,8 +43,9 @@ QString MounterGameServerError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-MounterGameServer::MounterGameServer(QObject* parent) :
+MounterGameServer::MounterGameServer(QObject* parent, Director* director) :
     QObject(parent),
+    Directorate(director),
     mMounting(false),
     mGameServerPort(0)
 {
@@ -59,18 +60,18 @@ MounterGameServer::MounterGameServer(QObject* parent) :
      * them to be used as to help make that clear in the logs when the update causes this to stop working).
      */
     connect(&mNam, &QNetworkAccessManager::authenticationRequired, this, [this](){
-        signalEventOccurred(u"Unexpected use of authentication by PHP server!"_s);
+        logEvent(u"Unexpected use of authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::preSharedKeyAuthenticationRequired, this, [this](){
-        signalEventOccurred(u"Unexpected use of PSK authentication by PHP server!"_s);
+        logEvent(u"Unexpected use of PSK authentication by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::proxyAuthenticationRequired, this, [this](){
-        signalEventOccurred(u"Unexpected use of proxy by PHP server!"_s);
+        logEvent(u"Unexpected use of proxy by PHP server!"_s);
     });
     connect(&mNam, &QNetworkAccessManager::sslErrors, this, [this](QNetworkReply* reply, const QList<QSslError>& errors){
         Q_UNUSED(reply);
         QString errStrList = Qx::String::join(errors, [](const QSslError& err){ return err.errorString(); }, u","_s);
-        signalEventOccurred(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
+        logEvent(u"Unexpected SSL errors from PHP server! {"_s + errStrList + u"}"_s"}");
     });
 }
 
@@ -84,18 +85,16 @@ void MounterGameServer::finish(const MounterGameServerError& errorState)
 
 void MounterGameServer::noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data)
 {
-    signalEventOccurred(EVENT_REQUEST_SENT.arg(ENUM_NAME(op), url.toString(), QString::fromLatin1(data)));
+    logEvent(EVENT_REQUEST_SENT.arg(ENUM_NAME(op), url.toString(), QString::fromLatin1(data)));
 }
 
 void MounterGameServer::noteProxyResponse(const QString& response)
 {
-    signalEventOccurred(EVENT_GAMESERVER_RESPONSE.arg(response));
+    logEvent(EVENT_GAMESERVER_RESPONSE.arg(response));
 }
 
-void MounterGameServer::signalEventOccurred(const QString& event) { emit eventOccurred(NAME, event); }
-void MounterGameServer::signalErrorOccurred(const MounterGameServerError& errorMessage) { emit errorOccurred(NAME, errorMessage); }
-
 //Public:
+QString MounterGameServer::name() const { return NAME; }
 bool MounterGameServer::isMounting() { return mMounting; }
 
 quint16 MounterGameServer::gameServerPort() const { return mGameServerPort; }
@@ -115,7 +114,7 @@ void MounterGameServer::gameServerMountFinishedHandler(QNetworkReply* reply)
     if(reply->error() != QNetworkReply::NoError)
     {
         err = MounterGameServerError(MounterGameServerError::ProxyMount, reply->errorString());
-        signalErrorOccurred(err);
+        postDirective<DError>(err);
     }
     else
     {
@@ -129,7 +128,7 @@ void MounterGameServer::gameServerMountFinishedHandler(QNetworkReply* reply)
 //Public Slots:
 void MounterGameServer::mount()
 {
-    signalEventOccurred(EVENT_MOUNTING);
+    logEvent(EVENT_MOUNTING);
 
     //-Create mount request-------------------------
 

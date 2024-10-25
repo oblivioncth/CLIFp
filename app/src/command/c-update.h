@@ -2,6 +2,7 @@
 #define CUPDATE_H
 
 // Qx Includes
+#include <qx/core/qx-json.h>
 #include <qx/utility/qx-macros.h>
 
 // Project Includes

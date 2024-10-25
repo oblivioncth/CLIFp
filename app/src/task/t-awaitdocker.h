@@ -11,7 +11,7 @@
 class QX_ERROR_TYPE(TAwaitDockerError, "TAwaitDockerError", 1260)
 {
     friend class TAwaitDocker;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
@@ -21,7 +21,7 @@ public:
         StartFailed = 3
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
@@ -30,16 +30,16 @@ private:
         {StartFailed, u"The start of the docker image timed out."_s}
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     TAwaitDockerError(Type t = NoError, const QString& s = {});
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -82,7 +82,7 @@ private:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TAwaitDocker(QObject* parent = nullptr);
+    TAwaitDocker(Core& core);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

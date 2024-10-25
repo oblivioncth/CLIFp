@@ -8,9 +8,10 @@
 #include <qx/core/qx-regularexpression.h>
 
 // Project Includes
-#include "../task/t-exec.h"
-#include "../task/t-message.h"
-#include "../task/t-extra.h"
+#include "kernel/core.h"
+#include "task/t-exec.h"
+#include "task/t-message.h"
+#include "task/t-extra.h"
 
 //===============================================================================================================
 // CPlayError
@@ -100,7 +101,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
     Fp::GameData gameData;
     if(Fp::DbError gdErr = db->getGameData(gameData, game.id()); gdErr.isValid())
     {
-        postError(gdErr);
+        postDirective<DError>(gdErr);
         return gdErr;
     }
     bool hasDatapack = !gameData.isNull();
@@ -130,7 +131,7 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
     addAppSearchError = db->queryEntrys(addAppSearchResult, addAppFilter);
     if(addAppSearchError.isValid())
     {
-        postError(addAppSearchError);
+        postDirective<DError>(addAppSearchError);
         return addAppSearchError;
     }
 
@@ -176,7 +177,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     Fp::GameData parentGameData;
     if(Fp::DbError gdErr = db->getGameData(parentGameData, parentId); gdErr.isValid())
     {
-        postError(gdErr);
+        postDirective<DError>(gdErr);
         return gdErr;
     }
     bool hasDatapack = !parentGameData.isNull();
@@ -205,7 +206,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 
     if(Fp::DbError pge = db->queryEntrys(parentResult, parentFilter); pge.isValid())
     {
-        postError(pge);
+        postDirective<DError>(pge);
         return pge;
     }
 
@@ -232,7 +233,7 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 {
     if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
     {
-        TMessage* messageTask = new TMessage(&mCore);
+        TMessage* messageTask = new TMessage(mCore);
         messageTask->setStage(taskStage);
         messageTask->setText(addApp.launchCommand());
         messageTask->setBlocking(addApp.isWaitExit());
@@ -241,7 +242,7 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
     }
     else if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
     {
-        TExtra* extraTask = new TExtra(&mCore);
+        TExtra* extraTask = new TExtra(mCore);
         extraTask->setStage(taskStage);
         extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + '/' + addApp.launchCommand()));
 
@@ -254,7 +255,7 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
         QString param = addApp.launchCommand();
         addPassthroughParameters(param);
 
-        TExec* addAppTask = new TExec(&mCore);
+        TExec* addAppTask = new TExec(mCore);
         addAppTask->setIdentifier(addApp.name());
         addAppTask->setStage(taskStage);
         addAppTask->setExecutable(QDir::cleanPath(addAppPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
@@ -284,7 +285,7 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
     QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
     addPassthroughParameters(param);
 
-    TExec* gameTask = new TExec(&mCore);
+    TExec* gameTask = new TExec(mCore);
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
     gameTask->setExecutable(QDir::cleanPath(gamePathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
@@ -320,7 +321,7 @@ Qx::Error CPlay::perform()
         if(!urlMatch.hasMatch())
         {
             CPlayError err(CPlayError::InvalidUrl);
-            postError(err);
+            postDirective<DError>(err);
             return err;
         }
 
@@ -341,7 +342,7 @@ Qx::Error CPlay::perform()
     Fp::Entry entry;
     if(Fp::DbError eErr = db->getEntry(entry, titleId); eErr.isValid())
     {
-        postError(eErr);
+        postDirective<DError>(eErr);
         return eErr;
     }
 

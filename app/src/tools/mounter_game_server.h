@@ -11,6 +11,9 @@
 #include <qx/core/qx-error.h>
 #include <qx/utility/qx-macros.h>
 
+// Project Includes
+#include "kernel/directorate.h"
+
 class QX_ERROR_TYPE(MounterGameServerError, "MounterError", 1232)
 {
     friend class MounterGameServer;
@@ -51,7 +54,7 @@ private:
     QString deriveSecondary() const override;
 };
 
-class MounterGameServer : public QObject
+class MounterGameServer : public QObject, public Directorate
 {
     Q_OBJECT
 //-Class Variables------------------------------------------------------------------------------------------------------
@@ -83,7 +86,7 @@ private:
 
 //-Constructor-------------------------------------------------------------------------------------------------
 public:
-    explicit MounterGameServer(QObject* parent = nullptr);
+    explicit MounterGameServer(QObject* parent, Director* director);
 
 //-Instance Functions---------------------------------------------------------------------------------------------------------
 private:
@@ -91,10 +94,8 @@ private:
     void noteProxyRequest(QNetworkAccessManager::Operation op, const QUrl& url, QByteArrayView data);
     void noteProxyResponse(const QString& response);
 
-    void signalEventOccurred(const QString& event);
-    void signalErrorOccurred(const MounterGameServerError& errorMessage);
-
 public:
+    QString name() const override;
     bool isMounting();
 
     quint16 gameServerPort() const;
@@ -112,13 +113,7 @@ public slots:
     void abort();
 
 signals:
-    void eventOccurred(const QString& name, const QString& event);
-    void errorOccurred(const QString& name, const MounterGameServerError& errorMessage);
     void mountFinished(const MounterGameServerError& errorState);
-
-    // For now these just cause a busy state
-    void mountProgress(qint64 progress);
-    void mountProgressMaximumChanged(qint64 maximum);
 };
 
 #endif // MOUNTER_GAME_SERVER_H

@@ -9,9 +9,11 @@
 #include <qx/core/qx-error.h>
 
 // Project Includes
-#include "frontend/message.h"
+#include "kernel/directorate.h"
 
-class Task : public QObject
+class Core;
+
+class Task : public QObject, public Directorate
 {
     Q_OBJECT;
 //-Class Enums-----------------------------------------------------------------------------------------------------
@@ -24,21 +26,14 @@ protected:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    Task(QObject* parent); // Require tasks to have a parent
+    Task(Core& core);
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:
     virtual ~Task() = default;
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
-protected:
-    // Notifications/Logging (signal-forwarders)
-    void emitEventOccurred(const QString& event);
-    void emitErrorOccurred(const Qx::Error& error);
-    void emitBlockingErrorOccurred(int* response, const Qx::Error& error, QMessageBox::StandardButtons choices);
-
 public:
-    virtual QString name() const = 0;
     virtual QStringList members() const;
 
     Stage stage() const;
@@ -49,16 +44,6 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
-    void notificationReady(const Message& msg);
-    void eventOccurred(const QString& taskName, const QString& event);
-    void errorOccurred(const QString& taskName, const Qx::Error& error);
-    void blockingErrorOccurred(const QString& taskName, int* response, const Qx::Error& error, QMessageBox::StandardButtons choices);
-
-    void longTaskStarted(const QString& procedure);
-    void longTaskTotalChanged(quint64 total);
-    void longTaskProgressChanged(quint64 progress);
-    void longTaskFinished();
-
     void complete(const Qx::Error& errorState);
 };
 

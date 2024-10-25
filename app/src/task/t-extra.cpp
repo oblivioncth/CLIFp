@@ -34,8 +34,8 @@ QString TExtraError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor--------------------------------------------------------------------
 //Public:
-TExtra::TExtra(QObject* parent) :
-    Task(parent)
+TExtra::TExtra(Core& core) :
+    Task(core)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -62,12 +62,12 @@ void TExtra::perform()
     {
         // Open extra
         QDesktopServices::openUrl(QUrl::fromLocalFile(mDirectory.absolutePath()));
-        emitEventOccurred(LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(mDirectory.path())));
+        logEvent(LOG_EVENT_SHOW_EXTRA.arg(QDir::toNativeSeparators(mDirectory.path())));
     }
     else
     {
         errorStatus = TExtraError(TExtraError::NotFound, QDir::toNativeSeparators(mDirectory.path()));
-        emitErrorOccurred(errorStatus);
+        postDirective<DError>(errorStatus);
     }
 
     emit complete(errorStatus);
