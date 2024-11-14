@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.3.7.1")
+fetch_ob_cmake("19d33b5bb1752b50767f78ca3e17796868354ac3")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -77,7 +77,7 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "0715db2b21a0cd02a71786184b3fe40bf9e38183"
+    REF "44a5b020784044d130765cddc0d3514bb01180c1"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
@@ -101,9 +101,18 @@ ob_fetch_quazip(
 include(OB/FetchMagicEnum)
 ob_fetch_magicenum("v0.9.6")
 
+# Bring in frontend framework module
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/frontend_framework/cmake")
+
 # Process Targets
-set(APP_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})
-set(APP_ALIAS_NAME ${PROJECT_NAMESPACE})
+set(BACKEND_TARGET_NAME ${PROJECT_NAMESPACE_LC}_backend)
+set(BACKEND_ALIAS_NAME Backend)
+string(TOLOWER "${BACKEND_ALIAS_NAME}" BACKEND_ALIAS_NAME_LC)
+set(FRONTEND_FRAMEWORK_TARGET_NAME ${PROJECT_NAMESPACE_LC}_frontend_framework)
+set(FRONTEND_FRAMEWORK_ALIAS_NAME FrontendFramework)
+add_subdirectory(lib)
+set(APP_GUI_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})
+set(APP_GUI_ALIAS_NAME ${PROJECT_NAMESPACE})
 add_subdirectory(app)
 
 #--------------------Package Config-----------------------
@@ -112,7 +121,7 @@ ob_standard_project_package_config(
     COMPATIBILITY "SameMinorVersion"
     CONFIG STANDARD
         TARGET_CONFIGS
-            TARGET "${PROJECT_NAMESPACE}::${APP_ALIAS_NAME}" COMPONENT "${APP_ALIAS_NAME}" DEFAULT
+            TARGET "${PROJECT_NAMESPACE}::${APP_GUI_ALIAS_NAME}" COMPONENT "${APP_GUI_ALIAS_NAME}" DEFAULT
 )
 
 #================= Install ==========================
