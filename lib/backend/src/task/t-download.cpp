@@ -52,12 +52,10 @@ TDownload::TDownload(Core& core) :
 
     // Download event handlers
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::sslErrors, this, [this](Qx::Error errorMsg, bool* ignore) {
-        DBlockingError::Choice choice;
-        postDirective(DBlockingError{
+        auto choice = postDirective(DBlockingError{
             .error = errorMsg,
             .choices = DBlockingError::Choice::Yes | DBlockingError::Choice::No,
             .defaultChoice = DBlockingError::Choice::No,
-            .response = &choice
         });
         *ignore = choice == DBlockingError::Choice::Yes;
     });

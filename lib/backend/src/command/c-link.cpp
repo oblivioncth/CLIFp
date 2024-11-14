@@ -102,11 +102,9 @@ Qx::Error CLink::perform()
         logEvent(LOG_EVENT_NO_PATH);
 
         // Prompt user for path
-        QString selectedPath; // Default is empty dir
-        postDirective(DExistingDir{
+        QString selectedPath = postDirective(DExistingDir{
             .caption = DIAG_CAPTION,
             .startingDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
-            .response = &selectedPath
         });
 
         if(selectedPath.isEmpty())

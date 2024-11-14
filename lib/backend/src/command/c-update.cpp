@@ -320,8 +320,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
         return CUpdateError();
     }
 
-    bool shouldUpdate = false;
-    postDirective<DYesOrNo>(QUES_UPDATE.arg(rd.name), &shouldUpdate);
+    bool shouldUpdate = postDirective<DYesOrNo>(QUES_UPDATE.arg(rd.name));
     if(shouldUpdate)
     {
         logEvent(LOG_EVENT_UPDATE_ACCEPED);

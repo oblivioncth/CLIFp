@@ -99,6 +99,12 @@ struct DBlockingMessage
     bool selectable = false;
 };
 
+using SyncDirective = std::variant<DBlockingMessage>;
+
+template<typename T>
+concept SyncDirectiveT = requires(SyncDirective sd, T t) { sd = t; };
+
+//-Blocking Directives With Response-------------------------------------------------------
 struct DBlockingError
 {
     enum class Choice
@@ -113,7 +119,8 @@ struct DBlockingError
     Qx::Error error;
     Choices choices = Choice::Ok;
     Choice defaultChoice = Choice::No;
-    Choice* response = nullptr;
+
+    using response_type = Choice;
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS(DBlockingError::Choices);
 
@@ -123,14 +130,16 @@ struct DSaveFilename
     QString dir;
     QString filter;
     QString* selectedFilter = nullptr;
-    QString* response = nullptr;
+
+    using response_type = QString;
 };
 
 struct DExistingDir
 {
     QString caption;
     QString startingDir;
-    QString* response = nullptr;
+
+    using response_type = QString;
 };
 
 struct DItemSelection
@@ -138,17 +147,18 @@ struct DItemSelection
     QString caption;
     QString label;
     QStringList items;
-    QString* response = nullptr;
+
+    using response_type = QString;
 };
 
 struct DYesOrNo
 {
     QString question;
-    bool* response = nullptr;
+
+    using response_type = bool;
 };
 
-using SyncDirective = std::variant<
-    DBlockingMessage,
+using RequestDirective = std::variant<
     DBlockingError,
     DSaveFilename,
     DExistingDir,
@@ -157,14 +167,16 @@ using SyncDirective = std::variant<
 >;
 
 template<typename T>
-concept SyncDirectiveT = requires(SyncDirective sd, T t) { sd = t; };
+concept RequestDirectiveT = requires(RequestDirective rd, T t) { rd = t; typename T::response_type; } &&
+                            !std::same_as<typename T::response_type, void>;
 
 //-Any---------------------------------------------------------------------
 template<typename T>
-concept DirectiveT = AsyncDirectiveT<T> || SyncDirectiveT<T>;
+concept DirectiveT = AsyncDirectiveT<T> || SyncDirectiveT<T> || RequestDirectiveT<T>;
 
 //-Metatype Declarations-----------------------------------------------------------------------------------------
 Q_DECLARE_METATYPE(AsyncDirective);
 Q_DECLARE_METATYPE(SyncDirective);
+Q_DECLARE_METATYPE(RequestDirective);
 
 #endif // DIRECTIVE_H

@@ -205,15 +205,13 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         }
 
         // Get user choice
-        QString userChoice = idChoices.front(); // Default
-        postDirective(DItemSelection{
+        QString userChoice = postDirective(DItemSelection{
             .caption = MULTI_TITLE_SEL_CAP,
             .label = MULTI_TITLE_SEL_LABEL,
             .items = idChoices,
-            .response = &userChoice
         });
 
-        if(userChoice.isNull())
+        if(userChoice.isNull()) // Default if diag is silenced
             logEvent(LOG_EVENT_TITLE_SEL_CANCELED);
         else
         {

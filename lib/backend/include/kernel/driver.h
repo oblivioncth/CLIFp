@@ -46,6 +46,7 @@ signals:
     // Director forwarders
     void asyncDirectiveAccounced(const AsyncDirective& aDirective);
     void syncDirectiveAccounced(const SyncDirective& sDirective);
+    void requestDirectiveAccounced(const RequestDirective& rDirective, void* response);
 };
 
 #endif // DRIVER_H

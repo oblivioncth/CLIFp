@@ -63,22 +63,24 @@ protected:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
     // Async directive handlers
-    virtual void handleMessage(const DMessage& d) = 0;
-    virtual void handleError(const DError& d) = 0;
-    virtual void handleProcedureStart(const DProcedureStart& d) = 0;
-    virtual void handleProcedureStop(const DProcedureStop& d) = 0;
-    virtual void handleProcedureProgress(const DProcedureProgress& d) = 0;
-    virtual void handleProcedureScale(const DProcedureScale& d) = 0;
-    virtual void handleClipboardUpdate(const DClipboardUpdate& d);
-    virtual void handleStatusUpdate(const DStatusUpdate& d) = 0;
+    virtual void handleDirective(const DMessage& d) = 0;
+    virtual void handleDirective(const DError& d) = 0;
+    virtual void handleDirective(const DProcedureStart& d) = 0;
+    virtual void handleDirective(const DProcedureStop& d) = 0;
+    virtual void handleDirective(const DProcedureProgress& d) = 0;
+    virtual void handleDirective(const DProcedureScale& d) = 0;
+    virtual void handleDirective(const DClipboardUpdate& d);
+    virtual void handleDirective(const DStatusUpdate& d) = 0;
 
     // Sync directive handlers
-    virtual void handleBlockingMessage(const DBlockingMessage& d) = 0;
-    virtual void handleBlockingError(const DBlockingError& d) = 0;
-    virtual void handleSaveFilename(const DSaveFilename& d) = 0;
-    virtual void handleExistingDir(const DExistingDir& d) = 0;
-    virtual void handleItemSelection(const DItemSelection& d) = 0;
-    virtual void handleYesOrNo(const DYesOrNo& d) = 0;
+    virtual void handleDirective(const DBlockingMessage& d) = 0;
+
+    // Request directive handlers
+    virtual void handleDirective(const DBlockingError& d, DBlockingError::Choice* response) = 0;
+    virtual void handleDirective(const DSaveFilename& d, QString* response) = 0;
+    virtual void handleDirective(const DExistingDir& d, QString* response) = 0;
+    virtual void handleDirective(const DItemSelection& d, QString* response) = 0;
+    virtual void handleDirective(const DYesOrNo& d, bool* response) = 0;
 
     // Control
     virtual bool aboutToExit();
@@ -96,6 +98,7 @@ private slots:
     void threadFinishHandler();
     void asyncDirectiveHandler(const AsyncDirective& aDirective);
     void syncDirectiveHandler(const SyncDirective& sDirective);
+    void requestDirectiveHandler(const RequestDirective& rDirective, void* response);
 };
 
 #endif // FRAMEWORK_H

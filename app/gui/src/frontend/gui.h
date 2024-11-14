@@ -54,21 +54,23 @@ static QIcon& trayExitIconFromResources();
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     // Async directive handlers
-    void handleMessage(const DMessage& d) override;
-    void handleError(const DError& d) override;
-    void handleProcedureStart(const DProcedureStart& d) override;
-    void handleProcedureStop(const DProcedureStop& d) override;
-    void handleProcedureProgress(const DProcedureProgress& d) override;
-    void handleProcedureScale(const DProcedureScale& d) override;
-    void handleStatusUpdate(const DStatusUpdate& d) override;
+    void handleDirective(const DMessage& d) override;
+    void handleDirective(const DError& d) override;
+    void handleDirective(const DProcedureStart& d) override;
+    void handleDirective(const DProcedureStop& d) override;
+    void handleDirective(const DProcedureProgress& d) override;
+    void handleDirective(const DProcedureScale& d) override;
+    void handleDirective(const DStatusUpdate& d) override;
 
     // Sync directive handlers
-    void handleBlockingMessage(const DBlockingMessage& d) override;
-    void handleBlockingError(const DBlockingError& d) override;
-    void handleSaveFilename(const DSaveFilename& d) override;
-    void handleExistingDir(const DExistingDir& d) override;
-    void handleItemSelection(const DItemSelection& d) override;
-    void handleYesOrNo(const DYesOrNo& d) override;
+    void handleDirective(const DBlockingMessage& d) override;
+
+    // Request directive handlers
+    void handleDirective(const DBlockingError& d, DBlockingError::Choice* response) override;
+    void handleDirective(const DSaveFilename& d, QString* response) override;
+    void handleDirective(const DExistingDir& d, QString* response) override;
+    void handleDirective(const DItemSelection& d, QString* response) override;
+    void handleDirective(const DYesOrNo& d, bool* response) override;
 
     // Control
     bool aboutToExit() override;

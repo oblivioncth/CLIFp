@@ -85,6 +85,7 @@ void DriverPrivate::init()
     });
     QObject::connect(dtor, &Director::announceAsyncDirective, q, &Driver::asyncDirectiveAccounced);
     QObject::connect(dtor, &Director::announceSyncDirective, q, &Driver::syncDirectiveAccounced);
+    QObject::connect(dtor, &Director::announceRequestDirective, q, &Driver::requestDirectiveAccounced);
 
     //-Setup deferred process manager------
     /* NOTE: It looks like the manager should just be a stack member of TExec that is constructed

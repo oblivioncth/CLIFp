@@ -61,6 +61,7 @@ FrontendFramework::FrontendFramework(QGuiApplication* app) :
     // Register metatypes
     qRegisterMetaType<AsyncDirective>();
     qRegisterMetaType<SyncDirective>();
+    qRegisterMetaType<RequestDirective>();
 
     // Create driver
     Driver* driver = new Driver(mApp->arguments());
@@ -76,6 +77,7 @@ FrontendFramework::FrontendFramework(QGuiApplication* app) :
     // Connect driver - Directives
     connect(driver, &Driver::asyncDirectiveAccounced, this, &FrontendFramework::asyncDirectiveHandler);
     connect(driver, &Driver::syncDirectiveAccounced, this, &FrontendFramework::syncDirectiveHandler, Qt::BlockingQueuedConnection);
+    connect(driver, &Driver::requestDirectiveAccounced, this, &FrontendFramework::requestDirectiveHandler, Qt::BlockingQueuedConnection);
 
     // Store driver for use later
     mDriver = driver;
@@ -123,7 +125,7 @@ const QIcon& FrontendFramework::appIconFromResources() { static QIcon ico(u":/fr
 //-Instance Functions--------------------------------------------------------------------------
 //Protected:
 /* This implementation needs to be moved to FrontendGui if this ever drops the QGui dependency */
-void FrontendFramework::handleClipboardUpdate(const DClipboardUpdate& d) { mSystemClipboard->setText(d.text); }
+void FrontendFramework::handleDirective(const DClipboardUpdate& d) { mSystemClipboard->setText(d.text); }
 
 bool FrontendFramework::aboutToExit()
 {
@@ -167,26 +169,23 @@ void FrontendFramework::threadFinishHandler()
 
 void FrontendFramework::asyncDirectiveHandler(const AsyncDirective& aDirective)
 {
-    std::visit(qxFuncAggregate{
-        [this](DMessage d){ handleMessage(d); },
-        [this](DError d) { handleError(d); },
-        [this](DProcedureStart d) { handleProcedureStart(d); },
-        [this](DProcedureStop d) { handleProcedureStop(d); },
-        [this](DProcedureProgress d) { handleProcedureProgress(d); },
-        [this](DProcedureScale d) { handleProcedureScale(d); },
-        [this](DClipboardUpdate d) { handleClipboardUpdate(d); },
-        [this](DStatusUpdate d) { handleStatusUpdate(d); },
+    std::visit([this](const auto& d) {
+        handleDirective(d);  // ADL dispatches to the correct handle function
     }, aDirective);
 }
 
 void FrontendFramework::syncDirectiveHandler(const SyncDirective& sDirective)
 {
-    std::visit(qxFuncAggregate{
-        [this](DBlockingMessage d){ handleBlockingMessage(d); },
-        [this](DBlockingError d){ handleBlockingError(d); },
-        [this](DSaveFilename d) { handleSaveFilename(d); },
-        [this](DExistingDir d) { handleExistingDir(d); },
-        [this](DItemSelection d) { handleItemSelection(d); },
-        [this](DYesOrNo d) { handleYesOrNo(d); }
+    std::visit([this](const auto& d) {
+        handleDirective(d);  // ADL dispatches to the correct handle function
     }, sDirective);
+}
+
+void FrontendFramework::requestDirectiveHandler(const RequestDirective& rDirective, void* response)
+{
+    Q_ASSERT(response);
+    std::visit([this, response](const auto& d) {
+        using ResponseT = typename std::decay_t<decltype(d)>::response_type; // Could use template lambda to avoid decltype
+        handleDirective(d, static_cast<ResponseT*>(response));  // ADL dispatches to the correct handle function
+    }, rDirective);
 }

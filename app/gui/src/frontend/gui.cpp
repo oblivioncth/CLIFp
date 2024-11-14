@@ -78,16 +78,16 @@ QIcon& FrontendGui::trayExitIconFromResources() { static QIcon ico(u":/frontend/
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 //Private:
-void FrontendGui::handleMessage(const DMessage& d)
+void FrontendGui::handleDirective(const DMessage& d)
 {
     auto mb = prepareMessageBox(d);
     mb->setAttribute(Qt::WA_DeleteOnClose);
     mb->show();
 }
 
-void FrontendGui::handleError(const DError& d) { Qx::postError(d.error); }
+void FrontendGui::handleDirective(const DError& d) { Qx::postError(d.error); }
 
-void FrontendGui::handleProcedureStart(const DProcedureStart& d)
+void FrontendGui::handleDirective(const DProcedureStart& d)
 {
     // Set label
     mProgressDialog.setLabelText(d.label);
@@ -96,7 +96,7 @@ void FrontendGui::handleProcedureStart(const DProcedureStart& d)
     mProgressDialog.setValue(0);
 }
 
-void FrontendGui::handleProcedureStop(const DProcedureStop& d)
+void FrontendGui::handleDirective(const DProcedureStop& d)
 {
     Q_UNUSED(d);
     /* Always reset the dialog regardless of whether it is visible or not as it may not be currently visible,
@@ -106,49 +106,46 @@ void FrontendGui::handleProcedureStop(const DProcedureStop& d)
     mProgressDialog.reset();
 }
 
-void FrontendGui::handleProcedureProgress(const DProcedureProgress& d) { mProgressDialog.setValue(d.current); }
-void FrontendGui::handleProcedureScale(const DProcedureScale& d) { mProgressDialog.setMaximum(d.max); }
-void FrontendGui::handleStatusUpdate(const DStatusUpdate& d) { mStatusHeading = d.heading; mStatusMessage = d.message; }
+void FrontendGui::handleDirective(const DProcedureProgress& d) { mProgressDialog.setValue(d.current); }
+void FrontendGui::handleDirective(const DProcedureScale& d) { mProgressDialog.setMaximum(d.max); }
+void FrontendGui::handleDirective(const DStatusUpdate& d) { mStatusHeading = d.heading; mStatusMessage = d.message; }
 
 // Sync directive handlers
-void FrontendGui::handleBlockingMessage(const DBlockingMessage& d)
+void FrontendGui::handleDirective(const DBlockingMessage& d)
 {
     auto mb = prepareMessageBox(d);
     mb->exec();
     delete mb;
 }
 
-void FrontendGui::handleBlockingError(const DBlockingError& d)
+// Request directive handlers
+void FrontendGui::handleDirective(const DBlockingError& d, DBlockingError::Choice* response)
 {
-    Q_ASSERT(d.response && d.choices != DBlockingError::Choice::NoChoice);
+    Q_ASSERT(d.choices != DBlockingError::Choice::NoChoice);
     auto btns = choicesToButtons(d.choices);
     auto def = smChoiceButtonMap.toRight(d.defaultChoice);
     int rawRes = Qx::postBlockingError(d.error, btns, def);
-    *d.response = smChoiceButtonMap.toLeft(static_cast<QMessageBox::StandardButton>(rawRes));
+    *response = smChoiceButtonMap.toLeft(static_cast<QMessageBox::StandardButton>(rawRes));
 }
 
-void FrontendGui::handleSaveFilename(const DSaveFilename& d)
+void FrontendGui::handleDirective(const DSaveFilename& d, QString* response)
 {
-    Q_ASSERT(d.response);
-    *d.response = QFileDialog::getSaveFileName(nullptr, d.caption, d.dir, d.filter, d.selectedFilter);
+    *response = QFileDialog::getSaveFileName(nullptr, d.caption, d.dir, d.filter, d.selectedFilter);
 }
 
-void FrontendGui::handleExistingDir(const DExistingDir& d)
+void FrontendGui::handleDirective(const DExistingDir& d, QString* response)
 {
-    Q_ASSERT(d.response);
-    *d.response = QFileDialog::getExistingDirectory(nullptr, d.caption, d.startingDir);
+    *response = QFileDialog::getExistingDirectory(nullptr, d.caption, d.startingDir);
 }
 
-void FrontendGui::handleItemSelection(const DItemSelection& d)
+void FrontendGui::handleDirective(const DItemSelection& d, QString* response)
 {
-    Q_ASSERT(d.response);
-    *d.response = QInputDialog::getItem(nullptr, d.caption, d.label, d.items, 0, false);
+    *response = QInputDialog::getItem(nullptr, d.caption, d.label, d.items, 0, false);
 }
 
-void FrontendGui::handleYesOrNo(const DYesOrNo& d)
+void FrontendGui::handleDirective(const DYesOrNo& d, bool* response)
 {
-    Q_ASSERT(d.response);
-    *d.response = QMessageBox::question(nullptr, QString(), d.question) == QMessageBox::Yes;
+    *response = QMessageBox::question(nullptr, QString(), d.question) == QMessageBox::Yes;
 }
 
 bool FrontendGui::aboutToExit()

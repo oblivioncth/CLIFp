@@ -108,6 +108,14 @@ private:
     bool isLogOpen() const;
     void logQtMessage(QtMsgType type, const QMessageLogContext& context, const QString& msg);
 
+    // Helper
+    template<DirectiveT T>
+    auto ddr() // Default directive return helper
+    {
+        if constexpr(RequestDirectiveT<T>)
+            return typename T::response_type{};
+    }
+
 public:
     // Data
     Verbosity verbosity() const;
@@ -122,30 +130,43 @@ public:
 
     // Directives
     template<DirectiveT T>
-    void postDirective(const QString& src, const T& directive)
+    auto postDirective(const QString& src, const T& directive)
     {
         // Special handling
         if constexpr(Qx::any_of<T, DError, DBlockingError>)
         {
             logError(src, directive.error);
             if(mVerbosity == Verbosity::Silent || (mVerbosity == Verbosity::Quiet && directive.error.severity() != Qx::Critical))
-                return;
+                return ddr<T>();
         }
         else
         {
             if(mVerbosity != Verbosity::Full)
-                return;
+                return ddr<T>();
         }
 
         // Send
         if constexpr(AsyncDirectiveT<T>)
-        {
             emit announceAsyncDirective(directive);
-        }
+        else if constexpr(SyncDirectiveT<T>)
+            emit announceSyncDirective(directive);
         else
         {
-            static_assert(SyncDirectiveT<T>);
-            emit announceSyncDirective(directive);
+            static_assert(RequestDirectiveT<T>);
+            /* Normally using a void pointer is basically obsolete, and the much newer std::any should be used
+             * instead; however, here we must use a pointer to get a result back since this is a signal, and the
+             * type safety of std::any is less important since the pointer is cast automatically by our scaffolding
+             * based on ResponseDirectiveT::response_type. So, mind as well take advantage of the performance of
+             * void* then anyway.
+             *
+             * Also: If a default response is needed other than the default provided by value-initialization, we
+             * can add a static member "DEFAULT_RESPONSE" to each RequestDirectiveT struct and use that here. If
+             * various defaults are needed on a case-by-case basis, that gets tricky as we'd need another postDirective()
+             * overload.
+             */
+            auto response = ddr<T>();
+            emit announceRequestDirective(directive, &response);
+            return response;
         }
     }
 
@@ -153,6 +174,7 @@ public:
 signals:
     void announceAsyncDirective(const AsyncDirective& aDirective);
     void announceSyncDirective(const SyncDirective& sDirective);
+    void announceRequestDirective(const RequestDirective& rDirective, void* response);
 };
 
 #endif // DIRECTOR_H

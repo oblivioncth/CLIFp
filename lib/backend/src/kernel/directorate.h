@@ -34,18 +34,18 @@ protected:
     void logError(const Qx::Error& error) const;
     void logEvent(const QString& event) const;
 
+    // These two only return a value when a RequestDirective is used, otherwise 'return' is ignored
     template<DirectiveT T>
-    void postDirective(const T& t) const
+    [[nodiscard]] auto postDirective(const T& t) const
     {
         Q_ASSERT(mDirector);
-        mDirector->postDirective(name(), t);
+        return mDirector->postDirective(name(), t);
     }
 
-    template<typename T, typename... Args>
-    void postDirective(Args&&... args) const
+    template<DirectiveT T, typename... Args>
+    [[nodiscard]] auto postDirective(Args&&... args) const
     {
-        Q_ASSERT(mDirector);
-        mDirector->postDirective(name(), T{std::forward<Args>(args)...});
+        return postDirective(T{std::forward<Args>(args)...});
     }
 
 protected:
