@@ -196,7 +196,7 @@ void Command::showHelp()
     static QString helpStr;
 
     // Update status
-    mCore.setStatus(Core::STATUS_DISPLAY, Core::STATUS_DISPLAY_HELP);
+    postDirective<DStatusUpdate>(Core::STATUS_DISPLAY, Core::STATUS_DISPLAY_HELP);
 
     // One time setup
     if(helpStr.isNull())

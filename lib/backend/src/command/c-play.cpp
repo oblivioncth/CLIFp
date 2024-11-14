@@ -214,7 +214,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     QString platformName = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString();
 
     // Enqueue
-    mCore.setStatus(STATUS_PLAY, addApp.name());
+    postDirective<DStatusUpdate>(STATUS_PLAY, addApp.name());
 
     if(sError = enqueueAdditionalApp(addApp, platformName, Task::Stage::Primary); sError.isValid())
         return sError;
@@ -292,7 +292,7 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(gameTask);
-    mCore.setStatus(STATUS_PLAY, game.title());
+    postDirective<DStatusUpdate>(STATUS_PLAY, game.title());
 
 #ifdef _WIN32
     // Add wait task if required

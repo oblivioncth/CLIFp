@@ -40,7 +40,7 @@ Qx::Error CPrepare::perform()
         if(Qx::Error ee = mCore.enqueueDataPackTasks(titleGameData); ee.isValid())
             return ee;
 
-        mCore.setStatus(STATUS_PREPARE, id.toString(QUuid::WithoutBraces));
+        postDirective<DStatusUpdate>(STATUS_PREPARE, id.toString(QUuid::WithoutBraces));
     }
     else
         logError(Qx::GenericError(Qx::Warning, 12141, LOG_WRN_PREP_NOT_DATA_PACK.arg(id.toString(QUuid::WithoutBraces))));

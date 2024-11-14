@@ -52,7 +52,7 @@ Qx::Error CLink::perform()
     if(Qx::Error ide = getTitleId(shortcutId); ide.isValid())
         return ide;
 
-    mCore.setStatus(STATUS_LINK, shortcutId.toString(QUuid::WithoutBraces));
+    postDirective<DStatusUpdate>(STATUS_LINK, shortcutId.toString(QUuid::WithoutBraces));
 
     // Get database
     Fp::Db* database = mCore.fpInstall().database();

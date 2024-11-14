@@ -57,9 +57,7 @@ QString CoreError::deriveSecondary() const { return mSpecific; }
 //Public:
 Core::Core() :
     Directorate(&mDirector),
-    mServicesMode(ServicesMode::Standalone),
-    mStatusHeading(u"Initializing"_s),
-    mStatusMessage(u"..."_s)
+    mServicesMode(ServicesMode::Standalone)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -82,7 +80,7 @@ void Core::showHelp()
     static QString helpStr;
 
     // Update status
-    setStatus(STATUS_DISPLAY, STATUS_DISPLAY_HELP);
+    postDirective<DStatusUpdate>(STATUS_DISPLAY, STATUS_DISPLAY_HELP);
 
     // One time setup
     if(helpStr.isNull())
@@ -116,7 +114,7 @@ void Core::showHelp()
 
 void Core::showVersion()
 {
-    setStatus(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
+    postDirective<DStatusUpdate>(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
     postDirective<DMessage>(CL_VERSION_MESSAGE);
 }
 
@@ -230,6 +228,9 @@ void Core::logTask(const Task* task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->nam
 //Public:
 Qx::Error Core::initialize(QStringList& commandLine)
 {
+    // Send initial status
+    postDirective<DStatusUpdate>(u"Initializing"_s, u"..."_s);
+
     // Setup CLI Parser
     QCommandLineParser clParser;
     clParser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
@@ -820,18 +821,6 @@ size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
 Task* Core::frontTask() { return mTaskQueue.front(); }
 void Core::removeFrontTask() { mTaskQueue.pop(); }
-
-QString Core::statusHeading() { return mStatusHeading; }
-QString Core::statusMessage() { return mStatusMessage;}
-void Core::setStatus(QString heading, QString message)
-{
-    /* TODO: Probably can do away with this and just use postDirective<DStatusUpdate>() where it's needed.
-     * The stored status is never used currently and I can't think of any reason it would b
-     */
-    mStatusHeading = heading;
-    mStatusMessage = message;
-    postDirective<DStatusUpdate>(heading, message);
-}
 
 BuildInfo Core::buildInfo() const
 {

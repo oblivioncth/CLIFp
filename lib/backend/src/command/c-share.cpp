@@ -96,7 +96,7 @@ Qx::Error CShare::perform()
     if(Qx::Error ide = getTitleId(shareId); ide.isValid())
         return ide;
 
-    mCore.setStatus(STATUS_SHARE, shareId.toString(QUuid::WithoutBraces));
+    postDirective<DStatusUpdate>(STATUS_SHARE, shareId.toString(QUuid::WithoutBraces));
 
     // Generate URL
     QString idStr = shareId.toString(QUuid::WithoutBraces);

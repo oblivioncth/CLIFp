@@ -61,7 +61,7 @@ Qx::Error CRun::perform()
     runTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(runTask);
-    mCore.setStatus(STATUS_RUN, inputInfo.fileName());
+    postDirective<DStatusUpdate>(STATUS_RUN, inputInfo.fileName());
 
 #ifdef _WIN32
     // Add wait task if required

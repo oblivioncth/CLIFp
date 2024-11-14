@@ -210,10 +210,6 @@ private:
     ServicesMode mServicesMode;
     std::queue<Task*> mTaskQueue;
 
-    // Info
-    QString mStatusHeading;
-    QString mStatusMessage;
-
     // Other
     QProcessEnvironment mChildTitleProcEnv;
     Qx::ProcessBider mLauncherWatcher;
@@ -264,11 +260,6 @@ public:
     bool hasTasks() const;
     Task* frontTask();
     void removeFrontTask();
-
-    // Status
-    QString statusHeading();
-    QString statusMessage();
-    void setStatus(QString heading, QString message);
 
     // Other
     BuildInfo buildInfo() const;

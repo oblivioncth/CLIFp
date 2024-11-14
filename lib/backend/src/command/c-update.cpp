@@ -274,7 +274,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
     }
 
     // Check for update
-    mCore.setStatus(STATUS, STATUS_CHECKING);
+    postDirective<DStatusUpdate>(STATUS, STATUS_CHECKING);
     logEvent(LOG_EVENT_CHECKING_FOR_NEWER_VERSION);
 
     // Get new release data
@@ -363,7 +363,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
 
 Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
 {
-    mCore.setStatus(STATUS, STATUS_INSTALLING);
+    postDirective<DStatusUpdate>(STATUS, STATUS_INSTALLING);
 
     // Wait for previous process to close, lock instance afterwards
     static const int totalGrace = 2000;

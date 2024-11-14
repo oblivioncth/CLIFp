@@ -46,7 +46,7 @@ QString CDownload::name() const { return NAME; }
 Qx::Error CDownload::perform()
 {
     QString playlistName = mParser.value(CL_OPTION_PLAYLIST).trimmed();
-    mCore.setStatus(STATUS_DOWNLOAD, playlistName);
+    postDirective<DStatusUpdate>(STATUS_DOWNLOAD, playlistName);
 
     Fp::Db* db = mCore.fpInstall().database();
     Fp::PlaylistManager* pm = mCore.fpInstall().playlistManager();

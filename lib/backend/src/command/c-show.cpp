@@ -52,7 +52,7 @@ Qx::Error CShow::perform()
         messageTask->setText(mParser.value(CL_OPTION_MSG));
 
         mCore.enqueueSingleTask(messageTask);
-        mCore.setStatus(STATUS_SHOW_MSG, messageTask->text());
+        postDirective<DStatusUpdate>(STATUS_SHOW_MSG, messageTask->text());
     }
     else if(mParser.isSet(CL_OPTION_EXTRA))
     {
@@ -61,7 +61,7 @@ Qx::Error CShow::perform()
         extraTask->setDirectory(QDir(mCore.fpInstall().extrasDirectory().absolutePath() + '/' + mParser.value(CL_OPTION_EXTRA)));
 
         mCore.enqueueSingleTask(extraTask);
-        mCore.setStatus(STATUS_SHOW_EXTRA, extraTask->directory().dirName());
+        postDirective<DStatusUpdate>(STATUS_SHOW_EXTRA, extraTask->directory().dirName());
     }
     else
     {
