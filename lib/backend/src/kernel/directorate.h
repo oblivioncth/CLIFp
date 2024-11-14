@@ -10,11 +10,6 @@
 // Project Includes
 #include "kernel/director.h"
 
-/* TODO: It would be challenging (at least to do in a clean way), but we could try to split the template
- * definitions of postDirective et. al. so that the directives that should return a value actually return
- * the value instead of a pointer within the directive.
- */
-
 class Directorate
 {
 //-Instance Variables------------------------------------------------------------------------------------------------------

@@ -72,10 +72,10 @@ TDownload::TDownload(Core& core) :
         logEvent(LOG_EVENT_DOWNLOAD_AUTH.arg(prompt));
     });
 
-    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, [this](quint64 total){
+    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadTotalChanged, this, [this](qint64 total){
         postDirective<DProcedureScale>(total);
     });
-    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, [this](quint64 bytes){
+    connect(&mDownloadManager, &Qx::AsyncDownloadManager::downloadProgress, this, [this](qint64 bytes){
         postDirective<DProcedureProgress>(bytes);
     });
     connect(&mDownloadManager, &Qx::AsyncDownloadManager::finished, this, &TDownload::postDownload);

@@ -9,6 +9,7 @@
 
 // Qx Includes
 #include <qx/widgets/qx-common-widgets.h>
+#include <qx/core/qx-string.h>
 
 // Magic enum
 #include "magic_enum_utility.hpp"
@@ -130,7 +131,8 @@ void FrontendGui::handleDirective(const DBlockingError& d, DBlockingError::Choic
 
 void FrontendGui::handleDirective(const DSaveFilename& d, QString* response)
 {
-    *response = QFileDialog::getSaveFileName(nullptr, d.caption, d.dir, d.filter, d.selectedFilter);
+    QString filter = d.extFilterDesc + u" ("_s + Qx::String::join(d.extFilter, u" "_s, u"*."_s) + u")"_s;
+    *response = QFileDialog::getSaveFileName(nullptr, d.caption, d.dir, filter);
 }
 
 void FrontendGui::handleDirective(const DExistingDir& d, QString* response)

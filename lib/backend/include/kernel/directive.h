@@ -1,9 +1,6 @@
 #ifndef DIRECTIVE_H
 #define DIRECTIVE_H
 
-// Shared Library Support
-#include "clifp_backend_export.h"
-
 // Qt Includes
 #include <QString>
 
@@ -59,12 +56,12 @@ struct DProcedureStop {};
 
 struct DProcedureProgress
 {
-    quint64 current;
+    qint64 current;
 };
 
 struct DProcedureScale
 {
-    quint64 max;
+    qint64 max;
 };
 
 struct DClipboardUpdate
@@ -128,8 +125,8 @@ struct DSaveFilename
 {
     QString caption;
     QString dir;
-    QString filter;
-    QString* selectedFilter = nullptr;
+    QStringList extFilter;
+    QString extFilterDesc;
 
     using response_type = QString;
 };
