@@ -76,7 +76,7 @@ Qx::Error CLink::perform()
         Fp::AddApp addApp = std::get<Fp::AddApp>(entry_v);
 
         // Get parent info
-        Fp::DbError dbError = database->getEntry(entry_v, addApp.parentId());
+        dbError = database->getEntry(entry_v, addApp.parentId());
         if(dbError.isValid())
         {
             postDirective<DError>(dbError);
