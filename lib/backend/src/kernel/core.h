@@ -132,6 +132,7 @@ public:
     static inline const QString LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS= u"Handling Linux specific startup steps..."_s;
     static inline const QString LOG_EVENT_LINUX_BUILD_TYPE = u"Linux build %1 mutable."_s;
     static inline const QString LOG_EVENT_LINUX_GTK3_MISSING = u"GTK3 isn't installed, setting GTK_USE_PORTAL=1"_s;
+    static inline const QString LOG_EVENT_LINUX_SERVER_NOOP = u"Skipping server start ('read' no-op detected)"_s;
 
     // Logging - Title Search
     static inline const QString LOG_EVENT_GAME_SEARCH = u"Searching for game with title '%1'"_s;

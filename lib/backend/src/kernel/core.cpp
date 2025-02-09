@@ -574,16 +574,22 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
 
         Fp::ServerDaemon server = foundServer.value();
 
-        TExec* serverTask = new TExec(*this);
-        serverTask->setIdentifier(u"Server"_s);
-        serverTask->setStage(Task::Stage::Startup);
-        serverTask->setExecutable(server.filename);
-        serverTask->setDirectory(mFlashpointInstall->dir().absoluteFilePath(server.path));
-        serverTask->setParameters(server.arguments);
-        serverTask->setProcessType(server.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
+        // Some linux builds run the "read" builtin as a form of no-op so that no server runs
+        if(server.filename == u"read"_s)
+            logEvent(LOG_EVENT_LINUX_SERVER_NOOP);
+        else
+        {
+            TExec* serverTask = new TExec(*this);
+            serverTask->setIdentifier(u"Server"_s);
+            serverTask->setStage(Task::Stage::Startup);
+            serverTask->setExecutable(server.filename);
+            serverTask->setDirectory(mFlashpointInstall->dir().absoluteFilePath(server.path));
+            serverTask->setParameters(server.arguments);
+            serverTask->setProcessType(server.kill ? TExec::ProcessType::Deferred : TExec::ProcessType::Detached);
 
-        mTaskQueue.push(serverTask);
-        logTask(serverTask);
+            mTaskQueue.push(serverTask);
+            logTask(serverTask);
+        }
     }
 
     // Add Daemon entry from services
