@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("ed633b61c87f34757c5c26da32563543665940b7")
+fetch_ob_cmake("d64498ec2654e7f3145d7efa36bfaa73ac30cc74")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -77,14 +77,14 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "fc69be0c46f2718107676d3b6e187a0c9dc8ba02"
+    REF "1bfe8bdb6047c1d6c3246e431652869e63cbe797"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("183a479d00235d332aa1046a9b5ba98f62699752")
+ob_fetch_libfp("d2b1960b76c10537f2beb933206d42a31576ab07")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)

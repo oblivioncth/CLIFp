@@ -100,7 +100,7 @@ Qx::IoOpReport CUpdate::determineNewFiles(QStringList& files, const QDir& source
         if(sourceRoot.exists(sd))
             subDirs += sd;
 
-    for(const auto& sd : qAsConst(subDirs))
+    for(const auto& sd : std::as_const(subDirs))
     {
         QStringList subFiles;
         Qx::IoOpReport r = Qx::dirContentList(subFiles, sourceRoot.absoluteFilePath(sd), {}, QDir::NoDotAndDotDot | QDir::Files,

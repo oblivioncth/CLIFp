@@ -547,7 +547,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
     Fp::Preferences fpPreferences = mFlashpointInstall->preferences();
 
     // Add Start entries from services
-    for(const Fp::StartStop& startEntry : qAsConst(fpServices.start))
+    for(const Fp::StartStop& startEntry : std::as_const(fpServices.start))
     {
         TExec* currentTask = new TExec(*this);
         currentTask->setIdentifier(startEntry.filename);
@@ -593,7 +593,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
     }
 
     // Add Daemon entry from services
-    for(const Fp::ServerDaemon& d : qAsConst(fpServices.daemon))
+    for(const Fp::ServerDaemon& d : std::as_const(fpServices.daemon))
     {
         TExec* currentTask = new TExec(*this);
         currentTask->setIdentifier(u"Daemon"_s);
