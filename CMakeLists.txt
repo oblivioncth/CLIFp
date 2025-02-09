@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("19d33b5bb1752b50767f78ca3e17796868354ac3")
+fetch_ob_cmake("ed633b61c87f34757c5c26da32563543665940b7")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -111,8 +111,10 @@ string(TOLOWER "${BACKEND_ALIAS_NAME}" BACKEND_ALIAS_NAME_LC)
 set(FRONTEND_FRAMEWORK_TARGET_NAME ${PROJECT_NAMESPACE_LC}_frontend_framework)
 set(FRONTEND_FRAMEWORK_ALIAS_NAME FrontendFramework)
 add_subdirectory(lib)
-set(APP_GUI_TARGET_NAME ${PROJECT_NAMESPACE_LC}_${PROJECT_NAMESPACE_LC})
-set(APP_GUI_ALIAS_NAME ${PROJECT_NAMESPACE})
+set(APP_GUI_TARGET_NAME ${PROJECT_NAMESPACE_LC}_frontend_gui)
+set(APP_GUI_ALIAS_NAME FrontendGui)
+set(APP_CONSOLE_TARGET_NAME ${PROJECT_NAMESPACE_LC}_frontend_console)
+set(APP_CONSOLE_ALIAS_NAME FrontendConsole)
 add_subdirectory(app)
 
 #--------------------Package Config-----------------------
@@ -122,6 +124,7 @@ ob_standard_project_package_config(
     CONFIG STANDARD
         TARGET_CONFIGS
             TARGET "${PROJECT_NAMESPACE}::${APP_GUI_ALIAS_NAME}" COMPONENT "${APP_GUI_ALIAS_NAME}" DEFAULT
+            TARGET "${PROJECT_NAMESPACE}::${APP_CONSOLE_ALIAS_NAME}" COMPONENT "${APP_CONSOLE_ALIAS_NAME}"
 )
 
 #================= Install ==========================

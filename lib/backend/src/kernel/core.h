@@ -171,7 +171,7 @@ public:
 
     // Help template
     static inline const QString HELP_TEMPL = u"<u>Usage:</u><br>"
-                                              PROJECT_SHORT_NAME "&lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
+                                              PROJECT_SHORT_NAME " &lt;global options&gt; <i>command</i> &lt;command options&gt;<br>"
                                               "<br>"
                                               "<u>Global Options:</u>%1<br>"
                                               "<br>"

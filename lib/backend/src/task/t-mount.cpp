@@ -69,8 +69,8 @@ void TMount::perform()
     postDirective<DProcedureStart>(label);
 
     // Update state
-    postDirective<DProcedureProgress>(0u);
-    postDirective<DProcedureScale>(0u); // Cause busy state
+    postDirective<DProcedureProgress>(0);
+    postDirective<DProcedureScale>(0); // Cause busy state
 
     //-Setup Mounter(s)------------------------------------
 
@@ -172,7 +172,7 @@ void TMount::postMount(Qx::Error errorStatus)
 {
     mMounting = false;
 
-    // Reset mounter pointers ('this' will delete them  due to parenting so there's no leak)
+    // Reset mounter pointers ('this' will delete them due to parenting so there's no leak)
     mMounterProxy = nullptr;
     mMounterQmp = nullptr;
     mMounterRouter = nullptr;

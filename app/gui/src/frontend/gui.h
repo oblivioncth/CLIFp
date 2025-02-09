@@ -40,16 +40,16 @@ public:
     explicit FrontendGui(QApplication* app);
 
 //-Class Functions--------------------------------------------------------------------------------------------------------
-//Private:
-static QMessageBox::StandardButtons choicesToButtons(DBlockingError::Choices cs);
+private:
+    static QMessageBox::StandardButtons choicesToButtons(DBlockingError::Choices cs);
 
-template<class MessageT>
-    requires Qx::any_of<MessageT, DMessage, DBlockingMessage>
-static QMessageBox* prepareMessageBox(const MessageT& dMsg);
+    template<class MessageT>
+        requires Qx::any_of<MessageT, DMessage, DBlockingMessage>
+    static QMessageBox* prepareMessageBox(const MessageT& dMsg);
 
-static bool windowsAreOpen();
+    static bool windowsAreOpen();
 
-static QIcon& trayExitIconFromResources();
+    static QIcon& trayExitIconFromResources();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
