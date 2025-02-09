@@ -6,6 +6,9 @@
 
 // Qx Includes
 #include <qx/core/qx-algorithm.h>
+#include <qx/core/qx-system.h>
+
+using namespace  Qt::StringLiterals;
 
 namespace // Unit helper functions
 {
@@ -45,7 +48,7 @@ QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
     return process;
 }
 
-QProcess* setupShellScriptProcess(const QString& scriptPath, const QString& scriptArgs)
+QProcess* setupShellProcess(const QString& commandOrScript, const QString& args)
 {
     QProcess* process = new QProcess();
 
@@ -53,7 +56,7 @@ QProcess* setupShellScriptProcess(const QString& scriptPath, const QString& scri
     process->setProgram(u"/bin/sh"_s);
 
     // Set arguments
-    QString bashCommand = u"'"_s + scriptPath + u"' "_s + scriptArgs;
+    QString bashCommand = u"'"_s + commandOrScript + u"' "_s + args;
     process->setArguments({u"-c"_s, bashCommand});
 
     return process;
@@ -70,6 +73,29 @@ QProcess* setupNativeProcess(const QString& execPath, const QStringList& execArg
     process->setArguments(execArgs);
 
     return process;
+}
+
+bool isShellBuiltin(const QString& command)
+{
+    // Cash built-ins so no execution is required if the same one is checked for again
+    static QSet<QString> knownBuiltins;
+    if(knownBuiltins.contains(command))
+        return true;
+
+    // TODO: Use Qx::execute()/shellExecutre() in any other places that just need a quick program result
+    Qx::ExecuteResult res = Qx::shellExecute(u"type"_s, u"command"_s); // Ubuntu doesn't support '-t' (short name) switch
+    if(res.exitCode != 0)
+    {
+        qWarning("Failed to query if %s is a built-in command!", qPrintable(command));
+        return false;
+    }
+    if(res.output.contains(u"builtin"_s))
+    {
+        knownBuiltins.insert(command);
+        return true;
+    }
+
+    return false;
 }
 
 }
@@ -106,7 +132,16 @@ QString TExec::resolveExecutablePath()
         return absolutePath.isExecutable() || absolutePath.suffix() == EXECUTABLE_EXT_WIN ? absolutePath.canonicalFilePath() : QString();
     }
     else // Plain name
+    {
+        // Shell built-ins get priority
+        if(isShellBuiltin(mExecutable))
+        {
+            logEvent(mExecutable + u" is a shell builtin."_s);
+            return mExecutable;
+        }
+
         return QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
+    }
 }
 
 QString TExec::escapeForShell(const QString& argStr)
@@ -153,11 +188,11 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
 
         return setupExeProcess(execInfo.filePath(), exeParam);
     }
-    else if(execInfo.suffix() == SHELL_EXT_LINUX)
+    else if(execInfo.suffix() == SHELL_EXT_LINUX || isShellBuiltin(execInfo.filePath()))
     {
         // Resolve passed parameters
-        QString scriptParam = createEscapedShellArguments();
-        return setupShellScriptProcess(execInfo.filePath(), scriptParam);
+        QString param = createEscapedShellArguments();
+        return setupShellProcess(execInfo.filePath(), param);
     }
     else
     {
