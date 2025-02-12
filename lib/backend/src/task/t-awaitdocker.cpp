@@ -1,6 +1,9 @@
 // Unit Include
 #include "t-awaitdocker.h"
 
+// Qx Includes
+#include <qx/core/qx-system.h>
+
 //===============================================================================================================
 // TAwaitDockerError
 //===============================================================================================================
@@ -49,10 +52,7 @@ TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
     // Directly check if the gamezip docker image is running
     running = false; // Default to no
 
-    // Setup check command
-    QProcess dockerPs;
-    dockerPs.setProgram(DOCKER);
-    dockerPs.setArguments({
+    ExecuteResult res = Qx::execute(DOCKER,{
         "ps",
         "--filter",
         "status=running",
@@ -60,30 +60,17 @@ TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
         "name=" + mImageName,
         "--format",
         "{{.Names}}"
-    });
+    }, 1000);
 
-    // Execute (wait by blocking since this should be really fast)
-    dockerPs.start();
-    if(!dockerPs.waitForStarted(1000))
+    if(res.exitCode != 0)
     {
-        TAwaitDockerError err(TAwaitDockerError::DirectQueryFailed);
-        postDirective<DError>(err);
-        return err;
-    }
-    if(!dockerPs.waitForFinished(1000))
-    {
-        dockerPs.kill(); // Force close
-        dockerPs.waitForFinished();
-
         TAwaitDockerError err(TAwaitDockerError::DirectQueryFailed);
         postDirective<DError>(err);
         return err;
     }
 
     // Check result, should just contain image name due to filter/format options
-    QString queryResult = QString::fromLatin1(dockerPs.readAllStandardOutput());
-    queryResult.chop(1); // Remove '\n'
-    running = queryResult == mImageName;
+    running = res.output == mImageName;
 
     return TAwaitDockerError();
 }
