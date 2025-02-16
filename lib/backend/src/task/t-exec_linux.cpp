@@ -83,7 +83,7 @@ bool isShellBuiltin(const QString& command)
         return true;
 
     // TODO: Use Qx::execute()/shellExecutre() in any other places that just need a quick program result
-    Qx::ExecuteResult res = Qx::shellExecute(u"type"_s, u"command"_s); // Ubuntu doesn't support '-t' (short name) switch
+    Qx::ExecuteResult res = Qx::shellExecute(u"type"_s, command); // Ubuntu doesn't support '-t' (short name) switch
     if(res.exitCode != 0)
     {
         qWarning("Failed to query if %s is a built-in command!", qPrintable(command));

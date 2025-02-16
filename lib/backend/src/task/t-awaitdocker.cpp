@@ -52,7 +52,7 @@ TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
     // Directly check if the gamezip docker image is running
     running = false; // Default to no
 
-    ExecuteResult res = Qx::execute(DOCKER,{
+    Qx::ExecuteResult res = Qx::execute(DOCKER,{
         "ps",
         "--filter",
         "status=running",
