@@ -1,0 +1,14 @@
+name: Tag and Sync
+on:
+  pull_request:
+    types: [closed]
+    branches:
+    - 'master'
+    
+jobs:
+  tag-master-and-sync-dev:
+    name: Tag master merge commit, FF back to dev
+    if: github.event.pull_request.merged == true
+    permissions:
+      contents: write
+    uses: oblivioncth/actions/.github/workflows/tag-main-and-sync-dev.yml@v1

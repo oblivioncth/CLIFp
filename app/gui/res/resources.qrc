@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/frontend">
+        <file>tray/Exit.png</file>
+    </qresource>
+</RCC>

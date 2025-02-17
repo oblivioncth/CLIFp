@@ -1,17 +1,23 @@
 changelog:
   exclude:
     labels:
-      - release-pr
+      - release
+      - common-sync
+    authors:
+      - oby-bot
   categories:
+    - title: Breaking Changes
+      labels:
+        - breaking
     - title: New Features
       labels:
         - enhancement
     - title: Bug Fixes
       labels:
         - bug
-    - title: Backend Improvements
+    - title: Implementation Improvements
       labels:
-        - backend
+        - implementation
     - title: Other Changes
       labels:
         - "*"
