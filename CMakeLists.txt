@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.24.0...3.26.0)
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.12
+    VERSION 0.9.13
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 13.0)
+set(TARGET_FP_VERSION_PREFIX 14.0)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
@@ -77,14 +77,14 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "f98cb3e3af74af09d277b4a45c414a5f22aef4f3"
+    REF "806aa500e292686e66c2e2889965d3702fe188b2"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("34ff2c06224a4b97b1f3d1bcdc514a537c8116a8")
+ob_fetch_libfp("9995681fe222f240512e9bd83b211ecc585716db")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)

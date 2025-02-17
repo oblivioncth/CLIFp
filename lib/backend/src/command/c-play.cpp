@@ -10,6 +10,10 @@
 #include "task/t-message.h"
 #include "task/t-extra.h"
 
+/* TODO: Add switch to force ruffle (for flash games, either error or ignore if not flash) like the vanilla launcher
+ * https://github.com/FlashpointProject/launcher/blob/1d14bc753397c40a4e7c1869cd8e214eee5de843/extensions/core-ruffle/src/extension.ts#L73
+ */
+
 //===============================================================================================================
 // CPlayError
 //===============================================================================================================
