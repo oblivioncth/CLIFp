@@ -65,9 +65,17 @@ private:
     static inline const QString CL_OPT_URL_L_NAME = u"url"_s;
     static inline const QString CL_OPT_URL_DESC = u""_s;
 
+    static inline const QString CL_OPT_RUFFLE_L_NAME = u"ruffle"_s;
+    static inline const QString CL_OPT_RUFFLE_DESC = u"Forces the use of Ruffle for Flash games."_s;
+
+    static inline const QString CL_OPT_FLASH_L_NAME = u"flash"_s;
+    static inline const QString CL_OPT_FLASH_DESC = u"Forces the use of the standard app (usually Flash Player) for Flash games."_s;
+
     // Command line options
     static inline const QCommandLineOption CL_OPTION_URL{{CL_OPT_URL_S_NAME, CL_OPT_URL_L_NAME}, CL_OPT_URL_DESC, u"url"_s}; // Takes value
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL};
+    static inline const QCommandLineOption CL_OPTION_RUFFLE{{CL_OPT_RUFFLE_L_NAME}, CL_OPT_URL_DESC}; // Boolean
+    static inline const QCommandLineOption CL_OPTION_FLASH{{CL_OPT_FLASH_L_NAME}, CL_OPT_FLASH_DESC}; // Boolean
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL, &CL_OPTION_RUFFLE, &CL_OPTION_FLASH};
 
     // Logging - Messages
     static inline const QString LOG_EVENT_HANDLING_AUTO = u"Handling automatic tasks..."_s;
@@ -77,6 +85,10 @@ private:
     static inline const QString LOG_EVENT_FOUND_AUTORUN = u"Found autorun-before additional app: %1"_s;
     static inline const QString LOG_EVENT_DATA_PACK_TITLE = u"Selected title uses a data pack"_s;
     static inline const QString LOG_EVENT_SERVER_OVERRIDE = u"Selected title overrides the server to: %1"_s;
+    static inline const QString LOG_EVENT_USING_RUFFLE_SUPPORTED = u"Using Ruffle for this title (supported)"_s;
+    static inline const QString LOG_EVENT_USING_RUFFLE_UNSUPPORTED = u"Using Ruffle for this title (unsupported)"_s;
+    static inline const QString LOG_EVENT_FORCING_RUFFLE = u"Forcing the use of Ruffle for this title"_s;
+    static inline const QString LOG_EVENT_FORCING_FLASH = u"Forcing the use of the standard Flash application for this title"_s;
 
 public:
     // Meta
@@ -95,11 +107,14 @@ private:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     void addPassthroughParameters(QString& param);
+    void addPassthroughParameters(QStringList& param);
     QString getServerOverride(const Fp::GameData& gd);
+    bool useRuffle(const Fp::Game& game, Task::Stage stage);
     Qx::Error handleEntry(const Fp::Game& game);
     Qx::Error handleEntry(const Fp::AddApp& addApp);
-    Qx::Error enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& platform, Task::Stage taskStage);
+    Qx::Error enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
     Qx::Error enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
+    void enqueueRuffleTask(const QString& name, const QString& originalParams);
 
 protected:
     QList<const QCommandLineOption*> options() const override;

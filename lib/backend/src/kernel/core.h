@@ -21,7 +21,10 @@
 #include "task/task.h"
 #include "_backend_project_vars.h"
 
-// TODO: It's time to cleanout the old unused mounter support (i.e. docker, QEMU, etc).
+/* TODO: It's time to cleanout the old unused mounter support (i.e. docker, QEMU, etc),
+ * though maybe keep them a bit longer for if we ever get to adding support for other
+ * BM projects, as those might still use that tech
+ */
 
 class QX_ERROR_TYPE(CoreError, "CoreError", 1200)
 {

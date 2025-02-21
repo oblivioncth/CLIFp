@@ -82,6 +82,13 @@ void CPlay::addPassthroughParameters(QString& param)
     }
 }
 
+void CPlay::addPassthroughParameters(QStringList& param)
+{
+    // See above method
+    QStringList ptp = mParser.positionalArguments();
+    param.append(ptp);
+}
+
 QString CPlay::getServerOverride(const Fp::GameData& gd)
 {
     QString override = gd.isNull() ? QString() : gd.parameters().server();
@@ -89,6 +96,36 @@ QString CPlay::getServerOverride(const Fp::GameData& gd)
         logEvent(LOG_EVENT_SERVER_OVERRIDE.arg(override));
 
     return override;
+}
+
+bool CPlay::useRuffle(const Fp::Game& game, Task::Stage stage)
+{
+    if(game.platformName() != u"Flash"_s || stage != Task::Stage::Primary)
+        return false;
+
+    auto& extCfg = mCore.fpInstall().extConfig();
+    if(mParser.isSet(CL_OPTION_RUFFLE))
+    {
+        logEvent(LOG_EVENT_FORCING_RUFFLE);
+        return true;
+    }
+    else if(mParser.isSet(CL_OPTION_FLASH))
+    {
+        logEvent(LOG_EVENT_FORCING_FLASH);
+        return false;
+    }
+    else if(extCfg.com_ruffle_enabled && !game.ruffleSupport().isEmpty())
+    {
+        logEvent(LOG_EVENT_USING_RUFFLE_SUPPORTED);
+        return true;
+    }
+    else if(extCfg.com_ruffle_enabled_all)
+    {
+        logEvent(LOG_EVENT_USING_RUFFLE_UNSUPPORTED);
+        return true;
+    }
+
+    return false;
 }
 
 Qx::Error CPlay::handleEntry(const Fp::Game& game)
@@ -150,12 +187,13 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
         {
             logEvent(LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
 
-            if(sError = enqueueAdditionalApp(addApp, game.platformName(), Task::Stage::Auxiliary); sError.isValid())
+            if(sError = enqueueAdditionalApp(addApp, game, Task::Stage::Auxiliary); sError.isValid())
                 return sError;
         }
     }
 
     // Enqueue game
+    postDirective<DStatusUpdate>(STATUS_PLAY, game.title());
     if(sError = enqueueGame(game, gameData, Task::Stage::Primary); sError.isValid())
         return sError;
 
@@ -168,19 +206,32 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
 Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 {
     logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
-                                                       addApp.parentId().toString(QUuid::WithoutBraces)));
+                                           addApp.parentId().toString(QUuid::WithoutBraces)));
 
     Qx::Error sError;
     Fp::Db* db = mCore.fpInstall().database();
 
-    // Check if parent entry uses a data pack
+    // Get parent info
     QUuid parentId = addApp.parentId();
+    Fp::Entry parentEntry;
+    Fp::Game parentGame;
     Fp::GameData parentGameData;
+
+    if(Fp::DbError gdErr = db->getEntry(parentEntry, parentId); gdErr.isValid())
+    {
+        postDirective<DError>(gdErr);
+        return gdErr;
+    }
+    Q_ASSERT(std::holds_alternative<Fp::Game>(parentEntry));
+    parentGame = std::get<Fp::Game>(parentEntry);
+
     if(Fp::DbError gdErr = db->getGameData(parentGameData, parentId); gdErr.isValid())
     {
         postDirective<DError>(gdErr);
         return gdErr;
     }
+
+    // Check if parent entry uses a data pack
     bool hasDatapack = !parentGameData.isNull();
 
     // Get server override (if not present, will result in the default server being used)
@@ -200,27 +251,9 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
             return sError;
     }
 
-    // Get parent info to determine platform
-    Fp::Db::EntryFilter parentFilter{.type = Fp::Db::EntryType::Primary, .id = parentId};
-
-    Fp::Db::QueryBuffer parentResult;
-
-    if(Fp::DbError pge = db->queryEntrys(parentResult, parentFilter); pge.isValid())
-    {
-        postDirective<DError>(pge);
-        return pge;
-    }
-
-    // Advance result to only record
-    parentResult.result.next();
-
-    // Determine platform (don't bother building entire game object since only one value is needed)
-    QString platformName = parentResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString();
-
     // Enqueue
     postDirective<DStatusUpdate>(STATUS_PLAY, addApp.name());
-
-    if(sError = enqueueAdditionalApp(addApp, platformName, Task::Stage::Primary); sError.isValid())
+    if(sError = enqueueAdditionalApp(addApp, parentGame, Task::Stage::Primary); sError.isValid())
         return sError;
 
     // Enqueue service shutdown if needed
@@ -230,7 +263,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     return Qx::Error();
 }
 
-Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& platform, Task::Stage taskStage)
+Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
 {
     if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
     {
@@ -249,9 +282,11 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 
         mCore.enqueueSingleTask(extraTask);
     }
+    else if(useRuffle(parent, taskStage))
+        enqueueRuffleTask(addApp.name(), addApp.launchCommand());
     else
     {
-        QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), platform);
+        QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), parent.platformName());
         QFileInfo addAppPathInfo(addAppPath);
         QString param = addApp.launchCommand();
         addPassthroughParameters(param);
@@ -280,10 +315,18 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const QString& p
 
 Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
+    QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
+
+    if(useRuffle(game, taskStage))
+    {
+        enqueueRuffleTask(game.title(), param);
+        return Qx::Error();
+    }
+
     QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
                                                 game.platformName());
     QFileInfo gamePathInfo(gamePath);
-    QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
+
     addPassthroughParameters(param);
 
     TExec* gameTask = new TExec(mCore);
@@ -296,7 +339,6 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(gameTask);
-    postDirective<DStatusUpdate>(STATUS_PLAY, game.title());
 
 #ifdef _WIN32
     // Add wait task if required
@@ -306,6 +348,55 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
 
     // Return success
     return Qx::Error();
+}
+
+void CPlay::enqueueRuffleTask(const QString& name, const QString& originalParams)
+{
+    /* Replicating:
+     *
+     * https://github.com/FlashpointProject/launcher/blob/54c5dd8357b9083271d36912ea9546bcd8d1cb18/extensions/core-ruffle/src/extension.ts#L65
+     * https://github.com/FlashpointProject/launcher/blob/54c5dd8357b9083271d36912ea9546bcd8d1cb18/extensions/core-ruffle/src/middleware/standalone.ts#L181
+     *
+     * There is a whole system for supporting different versions of Ruffle, as well as game-specific config options, but current it's unused so we
+     * can ignore it. Also if it isn't obvious we can only make use of standalone ruffle.
+     *
+     * If the ruffle config schema really starts getting used, we might want to move its setup to libfp so that it just comes with the game entry.
+     *
+     * The ruffle executable path should also likely be part of libfp. Then with this the chmod change should be done at startup using that path.
+     *
+     * TODO: Download ruffle if it's missing.
+     */
+#if defined(_WIN32)
+    static const QString RUFFLE_EXE = u"Ruffle.exe"_s;
+#elif defined(__linux__)
+    static const QString RUFFLE_EXE = u"ruffle"_s;
+#endif
+    auto& fp = mCore.fpInstall();
+    static QFileInfo ruffle = [&]{
+        QFile file = mCore.fpInstall().dir().absoluteFilePath(u"Data/Ruffle/standalone/latest/"_s + RUFFLE_EXE);
+        auto exec = QFile::ExeOwner | QFile::ExeGroup | QFile::ExeOther;
+        file.setPermissions(file.permissions() | exec);
+        return QFileInfo(file);
+    }();
+
+    // This likely will need to be dynamic per game/ruffle version at some point
+    QStringList newParams = {
+        u"--proxy"_s,
+        fp.preferences().browserModeProxy
+    };
+    addPassthroughParameters(newParams);
+    newParams.append(QProcess::splitCommand(originalParams));
+
+    TExec* gameTask = new TExec(mCore);
+    gameTask->setIdentifier(name);
+    gameTask->setStage(Task::Stage::Primary);
+    gameTask->setExecutable(ruffle.absoluteFilePath());
+    gameTask->setDirectory(ruffle.absoluteDir());
+    gameTask->setParameters(newParams);
+    gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
+    gameTask->setProcessType(TExec::ProcessType::Blocking);
+
+    mCore.enqueueSingleTask(gameTask);
 }
 
 //Protected:
