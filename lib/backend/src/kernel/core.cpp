@@ -371,8 +371,9 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     //-Mimic startup script setup-------------------------
     logEvent(LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS);
 
-    // NOTE: This check likely will need to be modified over time, though it's how the script does it
-    bool immutable = mFlashpointInstall->dir().exists(u"Libraries"_s);
+    // NOTE: This check likely will need to be modified over time, though it's close to how the script does it
+    QDir librariesDir(mFlashpointInstall->dir().absoluteFilePath(u"Libraries"_s));
+    bool immutable = !librariesDir.entryList({"*.so"}, QDir::Files).isEmpty();
     logEvent(LOG_EVENT_LINUX_BUILD_TYPE.arg(immutable ? u"isn't"_s : u"is"_s));
 
     if(immutable)
@@ -392,8 +393,8 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
         de.insert(u"PATH"_s, pathChange);
         qputenv("PATH", pathChange.toLocal8Bit());
     }
-    else
-        de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
+
+    de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
 #endif
 
     TExec::setDefaultProcessEnvironment(de);
