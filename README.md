@@ -176,9 +176,9 @@ Title Comamnd Shared Options:
 - **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
 - **-r | --random:** Selects  a  random  title  from  the  database.  Must  be  followed  by  a  library  filter:  `all`/`any`,  `game`/`arcade`,  or `animation`/`theatre`
 
-The **-title** and **-subtitle** options are case-insensitive and will match any title that contains the value provided; however, the provided title should match as closely as possible to how it appears within Flashpoint, as checks for close matches are limited due to technical restrictions. If more than one entry is found, a dialog window with more information will be displayed so that the intended title can be selected, though there is a limit to the number of matches.
+The **--title** and **--subtitle** options are case-insensitive and will match any title that contains the value provided; however, the provided title should match as closely as possible to how it appears within Flashpoint, as checks for close matches are limited due to technical restrictions. If more than one entry is found, a dialog window with more information will be displayed so that the intended title can be selected, though there is a limit to the number of matches.
 
-The **-title-strict** and **-subtitle-strict** options only consider exact matches and are performed slightly faster than their more flexible counterparts.
+The **--title-strict** and **--subtitle-strict** options only consider exact matches and are performed slightly faster than their more flexible counterparts.
 
 Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
 
@@ -208,6 +208,8 @@ Notes:
 Options:
 
 - [Title Command](#title-commands) options
+- **--ruffle:** Forces the use of Ruffle for applicable Flash games. Takes precedence over **--flash**.
+- **--flash:** Forces the use of the standard app (usually Flash Player) for applicable Flash games.
 
 Notes:
  - You can use `--` to pass arguments directly to the title's underlying executable/script, which can be useful for testing or customizing your experience:
