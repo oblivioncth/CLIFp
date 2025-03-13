@@ -79,6 +79,8 @@ private:
     QString deriveSecondary() const override;
 };
 
+class TExec;
+
 class Core : public QObject, public Directorate
 {
     Q_OBJECT;
@@ -252,7 +254,7 @@ public:
     CoreError enqueueStartupTasks(const QString& serverOverride = {});
     void enqueueShutdownTasks();
 #ifdef _WIN32
-    Qx::Error conditionallyEnqueueBideTask(QFileInfo precedingAppInfo);
+    Qx::Error conditionallyEnqueueBideTask(const TExec* precedingTask);
 #endif
     Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);

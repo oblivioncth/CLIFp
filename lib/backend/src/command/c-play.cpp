@@ -3,6 +3,7 @@
 
 // Qx Includes
 #include <qx/core/qx-regularexpression.h>
+#include <qx/utility/qx-helpers.h>
 
 // Project Includes
 #include "kernel/core.h"
@@ -71,22 +72,49 @@ Fp::AddApp CPlay::buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult)
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-void CPlay::addPassthroughParameters(QString& param)
+void CPlay::addExtraExecParameters(TExec* execTask, Task::Stage taskStage)
 {
-    // Consider all positional arguments (can be explicitly added with "-- <args>") to be passthrough
-    QStringList ptp = mParser.positionalArguments();
-    if(!ptp.isEmpty())
-    {
-        param.append(u' ');
-        param.append(TExec::joinArguments(ptp));
-    }
-}
+    // Currently only affects primary execs
+    if(taskStage != Task::Stage::Primary)
+        return;
 
-void CPlay::addPassthroughParameters(QStringList& param)
-{
-    // See above method
-    QStringList ptp = mParser.positionalArguments();
-    param.append(ptp);
+    QStringList extraParams;
+
+    // Check for fullscreen
+    if(mParser.isSet(CL_OPTION_FULLSCREEN))
+    {
+        logEvent(LOG_EVENT_FORCING_FULLSCREEN);
+        auto lookupName = QFileInfo(execTask->executable()).baseName().toLower();
+        auto fsItr = FULLSCREEN_PARAMS.constFind(lookupName);
+        if(fsItr != FULLSCREEN_PARAMS.cend())
+        {
+            auto fsParam = *fsItr;
+            logEvent(LOG_EVENT_FULLSCREEN_SUPPORTED.arg(fsParam));
+            extraParams.append(fsParam);
+        }
+        else
+            logEvent(LOG_EVENT_FULLSCREEN_UNSUPPORTED);
+    }
+
+    // Get passthrough args
+    if(auto ptp = mParser.positionalArguments(); !ptp.isEmpty())
+        extraParams.append(ptp);
+
+    /* Add extra params, which may be
+     * - Passthrough args (i.e. <rest_of_command> -- <passthrough_args>)
+     * - Fullscreen params
+     */
+    auto params = execTask->parameters();
+    std::visit(qxFuncAggregate{
+        [&](QString& ps){
+                ps.append(u' ');
+                ps.append(TExec::joinArguments(extraParams));
+        },
+        [&](QStringList& ps){
+            ps.append(extraParams);
+        }
+    }, params);
+    execTask->setParameters(params);
 }
 
 QString CPlay::getServerOverride(const Fp::GameData& gd)
@@ -282,29 +310,16 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& 
 
         mCore.enqueueSingleTask(extraTask);
     }
-    else if(useRuffle(parent, taskStage))
-        enqueueRuffleTask(addApp.name(), addApp.launchCommand());
     else
     {
-        QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), parent.platformName());
-        QFileInfo addAppPathInfo(addAppPath);
-        QString param = addApp.launchCommand();
-        addPassthroughParameters(param);
-
-        TExec* addAppTask = new TExec(mCore);
-        addAppTask->setIdentifier(addApp.name());
-        addAppTask->setStage(taskStage);
-        addAppTask->setExecutable(QDir::cleanPath(addAppPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
-        addAppTask->setDirectory(addAppPathInfo.absoluteDir());
-        addAppTask->setParameters(param);
-        addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
-        addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
-
-        mCore.enqueueSingleTask(addAppTask);
+        TExec* execTask = useRuffle(parent, taskStage) ? createRuffleTask(addApp.name(), addApp.launchCommand()) :
+                                                         createStdAddAppExecTask(addApp, parent, taskStage);
+        addExtraExecParameters(execTask, taskStage);
+        mCore.enqueueSingleTask(execTask);
 
 #ifdef _WIN32
         // Add wait task if required
-        if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(addAppPathInfo); ee.isValid())
+        if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(execTask); ee.isValid())
             return ee;
 #endif
     }
@@ -315,19 +330,28 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& 
 
 Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
-    QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
+    TExec* execTask = useRuffle(game, taskStage) ? createRuffleTask(game.title(), !gameData.isNull() ? gameData.launchCommand() : game.launchCommand()) :
+                                                   createStdGameExecTask(game, gameData, taskStage);
 
-    if(useRuffle(game, taskStage))
-    {
-        enqueueRuffleTask(game.title(), param);
-        return Qx::Error();
-    }
+    addExtraExecParameters(execTask, taskStage);
+    mCore.enqueueSingleTask(execTask);
 
+#ifdef _WIN32
+    // Add wait task if required
+    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(execTask); ee.isValid())
+        return ee;
+#endif
+
+    // Return success
+    return Qx::Error();
+}
+
+TExec* CPlay::createStdGameExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
+{
     QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
                                                 game.platformName());
     QFileInfo gamePathInfo(gamePath);
-
-    addPassthroughParameters(param);
+    QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
 
     TExec* gameTask = new TExec(mCore);
     gameTask->setIdentifier(game.title());
@@ -338,19 +362,28 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 
-    mCore.enqueueSingleTask(gameTask);
-
-#ifdef _WIN32
-    // Add wait task if required
-    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(gamePathInfo); ee.isValid())
-        return ee;
-#endif
-
-    // Return success
-    return Qx::Error();
+    return gameTask;
 }
 
-void CPlay::enqueueRuffleTask(const QString& name, const QString& originalParams)
+TExec* CPlay::createStdAddAppExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
+{
+    QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), parent.platformName());
+    QFileInfo addAppPathInfo(addAppPath);
+    QString param = addApp.launchCommand();
+
+    TExec* addAppTask = new TExec(mCore);
+    addAppTask->setIdentifier(addApp.name());
+    addAppTask->setStage(taskStage);
+    addAppTask->setExecutable(QDir::cleanPath(addAppPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
+    addAppTask->setDirectory(addAppPathInfo.absoluteDir());
+    addAppTask->setParameters(param);
+    addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
+    addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
+
+    return addAppTask;
+}
+
+TExec* CPlay::createRuffleTask(const QString& name, const QString& originalParams)
 {
     /* Replicating:
      *
@@ -384,19 +417,18 @@ void CPlay::enqueueRuffleTask(const QString& name, const QString& originalParams
         u"--proxy"_s,
         fp.preferences().browserModeProxy
     };
-    addPassthroughParameters(newParams);
     newParams.append(QProcess::splitCommand(originalParams));
 
-    TExec* gameTask = new TExec(mCore);
-    gameTask->setIdentifier(name);
-    gameTask->setStage(Task::Stage::Primary);
-    gameTask->setExecutable(ruffle.absoluteFilePath());
-    gameTask->setDirectory(ruffle.absoluteDir());
-    gameTask->setParameters(newParams);
-    gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
-    gameTask->setProcessType(TExec::ProcessType::Blocking);
+    TExec* ruffleTask = new TExec(mCore);
+    ruffleTask->setIdentifier(name);
+    ruffleTask->setStage(Task::Stage::Primary);
+    ruffleTask->setExecutable(ruffle.absoluteFilePath());
+    ruffleTask->setDirectory(ruffle.absoluteDir());
+    ruffleTask->setParameters(newParams);
+    ruffleTask->setEnvironment(mCore.childTitleProcessEnvironment());
+    ruffleTask->setProcessType(TExec::ProcessType::Blocking);
 
-    mCore.enqueueSingleTask(gameTask);
+    return ruffleTask;
 }
 
 //Protected:

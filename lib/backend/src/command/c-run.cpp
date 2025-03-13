@@ -66,7 +66,7 @@ Qx::Error CRun::perform()
 
 #ifdef _WIN32
     // Add wait task if required
-    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(inputInfo); ee.isValid())
+    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(runTask); ee.isValid())
         return ee;
 #endif
 

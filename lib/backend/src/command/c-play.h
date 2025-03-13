@@ -8,6 +8,8 @@
 #include "command/title-command.h"
 #include "task/task.h"
 
+class TExec;
+
 class QX_ERROR_TYPE(CPlayError, "CPlayError", 1212)
 {
     friend class CPlay;
@@ -59,8 +61,19 @@ private:
     static inline const QRegularExpression URL_REGEX = QRegularExpression(
         u"flashpoint:\\/\\/(?<id>[0-9a-fA-F]{8}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{12})\\/?$"_s
     );
+    static inline const QHash<QString, QString> FULLSCREEN_PARAMS{
+        /* Might want to do this in a more flexible way to account for exe name differences,
+         * but for now it's just a map of the lowercase basename of the executeable to the parameter(s)
+         * to use for fullscreen
+         */
+        {u"ruffle"_s, u"--fullscreen"_s}
+    };
 
     // Command line option strings
+    static inline const QString CL_OPT_FULLSCREEN_S_NAME = u"f"_s;
+    static inline const QString CL_OPT_FULLSCREEN_L_NAME = u"fullscreen"_s;
+    static inline const QString CL_OPT_FULLSCREEN_DESC = u"Runs the title in fullscreen mode, if supported."_s;
+
     static inline const QString CL_OPT_URL_S_NAME = u"u"_s;
     static inline const QString CL_OPT_URL_L_NAME = u"url"_s;
     static inline const QString CL_OPT_URL_DESC = u""_s;
@@ -73,9 +86,10 @@ private:
 
     // Command line options
     static inline const QCommandLineOption CL_OPTION_URL{{CL_OPT_URL_S_NAME, CL_OPT_URL_L_NAME}, CL_OPT_URL_DESC, u"url"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_FULLSCREEN{{CL_OPT_FULLSCREEN_S_NAME, CL_OPT_FULLSCREEN_L_NAME}, CL_OPT_FULLSCREEN_DESC}; // Boolean
     static inline const QCommandLineOption CL_OPTION_RUFFLE{{CL_OPT_RUFFLE_L_NAME}, CL_OPT_RUFFLE_DESC}; // Boolean
     static inline const QCommandLineOption CL_OPTION_FLASH{{CL_OPT_FLASH_L_NAME}, CL_OPT_FLASH_DESC}; // Boolean
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL, &CL_OPTION_RUFFLE, &CL_OPTION_FLASH};
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL, &CL_OPTION_FULLSCREEN, &CL_OPTION_RUFFLE, &CL_OPTION_FLASH};
 
     // Logging - Messages
     static inline const QString LOG_EVENT_HANDLING_AUTO = u"Handling automatic tasks..."_s;
@@ -85,6 +99,9 @@ private:
     static inline const QString LOG_EVENT_FOUND_AUTORUN = u"Found autorun-before additional app: %1"_s;
     static inline const QString LOG_EVENT_DATA_PACK_TITLE = u"Selected title uses a data pack"_s;
     static inline const QString LOG_EVENT_SERVER_OVERRIDE = u"Selected title overrides the server to: %1"_s;
+    static inline const QString LOG_EVENT_FORCING_FULLSCREEN = u"Fullscreen requested..."_s;
+    static inline const QString LOG_EVENT_FULLSCREEN_UNSUPPORTED = u"No fullscreen parameter is known for this application."_s;
+    static inline const QString LOG_EVENT_FULLSCREEN_SUPPORTED = u"Fullscreen parameter: %1"_s;
     static inline const QString LOG_EVENT_USING_RUFFLE_SUPPORTED = u"Using Ruffle for this title (supported)"_s;
     static inline const QString LOG_EVENT_USING_RUFFLE_UNSUPPORTED = u"Using Ruffle for this title (unsupported)"_s;
     static inline const QString LOG_EVENT_FORCING_RUFFLE = u"Forcing the use of Ruffle for this title"_s;
@@ -106,15 +123,16 @@ private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
-    void addPassthroughParameters(QString& param);
-    void addPassthroughParameters(QStringList& param);
+    void addExtraExecParameters(TExec* execTask, Task::Stage taskStage);
     QString getServerOverride(const Fp::GameData& gd);
     bool useRuffle(const Fp::Game& game, Task::Stage stage);
     Qx::Error handleEntry(const Fp::Game& game);
     Qx::Error handleEntry(const Fp::AddApp& addApp);
     Qx::Error enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
     Qx::Error enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
-    void enqueueRuffleTask(const QString& name, const QString& originalParams);
+    TExec* createStdGameExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
+    TExec* createStdAddAppExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
+    TExec* createRuffleTask(const QString& name, const QString& originalParams);
 
 protected:
     QList<const QCommandLineOption*> options() const override;

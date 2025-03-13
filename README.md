@@ -208,6 +208,7 @@ Notes:
 Options:
 
 - [Title Command](#title-commands) options
+- **-f | --fullscreen:** Forces the title to run in full screen if the underlying executable supports it.
 - **--ruffle:** Forces the use of Ruffle for applicable Flash games. Takes precedence over **--flash**.
 - **--flash:** Forces the use of the standard app (usually Flash Player) for applicable Flash games.
 
