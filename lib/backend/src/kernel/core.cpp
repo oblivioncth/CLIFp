@@ -631,13 +631,14 @@ void Core::enqueueShutdownTasks()
 }
 
 #ifdef _WIN32
-Qx::Error Core::conditionallyEnqueueBideTask(QFileInfo precedingAppInfo)
+Qx::Error Core::conditionallyEnqueueBideTask(const TExec* precedingTask)
 {
     const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
 
     // Add wait for apps that involve secure player
+    QFileInfo preeedingInfo(precedingTask->executable());
     bool involvesSecurePlayer;
-    Qx::Error securePlayerCheckError = tk->appInvolvesSecurePlayer(involvesSecurePlayer, precedingAppInfo);
+    Qx::Error securePlayerCheckError = tk->appInvolvesSecurePlayer(involvesSecurePlayer, preeedingInfo);
     if(securePlayerCheckError.isValid())
     {
         postDirective<DError>(securePlayerCheckError);

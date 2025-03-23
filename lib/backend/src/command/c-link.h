@@ -89,7 +89,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CLink(Core& coreRef);
+    CLink(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
@@ -99,6 +99,8 @@ protected:
     QList<const QCommandLineOption*> options() const override;
     QSet<const QCommandLineOption*> requiredOptions() const override;
     QString name() const override;
+
+public:
     Qx::Error perform() override ;
 };
 

@@ -10,6 +10,11 @@
 // Project Includes
 #include "kernel/directorate.h"
 
+/* TODO: As it becomes more feasible with advancements in the C++ standard and Qt,
+ * more here should be done at compile time, like construction of each command's
+ * help string, acquisition of options(), requiredOptions(), etc.
+ */
+
 class CommandFactory;
 class Core;
 
@@ -68,7 +73,7 @@ class Command : public Directorate
 private:
     struct Entry
     {
-        using Producer = std::unique_ptr<Command> (*)(Core& core);
+        using Producer = std::unique_ptr<Command> (*)(Core& core, const QStringList& commandLine);
         using Description = const QString*;
 
         Producer producer;
@@ -123,7 +128,8 @@ private:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
-    QString mHelpString;
+    QString mHelpString; // Eventually compose this at compile time
+    QStringList mCommandLine; // Original command line used for command (after Core modifications)
 
 protected:
     Core& mCore;
@@ -131,7 +137,7 @@ protected:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 protected:
-    Command(Core& coreRef);
+    Command(Core& coreRef, const QStringList& commandLine);
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:
@@ -148,9 +154,9 @@ private:
 
 public:
     static void registerAllCommands();
-    static CommandError isRegistered(const QString& name);
+    static bool isRegistered(const QString& name);
     static QList<QString> registered();
-    static std::unique_ptr<Command> acquire(const QString& name, Core& core);
+    static CommandError acquire(std::unique_ptr<Command>& command, const QStringList& commandLine, Core& core);
     static bool hasDescription(const QString& name);
     static QString describe(const QString& name);
 
@@ -158,7 +164,7 @@ public:
 private:
     void logCommand(const QString& commandName);
     void logCommandOptions(const QString& commandOptions);
-    CommandError parse(const QStringList& commandLine);
+    CommandError parse();
     bool checkStandardOptions();
     CommandError checkRequiredOptions();
     void showHelp();
@@ -168,13 +174,13 @@ protected:
     virtual QList<const QCommandLineOption*> options() const = 0;
     virtual QSet<const QCommandLineOption*> requiredOptions() const;
     virtual QString name() const = 0;
-    virtual Qx::Error perform() = 0;
 
 public:
     virtual bool requiresFlashpoint() const;
     virtual bool requiresServices() const;
     virtual bool autoBlockNewInstances() const;
-    Qx::Error process(const QStringList& commandLine);
+    CommandError process(bool& proceed);
+    virtual Qx::Error perform() = 0;
 };
 
 #endif // COMMAND_H

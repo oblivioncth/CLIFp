@@ -34,7 +34,7 @@ QString CRunError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CRun::CRun(Core& coreRef) : Command(coreRef) {}
+CRun::CRun(Core& coreRef, const QStringList& commandLine) : Command(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
@@ -42,6 +42,7 @@ QList<const QCommandLineOption*> CRun::options() const { return CL_OPTIONS_SPECI
 QSet<const QCommandLineOption*> CRun::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
 QString CRun::name() const { return NAME; }
 
+//Public:
 Qx::Error CRun::perform()
 {
     // Enqueue startup tasks
@@ -65,7 +66,7 @@ Qx::Error CRun::perform()
 
 #ifdef _WIN32
     // Add wait task if required
-    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(inputInfo); ee.isValid())
+    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(runTask); ee.isValid())
         return ee;
 #endif
 

@@ -33,7 +33,7 @@ QString CLinkError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CLink::CLink(Core& coreRef) : TitleCommand(coreRef) {}
+CLink::CLink(Core& coreRef, const QStringList& commandLine) : TitleCommand(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
@@ -41,6 +41,7 @@ QList<const QCommandLineOption*> CLink::options() const { return CL_OPTIONS_SPEC
 QSet<const QCommandLineOption*> CLink::requiredOptions() const { return CL_OPTIONS_REQUIRED + TitleCommand::requiredOptions(); }
 QString CLink::name() const { return NAME; }
 
+//Public:
 Qx::Error CLink::perform()
 {
     // Shortcut parameters

@@ -76,13 +76,15 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CDownload(Core& coreRef);
+    CDownload(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
     QList<const QCommandLineOption*> options() const override;
     QSet<const QCommandLineOption*> requiredOptions() const override;
     QString name() const override;
+
+public:
     Qx::Error perform() override;
 };
 

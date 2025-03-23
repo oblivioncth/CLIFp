@@ -166,7 +166,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CUpdate(Core& coreRef);
+    CUpdate(Core& coreRef, const QStringList& commandLine);
 
 //-Class Functions------------------------------------------------------------------------------------------------------
 private:
@@ -199,11 +199,11 @@ private:
 protected:
     QList<const QCommandLineOption*> options() const override;
     QString name() const override;
-    Qx::Error perform() override;
 
 public:
     bool requiresFlashpoint() const override;
     bool autoBlockNewInstances() const override;
+    Qx::Error perform() override;
 };
 
 #endif // CUPDATE_H

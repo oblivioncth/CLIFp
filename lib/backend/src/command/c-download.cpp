@@ -35,7 +35,7 @@ QString CDownloadError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CDownload::CDownload(Core& coreRef) : Command(coreRef) {}
+CDownload::CDownload(Core& coreRef, const QStringList& commandLine) : Command(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:
@@ -43,6 +43,7 @@ QList<const QCommandLineOption*> CDownload::options() const { return CL_OPTIONS_
 QSet<const QCommandLineOption*> CDownload::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
 QString CDownload::name() const { return NAME; }
 
+//Public:
 Qx::Error CDownload::perform()
 {
     QString playlistName = mParser.value(CL_OPTION_PLAYLIST).trimmed();

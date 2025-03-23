@@ -258,10 +258,8 @@ void DriverPrivate::drive()
     }
 
     //-Prepare Command---------------------------------------------------------------------
-    QString commandStr = mArguments.first().toLower();
-
-    // Check for valid command
-    if(CommandError ce = Command::isRegistered(commandStr); ce.isValid())
+    std::unique_ptr<Command> commandProcessor;
+    if(CommandError ce = Command::acquire(commandProcessor, mArguments, *mCore); ce.isValid())
     {
         postDirective<DError>(ce);
         mErrorStatus = ce;
@@ -269,8 +267,17 @@ void DriverPrivate::drive()
         return;
     }
 
-    // Create command instance
-    std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
+    bool runCommand;
+    if(auto err = commandProcessor->process(runCommand); err.isValid())
+    {
+        postDirective<DError>(err);
+        mErrorStatus = err;
+    }
+    if(!runCommand) // Help or the like was requested, nothing to do
+    {
+        finish();
+        return;
+    }
 
     //-Set Service Mode--------------------------------------------------------------------
 
@@ -310,6 +317,7 @@ void DriverPrivate::drive()
     }
 
     //-Catch early core errors-------------------------------------------------------------------
+    // This is basically just for Companion mode, where something changes with the FP launcher just after we start-up
     QThread::msleep(100);
     QCoreApplication::processEvents();
     if(mErrorStatus.isSet())
@@ -319,7 +327,7 @@ void DriverPrivate::drive()
     }
 
     //-Process command-----------------------------------------------------------------------------
-    mErrorStatus = commandProcessor->process(mArguments);
+    mErrorStatus = commandProcessor->perform();
     if(mErrorStatus.isSet())
     {
         finish();

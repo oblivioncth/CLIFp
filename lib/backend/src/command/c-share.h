@@ -96,12 +96,14 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CShare(Core& coreRef);
+    CShare(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
     QList<const QCommandLineOption*> options() const override;
     QString name() const override;
+
+public:
     Qx::Error perform() override;
 };
 

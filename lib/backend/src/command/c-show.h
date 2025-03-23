@@ -76,12 +76,14 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CShow(Core& coreRef);
+    CShow(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
     QList<const QCommandLineOption*> options() const override;
     QString name() const override;
+
+public:
     Qx::Error perform() override;
 };
 
