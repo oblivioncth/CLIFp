@@ -310,6 +310,7 @@ void DriverPrivate::drive()
     }
 
     //-Catch early core errors-------------------------------------------------------------------
+    // This is basically just for Companion mode, where something changes with the FP launcher just after we start-up
     QThread::msleep(100);
     QCoreApplication::processEvents();
     if(mErrorStatus.isSet())

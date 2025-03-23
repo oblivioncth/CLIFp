@@ -73,7 +73,7 @@ private:
 
     // Command line options
     static inline const QCommandLineOption CL_OPTION_URL{{CL_OPT_URL_S_NAME, CL_OPT_URL_L_NAME}, CL_OPT_URL_DESC, u"url"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_RUFFLE{{CL_OPT_RUFFLE_L_NAME}, CL_OPT_URL_DESC}; // Boolean
+    static inline const QCommandLineOption CL_OPTION_RUFFLE{{CL_OPT_RUFFLE_L_NAME}, CL_OPT_RUFFLE_DESC}; // Boolean
     static inline const QCommandLineOption CL_OPTION_FLASH{{CL_OPT_FLASH_L_NAME}, CL_OPT_FLASH_DESC}; // Boolean
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL, &CL_OPTION_RUFFLE, &CL_OPTION_FLASH};
 
