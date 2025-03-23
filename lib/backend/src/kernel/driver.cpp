@@ -258,12 +258,23 @@ void DriverPrivate::drive()
     }
 
     //-Prepare Command---------------------------------------------------------------------
-
     std::unique_ptr<Command> commandProcessor;
     if(CommandError ce = Command::acquire(commandProcessor, mArguments, *mCore); ce.isValid())
     {
         postDirective<DError>(ce);
         mErrorStatus = ce;
+        finish();
+        return;
+    }
+
+    bool runCommand;
+    if(auto err = commandProcessor->process(runCommand); err.isValid())
+    {
+        postDirective<DError>(err);
+        mErrorStatus = err;
+    }
+    if(!runCommand) // Help or the like was requested, nothing to do
+    {
         finish();
         return;
     }
@@ -316,7 +327,7 @@ void DriverPrivate::drive()
     }
 
     //-Process command-----------------------------------------------------------------------------
-    mErrorStatus = commandProcessor->process();
+    mErrorStatus = commandProcessor->perform();
     if(mErrorStatus.isSet())
     {
         finish();

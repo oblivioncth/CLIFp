@@ -43,6 +43,7 @@ QList<const QCommandLineOption*> CDownload::options() const { return CL_OPTIONS_
 QSet<const QCommandLineOption*> CDownload::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
 QString CDownload::name() const { return NAME; }
 
+//Public:
 Qx::Error CDownload::perform()
 {
     QString playlistName = mParser.value(CL_OPTION_PLAYLIST).trimmed();

@@ -174,13 +174,13 @@ protected:
     virtual QList<const QCommandLineOption*> options() const = 0;
     virtual QSet<const QCommandLineOption*> requiredOptions() const;
     virtual QString name() const = 0;
-    virtual Qx::Error perform() = 0;
 
 public:
     virtual bool requiresFlashpoint() const;
     virtual bool requiresServices() const;
     virtual bool autoBlockNewInstances() const;
-    Qx::Error process();
+    CommandError process(bool& proceed);
+    virtual Qx::Error perform() = 0;
 };
 
 #endif // COMMAND_H

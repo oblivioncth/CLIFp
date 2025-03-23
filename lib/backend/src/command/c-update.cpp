@@ -432,6 +432,10 @@ Qx::Error CUpdate::installUpdate(const QFileInfo& existingAppInfo) const
 QList<const QCommandLineOption*> CUpdate::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
 QString CUpdate::name() const { return NAME; }
 
+//Public:
+bool CUpdate::requiresFlashpoint() const { return false; }
+bool CUpdate::autoBlockNewInstances() const { return false; }
+
 Qx::Error CUpdate::perform()
 {
     /* Persist cache during setup so that files remain for install, and during install (so always)
@@ -439,9 +443,5 @@ Qx::Error CUpdate::perform()
      */
     smPersistCache = true;
     return mParser.isSet(CL_OPTION_INSTALL) ? installUpdate(QFileInfo(mParser.value(CL_OPTION_INSTALL))) :
-                                              checkAndPrepareUpdate();
+               checkAndPrepareUpdate();
 }
-
-//Public:
-bool CUpdate::requiresFlashpoint() const { return false; }
-bool CUpdate::autoBlockNewInstances() const { return false; }

@@ -82,6 +82,8 @@ public:
 protected:
     QList<const QCommandLineOption*> options() const override;
     QString name() const override;
+
+public:
     Qx::Error perform() override;
 };
 

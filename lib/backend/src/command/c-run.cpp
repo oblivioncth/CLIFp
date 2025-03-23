@@ -42,6 +42,7 @@ QList<const QCommandLineOption*> CRun::options() const { return CL_OPTIONS_SPECI
 QSet<const QCommandLineOption*> CRun::requiredOptions() const { return CL_OPTIONS_REQUIRED + Command::requiredOptions(); }
 QString CRun::name() const { return NAME; }
 
+//Public:
 Qx::Error CRun::perform()
 {
     // Enqueue startup tasks

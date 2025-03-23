@@ -403,6 +403,7 @@ void CPlay::enqueueRuffleTask(const QString& name, const QString& originalParams
 QList<const QCommandLineOption*> CPlay::options() const { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
 QString CPlay::name() const { return NAME; }
 
+//Public:
 Qx::Error CPlay::perform()
 {
     // Get ID of title to start, prioritizing URL

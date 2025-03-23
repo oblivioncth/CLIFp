@@ -254,8 +254,10 @@ bool Command::requiresFlashpoint() const { return true; }
 bool Command::requiresServices() const { return false; }
 bool Command::autoBlockNewInstances() const { return true; }
 
-Qx::Error Command::process()
+CommandError Command::process(bool& proceed)
 {
+    proceed = false;
+
     // Parse and check for valid arguments
     CommandError processError = parse();
     if(processError.isValid())
@@ -263,7 +265,7 @@ Qx::Error Command::process()
 
     // Handle standard options
     if(checkStandardOptions())
-        return Qx::Error();
+        return CommandError();
 
     // Check for required options
     processError = checkRequiredOptions();
@@ -273,8 +275,8 @@ Qx::Error Command::process()
         return processError;
     }
 
-    // Perform command
-    return perform();
+    proceed = true; // Work to be done with command
+    return CommandError();
 }
 
 

@@ -42,6 +42,7 @@ CShow::CShow(Core& coreRef, const QStringList& commandLine) : Command(coreRef, c
 QList<const QCommandLineOption*> CShow::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
 QString CShow::name() const { return NAME; }
 
+//Public:
 Qx::Error CShow::perform()
 {
     // Enqueue show task

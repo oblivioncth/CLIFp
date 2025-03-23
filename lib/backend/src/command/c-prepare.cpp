@@ -20,6 +20,7 @@ CPrepare::CPrepare(Core& coreRef, const QStringList& commandLine) : TitleCommand
 QList<const QCommandLineOption*> CPrepare::options() const { return TitleCommand::options(); }
 QString CPrepare::name() const { return NAME; }
 
+//Public:
 Qx::Error CPrepare::perform()
 {
     // Get ID to prepare

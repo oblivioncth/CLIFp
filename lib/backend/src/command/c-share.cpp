@@ -45,6 +45,7 @@ CShare::CShare(Core& coreRef, const QStringList& commandLine) : TitleCommand(cor
 QList<const QCommandLineOption*> CShare::options() const { return CL_OPTIONS_SPECIFIC + TitleCommand::options(); }
 QString CShare::name() const { return NAME; }
 
+//Public:
 Qx::Error CShare::perform()
 {
     // Prioritize scheme (un)registration
