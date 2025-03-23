@@ -123,7 +123,7 @@ void Command::logCommandOptions(const QString& commandOptions) { logEvent(COMMAN
 CommandError Command::parse(const QStringList& commandLine)
 {
     // Add command options
-    for(const QCommandLineOption* clOption : options())
+    for(const QCommandLineOption* clOption : qxAsConst(options()))
         mParser.addOption(*clOption);
 
     // Parse
@@ -131,7 +131,7 @@ CommandError Command::parse(const QStringList& commandLine)
 
     // Create options string
     QString optionsStr;
-    for(const QCommandLineOption* clOption : options())
+    for(const QCommandLineOption* clOption : qxAsConst(options()))
     {
         if(mParser.isSet(*clOption))
         {
@@ -203,7 +203,7 @@ void Command::showHelp()
     {
         // Help options
         QString optStr;
-        for(const QCommandLineOption* clOption : options())
+        for(const QCommandLineOption* clOption : qxAsConst(options()))
         {
             QString desc = clOption->description();
             if(desc.isEmpty())
