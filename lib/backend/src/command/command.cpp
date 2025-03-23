@@ -192,14 +192,12 @@ CommandError Command::checkRequiredOptions()
 void Command::showHelp()
 {
     logEvent(LOG_EVENT_C_HELP_SHOWN.arg(name()));
-    // Help string
-    static QString helpStr;
 
     // Update status
     postDirective<DStatusUpdate>(Core::STATUS_DISPLAY, Core::STATUS_DISPLAY_HELP);
 
-    // One time setup
-    if(helpStr.isNull())
+    // One time setup (though currently this is only ever used once)
+    if(mHelpString.isNull())
     {
         // Help options
         QString optStr;
@@ -220,11 +218,11 @@ void Command::showHelp()
         }
 
         // Complete string
-        helpStr = HELP_TEMPL.arg(name(), optStr);
+        mHelpString = HELP_TEMPL.arg(name(), optStr);
     }
 
     // Show help
-    postDirective<DMessage>(helpStr);
+    postDirective<DMessage>(mHelpString);
 }
 
 //Protected:

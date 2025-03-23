@@ -10,6 +10,11 @@
 // Project Includes
 #include "kernel/directorate.h"
 
+/* TODO: As it becomes more feasible with advancements in the C++ standard and Qt,
+ * more here should be done at compile time, like construction of each command's
+ * help string, acquisition of options(), requiredOptions(), etc.
+ */
+
 class CommandFactory;
 class Core;
 
@@ -123,7 +128,7 @@ private:
 
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
-    QString mHelpString;
+    QString mHelpString; // Eventually compose this at compile time
 
 protected:
     Core& mCore;
