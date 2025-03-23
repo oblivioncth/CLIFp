@@ -258,19 +258,15 @@ void DriverPrivate::drive()
     }
 
     //-Prepare Command---------------------------------------------------------------------
-    QString commandStr = mArguments.first().toLower();
 
-    // Check for valid command
-    if(CommandError ce = Command::isRegistered(commandStr); ce.isValid())
+    std::unique_ptr<Command> commandProcessor;
+    if(CommandError ce = Command::acquire(commandProcessor, mArguments, *mCore); ce.isValid())
     {
         postDirective<DError>(ce);
         mErrorStatus = ce;
         finish();
         return;
     }
-
-    // Create command instance
-    std::unique_ptr<Command> commandProcessor = Command::acquire(commandStr, *mCore);
 
     //-Set Service Mode--------------------------------------------------------------------
 
@@ -320,7 +316,7 @@ void DriverPrivate::drive()
     }
 
     //-Process command-----------------------------------------------------------------------------
-    mErrorStatus = commandProcessor->process(mArguments);
+    mErrorStatus = commandProcessor->process();
     if(mErrorStatus.isSet())
     {
         finish();

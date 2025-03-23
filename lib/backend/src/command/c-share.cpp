@@ -38,7 +38,7 @@ QString CShareError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CShare::CShare(Core& coreRef) : TitleCommand(coreRef) {}
+CShare::CShare(Core& coreRef, const QStringList& commandLine) : TitleCommand(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:

@@ -43,7 +43,7 @@ QString CPlayError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CPlay::CPlay(Core& coreRef) : TitleCommand(coreRef) {}
+CPlay::CPlay(Core& coreRef, const QStringList& commandLine) : TitleCommand(coreRef, commandLine) {}
 
 //-Class Functions---------------------------------------------------------------
 //Private:

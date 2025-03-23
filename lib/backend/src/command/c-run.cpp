@@ -34,7 +34,7 @@ QString CRunError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CRun::CRun(Core& coreRef) : Command(coreRef) {}
+CRun::CRun(Core& coreRef, const QStringList& commandLine) : Command(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:

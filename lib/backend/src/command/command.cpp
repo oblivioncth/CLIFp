@@ -59,8 +59,9 @@ QString CommandError::errorString() const { return mString; }
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 //Public:
-Command::Command(Core& coreRef) :
+Command::Command(Core& coreRef, const QStringList& commandLine) :
     Directorate(coreRef.director()),
+    mCommandLine(commandLine),
     mCore(coreRef)
 {}
 
@@ -71,7 +72,7 @@ template<class C>
 void Command::registerCommand()
 {
     smRegistry.emplace(C::NAME, Entry{
-        .producer = [](Core& core)->std::unique_ptr<Command>{ return std::make_unique<C>(core); },
+        .producer = [](Core& core, const QStringList& commandLine)->std::unique_ptr<Command>{ return std::make_unique<C>(core, commandLine); },
         .desc = &C::DESCRIPTION
     });
 }
@@ -104,30 +105,48 @@ void Command::registerAllCommands()
     >();
 }
 
-CommandError Command::isRegistered(const QString &name)
+bool Command::isRegistered(const QString& name)
 {
-    return smRegistry.contains(name) ? CommandError() : ERR_INVALID_COMMAND.arged(name);
+    return smRegistry.contains(name);
 }
 
 QList<QString> Command::registered() { return smRegistry.keys(); }
 
 bool Command::hasDescription(const QString& name) { return smRegistry.contains(name) ? !smRegistry.find(name)->desc->isEmpty() : false; }
 QString Command::describe(const QString& name) { return smRegistry.contains(name) ? *(smRegistry.find(name)->desc) : QString(); }
-std::unique_ptr<Command> Command::acquire(const QString& name, Core& core) { return smRegistry.contains(name) ? smRegistry.find(name)->producer(core) : nullptr; }
+
+CommandError Command::acquire(std::unique_ptr<Command>& command, const QStringList& commandLine, Core& core)
+{
+    Q_ASSERT(!commandLine.isEmpty());
+
+    // Reset return buffer
+    command = nullptr;
+
+    // Try to get command
+    QString commandName = commandLine.first().toLower();
+    auto cItr = smRegistry.constFind(commandName);
+    if(cItr == smRegistry.cend())
+        return ERR_INVALID_COMMAND.arged(commandName);
+    else
+    {
+        command = cItr->producer(core, commandLine);
+        return CommandError();
+    }
+}
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 //Private:
 void Command::logCommand(const QString& commandName) { logEvent(COMMAND_LABEL.arg(commandName)); }
 void Command::logCommandOptions(const QString& commandOptions) { logEvent(COMMAND_OPT_LABEL.arg(commandOptions)); }
 
-CommandError Command::parse(const QStringList& commandLine)
+CommandError Command::parse()
 {
     // Add command options
     for(const QCommandLineOption* clOption : qxAsConst(options()))
         mParser.addOption(*clOption);
 
     // Parse
-    bool validArgs = mParser.parse(commandLine);
+    bool validArgs = mParser.parse(mCommandLine);
 
     // Create options string
     QString optionsStr;
@@ -150,7 +169,7 @@ CommandError Command::parse(const QStringList& commandLine)
         optionsStr = Core::LOG_NO_PARAMS;
 
     // Log command (ensure "Command" name is used)
-    logCommand(commandLine.first());
+    logCommand(mCommandLine.first());
     logCommandOptions(optionsStr);
 
     if(validArgs)
@@ -235,10 +254,10 @@ bool Command::requiresFlashpoint() const { return true; }
 bool Command::requiresServices() const { return false; }
 bool Command::autoBlockNewInstances() const { return true; }
 
-Qx::Error Command::process(const QStringList& commandLine)
+Qx::Error Command::process()
 {
     // Parse and check for valid arguments
-    CommandError processError = parse(commandLine);
+    CommandError processError = parse();
     if(processError.isValid())
         return processError;
 

@@ -13,7 +13,7 @@
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CPrepare::CPrepare(Core& coreRef) : TitleCommand(coreRef) {}
+CPrepare::CPrepare(Core& coreRef, const QStringList& commandLine) : TitleCommand(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:

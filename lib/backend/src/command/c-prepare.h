@@ -24,7 +24,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CPrepare(Core& coreRef);
+    CPrepare(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:

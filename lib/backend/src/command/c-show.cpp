@@ -35,7 +35,7 @@ QString CShowError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CShow::CShow(Core& coreRef) : Command(coreRef) {}
+CShow::CShow(Core& coreRef, const QStringList& commandLine) : Command(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:

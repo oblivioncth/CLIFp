@@ -46,7 +46,7 @@ QString CUpdateError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CUpdate::CUpdate(Core& coreRef) : Command(coreRef) {}
+CUpdate::CUpdate(Core& coreRef, const QStringList& commandLine) : Command(coreRef, commandLine) {}
 
 //-Class Functions----------------------------------------------------------------
 QDir CUpdate::updateCacheDir()

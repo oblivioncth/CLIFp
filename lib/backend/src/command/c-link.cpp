@@ -33,7 +33,7 @@ QString CLinkError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CLink::CLink(Core& coreRef) : TitleCommand(coreRef) {}
+CLink::CLink(Core& coreRef, const QStringList& commandLine) : TitleCommand(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:

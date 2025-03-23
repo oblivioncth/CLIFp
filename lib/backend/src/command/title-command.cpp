@@ -36,8 +36,8 @@ QString TitleCommandError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-TitleCommand::TitleCommand(Core& coreRef) :
-    Command(coreRef)
+TitleCommand::TitleCommand(Core& coreRef, const QStringList& commandLine) :
+    Command(coreRef, commandLine)
 {}
 
 //-Instance Functions-------------------------------------------------------------

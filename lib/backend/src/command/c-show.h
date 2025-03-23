@@ -76,7 +76,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CShow(Core& coreRef);
+    CShow(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:

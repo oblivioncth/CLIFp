@@ -126,7 +126,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TitleCommand(Core& coreRef);
+    TitleCommand(Core& coreRef, const QStringList& commandLine);
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:

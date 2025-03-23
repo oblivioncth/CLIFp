@@ -166,7 +166,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CUpdate(Core& coreRef);
+    CUpdate(Core& coreRef, const QStringList& commandLine);
 
 //-Class Functions------------------------------------------------------------------------------------------------------
 private:

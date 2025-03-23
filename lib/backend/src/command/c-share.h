@@ -96,7 +96,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CShare(Core& coreRef);
+    CShare(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:

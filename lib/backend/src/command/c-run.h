@@ -74,7 +74,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CRun(Core& coreRef);
+    CRun(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:

@@ -35,7 +35,7 @@ QString CDownloadError::deriveSecondary() const { return mSpecific; }
 
 //-Constructor-------------------------------------------------------------
 //Public:
-CDownload::CDownload(Core& coreRef) : Command(coreRef) {}
+CDownload::CDownload(Core& coreRef, const QStringList& commandLine) : Command(coreRef, commandLine) {}
 
 //-Instance Functions-------------------------------------------------------------
 //Protected:

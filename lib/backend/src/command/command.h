@@ -73,7 +73,7 @@ class Command : public Directorate
 private:
     struct Entry
     {
-        using Producer = std::unique_ptr<Command> (*)(Core& core);
+        using Producer = std::unique_ptr<Command> (*)(Core& core, const QStringList& commandLine);
         using Description = const QString*;
 
         Producer producer;
@@ -129,6 +129,7 @@ private:
 //-Instance Variables------------------------------------------------------------------------------------------------------
 private:
     QString mHelpString; // Eventually compose this at compile time
+    QStringList mCommandLine; // Original command line used for command (after Core modifications)
 
 protected:
     Core& mCore;
@@ -136,7 +137,7 @@ protected:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 protected:
-    Command(Core& coreRef);
+    Command(Core& coreRef, const QStringList& commandLine);
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:
@@ -153,9 +154,9 @@ private:
 
 public:
     static void registerAllCommands();
-    static CommandError isRegistered(const QString& name);
+    static bool isRegistered(const QString& name);
     static QList<QString> registered();
-    static std::unique_ptr<Command> acquire(const QString& name, Core& core);
+    static CommandError acquire(std::unique_ptr<Command>& command, const QStringList& commandLine, Core& core);
     static bool hasDescription(const QString& name);
     static QString describe(const QString& name);
 
@@ -163,7 +164,7 @@ public:
 private:
     void logCommand(const QString& commandName);
     void logCommandOptions(const QString& commandOptions);
-    CommandError parse(const QStringList& commandLine);
+    CommandError parse();
     bool checkStandardOptions();
     CommandError checkRequiredOptions();
     void showHelp();
@@ -179,7 +180,7 @@ public:
     virtual bool requiresFlashpoint() const;
     virtual bool requiresServices() const;
     virtual bool autoBlockNewInstances() const;
-    Qx::Error process(const QStringList& commandLine);
+    Qx::Error process();
 };
 
 #endif // COMMAND_H

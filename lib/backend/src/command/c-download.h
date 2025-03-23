@@ -76,7 +76,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CDownload(Core& coreRef);
+    CDownload(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:

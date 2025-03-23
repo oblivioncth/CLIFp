@@ -89,7 +89,7 @@ public:
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    CLink(Core& coreRef);
+    CLink(Core& coreRef, const QStringList& commandLine);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
