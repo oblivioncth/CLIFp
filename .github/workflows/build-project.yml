@@ -20,6 +20,7 @@ jobs:
     secrets:
       ffynnon_access: ${{ secrets.OBYBOT_FFYNNON_ACCESS }}
     with:
+      qt_version: 6.8.2
       runs_exclude: >
         [
             { "compiler": "g++-10" }
