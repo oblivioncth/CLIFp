@@ -343,7 +343,8 @@ For guidance on which release build is likely best for your system, compare your
 | System                                    | Builds                                                                   |
 | ----------------------------------------- | ------------------------------------------------------------------------ |
 | Windows                                   | 1) Windows Static <br> 2) Windows Shared                                 |
-| Ubuntu 24.04, Ubuntu 22.02, Arch, SteamOS | 1) Linux Static Clang++14/GCC++12 <br> 2) Linux Shared Clang++14/GCC++12 |
+| Ubuntu 24.04, Arch, SteamOS               | 1) Linux Static Clang++18/GCC++14 <br> 2) Linux Shared Clang++18/GCC++14 |
+| Ubuntu 22.02                              | 1) Linux Static Clang++14/GCC++12 <br> 2) Linux Shared Clang++14/GCC++12 |
 | Ubuntu 20.04                              | 1) Linux Static Clang++12 <br> 2) Linux Shared Clang++12                 |
 
 Note that for shared builds, you must place the entire directory structure of the release in your Flashpoint folder and run CLIFp from within it's bin directory, like so:
