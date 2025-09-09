@@ -406,7 +406,7 @@ TExec* CPlay::createRuffleTask(const QString& name, const QString& originalParam
 #endif
     auto& fp = mCore.fpInstall();
     static QFileInfo ruffle = [&]{
-        QFile file = mCore.fpInstall().dir().absoluteFilePath(u"Data/Ruffle/standalone/latest/"_s + RUFFLE_EXE);
+        QFile file(mCore.fpInstall().dir().absoluteFilePath(u"Data/Ruffle/standalone/latest/"_s + RUFFLE_EXE));
         auto exec = QFile::ExeOwner | QFile::ExeGroup | QFile::ExeOther;
         file.setPermissions(file.permissions() | exec);
         return QFileInfo(file);
