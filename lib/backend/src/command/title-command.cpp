@@ -4,6 +4,9 @@
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
 
+// libfp Includes
+#include <fp/fp-install.h>
+
 // Project Includes
 #include "kernel/core.h"
 

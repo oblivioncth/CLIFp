@@ -8,12 +8,11 @@
 #include <QString>
 #include <QList>
 #include <QCommandLineParser>
+#include <QProcessEnvironment>
+#include <QUuid>
 
 // Qx Includes
 #include <qx/core/qx-processbider.h>
-
-// libfp Includes
-#include <fp/fp-install.h>
 
 // Project Includes
 #include "kernel/buildinfo.h"
@@ -79,6 +78,11 @@ private:
     QString deriveSecondary() const override;
 };
 
+namespace Fp
+{
+class Install;
+class GameData;
+}
 class TExec;
 
 class Core : public QObject, public Directorate
@@ -225,6 +229,10 @@ private:
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
     explicit Core();
+
+//-Destructor----------------------------------------------------------------------------------------------------------
+public:
+    ~Core();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

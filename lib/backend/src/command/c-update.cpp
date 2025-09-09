@@ -5,6 +5,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QStandardPaths>
+#include <QThread>
 
 // Qx Includes
 #include <qx/core/qx-genericerror.h>

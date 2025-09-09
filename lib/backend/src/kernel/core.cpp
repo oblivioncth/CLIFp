@@ -5,6 +5,9 @@
 #include <qx/utility/qx-helpers.h>
 #include <qx/core/qx-system.h>
 
+// libfp Includes
+#include <fp/fp-install.h>
+
 // Magic Enum Includes
 #include <magic_enum_flags.hpp>
 
@@ -59,6 +62,10 @@ Core::Core() :
     Directorate(&mDirector),
     mServicesMode(ServicesMode::Standalone)
 {}
+
+//-Destructor----------------------------------------------------------------------------------------------------------
+//Public:
+Core::~Core() = default; // Required definition so we can delete the unique_ptrs using forward declared types in the header
 
 //-Instance Functions-------------------------------------------------------------
 //Private:

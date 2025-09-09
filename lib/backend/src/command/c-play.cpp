@@ -5,6 +5,9 @@
 #include <qx/core/qx-regularexpression.h>
 #include <qx/utility/qx-helpers.h>
 
+// libfp Includes
+#include <fp/fp-install.h>
+
 // Project Includes
 #include "kernel/core.h"
 #include "task/t-exec.h"
