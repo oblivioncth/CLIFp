@@ -4,6 +4,7 @@
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
 #include <qx/core/qx-system.h>
+#include <qx/core/qx-integrity.h>
 
 // libfp Includes
 #include <fp/fp-install.h>
@@ -25,6 +26,7 @@
 #ifdef __linux__
     #include "task/t-awaitdocker.h"
 #endif
+#include "tools/archiveaccess.h"
 #include "utility.h"
 #include "_buildinfo.h"
 
@@ -229,6 +231,19 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
     }
 }
 
+void Core::addOnDiskUpdateTask(int gameDataId)
+{
+    TGeneric* onDiskUpdateTask = new TGeneric(*this);
+    onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
+    onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
+    onDiskUpdateTask->setAction([gameDataId, this]{
+        return mFlashpointInstall->database()->updateGameDataOnDiskState({gameDataId}, true);
+    });
+
+    mTaskQueue.push(onDiskUpdateTask);
+    logTask(onDiskUpdateTask);
+}
+
 // TODO: Have task have a toString function/operator instead of "members()" (or make members() private and have toString() use that)
 void Core::logTask(const Task* task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(u", "_s))); }
 
@@ -428,6 +443,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
      * or a future feature (hopefully not). Either way it just points to the PHP server port.
      */
 #endif
+
+    // Setup archive access
+    if(info->edition() == Fp::Install::VersionInfo::Ultimate)
+        mGamesArchive = std::make_unique<ArchiveAccess>(*this, ArchiveAccess::GameData);
 }
 
 QString Core::resolveFullAppPath(const QString& appPath, const QString& platform)
@@ -679,36 +698,75 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     QString packFilename = tk->datapackFilename(gameData);
     logEvent(LOG_EVENT_DATA_PACK_PATH.arg(packPath));
 
-    // Enqueue pack download if it's not available
+    // Try to acquire data pack if it's not present
     if(!tk->datapackIsPresent(gameData))
     {
         logEvent(LOG_EVENT_DATA_PACK_MISS);
 
-        TDownload* downloadTask = new TDownload(*this);
-        downloadTask->setStage(Task::Stage::Auxiliary);
-        downloadTask->setDescription(u"data pack "_s + packFilename);
-        TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
-        if(packError.isValid())
+        auto edition = mFlashpointInstall->versionInfo()->edition();
+        if(edition == Fp::Install::VersionInfo::Ultimate)
         {
-            postDirective<DError>(packError);
-            return packError;
+            /* TODO: Might want to make all of this its own task, and have a static, singleton, manager
+             * type (e.g. ArchiveAccessManager) that holds the archive instances, instead of core,
+             * which is then used by that task, and then here we just setup the task. This way we
+             * can also have more specific errors instead of just the one (with events).
+             */
+
+            /* TODO: Need to step through a debug build, as despite what the source looks like, the real
+             * thing seems like it doesn't save the game data to disk, but instead uses it directly as-is.
+             * Pulling it from the archive is fine for now though as it's unlikely to add up to much for
+             * most users.
+             */
+            Q_ASSERT(mGamesArchive);
+            logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE);
+
+            // Check archive
+            QByteArray datapackData = mGamesArchive->getFileContents(DATA_PACK_FROM_ARCHIVE_TEMPLATE.arg(packFilename));
+            if(datapackData.isEmpty())
+            {
+                logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_NOT_FOUND);
+                CoreError err(CoreError::CannotObtainDatapack);
+                postDirective<DError>(err);
+                return err;
+            }
+
+            logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_FOUND);
+            if(gameData.sha256().compare(Qx::Integrity::generateChecksum(datapackData, QCryptographicHash::Sha256), Qt::CaseInsensitive) != 0)
+            {
+                logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_CORRUPT);
+                CoreError err(CoreError::CannotObtainDatapack);
+                postDirective<DError>(err);
+                return err;
+            }
+
+            // Save to disk
+            QFile packFile(packPath);
+            if(auto writeOp = Qx::writeBytesToFile(packFile, datapackData); writeOp.isFailure())
+                return writeOp;
+
+            logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_SAVED);
+
+            // Add task to update DB with onDiskState
+            addOnDiskUpdateTask(gameData.id());
         }
+        else // Basically just Infinity
+        {
+            TDownload* downloadTask = new TDownload(*this);
+            downloadTask->setStage(Task::Stage::Auxiliary);
+            downloadTask->setDescription(u"data pack "_s + packFilename);
+            TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
+            if(packError.isValid())
+            {
+                postDirective<DError>(packError);
+                return packError;
+            }
 
-        mTaskQueue.push(downloadTask);
-        logTask(downloadTask);
+            mTaskQueue.push(downloadTask);
+            logTask(downloadTask);
 
-        // Add task to update DB with onDiskState
-        int gameDataId = gameData.id();
-
-        TGeneric* onDiskUpdateTask = new TGeneric(*this);
-        onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
-        onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
-        onDiskUpdateTask->setAction([gameDataId, this]{
-            return mFlashpointInstall->database()->updateGameDataOnDiskState({gameDataId}, true);
-        });
-
-        mTaskQueue.push(onDiskUpdateTask);
-        logTask(onDiskUpdateTask);
+            // Add task to update DB with onDiskState
+            addOnDiskUpdateTask(gameData.id());
+        }
     }
     else
         logEvent(LOG_EVENT_DATA_PACK_FOUND);

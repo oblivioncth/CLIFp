@@ -147,6 +147,12 @@ It is recommended to only use CLIFp when the regular launcher isn't running as i
 
 The catch with this mode is that CLIFp will be required to shutdown if at any point the standard launcher is closed.
 
+### Ultimate Archive Data Support
+
+CLIFp supports loading games from `Data/ArchiveData` like newer Flashpoint Launcher versions, but with a key difference; after game data is located within an ArchiveData segment, instead of being used directly from within the archive, that data will first be extracted to the usual location on disk. This does mean that space utilization will increase over time, though the effect is negligible unless you're playing many thousands of games in a short span of time.
+
+The ability to use the files directly from the archive will be added at a later time; however, do keep in mind that the current method means that previously started games will load faster the next time they are played since they will have already been extracted. This makes a significant difference with CLIFp in particular due to its "run on demand" paradigm, as it has to load the metadata from all archive data each time it is ran, versus the standard launcher which loads this data once at startup and then can utilize it multiple times until you close Flashpoint.
+
 ## All Commands/Options
 
 Most options have short and long forms, which are interchangeable. For options that take a value, a space or **=** can be used between the option and its value, i.e.
