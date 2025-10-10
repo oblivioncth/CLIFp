@@ -49,30 +49,6 @@ QString CPlayError::deriveSecondary() const { return mSpecific; }
 //Public:
 CPlay::CPlay(Core& coreRef, const QStringList& commandLine) : TitleCommand(coreRef, commandLine) {}
 
-//-Class Functions---------------------------------------------------------------
-//Private:
-Fp::AddApp CPlay::buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult)
-{
-    // Ensure query result is additional app
-    assert(addAppResult.source == Fp::Db::Table_Add_App::NAME);
-
-    /* Form additional app from record
-     *
-     * Most of the descriptive fields here are not required for this app, but include them anyway in case it's later
-     * desired to use them for something like logging.
-     */
-    Fp::AddApp::Builder fpAab;
-    fpAab.wId(addAppResult.result.value(Fp::Db::Table_Add_App::COL_ID).toString());
-    fpAab.wAppPath(addAppResult.result.value(Fp::Db::Table_Add_App::COL_APP_PATH).toString());
-    fpAab.wAutorunBefore(addAppResult.result.value(Fp::Db::Table_Add_App::COL_AUTORUN).toString());
-    fpAab.wLaunchCommand(addAppResult.result.value(Fp::Db::Table_Add_App::COL_LAUNCH_COMMAND).toString());
-    fpAab.wName(addAppResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString().remove(Qx::RegularExpression::LINE_BREAKS));
-    fpAab.wWaitExit(addAppResult.result.value(Fp::Db::Table_Add_App::COL_WAIT_EXIT).toString());
-    fpAab.wParentId(addAppResult.result.value(Fp::Db::Table_Add_App::COL_PARENT_ID).toString());
-
-    return fpAab.build();
-}
-
 //-Instance Functions-------------------------------------------------------------
 //Private:
 void CPlay::addExtraExecParameters(TExec* execTask, Task::Stage taskStage)
@@ -192,33 +168,23 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
     }
 
     // Get game's additional apps
-    Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = game.id()};
-
-    Fp::DbError addAppSearchError;
-    Fp::Db::QueryBuffer addAppSearchResult;
-
-    addAppSearchError = db->queryEntrys(addAppSearchResult, addAppFilter);
-    if(addAppSearchError.isValid())
+    Fp::Db::AddAppFilter aaf{.parent = game.id()};
+    QList<Fp::AddApp> addAppSearchResult;
+    if(auto err = db->searchAddApps(addAppSearchResult, aaf); err.isValid())
     {
-        postDirective<DError>(addAppSearchError);
-        return addAppSearchError;
+        postDirective<DError>(err);
+        return err;
     }
 
     // Enqueue auto-run before apps
-    for(int i = 0; i < addAppSearchResult.size; i++)
+    for(const auto& aa : std::as_const(addAppSearchResult))
     {
-        // Go to next record
-        addAppSearchResult.result.next();
-
-        // Build
-        Fp::AddApp addApp = buildAdditionalApp(addAppSearchResult);
-
         // Enqueue if auto-run before
-        if(addApp.isAutorunBefore())
+        if(aa.isAutorunBefore())
         {
-            logEvent(LOG_EVENT_FOUND_AUTORUN.arg(addApp.name()));
+            logEvent(LOG_EVENT_FOUND_AUTORUN.arg(aa.name()));
 
-            if(sError = enqueueAdditionalApp(addApp, game, Task::Stage::Auxiliary); sError.isValid())
+            if(sError = enqueueAdditionalApp(aa, game, Task::Stage::Auxiliary); sError.isValid())
                 return sError;
         }
     }
@@ -237,24 +203,21 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
 Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 {
     logEvent(LOG_EVENT_ID_MATCH_ADDAPP.arg(addApp.name(),
-                                           addApp.parentId().toString(QUuid::WithoutBraces)));
+                                           addApp.parentGameId().toString(QUuid::WithoutBraces)));
 
     Qx::Error sError;
     Fp::Db* db = mCore.fpInstall().database();
 
     // Get parent info
-    QUuid parentId = addApp.parentId();
-    Fp::Entry parentEntry;
+    QUuid parentId = addApp.parentGameId();
     Fp::Game parentGame;
     Fp::GameData parentGameData;
 
-    if(Fp::DbError gdErr = db->getEntry(parentEntry, parentId); gdErr.isValid())
+    if(Fp::DbError gdErr = db->getGame(parentGame, parentId); gdErr.isValid())
     {
         postDirective<DError>(gdErr);
         return gdErr;
     }
-    Q_ASSERT(std::holds_alternative<Fp::Game>(parentEntry));
-    parentGame = std::get<Fp::Game>(parentEntry);
 
     if(Fp::DbError gdErr = db->getGameData(parentGameData, parentId); gdErr.isValid())
     {
@@ -269,8 +232,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     QString serverOverride = getServerOverride(parentGameData);
 
     // Enqueue services if needed
-    bool needsServices = addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_MESSAGE && addApp.appPath() != Fp::Db::Table_Add_App::ENTRY_EXTRAS;
-    if(needsServices && (sError = mCore.enqueueStartupTasks(serverOverride)).isValid())
+    if(addApp.isPlayable() && (sError = mCore.enqueueStartupTasks(serverOverride)).isValid())
         return sError;
 
     // Handle datapack tasks
@@ -288,7 +250,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
         return sError;
 
     // Enqueue service shutdown if needed
-    if(needsServices)
+    if(addApp.isPlayable())
         mCore.enqueueShutdownTasks();
 
     return Qx::Error();
@@ -296,16 +258,16 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 
 Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
 {
-    if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_MESSAGE)
+    if(addApp.isMessage())
     {
         TMessage* messageTask = new TMessage(mCore);
         messageTask->setStage(taskStage);
         messageTask->setText(addApp.launchCommand());
-        messageTask->setBlocking(addApp.isWaitExit());
+        messageTask->setBlocking(addApp.isWaitForExit());
 
         mCore.enqueueSingleTask(messageTask);
     }
-    else if(addApp.appPath() == Fp::Db::Table_Add_App::ENTRY_EXTRAS)
+    else if(addApp.isExtra())
     {
         TExtra* extraTask = new TExtra(mCore);
         extraTask->setStage(taskStage);
@@ -351,7 +313,7 @@ Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData,
 
 TExec* CPlay::createStdGameExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
-    QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.appPath() : game.appPath(),
+    QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.applicationPath() : game.applicationPath(),
                                                 game.platformName());
     QFileInfo gamePathInfo(gamePath);
     QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
@@ -370,7 +332,7 @@ TExec* CPlay::createStdGameExecTask(const Fp::Game& game, const Fp::GameData& ga
 
 TExec* CPlay::createStdAddAppExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
 {
-    QString addAppPath = mCore.resolveFullAppPath(addApp.appPath(), parent.platformName());
+    QString addAppPath = mCore.resolveFullAppPath(addApp.applicationPath(), parent.platformName());
     QFileInfo addAppPathInfo(addAppPath);
     QString param = addApp.launchCommand();
 
@@ -381,7 +343,7 @@ TExec* CPlay::createStdAddAppExecTask(const Fp::AddApp& addApp, const Fp::Game& 
     addAppTask->setDirectory(addAppPathInfo.absoluteDir());
     addAppTask->setParameters(param);
     addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
-    addAppTask->setProcessType(addApp.isWaitExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
+    addAppTask->setProcessType(addApp.isWaitForExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
 
     return addAppTask;
 }
@@ -475,7 +437,7 @@ Qx::Error CPlay::perform()
     }
 
     // Handle entry
-    return std::visit([this](auto arg) { return this->handleEntry(arg); }, entry);
+    return entry.visit([this](auto arg) { return this->handleEntry(arg); });
 }
 
 //Public:

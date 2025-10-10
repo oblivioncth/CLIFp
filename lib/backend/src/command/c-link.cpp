@@ -1,6 +1,9 @@
 // Unit Include
 #include "c-link.h"
 
+// Qx Includes
+#include <qx/utility/qx-helpers.h>
+
 // libfp Includes
 #include <fp/fp-install.h>
 
@@ -70,25 +73,22 @@ Qx::Error CLink::perform()
         return dbError;
     }
 
-    if(std::holds_alternative<Fp::Game>(entry_v))
+    if(entry_v.holdsGame())
     {
-        Fp::Game game = std::get<Fp::Game>(entry_v);
+        const auto& game = entry_v.getGame();
         shortcutName = game.title();
     }
-    else if(std::holds_alternative<Fp::AddApp>(entry_v))
+    else if(entry_v.holdsAddApp())
     {
-        Fp::AddApp addApp = std::get<Fp::AddApp>(entry_v);
+        const auto& addApp = entry_v.getAddApp();;
 
         // Get parent info
-        dbError = database->getEntry(entry_v, addApp.parentId());
-        if(dbError.isValid())
+        Fp::Game parent;
+        if(dbError = database->getGame(parent, addApp.parentGameId()); dbError.isValid())
         {
             postDirective<DError>(dbError);
             return dbError;
         }
-        Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
-
-        Fp::Game parent = std::get<Fp::Game>(entry_v);
         shortcutName = parent.title() + u" ("_s + addApp.name() + u")"_s;
     }
     else

@@ -129,51 +129,51 @@ void Core::showVersion()
 
 Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
 {
+    /* TODO: This function grabs entire entries, not just their IDs, for the case where more than one
+     * result is found so that the disambiguation dialog can be created. We probably should just have
+     * this function return the Entry itself and have the later functions that use the result from this
+     * either changed to work with an Entry rather than an ID, or have an overload added such that the
+     * new one that takes the entry directly does most of the work and the original that takes the ID
+     * just gets the entry from its ID and then calls that one.
+     */
+
     // Clear return buffer
     returnBuffer = QUuid();
 
     // Search database for title
     Fp::DbError searchError;
-    Fp::Db::QueryBuffer searchResult;
+    QList<Fp::Entry> searchResult;
 
     Fp::Db::EntryFilter filter{
-        .type = parent.isNull() ? Fp::Db::EntryType::Primary : Fp::Db::EntryType::AddApp,
-        .parent = parent,
+        .type = parent.isNull() ? Fp::Db::EntryType::Game : Fp::Db::EntryType::AddApp,
         .name = name,
+        .exactName = exactName,
         .playableOnly = false,
-        .exactName = exactName
+        .parent = parent,
     };
 
-    if((searchError = mFlashpointInstall->database()->queryEntrys(searchResult, filter)).isValid())
+    if((searchError = mFlashpointInstall->database()->searchEntries(searchResult, filter)).isValid())
     {
         postDirective<DError>(searchError);
         return searchError;
     }
 
-    logEvent(LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(name));
+    logEvent(LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size()).arg(name));
 
-    if(searchResult.size < 1)
+    if(searchResult.size() < 1)
     {
         CoreError err(CoreError::TitleNotFound, name);
         postDirective<DError>(err);
         return err;
     }
-    else if(searchResult.size == 1)
+    else if(searchResult.size() == 1)
     {
-        // Advance result to only record
-        searchResult.result.next();
-
-        // Get ID
-        QString idKey = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                               Fp::Db::Table_Game::COL_ID :
-                                               Fp::Db::Table_Add_App::COL_ID;
-
-        returnBuffer = QUuid(searchResult.result.value(idKey).toString());
+        returnBuffer = searchResult.first().id();
         logEvent(LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
 
         return CoreError();
     }
-    else if (searchResult.size > FIND_ENTRY_LIMIT)
+    else if(searchResult.size() > FIND_ENTRY_LIMIT)
     {
         CoreError err(CoreError::TooManyResults, name);
         postDirective<DError>(err);
@@ -185,29 +185,20 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         QHash<QString, QUuid> idMap;
         QStringList idChoices;
 
-        for(int i = 0; i < searchResult.size; ++i)
+        for(const auto& entry : std::as_const(searchResult))
         {
-            // Advance result to next record
-            searchResult.result.next();
-
-            // Get ID
-            QString idKey = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                                   Fp::Db::Table_Game::COL_ID :
-                                                   Fp::Db::Table_Add_App::COL_ID;
-
-            QUuid id = QUuid(searchResult.result.value(idKey).toString());
-
             // Create choice string
-            QString choice = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                                    MULTI_GAME_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString(),
-                                                                            searchResult.result.value(Fp::Db::Table_Game::COL_TITLE).toString(),
-                                                                            searchResult.result.value(Fp::Db::Table_Game::COL_DEVELOPER).toString(),
-                                                                            id.toString(QUuid::WithoutBraces)) :
-                                                    MULTI_ADD_APP_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString(),
-                                                                               searchResult.result.value(Fp::Db::Table_Add_App::COL_ID).toString());
+            QString choice = entry.visit(qxFuncAggregate{
+                [](const Fp::Game& g){
+                    return MULTI_GAME_SEL_TEMP.arg(g.platformName(), g.title(), g.developer(), g.id().toString(QUuid::WithoutBraces));
+                },
+                [](const Fp::AddApp& aa){
+                    return MULTI_ADD_APP_SEL_TEMP.arg(aa.name(), aa.id().toString(QUuid::WithoutBraces));
+                }
+            });
 
             // Add to map and choice list
-            idMap[choice] = id;
+            idMap[choice] = entry.id();
             idChoices.append(choice);
         }
 
