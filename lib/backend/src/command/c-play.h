@@ -116,11 +116,6 @@ public:
 public:
     CPlay(Core& coreRef, const QStringList& commandLine);
 
-//-Class Functions------------------------------------------------------------------------------------------------------
-private:
-    // Helper
-    static Fp::AddApp buildAdditionalApp(const Fp::Db::QueryBuffer& addAppResult);
-
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     void addExtraExecParameters(TExec* execTask, Task::Stage taskStage);

@@ -4,6 +4,10 @@
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
 #include <qx/core/qx-system.h>
+#include <qx/core/qx-integrity.h>
+
+// libfp Includes
+#include <fp/fp-install.h>
 
 // Magic Enum Includes
 #include <magic_enum_flags.hpp>
@@ -22,6 +26,7 @@
 #ifdef __linux__
     #include "task/t-awaitdocker.h"
 #endif
+#include "tools/archiveaccess.h"
 #include "utility.h"
 #include "_buildinfo.h"
 
@@ -59,6 +64,10 @@ Core::Core() :
     Directorate(&mDirector),
     mServicesMode(ServicesMode::Standalone)
 {}
+
+//-Destructor----------------------------------------------------------------------------------------------------------
+//Public:
+Core::~Core() = default; // Required definition so we can delete the unique_ptrs using forward declared types in the header
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -120,51 +129,51 @@ void Core::showVersion()
 
 Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent)
 {
+    /* TODO: This function grabs entire entries, not just their IDs, for the case where more than one
+     * result is found so that the disambiguation dialog can be created. We probably should just have
+     * this function return the Entry itself and have the later functions that use the result from this
+     * either changed to work with an Entry rather than an ID, or have an overload added such that the
+     * new one that takes the entry directly does most of the work and the original that takes the ID
+     * just gets the entry from its ID and then calls that one.
+     */
+
     // Clear return buffer
     returnBuffer = QUuid();
 
     // Search database for title
     Fp::DbError searchError;
-    Fp::Db::QueryBuffer searchResult;
+    QList<Fp::Entry> searchResult;
 
     Fp::Db::EntryFilter filter{
-        .type = parent.isNull() ? Fp::Db::EntryType::Primary : Fp::Db::EntryType::AddApp,
-        .parent = parent,
+        .type = parent.isNull() ? Fp::Db::EntryType::Game : Fp::Db::EntryType::AddApp,
         .name = name,
+        .exactName = exactName,
         .playableOnly = false,
-        .exactName = exactName
+        .parent = parent,
     };
 
-    if((searchError = mFlashpointInstall->database()->queryEntrys(searchResult, filter)).isValid())
+    if((searchError = mFlashpointInstall->database()->searchEntries(searchResult, filter)).isValid())
     {
         postDirective<DError>(searchError);
         return searchError;
     }
 
-    logEvent(LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size).arg(name));
+    logEvent(LOG_EVENT_TITLE_ID_COUNT.arg(searchResult.size()).arg(name));
 
-    if(searchResult.size < 1)
+    if(searchResult.size() < 1)
     {
         CoreError err(CoreError::TitleNotFound, name);
         postDirective<DError>(err);
         return err;
     }
-    else if(searchResult.size == 1)
+    else if(searchResult.size() == 1)
     {
-        // Advance result to only record
-        searchResult.result.next();
-
-        // Get ID
-        QString idKey = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                               Fp::Db::Table_Game::COL_ID :
-                                               Fp::Db::Table_Add_App::COL_ID;
-
-        returnBuffer = QUuid(searchResult.result.value(idKey).toString());
+        returnBuffer = searchResult.first().id();
         logEvent(LOG_EVENT_TITLE_ID_DETERMINED.arg(name, returnBuffer.toString(QUuid::WithoutBraces)));
 
         return CoreError();
     }
-    else if (searchResult.size > FIND_ENTRY_LIMIT)
+    else if(searchResult.size() > FIND_ENTRY_LIMIT)
     {
         CoreError err(CoreError::TooManyResults, name);
         postDirective<DError>(err);
@@ -176,29 +185,20 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
         QHash<QString, QUuid> idMap;
         QStringList idChoices;
 
-        for(int i = 0; i < searchResult.size; ++i)
+        for(const auto& entry : std::as_const(searchResult))
         {
-            // Advance result to next record
-            searchResult.result.next();
-
-            // Get ID
-            QString idKey = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                                   Fp::Db::Table_Game::COL_ID :
-                                                   Fp::Db::Table_Add_App::COL_ID;
-
-            QUuid id = QUuid(searchResult.result.value(idKey).toString());
-
             // Create choice string
-            QString choice = searchResult.source == Fp::Db::Table_Game::NAME ?
-                                                    MULTI_GAME_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Game::COL_PLATFORM_NAME).toString(),
-                                                                            searchResult.result.value(Fp::Db::Table_Game::COL_TITLE).toString(),
-                                                                            searchResult.result.value(Fp::Db::Table_Game::COL_DEVELOPER).toString(),
-                                                                            id.toString(QUuid::WithoutBraces)) :
-                                                    MULTI_ADD_APP_SEL_TEMP.arg(searchResult.result.value(Fp::Db::Table_Add_App::COL_NAME).toString(),
-                                                                               searchResult.result.value(Fp::Db::Table_Add_App::COL_ID).toString());
+            QString choice = entry.visit(qxFuncAggregate{
+                [](const Fp::Game& g){
+                    return MULTI_GAME_SEL_TEMP.arg(g.platformName(), g.title(), g.developer(), g.id().toString(QUuid::WithoutBraces));
+                },
+                [](const Fp::AddApp& aa){
+                    return MULTI_ADD_APP_SEL_TEMP.arg(aa.name(), aa.id().toString(QUuid::WithoutBraces));
+                }
+            });
 
             // Add to map and choice list
-            idMap[choice] = id;
+            idMap[choice] = entry.id();
             idChoices.append(choice);
         }
 
@@ -220,6 +220,19 @@ Qx::Error Core::searchAndFilterEntity(QUuid& returnBuffer, QString name, bool ex
 
         return CoreError();
     }
+}
+
+void Core::addOnDiskUpdateTask(int gameDataId)
+{
+    TGeneric* onDiskUpdateTask = new TGeneric(*this);
+    onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
+    onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
+    onDiskUpdateTask->setAction([gameDataId, this]{
+        return mFlashpointInstall->database()->updateGameDataOnDiskState({gameDataId}, true);
+    });
+
+    mTaskQueue.push(onDiskUpdateTask);
+    logTask(onDiskUpdateTask);
 }
 
 // TODO: Have task have a toString function/operator instead of "members()" (or make members() private and have toString() use that)
@@ -421,6 +434,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
      * or a future feature (hopefully not). Either way it just points to the PHP server port.
      */
 #endif
+
+    // Setup archive access
+    if(info->edition() == Fp::Install::VersionInfo::Ultimate)
+        mGamesArchive = std::make_unique<ArchiveAccess>(*this, ArchiveAccess::GameData);
 }
 
 QString Core::resolveFullAppPath(const QString& appPath, const QString& platform)
@@ -672,36 +689,75 @@ Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
     QString packFilename = tk->datapackFilename(gameData);
     logEvent(LOG_EVENT_DATA_PACK_PATH.arg(packPath));
 
-    // Enqueue pack download if it's not available
+    // Try to acquire data pack if it's not present
     if(!tk->datapackIsPresent(gameData))
     {
         logEvent(LOG_EVENT_DATA_PACK_MISS);
 
-        TDownload* downloadTask = new TDownload(*this);
-        downloadTask->setStage(Task::Stage::Auxiliary);
-        downloadTask->setDescription(u"data pack "_s + packFilename);
-        TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
-        if(packError.isValid())
+        auto edition = mFlashpointInstall->versionInfo()->edition();
+        if(edition == Fp::Install::VersionInfo::Ultimate)
         {
-            postDirective<DError>(packError);
-            return packError;
+            /* TODO: Might want to make all of this its own task, and have a static, singleton, manager
+             * type (e.g. ArchiveAccessManager) that holds the archive instances, instead of core,
+             * which is then used by that task, and then here we just setup the task. This way we
+             * can also have more specific errors instead of just the one (with events).
+             */
+
+            /* TODO: Need to step through a debug build, as despite what the source looks like, the real
+             * thing seems like it doesn't save the game data to disk, but instead uses it directly as-is.
+             * Pulling it from the archive is fine for now though as it's unlikely to add up to much for
+             * most users.
+             */
+            Q_ASSERT(mGamesArchive);
+            logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE);
+
+            // Check archive
+            QByteArray datapackData = mGamesArchive->getFileContents(DATA_PACK_FROM_ARCHIVE_TEMPLATE.arg(packFilename));
+            if(datapackData.isEmpty())
+            {
+                logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_NOT_FOUND);
+                CoreError err(CoreError::CannotObtainDatapack);
+                postDirective<DError>(err);
+                return err;
+            }
+
+            logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_FOUND);
+            if(gameData.sha256().compare(Qx::Integrity::generateChecksum(datapackData, QCryptographicHash::Sha256), Qt::CaseInsensitive) != 0)
+            {
+                logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_CORRUPT);
+                CoreError err(CoreError::CannotObtainDatapack);
+                postDirective<DError>(err);
+                return err;
+            }
+
+            // Save to disk
+            QFile packFile(packPath);
+            if(auto writeOp = Qx::writeBytesToFile(packFile, datapackData); writeOp.isFailure())
+                return writeOp;
+
+            logEvent(LOG_EVENT_DATA_PACK_FROM_ARCHIVE_SAVED);
+
+            // Add task to update DB with onDiskState
+            addOnDiskUpdateTask(gameData.id());
         }
+        else // Basically just Infinity
+        {
+            TDownload* downloadTask = new TDownload(*this);
+            downloadTask->setStage(Task::Stage::Auxiliary);
+            downloadTask->setDescription(u"data pack "_s + packFilename);
+            TDownloadError packError = downloadTask->addDatapack(tk, &gameData);
+            if(packError.isValid())
+            {
+                postDirective<DError>(packError);
+                return packError;
+            }
 
-        mTaskQueue.push(downloadTask);
-        logTask(downloadTask);
+            mTaskQueue.push(downloadTask);
+            logTask(downloadTask);
 
-        // Add task to update DB with onDiskState
-        int gameDataId = gameData.id();
-
-        TGeneric* onDiskUpdateTask = new TGeneric(*this);
-        onDiskUpdateTask->setStage(Task::Stage::Auxiliary);
-        onDiskUpdateTask->setDescription(u"Update GameData onDisk state."_s);
-        onDiskUpdateTask->setAction([gameDataId, this]{
-            return mFlashpointInstall->database()->updateGameDataOnDiskState({gameDataId}, true);
-        });
-
-        mTaskQueue.push(onDiskUpdateTask);
-        logTask(onDiskUpdateTask);
+            // Add task to update DB with onDiskState
+            addOnDiskUpdateTask(gameData.id());
+        }
     }
     else
         logEvent(LOG_EVENT_DATA_PACK_FOUND);

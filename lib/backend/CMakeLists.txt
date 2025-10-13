@@ -57,6 +57,8 @@ set(BACKEND_IMPLEMENTATION
     task/t-mount.cpp
     task/t-sleep.h
     task/t-sleep.cpp
+    tools/archiveaccess.h
+    tools/archiveaccess.cpp
     tools/blockingprocessmanager.h
     tools/blockingprocessmanager.cpp
     tools/deferredprocessmanager.h

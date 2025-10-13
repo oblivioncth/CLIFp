@@ -1,6 +1,9 @@
 // Unit Include
 #include "c-download.h"
 
+// libfp Includes
+#include <fp/fp-install.h>
+
 // Project Includes
 #include "kernel/core.h"
 #include "task/t-download.h"

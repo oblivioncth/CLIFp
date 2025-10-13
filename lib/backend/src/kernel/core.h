@@ -8,12 +8,11 @@
 #include <QString>
 #include <QList>
 #include <QCommandLineParser>
+#include <QProcessEnvironment>
+#include <QUuid>
 
 // Qx Includes
 #include <qx/core/qx-processbider.h>
-
-// libfp Includes
-#include <fp/fp-install.h>
 
 // Project Includes
 #include "kernel/buildinfo.h"
@@ -40,7 +39,8 @@ public:
         TitleNotFound,
         TooManyResults,
         ConfiguredServerMissing,
-        UnknownDatapackParam
+        UnknownDatapackParam,
+        CannotObtainDatapack
     };
 
 //-Class Variables-------------------------------------------------------------
@@ -53,7 +53,8 @@ private:
         {TitleNotFound, u"Could not find the title in the Flashpoint database."_s},
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
         {ConfiguredServerMissing, u"The configured server was not found within the Flashpoint services store."_s},
-        {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s}
+        {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
+        {CannotObtainDatapack, u"The specified datapack could not be obtained via edition appropriate means."_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
@@ -79,7 +80,13 @@ private:
     QString deriveSecondary() const override;
 };
 
+namespace Fp
+{
+class Install;
+class GameData;
+}
 class TExec;
+class ArchiveAccess;
 
 class Core : public QObject, public Directorate
 {
@@ -129,6 +136,11 @@ public:
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_MOUNT = u"Title Data Pack requires mounting"_s;
     static inline const QString LOG_EVENT_DATA_PACK_NEEDS_EXTRACT = u"Title Data Pack requires extraction"_s;
     static inline const QString LOG_EVENT_DATA_PACK_ALREADY_EXTRACTED = u"Extracted files already present"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_FROM_ARCHIVE = u"Retrieving Data Pack from archive"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_FROM_ARCHIVE_NOT_FOUND = u"Data Pack could not be found in the archive!"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_FROM_ARCHIVE_CORRUPT = u"Data Pack from archive is corrupted!"_s;
+    static inline const QString LOG_EVENT_DATA_PACK_FROM_ARCHIVE_FOUND = u"Data Pack found in archive."_s;
+    static inline const QString LOG_EVENT_DATA_PACK_FROM_ARCHIVE_SAVED = u"Sourced Data Pack from archive."_s;
     static inline const QString LOG_EVENT_APP_PATH_ALT = u"App path \"%1\" maps to alternative \"%2\"."_s;
     static inline const QString LOG_EVENT_SERVICES_FROM_LAUNCHER = u"Using services from standard Launcher due to companion mode."_s;
     static inline const QString LOG_EVENT_LAUNCHER_WATCH = u"Starting bide on Launcher process..."_s;
@@ -199,6 +211,7 @@ public:
 
     // Helper
     static const int FIND_ENTRY_LIMIT = 20;
+    static inline const QString DATA_PACK_FROM_ARCHIVE_TEMPLATE = u"Flashpoint Ultimate/Data/Games/%1"_s;
 
     // Protocol
     static inline const QString FLASHPOINT_PROTOCOL_SCHEME = u"flashpoint://"_s;
@@ -213,6 +226,7 @@ private:
 
     // Handles
     std::unique_ptr<Fp::Install> mFlashpointInstall;
+    std::unique_ptr<ArchiveAccess> mGamesArchive;
 
     // Processing
     ServicesMode mServicesMode;
@@ -226,6 +240,10 @@ private:
 public:
     explicit Core();
 
+//-Destructor----------------------------------------------------------------------------------------------------------
+public:
+    ~Core();
+
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     QString name() const override;
@@ -235,6 +253,7 @@ private:
 
     // Helper
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
+    void addOnDiskUpdateTask(int gameDataId);
     void logTask(const Task* task);
 
 public:

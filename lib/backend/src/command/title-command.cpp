@@ -4,6 +4,9 @@
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
 
+// libfp Includes
+#include <fp/fp-install.h>
+
 // Project Includes
 #include "kernel/core.h"
 
@@ -42,7 +45,7 @@ TitleCommand::TitleCommand(Core& coreRef, const QStringList& commandLine) :
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
-Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Db::LibraryFilter lbFilter)
+Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Libraries lbFilter)
 {
     logEvent(LOG_EVENT_SEL_RAND);
 
@@ -57,30 +60,13 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
     Fp::Db* database = mCore.fpInstall().database();
 
     // Query all main games
-    Fp::Db::QueryBuffer mainGameIdQuery;
-    searchError = database->queryAllGameIds(mainGameIdQuery, lbFilter);
-    if(searchError.isValid())
+    QList<QUuid> playableIds;
+    if(searchError = database->getAllGameIds(playableIds, lbFilter); searchError.isValid())
     {
         postDirective<DError>(searchError);
         return searchError;
     }
-
-    QVector<QUuid> playableIds;
-
-    // Enumerate main game IDs
-    for(int i = 0; i < mainGameIdQuery.size; i++)
-    {
-        // Go to next record
-        mainGameIdQuery.result.next();
-
-        // Add ID to list
-        QString gameIdString = mainGameIdQuery.result.value(Fp::Db::Table_Game::COL_ID).toString();
-        QUuid gameId = QUuid(gameIdString);
-        if(!gameId.isNull())
-            playableIds.append(gameId);
-        else
-            logError(Qx::GenericError(Qx::Warning, 12011, LOG_WRN_INVALID_RAND_ID.arg(gameIdString)));
-    }
+    // NOTE: We used to check if ids were valid here and omit them if so. If bad IDs are found in DB, reintroduce.
     logEvent(LOG_EVENT_PLAYABLE_COUNT.arg(QLocale(QLocale::system()).toString(playableIds.size())));
 
     // Select main game
@@ -88,33 +74,16 @@ Qx::Error TitleCommand::randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer
     logEvent(LOG_EVENT_INIT_RAND_ID.arg(mainIdBuffer.toString(QUuid::WithoutBraces)));
 
     // Get entry's playable additional apps
-    Fp::Db::EntryFilter addAppFilter{.type = Fp::Db::EntryType::AddApp, .parent = mainIdBuffer, .playableOnly = true};
+    Fp::Db::AddAppFilter aaf{.parent = mainIdBuffer, .playableOnly = true};
 
-    Fp::Db::QueryBuffer addAppQuery;
-    searchError = database->queryEntrys(addAppQuery, addAppFilter);
-    if(searchError.isValid())
+    QList<QUuid> playableSubIds;
+    if(searchError = database->searchAddAppIds(playableSubIds, aaf); searchError.isValid())
     {
         postDirective<DError>(searchError);
         return searchError;
     }
-    logEvent(LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(addAppQuery.size));
-
-    QVector<QUuid> playableSubIds;
-
-    // Enumerate entry's playable additional apps
-    for(int i = 0; i < addAppQuery.size; i++)
-    {
-        // Go to next record
-        addAppQuery.result.next();
-
-        // Add ID to list
-        QString addAppIdString = addAppQuery.result.value(Fp::Db::Table_Game::COL_ID).toString();
-        QUuid addAppId = QUuid(addAppIdString);
-        if(!addAppId.isNull())
-            playableSubIds.append(addAppId);
-        else
-            logError(Qx::GenericError(Qx::Warning, 12101, LOG_WRN_INVALID_RAND_ID.arg(addAppIdString)));
-    }
+    // NOTE: We used to check if ids were valid here and omit them if so. If bad IDs are found in DB, reintroduce.
+    logEvent(LOG_EVENT_INIT_RAND_PLAY_ADD_COUNT.arg(playableSubIds.size()));
 
     // Select final ID
     int randIndex = QRandomGenerator::global()->bounded(playableSubIds.size() + 1);
@@ -148,41 +117,34 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
     Fp::Db* database = mCore.fpInstall().database();
 
     // Get main entry info
-    Fp::Entry entry_v;
-    searchError = database->getEntry(entry_v, mainId);
-    if(searchError.isValid())
+    Fp::Game game;
+    if(searchError = database->getGame(game, mainId); searchError.isValid())
     {
         postDirective<DError>(searchError);
         return searchError;
     }
 
-    Q_ASSERT(std::holds_alternative<Fp::Game>(entry_v));
-    Fp::Game mainEntry = std::get<Fp::Game>(entry_v);
-
     // Populate buffer with primary info
-    infoFillTemplate = infoFillTemplate.arg(mainEntry.title(),
-                                            mainEntry.developer(),
-                                            mainEntry.publisher(),
-                                            mainEntry.library());
+    infoFillTemplate = infoFillTemplate.arg(game.title(),
+                                            game.developer(),
+                                            game.publisher(),
+                                            game.library() == Fp::Library::Game ? u"Game"_s : u"Animation"_s);
 
-    // Determine variant
+    // Handle possible sub info
     if(subId.isNull())
         infoFillTemplate = infoFillTemplate.arg(u"N/A"_s);
     else
     {
         // Get sub entry info
-        searchError = database->getEntry(entry_v, subId);
-        if(searchError.isValid())
+        Fp::AddApp addApp;
+        if(searchError = database->getAddApp(addApp, subId); searchError.isValid())
         {
             postDirective<DError>(searchError);
             return searchError;
         }
 
-        Q_ASSERT(std::holds_alternative<Fp::AddApp>(entry_v));
-        Fp::AddApp subEntry = std::get<Fp::AddApp>(entry_v);
-
-        // Populate buffer with variant info
-        infoFillTemplate = infoFillTemplate.arg(subEntry.name());
+        // Populate buffer with info
+        infoFillTemplate = infoFillTemplate.arg(addApp.name());
     }
 
     // Set filled template to buffer
@@ -248,15 +210,15 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
     else if(mParser.isSet(CL_OPTION_RAND))
     {
         QString rawRandFilter = mParser.value(CL_OPTION_RAND);
-        Fp::Db::LibraryFilter randFilter;
+        Fp::Libraries randFilter;
 
         // Check for valid filter
         if(RAND_ALL_FILTER_NAMES.contains(rawRandFilter))
-            randFilter = Fp::Db::LibraryFilter::Either;
+            randFilter = Fp::Library::All;
         else if(RAND_GAME_FILTER_NAMES.contains(rawRandFilter))
-            randFilter = Fp::Db::LibraryFilter::Game;
+            randFilter = Fp::Library::Game;
         else if(RAND_ANIM_FILTER_NAMES.contains(rawRandFilter))
-            randFilter = Fp::Db::LibraryFilter::Anim;
+            randFilter = Fp::Library::Animation;
         else
         {
             TitleCommandError err(TitleCommandError::InvalidRandomFilter, rawRandFilter);
