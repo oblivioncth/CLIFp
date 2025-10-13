@@ -56,7 +56,7 @@ class TitleCommand : public Command
 //-Class Variables------------------------------------------------------------------------------------------------------
 private:
     // Logging - Errors
-    static inline const QString LOG_WRN_INVALID_RAND_ID = u"A UUID found in the database during Random operation is invalid (%1)"_s;
+    //static inline const QString LOG_WRN_INVALID_RAND_ID = u"A UUID found in the database during Random operation is invalid (%1)"_s;
 
     // Logging - Messages
     static inline const QString LOG_EVENT_SEL_RAND = u"Selecting a playable title at random..."_s;
@@ -135,7 +135,7 @@ public:
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
     // Helper
-    Qx::Error randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Db::LibraryFilter lbFilter);
+    Qx::Error randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Libraries lbFilter);
     Qx::Error getRandomSelectionInfo(QString& infoBuffer, QUuid mainId, QUuid subId);
 
 protected:

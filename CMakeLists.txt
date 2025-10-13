@@ -65,6 +65,7 @@ set(CLIFP_QX_COMPONENTS
     Io
     Network
     Widgets
+    Sql
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
@@ -77,14 +78,14 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.6.2"
+    REF "f6d47a2d8b328dec8ba5ad70d9c282aa15d77af6"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("107a1286d257822f5b3ae44b6b5f3a9adc6b23b0")
+ob_fetch_libfp("037153fb5c4b59d5cda97be31e6f06e5bda5a920")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
