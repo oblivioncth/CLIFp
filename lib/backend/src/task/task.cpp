@@ -24,6 +24,9 @@ Task::Task(Core& core) :
 {}
 
 //-Instance Functions-------------------------------------------------------------
+//Protected:
+void Task::complete(const Qx::Error& errorState) { emit completed(errorState); }
+
 //Public:
 QStringList Task::members() const { return {u".stage() = "_s + ENUM_NAME(mStage)}; }
 

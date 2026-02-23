@@ -39,7 +39,7 @@ void TSleep::stop()
 {
     logEvent(LOG_EVENT_SLEEP_INTERUPTED);
     mSleeper.stop();
-    emit complete(Qx::Error());
+    complete(Qx::Error());
 }
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------
@@ -47,5 +47,5 @@ void TSleep::stop()
 void TSleep::timerFinished()
 {
     logEvent(LOG_EVENT_FINISH_SLEEP);
-    emit complete(Qx::Error());
+    complete(Qx::Error());
 }

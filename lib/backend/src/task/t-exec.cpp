@@ -229,7 +229,7 @@ void TExec::perform()
     {
         TExecError err(TExecError::CouldNotFind, mExecutable, mStage == Stage::Shutdown ? Qx::Err : Qx::Critical);
         postDirective<DError>(err);
-        emit complete(err);
+        complete(err);
         return;
     }
 
@@ -252,7 +252,7 @@ void TExec::perform()
             // Setup and start process
             if(TExecError se = cleanStartProcess(taskProcess); se.isValid())
             {
-                emit complete(se);
+                complete(se);
                 return;
             }
 
@@ -264,7 +264,7 @@ void TExec::perform()
             taskProcess->setParent(&mCore);
             if(TExecError se = cleanStartProcess(taskProcess); se.isValid())
             {
-                emit complete(se);
+                complete(se);
                 return;
             }
 
@@ -286,14 +286,14 @@ void TExec::perform()
             {
                 TExecError err(TExecError::CouldNotStart, ERR_DETAILS_TEMPLATE.arg(taskProcess->program(), ENUM_NAME(taskProcess->error())));
                 postDirective<DError>(err);
-                emit complete(err);
+                complete(err);
                 return;
             }
             break;
     }
 
     // Return success
-    emit complete(TExecError());
+    complete(TExecError());
 }
 
 void TExec::stop()
@@ -314,5 +314,5 @@ void TExec::postBlockingProcess()
     mBlockingProcessManager = nullptr;
 
     // Return success
-    emit complete(TExecError());
+    complete(TExecError());
 }

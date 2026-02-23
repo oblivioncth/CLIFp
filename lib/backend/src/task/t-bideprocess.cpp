@@ -89,10 +89,10 @@ void TBideProcess::stop()
 void TBideProcess::postBide(Qx::ProcessBider::ResultType type)
 {
     if(type == Qx::ProcessBider::Fail)\
-        emit complete(TBideProcessError(mProcessName, TBideProcessError::BideFail));
+        complete(TBideProcessError(mProcessName, TBideProcessError::BideFail));
     else
     {
         logEvent(LOG_EVENT_BIDE_FINISHED.arg(mProcessName));
-        emit complete(TBideProcessError());
+        complete(TBideProcessError());
     }
 }

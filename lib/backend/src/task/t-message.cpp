@@ -41,5 +41,5 @@ void TMessage::perform()
     logEvent(LOG_EVENT_SHOW_MESSAGE);
 
     // Return success
-    emit complete(Qx::Error());
+    complete(Qx::Error());
 }
