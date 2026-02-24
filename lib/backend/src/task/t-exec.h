@@ -17,7 +17,7 @@
 class QX_ERROR_TYPE(TExecError, "TExecError", 1253)
 {
     friend class TExec;
-    //-Class Enums-------------------------------------------------------------
+//-Class Enums-------------------------------------------------------------
 public:
     enum Type
     {
@@ -27,7 +27,7 @@ public:
         NotValid = 3
     };
 
-    //-Class Variables-------------------------------------------------------------
+//-Class Variables-------------------------------------------------------------
 private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
@@ -36,17 +36,17 @@ private:
         {NotValid, u"Tried to start invalid executable."_s}
     };
 
-    //-Instance Variables-------------------------------------------------------------
+//-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
     Qx::Severity mSeverity;
 
-    //-Constructor-------------------------------------------------------------
+//-Constructor-------------------------------------------------------------
 private:
     TExecError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
 
-    //-Instance Functions-------------------------------------------------------------
+//-Instance Functions-------------------------------------------------------------
 public:
     bool isValid() const;
     Type type() const;
@@ -104,7 +104,6 @@ private:
 private:
     // Functional
     BlockingProcessManager* mBlockingProcessManager;
-    Core& mCore;
 
     // Data
     QString mExecutable;
@@ -113,6 +112,10 @@ private:
     QProcessEnvironment mEnvironment;
     ProcessType mProcessType;
     QString mIdentifier;
+
+protected:
+    // Functional
+    Core& mCore;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:

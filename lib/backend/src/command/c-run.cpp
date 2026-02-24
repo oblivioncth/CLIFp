@@ -3,7 +3,7 @@
 
 // Project Includes
 #include "kernel/core.h"
-#include "task/t-exec.h"
+#include "task/t-titleexec.h"
 
 //===============================================================================================================
 // CRunError
@@ -52,7 +52,8 @@ Qx::Error CRun::perform()
     QString inputPath = mCore.resolveFullAppPath(mParser.value(CL_OPTION_APP), u""_s); // No way of knowing platform
     QFileInfo inputInfo = QFileInfo(inputPath);
 
-    TExec* runTask = new TExec(mCore);
+    // Use TTitleExec to ensure bides when needed (Windows), but we have no ID to give for tracking
+    TTitleExec* runTask = new TTitleExec(mCore);
     runTask->setIdentifier(NAME + u" program"_s);
     runTask->setStage(Task::Stage::Primary);
     runTask->setExecutable(QDir::cleanPath(inputInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
@@ -63,12 +64,6 @@ Qx::Error CRun::perform()
 
     mCore.enqueueSingleTask(runTask);
     postDirective<DStatusUpdate>(STATUS_RUN, inputInfo.fileName());
-
-#ifdef _WIN32
-    // Add wait task if required
-    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(runTask); ee.isValid())
-        return ee;
-#endif
 
     // Return success
     return CRunError();

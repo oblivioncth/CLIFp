@@ -57,6 +57,9 @@ set(BACKEND_IMPLEMENTATION
     task/t-mount.cpp
     task/t-sleep.h
     task/t-sleep.cpp
+    task/t-titleexec.h
+    task/t-titleexec.cpp
+    task/t-titleexec_win.cpp
     tools/archiveaccess.h
     tools/archiveaccess.cpp
     tools/blockingprocessmanager.h
@@ -91,8 +94,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     list(APPEND BACKEND_IMPLEMENTATION
         command/c-link_win.cpp
         task/t-exec_win.cpp
-        task/t-bideprocess.h
-        task/t-bideprocess.cpp
     )
 
     list(APPEND BACKEND_LINKS
