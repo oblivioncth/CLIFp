@@ -58,18 +58,45 @@ void TTitleExec::complete(const Qx::Error& errorState)
 #endif
 }
 
+bool TTitleExec::shouldTrack() const
+{
+    if(mTrackingId.isNull())
+        return false;
+
+    auto& prefs = mCore.fpInstall().preferences();
+    auto tk = mCore.fpInstall().toolkit();
+    return prefs.enablePlaytimeTracking && (prefs.enablePlaytimeTrackingExtreme || !tk->entryIsExtreme(mTrackingId));
+}
+
 void TTitleExec::cleanup(const Qx::Error& errorState)
 {
+    qint64 duration = mPlayTimer.elapsed()/1000;
+    if(shouldTrack())
+    {
+        logEvent(LOG_EVENT_TRACKING_UPDATE.arg(mTrackingId.toString(QUuid::WithoutBraces)).arg(duration));
+        auto db = mCore.fpInstall().database();
+        if(auto err = db->updateGamePlayRecords(mTrackingId, duration); err)
+        {
+            logError(err);
+            qWarning("Failed to update play stats for %s", qPrintable(mTrackingId.toString()));
+        }
+    }
+    else
+        logEvent(LOG_EVENT_TRACKING_SKIP);
+
     Task::complete(errorState);
 }
 
 //Public:
+QUuid TTitleExec::trackingId() const { return mTrackingId; }
 QString TTitleExec::name() const { return NAME; }
 QStringList TTitleExec::members() const
 {
     QStringList ml = TExec::members();
     return ml;
 }
+
+void TTitleExec::setTrackingId(const QUuid& id) { mTrackingId = id; }
 
 void TTitleExec::perform()
 {
@@ -83,6 +110,7 @@ void TTitleExec::perform()
     }
 #endif
 
+    mPlayTimer.start(); // Low-cost, so no need to condition-gate this
     TExec::perform();
 }
 

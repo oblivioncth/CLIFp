@@ -3,6 +3,7 @@
 
 // Qt Includes
 #include <QUuid>
+#include <QElapsedTimer>
 
 // Project Includes
 #include "task/t-exec.h"
@@ -60,7 +61,7 @@ private:
     // Logging
     static inline const QString LOG_EVENT_RUNNING_TITLE = u"Starting main title process."_s;
 
-    // Logging Bide
+    // Logging - Bide
     static inline const QString LOG_EVENT_CHECKING_FOR_BIDE = u"Checking if main title process needs a bide..."_s;
     static inline const QString LOG_EVENT_BIDE_DETERMINED = u"Main title process %1 need bide..."_s;
     static inline const QString LOG_EVENT_BIDE_START = u"Beginning bide on main title process..."_s;
@@ -71,6 +72,10 @@ private:
     static inline const QString LOG_EVENT_BIDE_FINISHED = u"Wait-on process %1 was not running after the grace period"_s;
     static inline const QString LOG_EVENT_STOPPING_BIDE_PROCESS = u"Stopping current bide process..."_s;
 
+    // Logging - Tracking
+    static inline const QString LOG_EVENT_TRACKING_SKIP = u"Tracking is not applicable for this run."_s;
+    static inline const QString LOG_EVENT_TRACKING_UPDATE = u"Updating play stats for %1 (duration of %2 seconds)."_s;
+
     // Errors
     static inline const QString ERR_CANT_CLOSE_BIDE_PROCESS = u"Could not automatically end the running title! It will have to be closed manually."_s;
 
@@ -78,8 +83,10 @@ private:
 private:
     // Functional
     Qx::ProcessBider* mBider;
+    QElapsedTimer mPlayTimer;
 
     // Data
+    QUuid mTrackingId;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
@@ -93,12 +100,16 @@ private:
 #endif
 
     void complete(const Qx::Error& errorState) override;
+    bool shouldTrack() const;
     void cleanup(const Qx::Error& errorState);
 
 public:
     // Member access
     QString name() const override;
     QStringList members() const override;
+
+    QUuid trackingId() const;
+    void setTrackingId(const QUuid& id);
 
     // Run
     void perform() override;

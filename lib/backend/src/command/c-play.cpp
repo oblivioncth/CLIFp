@@ -304,6 +304,7 @@ TExec* CPlay::createExecTask(const Fp::Game& game, const Fp::GameData& gameData,
     bool ruffle = useRuffle(game, taskStage);
 
     TTitleExec* gameTask = new TTitleExec(mCore);
+    gameTask->setTrackingId(game.id());
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
