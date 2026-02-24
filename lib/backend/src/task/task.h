@@ -33,7 +33,7 @@ public:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
-    virtual void complete(const Qx::Error& errorState);
+    virtual void complete(const Qx::Error& errorState = {});
 
 public:
     virtual QStringList members() const;

@@ -1,10 +1,34 @@
 // Unit Include
 #include "t-titleexec.h"
 
-// Qx Includes
-
+// libfp Includes
+#include <fp/fp-install.h>
 
 // Project Includes
+#include "kernel/core.h"
+
+//===============================================================================================================
+// TTitleExecError
+//===============================================================================================================
+
+//-Constructor-------------------------------------------------------------
+//Private:
+TTitleExecError::TTitleExecError(const QString& pn, Type t) :
+    mType(t),
+    mProcessName(pn)
+{}
+
+//-Instance Functions-------------------------------------------------------------
+//Public:
+bool TTitleExecError::isValid() const { return mType != NoError; }
+TTitleExecError::Type TTitleExecError::type() const { return mType; }
+QString TTitleExecError::processName() const { return mProcessName; }
+
+//Private:
+Qx::Severity TTitleExecError::deriveSeverity() const { return Qx::Critical; }
+quint32 TTitleExecError::deriveValue() const { return mType; }
+QString TTitleExecError::derivePrimary() const { return ERR_STRINGS.value(mType); }
+QString TTitleExecError::deriveSecondary() const { return mProcessName; }
 
 //===============================================================================================================
 // TTitleExec
@@ -13,45 +37,61 @@
 //-Constructor-------------------------------------------------------------
 //Public:
 TTitleExec::TTitleExec(Core& core) :
-    TExec(core)
+    TExec(core),
+    mBider(nullptr)
 {}
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
+void TTitleExec::complete(const Qx::Error& errorState)
+{
+    if(errorState || !mBider)
+    {
+        cleanup(errorState);
+        return;
+    }
+
+#if _WIN32
+    startBide();
+#else
+    qFatal("TTitleExec is improperly routed!");
+#endif
+}
+
+void TTitleExec::cleanup(const Qx::Error& errorState)
+{
+    Task::complete(errorState);
+}
 
 //Public:
-QString TExec::name() const { return NAME; }
-QStringList TExec::members() const
+QString TTitleExec::name() const { return NAME; }
+QStringList TTitleExec::members() const
 {
-    QStringList ml = Task::members();
-    ml.append(u".executable() = \""_s + mExecutable + u"\""_s);
-    ml.append(u".directory() = \""_s + mDirectory.absolutePath() + u"\""_s);
-    if(std::holds_alternative<QString>(mParameters))
-        ml.append(u".parameters() = \""_s + std::get<QString>(mParameters) + u"\""_s);
-    else
-        ml.append(u".parameters() = {\""_s + std::get<QStringList>(mParameters).join(uR"(", ")"_s) + u"\"}"_s);
-    ml.append(u".processType() = "_s + ENUM_NAME(mProcessType));
-    ml.append(u".identifier() = \""_s + mIdentifier + u"\""_s);
+    QStringList ml = TExec::members();
     return ml;
 }
 
-
-void TExec::perform()
+void TTitleExec::perform()
 {
-    logEvent(LOG_EVENT_PREPARING_PROCESS.arg(ENUM_NAME(mProcessType), mIdentifier, mExecutable));
+    logEvent(LOG_EVENT_RUNNING_TITLE);
 
-    // Return success
-    emit completed(TExecError());
+#ifdef _WIN32
+    if(auto err = setupBide(); err)
+    {
+        complete(err);
+        return;
+    }
+#endif
+
+    TExec::perform();
 }
 
-void TExec::stop()
+void TTitleExec::stop()
 {
-    ...
-}
-
-//-Signals & Slots-------------------------------------------------------------------------------------------------------
-//Private Slots:
-void TExec::postBlockingProcess()
-{
-
+    TExec::stop();
+    if(mBider && mBider->isBiding())
+    {
+        logEvent(LOG_EVENT_STOPPING_BIDE_PROCESS);
+        mBider->closeProcess();
+    }
 }

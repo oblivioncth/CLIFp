@@ -123,11 +123,16 @@ private:
     bool useRuffle(const Fp::Game& game, Task::Stage stage);
     Qx::Error handleEntry(const Fp::Game& game);
     Qx::Error handleEntry(const Fp::AddApp& addApp);
-    Qx::Error enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
-    Qx::Error enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
-    TExec* createStdGameExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
-    TExec* createStdAddAppExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
-    TExec* createRuffleTask(const QString& name, const QString& originalParams);
+    Qx::Error enqueueEntry(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
+    Qx::Error enqueueEntry(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
+    /* TODO: It would be nice to condense the few common parts of the exec creation funcs into a common one, but difficult
+     * due to params. This is a good reason to try and make an object that holds a game and its data
+     * together (there should be another todo about this "FinalGame"), though that only deals with part
+     * of the param mismatch)
+     */
+    TExec* createExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage);
+    TExec* createExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage);
+    void setupRuffle(TExec* exec, const QString& originalParams);
 
 protected:
     QList<const QCommandLineOption*> options() const override;
