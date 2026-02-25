@@ -32,6 +32,9 @@ public:
     virtual ~Task() = default;
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
+protected:
+    virtual void complete(const Qx::Error& errorState = {});
+
 public:
     virtual QStringList members() const;
 
@@ -43,7 +46,7 @@ public:
 
 //-Signals & Slots------------------------------------------------------------------------------------------------------------
 signals:
-    void complete(const Qx::Error& errorState);
+    void completed(const Qx::Error& errorState);
 };
 
 #endif // TASK_H

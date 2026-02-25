@@ -70,5 +70,5 @@ void TExtra::perform()
         postDirective<DError>(errorStatus);
     }
 
-    emit complete(errorStatus);
+    complete(errorStatus);
 }

@@ -166,5 +166,5 @@ void TDownload::postDownload(Qx::DownloadManagerReport downloadReport)
         postDirective<DError>(errorStatus);
     }
 
-    emit complete(errorStatus);
+    complete(errorStatus);
 }

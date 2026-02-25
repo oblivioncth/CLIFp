@@ -1,15 +1,18 @@
-#ifndef TBIDEPROCESS_H
-#define TBIDEPROCESS_H
+#ifndef T_TITLEEXEC_H
+#define T_TITLEEXEC_H
 
-// Qx Includes
-#include <qx/core/qx-processbider.h>
+// Qt Includes
+#include <QUuid>
+#include <QElapsedTimer>
 
 // Project Includes
-#include "task/task.h"
+#include "task/t-exec.h"
 
-class QX_ERROR_TYPE(TBideProcessError, "TBideError", 1256)
+namespace Qx { class ProcessBider; }
+
+class QX_ERROR_TYPE(TTitleExecError, "TTitleExecError", 1256)
 {
-    friend class TBideProcess;
+    friend class TTitleExec;
 //-Class Enums-------------------------------------------------------------
 public:
     enum Type
@@ -32,7 +35,7 @@ private:
 
 //-Constructor-------------------------------------------------------------
 private:
-    TBideProcessError(const QString& pn = {}, Type t = NoError);
+    TTitleExecError(const QString& pn = {}, Type t = NoError);
 
 //-Instance Functions-------------------------------------------------------------
 public:
@@ -47,15 +50,21 @@ private:
     QString deriveSecondary() const override;
 };
 
-class TBideProcess : public Task
+class TTitleExec : public TExec
 {
     Q_OBJECT;
 //-Class Variables-------------------------------------------------------------------------------------------------
 private:
     // Meta
-    static inline const QString NAME = u"TBideProcess"_s;
+    static inline const QString NAME = u"TTitleExec"_s;
 
     // Logging
+    static inline const QString LOG_EVENT_RUNNING_TITLE = u"Starting main title process."_s;
+
+    // Logging - Bide
+    static inline const QString LOG_EVENT_CHECKING_FOR_BIDE = u"Checking if main title process needs a bide..."_s;
+    static inline const QString LOG_EVENT_BIDE_DETERMINED = u"Main title process %1 need bide..."_s;
+    static inline const QString LOG_EVENT_BIDE_START = u"Beginning bide on main title process..."_s;
     static inline const QString LOG_EVENT_BIDE_GRACE = u"Waiting %1 seconds for process %2 to be running"_s;
     static inline const QString LOG_EVENT_BIDE_RUNNING = u"Wait-on process %1 is running"_s;
     static inline const QString LOG_EVENT_BIDE_ON = u"Waiting for process %1 to finish"_s;
@@ -63,36 +72,48 @@ private:
     static inline const QString LOG_EVENT_BIDE_FINISHED = u"Wait-on process %1 was not running after the grace period"_s;
     static inline const QString LOG_EVENT_STOPPING_BIDE_PROCESS = u"Stopping current bide process..."_s;
 
+    // Logging - Tracking
+    static inline const QString LOG_EVENT_TRACKING_SKIP = u"Tracking is not applicable for this run."_s;
+    static inline const QString LOG_EVENT_TRACKING_UPDATE = u"Updating play stats for %1 (duration of %2 seconds)."_s;
+
     // Errors
     static inline const QString ERR_CANT_CLOSE_BIDE_PROCESS = u"Could not automatically end the running title! It will have to be closed manually."_s;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
-    Qx::ProcessBider mProcessBider;
+    Qx::ProcessBider* mBider;
+    QElapsedTimer mPlayTimer;
 
     // Data
-    QString mProcessName;
+    QUuid mTrackingId;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
-    TBideProcess(Core& core);
+    TTitleExec(Core& core);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
+private:
+#if _WIN32
+    Qx::Error setupBide();
+    void startBide();
+#endif
+
+    void complete(const Qx::Error& errorState) override;
+    bool shouldTrack() const;
+    void cleanup(const Qx::Error& errorState);
+
 public:
+    // Member access
     QString name() const override;
     QStringList members() const override;
 
-    QString processName() const;
+    QUuid trackingId() const;
+    void setTrackingId(const QUuid& id);
 
-    void setProcessName(QString processName);
-
+    // Run
     void perform() override;
     void stop() override;
-
-//-Signals & Slots-------------------------------------------------------------------------------------------------------
-private slots:
-    void postBide(Qx::ProcessBider::ResultType type);
 };
 
-#endif // TBIDEPROCESS_H
+#endif // T_TITLEEXEC_H

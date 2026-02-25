@@ -20,9 +20,6 @@
 #include "task/t-mount.h"
 #include "task/t-sleep.h"
 #include "task/t-generic.h"
-#ifdef _WIN32
-    #include "task/t-bideprocess.h"
-#endif
 #ifdef __linux__
     #include "task/t-awaitdocker.h"
 #endif
@@ -646,38 +643,6 @@ void Core::enqueueShutdownTasks()
     }
 #endif
 }
-
-#ifdef _WIN32
-Qx::Error Core::conditionallyEnqueueBideTask(const TExec* precedingTask)
-{
-    const Fp::Toolkit* tk = mFlashpointInstall->toolkit();
-
-    // Add wait for apps that involve secure player
-    QFileInfo preeedingInfo(precedingTask->executable());
-    bool involvesSecurePlayer;
-    Qx::Error securePlayerCheckError = tk->appInvolvesSecurePlayer(involvesSecurePlayer, preeedingInfo);
-    if(securePlayerCheckError.isValid())
-    {
-        postDirective<DError>(securePlayerCheckError);
-        return securePlayerCheckError;
-    }
-
-    if(involvesSecurePlayer)
-    {
-        TBideProcess* waitTask = new TBideProcess(*this);
-        waitTask->setStage(Task::Stage::Auxiliary);
-        waitTask->setProcessName(tk->SECURE_PLAYER_INFO.fileName());
-
-        mTaskQueue.push(waitTask);
-        logTask(waitTask);
-    }
-
-    // Return success
-    return CoreError();
-
-    // Possible future waits...
-}
-#endif
 
 Qx::Error Core::enqueueDataPackTasks(const Fp::GameData& gameData)
 {

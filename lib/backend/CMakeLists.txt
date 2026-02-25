@@ -25,6 +25,7 @@ set(BACKEND_IMPLEMENTATION
     command/c-download.cpp
     command/c-link.h
     command/c-link.cpp
+    command/c-link_win.cpp
     command/c-play.h
     command/c-play.cpp
     command/c-prepare.h
@@ -45,6 +46,8 @@ set(BACKEND_IMPLEMENTATION
     task/t-download.cpp
     task/t-exec.h
     task/t-exec.cpp
+    task/t-exec_linux.cpp
+    task/t-exec_win.cpp
     task/t-extra.h
     task/t-extra.cpp
     task/t-extract.h
@@ -57,6 +60,9 @@ set(BACKEND_IMPLEMENTATION
     task/t-mount.cpp
     task/t-sleep.h
     task/t-sleep.cpp
+    task/t-titleexec.h
+    task/t-titleexec.cpp
+    task/t-titleexec_win.cpp
     tools/archiveaccess.h
     tools/archiveaccess.cpp
     tools/blockingprocessmanager.h
@@ -88,13 +94,6 @@ set(BACKEND_LINKS
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
-    list(APPEND BACKEND_IMPLEMENTATION
-        command/c-link_win.cpp
-        task/t-exec_win.cpp
-        task/t-bideprocess.h
-        task/t-bideprocess.cpp
-    )
-
     list(APPEND BACKEND_LINKS
         PRIVATE
             Qx::Windows
@@ -106,7 +105,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
         command/c-link_linux.cpp
         task/t-awaitdocker.h
         task/t-awaitdocker.cpp
-        task/t-exec_linux.cpp
     )
     list(APPEND BACKEND_LINKS
         PRIVATE

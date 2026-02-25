@@ -223,5 +223,5 @@ void TExtract::perform()
     if(ee.isValid())
         postDirective<DError>(ee);
 
-    emit complete(ee);
+    complete(ee);
 }

@@ -35,5 +35,5 @@ void TGeneric::perform()
         postDirective<DError>(err);
 
     logEvent(LOG_EVENT_END_ACTION);
-    emit complete(err);
+    complete(err);
 }

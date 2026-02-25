@@ -179,5 +179,5 @@ void TMount::postMount(Qx::Error errorStatus)
 
     // Handle result
     postDirective<DProcedureStop>();
-    emit complete(errorStatus);
+    complete(errorStatus);
 }

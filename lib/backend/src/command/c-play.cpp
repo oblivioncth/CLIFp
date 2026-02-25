@@ -11,6 +11,7 @@
 // Project Includes
 #include "kernel/core.h"
 #include "task/t-exec.h"
+#include "task/t-titleexec.h"
 #include "task/t-message.h"
 #include "task/t-extra.h"
 
@@ -184,14 +185,14 @@ Qx::Error CPlay::handleEntry(const Fp::Game& game)
         {
             logEvent(LOG_EVENT_FOUND_AUTORUN.arg(aa.name()));
 
-            if(sError = enqueueAdditionalApp(aa, game, Task::Stage::Auxiliary); sError.isValid())
+            if(sError = enqueueEntry(aa, game, Task::Stage::Auxiliary); sError.isValid())
                 return sError;
         }
     }
 
     // Enqueue game
     postDirective<DStatusUpdate>(STATUS_PLAY, game.title());
-    if(sError = enqueueGame(game, gameData, Task::Stage::Primary); sError.isValid())
+    if(sError = enqueueEntry(game, gameData, Task::Stage::Primary); sError.isValid())
         return sError;
 
     // Enqueue service shutdown
@@ -246,7 +247,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
 
     // Enqueue
     postDirective<DStatusUpdate>(STATUS_PLAY, addApp.name());
-    if(sError = enqueueAdditionalApp(addApp, parentGame, Task::Stage::Primary); sError.isValid())
+    if(sError = enqueueEntry(addApp, parentGame, Task::Stage::Primary); sError.isValid())
         return sError;
 
     // Enqueue service shutdown if needed
@@ -256,7 +257,7 @@ Qx::Error CPlay::handleEntry(const Fp::AddApp& addApp)
     return Qx::Error();
 }
 
-Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
+Qx::Error CPlay::enqueueEntry(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
 {
     if(addApp.isMessage())
     {
@@ -277,78 +278,85 @@ Qx::Error CPlay::enqueueAdditionalApp(const Fp::AddApp& addApp, const Fp::Game& 
     }
     else
     {
-        TExec* execTask = useRuffle(parent, taskStage) ? createRuffleTask(addApp.name(), addApp.launchCommand()) :
-                                                         createStdAddAppExecTask(addApp, parent, taskStage);
+        TExec* execTask = createExecTask(addApp, parent, taskStage);
         addExtraExecParameters(execTask, taskStage);
         mCore.enqueueSingleTask(execTask);
-
-#ifdef _WIN32
-        // Add wait task if required
-        if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(execTask); ee.isValid())
-            return ee;
-#endif
     }
 
     // Return success
     return Qx::Error();
 }
 
-Qx::Error CPlay::enqueueGame(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
+Qx::Error CPlay::enqueueEntry(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
-    TExec* execTask = useRuffle(game, taskStage) ? createRuffleTask(game.title(), !gameData.isNull() ? gameData.launchCommand() : game.launchCommand()) :
-                                                   createStdGameExecTask(game, gameData, taskStage);
-
+    TExec* execTask = createExecTask(game, gameData, taskStage);
     addExtraExecParameters(execTask, taskStage);
     mCore.enqueueSingleTask(execTask);
-
-#ifdef _WIN32
-    // Add wait task if required
-    if(Qx::Error ee = mCore.conditionallyEnqueueBideTask(execTask); ee.isValid())
-        return ee;
-#endif
 
     // Return success
     return Qx::Error();
 }
 
-TExec* CPlay::createStdGameExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
+TExec* CPlay::createExecTask(const Fp::Game& game, const Fp::GameData& gameData, Task::Stage taskStage)
 {
-    QString gamePath = mCore.resolveFullAppPath(!gameData.isNull() ? gameData.applicationPath() : game.applicationPath(),
-                                                game.platformName());
-    QFileInfo gamePathInfo(gamePath);
-    QString param = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
+    QString params = !gameData.isNull() ? gameData.launchCommand() : game.launchCommand();
+    QString path = !gameData.isNull() ? gameData.applicationPath() : game.applicationPath();
+    bool ruffle = useRuffle(game, taskStage);
 
-    TExec* gameTask = new TExec(mCore);
+    TTitleExec* gameTask = new TTitleExec(mCore);
+    gameTask->setTrackingId(game.id());
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
-    gameTask->setExecutable(QDir::cleanPath(gamePathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
-    gameTask->setDirectory(gamePathInfo.absoluteDir());
-    gameTask->setParameters(param);
     gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
+
+    if(ruffle)
+        setupRuffle(gameTask, params);
+    else
+    {
+        QFileInfo fullPathInfo(mCore.resolveFullAppPath(path, game.platformName()));
+        gameTask->setExecutable(QDir::cleanPath(fullPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
+        gameTask->setDirectory(fullPathInfo.absoluteDir());
+        gameTask->setParameters(params);
+    }
 
     return gameTask;
 }
 
-TExec* CPlay::createStdAddAppExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
+TExec* CPlay::createExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, Task::Stage taskStage)
 {
-    QString addAppPath = mCore.resolveFullAppPath(addApp.applicationPath(), parent.platformName());
-    QFileInfo addAppPathInfo(addAppPath);
-    QString param = addApp.launchCommand();
+    QString params = addApp.launchCommand();
+    QString path = addApp.applicationPath();
+    bool ruffle = useRuffle(parent, taskStage);
 
-    TExec* addAppTask = new TExec(mCore);
+    TExec* addAppTask;
+    if(taskStage == Task::Stage::Primary)
+    {
+        TTitleExec* titleExec = new TTitleExec(mCore);
+        addAppTask = titleExec;
+    }
+    else
+        addAppTask = new TExec(mCore);
+
     addAppTask->setIdentifier(addApp.name());
     addAppTask->setStage(taskStage);
-    addAppTask->setExecutable(QDir::cleanPath(addAppPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
-    addAppTask->setDirectory(addAppPathInfo.absoluteDir());
-    addAppTask->setParameters(param);
     addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
     addAppTask->setProcessType(addApp.isWaitForExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
+
+    if(ruffle)
+        setupRuffle(addAppTask, params);
+    else
+    {
+        QFileInfo fullPathInfo(mCore.resolveFullAppPath(path, parent.platformName()));
+        addAppTask->setExecutable(QDir::cleanPath(fullPathInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
+        addAppTask->setDirectory(fullPathInfo.absoluteDir());
+        addAppTask->setParameters(params);
+    }
 
     return addAppTask;
 }
 
-TExec* CPlay::createRuffleTask(const QString& name, const QString& originalParams)
+void CPlay::setupRuffle(TExec* exec, const QString& originalParams)
 {
     /* Replicating:
      *
@@ -384,16 +392,9 @@ TExec* CPlay::createRuffleTask(const QString& name, const QString& originalParam
     };
     newParams.append(QProcess::splitCommand(originalParams));
 
-    TExec* ruffleTask = new TExec(mCore);
-    ruffleTask->setIdentifier(name);
-    ruffleTask->setStage(Task::Stage::Primary);
-    ruffleTask->setExecutable(ruffle.absoluteFilePath());
-    ruffleTask->setDirectory(ruffle.absoluteDir());
-    ruffleTask->setParameters(newParams);
-    ruffleTask->setEnvironment(mCore.childTitleProcessEnvironment());
-    ruffleTask->setProcessType(TExec::ProcessType::Blocking);
-
-    return ruffleTask;
+    exec->setExecutable(ruffle.absoluteFilePath());
+    exec->setDirectory(ruffle.absoluteDir());
+    exec->setParameters(newParams);
 }
 
 //Protected:

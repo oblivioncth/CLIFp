@@ -139,7 +139,7 @@ void DriverPrivate::startNextTask()
     else
     {
         // QueuedConnection, allow event processing between tasks
-        QObject::connect(mCurrentTask, &Task::complete, q, [this](const Qx::Error& e){
+        QObject::connect(mCurrentTask, &Task::completed, q, [this](const Qx::Error& e){
             completeTaskHandler(e);
         }, Qt::QueuedConnection);
 

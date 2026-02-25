@@ -272,9 +272,6 @@ public:
     bool blockNewInstances();
     CoreError enqueueStartupTasks(const QString& serverOverride = {});
     void enqueueShutdownTasks();
-#ifdef _WIN32
-    Qx::Error conditionallyEnqueueBideTask(const TExec* precedingTask);
-#endif
     Qx::Error enqueueDataPackTasks(const Fp::GameData& gameData);
     void enqueueSingleTask(Task* task);
 
