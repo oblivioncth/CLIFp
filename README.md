@@ -344,7 +344,7 @@ clifp
 ```
 
 ## Release Builds
-For guidance on which release build is likely best for your system, compare your system to the table below and try whichever is most comparable to yours in the order shown. The compiler used is somewhat arbitrary, so equivalent compilers are combined in the table. If one build type with a given compiler does not work for you it's unlikely the other listed as part of the same line will, but you can try it if you want.
+For guidance on which [release](https://github.com/oblivioncth/CLIFp/releases) build is likely best for your system, compare your system to the table below and try whichever is most comparable to yours in the order shown. The compiler used is somewhat arbitrary, so equivalent compilers are combined in the table. If one build type with a given compiler does not work for you it's unlikely the other listed as part of the same line will, but you can try it if you want.
 
 | System                                    | Builds                                                                   |
 | ----------------------------------------- | ------------------------------------------------------------------------ |
