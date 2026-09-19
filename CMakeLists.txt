@@ -13,7 +13,7 @@ project(CLIFp
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.4.0.2")
+fetch_ob_cmake("1820c487fdf0128f195e0813b04cfbefb5933bb6")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -45,11 +45,14 @@ endif()
 # Import Qt
 set(CLIFP_QT_COMPONENTS
     Core
-    Core5Compat
     Gui
     Widgets
     Sql
     Network
+)
+
+set(CLIFP_QT_OPTIONAL_COMPONENTS
+    Core5Compat
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
@@ -58,7 +61,10 @@ endif()
 
 # Find Qt package
 include(OB/Qt)
-ob_find_package_qt(REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS})
+ob_find_package_qt(
+    REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS}
+    OPTIONAL_COMPONENTS ${CLIFP_QT_OPTIONAL_COMPONENTS}
+)
 
 # Fetch Qx (build and import from source)
 set(CLIFP_QX_COMPONENTS
@@ -95,7 +101,7 @@ ob_fetch_qi_qmp("v0.2.3")
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
 ob_fetch_quazip(
-    REF "v1.3"
+    REF "v1.7.2"
     QT_MAJOR_VER "6"
 )
 
