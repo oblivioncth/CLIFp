@@ -24,10 +24,10 @@ private:
     static inline const QString INSTR_TRY_AGAIN = u"Invalid response, try again..."_s;
     static inline const QString INSTR_CHOICE_SEL = u"Select Action (or ENTER for *):"_s;
     static inline const QString INSTR_CHOICE_SEL_NO_DEF = u"Select Action:"_s;
-    static inline const QString INSTR_FILE_ENTER = u"File Path (or ENTER to cancel):"_s;
-    static inline const QString INSTR_DIR_ENTER_EXIST = u"Existing Directory (or ENTER to cancel):"_s;
+    static inline const QString INSTR_FILE_ENTER = u"File Path (or Ctrl+C to cancel):"_s;
+    static inline const QString INSTR_DIR_ENTER_EXIST = u"Existing Directory (or Ctrl+C to cancel):"_s;
     static inline const QString INSTR_YES_OR_NO = u"Yes or No/ENTER:"_s;
-    static inline const QString INSTR_ITEM_SEL = u"Select Item (or ENTER for 1):"_s;
+    static inline const QString INSTR_ITEM_SEL = u"Select Item (or ENTER for 1, Ctrl+C to cancel):"_s;
 
     // Templates
     static inline const QString TEMPL_OPTION = u"%1) %2"_s;
@@ -68,7 +68,15 @@ private:
 
     template<Input::Type R, typename V>
         requires Input::Validator<R, V>
-    std::optional<R> prompt(V v);
+    std::optional<R> promptImpl(V v, bool canCancel, std::optional<R> def);
+
+    template<Input::Type R, typename V>
+        requires Input::Validator<R, V>
+    std::optional<R> promptOptional(V v, std::optional<R> def = std::nullopt);
+
+    template<Input::Type R, typename V>
+        requires Input::Validator<R, V>
+    R promptRequired(V v, std::optional<R> def = std::nullopt);
 };
 
 #endif // CONSOLE_H
