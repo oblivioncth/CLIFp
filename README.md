@@ -178,7 +178,7 @@ Title Comamnd Shared Options:
 - **-i | --id:** UUID  of a game
 - **-t | --title:** The title of a game.
 - **-T | --title-strict:** Same as **-t**, but only exact matches are considered
-- **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T**
+- **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T** or **-i** (when **-i** refers to a parent game ID)
 - **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
 - **-r | --random:** Selects  a  random  title  from  the  database.  Must  be  followed  by  a  library  filter:  `all`/`any`,  `game`/`arcade`,  or `animation`/`theatre`
 
@@ -186,7 +186,7 @@ The **--title** and **--subtitle** options are case-insensitive and will match a
 
 The **--title-strict** and **--subtitle-strict** options only consider exact matches and are performed slightly faster than their more flexible counterparts.
 
-Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
+Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title, if more than 1; otherwise this will launch the only additional-app (if any).
 
 ### Command List:
 
