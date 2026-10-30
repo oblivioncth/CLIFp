@@ -77,19 +77,21 @@ QProcess* setupNativeProcess(const QString& execPath, const QStringList& execArg
 
 bool isShellBuiltin(const QString& command)
 {
-    // Cash built-ins so no execution is required if the same one is checked for again
+    // Cache built-ins so no execution is required if the same one is checked for again
     static QSet<QString> knownBuiltins;
     if(knownBuiltins.contains(command))
         return true;
 
     // TODO: Use Qx::execute()/shellExecutre() in any other places that just need a quick program result
     Qx::ExecuteResult res = Qx::shellExecute(u"type"_s, command); // Ubuntu doesn't support '-t' (short name) switch
-    if(res.exitCode != 0)
+    if(res.exitCode > 0)
+        return false; // Program not found by 'type' at all, so obviously not a built-in
+    else if(res.exitCode < 0)
     {
         qWarning("Failed to query if %s is a built-in command!", qPrintable(command));
         return false;
     }
-    if(res.output.contains(u"builtin"_s))
+    else if(res.output.trimmed().endsWith(u"shell builtin"_s))
     {
         knownBuiltins.insert(command);
         return true;
