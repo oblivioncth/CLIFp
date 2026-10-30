@@ -111,6 +111,7 @@ void FrontendConsole::handleDirective(const DBlockingError& d, DBlockingError::C
     print(validDef ? INSTR_CHOICE_SEL : INSTR_CHOICE_SEL_NO_DEF);
 
     // Print Choices
+    int defaultInt = -1;
     QList<DBlockingError::Choice> choices;
     for(auto c : magic_enum::enum_values<DBlockingError::Choice>())
     {
@@ -120,13 +121,22 @@ void FrontendConsole::handleDirective(const DBlockingError& d, DBlockingError::C
         choices.append(c);
         QString cStr = TEMPL_OPTION.arg(choices.count()).arg(ENUM_NAME(c));
         if(validDef && c == d.defaultChoice)
+        {
             cStr += '*';
+            defaultInt = choices.size(); // Effectively the current index + 1, i.e. 1 indexed index
+        }
         print(cStr);
     }
 
     // Get selection
-    auto sel = prompt<int>([c = choices.count()](int i){ return i > 0 && i <= c; });
-    *response = sel ? choices[*sel - 1] : d.defaultChoice;
+    auto validator = [c = choices.count()](int i){ return i > 0 && i <= c; };
+    if(validDef)
+    {
+        auto sel = promptOptional<int>(validator, defaultInt);
+        *response = sel ? choices[*sel - 1] : d.defaultChoice; // Use default choice also if canceled
+    }
+    else
+        *response = choices[promptRequired<int>(validator) - 1];
 }
 
 void FrontendConsole::handleDirective(const DSaveFilename& d, QString* response)
@@ -138,11 +148,11 @@ void FrontendConsole::handleDirective(const DSaveFilename& d, QString* response)
     print(inst);
 
     // Get selection
-    auto path = prompt<QString>([ef = d.extFilter](const QString& i){
+    auto path = promptOptional<QString>([ef = d.extFilter](const QString& i){
         QFileInfo fi(i);
         return ef.contains(fi.suffix());
     });
-    *response = path ? *path : QString();
+    *response = path ? *path : QString(); // Null string if canceled
 }
 
 void FrontendConsole::handleDirective(const DExistingDir& d, QString* response)
@@ -152,11 +162,11 @@ void FrontendConsole::handleDirective(const DExistingDir& d, QString* response)
     print(INSTR_DIR_ENTER_EXIST);
 
     // Get selection
-    auto path = prompt<QString>([](const QString& i){
+    auto path = promptOptional<QString>([](const QString& i){
         QDir dir(i);
         return dir.exists();
     });
-    *response = path ? *path: QString();
+    *response = path ? *path: QString(); // Null string if canceled
 }
 
 void FrontendConsole::handleDirective(const DItemSelection& d, QString* response)
@@ -173,8 +183,8 @@ void FrontendConsole::handleDirective(const DItemSelection& d, QString* response
         print(TEMPL_OPTION.arg(++i).arg(itm));
 
     // Get selection
-    auto sel = prompt<int>([c = d.items.count()](int i){ return i > 0 && i <= c; });
-    *response = sel ? d.items[*sel - 1] : d.items.first();
+    auto sel = promptOptional<int>([c = d.items.count()](int i){ return i > 0 && i <= c; }, 1); // defaults to first item
+    *response = sel ? d.items[*sel - 1] : QString(); // Null string if canceled
 }
 
 void FrontendConsole::handleDirective(const DYesOrNo& d, bool* response)
@@ -186,11 +196,11 @@ void FrontendConsole::handleDirective(const DYesOrNo& d, bool* response)
     // Get selection
     static QSet<QString> yes{u"yes"_s, u"y"_s};
     static QSet<QString> no{u"no"_s, u"n"_s};
-    auto answer = prompt<QString>([](const QString& i){
+    auto answer = promptRequired<QString>([](const QString& i){
         QString lc = i.toLower();
         return yes.contains(lc) || no.contains(lc);
-    });
-    *response = answer && yes.contains(answer->toLower());
+    }, *no.constBegin()); // Technically random, but will always be a valid "no" value
+    *response = yes.contains(answer.toLower());
 }
 
 template<typename P>
@@ -205,18 +215,40 @@ void FrontendConsole::print(const P& p, Stream s)
 
 template<Input::Type R, typename V>
     requires Input::Validator<R, V>
-std::optional<R> FrontendConsole::prompt(V v)
+std::optional<R> FrontendConsole::promptImpl(V v, bool canCancel, std::optional<R> def)
 {
     forever
     {
         QString str = Qx::cin.readLine();
-        if(str.isEmpty())
+        if(!str.isEmpty())
+        {
+            R convIn;
+            if(Input::to(str, convIn) && v(convIn))
+                return convIn;
+        }
+
+        if(str.isNull() && canCancel) // i.e. Ctrl+C used
             return std::nullopt;
 
-        R convIn;
-        if(Input::to(str, convIn) && v(convIn))
-            return convIn;
+        if(str.isEmpty() && def) // i.e. ENTER pressed alone
+            return def;
 
         print(INSTR_TRY_AGAIN);
     }
+}
+
+template<Input::Type R, typename V>
+    requires Input::Validator<R, V>
+std::optional<R> FrontendConsole::promptOptional(V v, std::optional<R> def)
+{
+    return promptImpl(v, true, def);
+}
+
+template<Input::Type R, typename V>
+    requires Input::Validator<R, V>
+R FrontendConsole::promptRequired(V v, std::optional<R> def)
+{
+    auto res = promptImpl(v, false, def);
+    Q_ASSERT(res);
+    return *res;
 }
