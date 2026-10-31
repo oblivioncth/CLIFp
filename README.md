@@ -99,6 +99,9 @@ This is the most straightforward and hassle free approach, as it will start that
 
 A title's ID can be found by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". This command also supports starting additional apps, though getting their UUID is more tricky as I currently know of no other way than opening [FP Install Dir]\Data\flashpoint.sqlite in a database browser and searching for the ID manually.
 
+> [!NOTE]
+> Pending a hopefully merged PR, it will be possible to additional application UUIDs via a right click menu as well.
+
 Alternatively, the **-t** switch can be used, followed by the exact title of an entry:
 
     CLIFp play -t "Interactive Buddy"
