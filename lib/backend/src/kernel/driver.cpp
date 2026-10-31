@@ -187,6 +187,25 @@ void DriverPrivate::quit()
 }
 
 // Helper functions
+std::unique_ptr<Fp::Install> DriverPrivate::testInstall(const QString& path)
+{
+    logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(path));
+
+    // Attempt to instantiate
+    std::unique_ptr<Fp::Install> fpInstall = std::make_unique<Fp::Install>(path);
+    if(fpInstall->isValid())
+    {
+        if(fpInstall->outfittedDaemon() == Fp::Daemon::Unknown)
+            logError(Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
+        else
+            return std::move(fpInstall);
+    }
+    else
+        logError(fpInstall->error().setSeverity(Qx::Warning));
+
+    return nullptr;
+}
+
 std::unique_ptr<Fp::Install> DriverPrivate::findFlashpointInstall()
 {
     QDir currentDir(CLIFP_DIR_PATH);
@@ -194,25 +213,8 @@ std::unique_ptr<Fp::Install> DriverPrivate::findFlashpointInstall()
 
     do
     {
-        logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
-
-        // Attempt to instantiate
-        fpInstall = std::make_unique<Fp::Install>(currentDir.absolutePath());
-        if(fpInstall->isValid())
-        {
-            if(fpInstall->outfittedDaemon() == Fp::Daemon::Unknown)
-            {
-                logError(Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
-                fpInstall.reset();
-            }
-            else
-                break;
-        }
-        else
-        {
-            logError(fpInstall->error().setSeverity(Qx::Warning));
-            fpInstall.reset();
-        }
+        if(fpInstall = testInstall(currentDir.absolutePath()); fpInstall)
+            break;
     }
     while(currentDir.cdUp());
 
@@ -253,7 +255,8 @@ void DriverPrivate::drive()
     init();
 
     //-Initialize Core--------------------------------------------------------------------------
-    mErrorStatus = mCore->initialize(mArguments);
+    QString fpRoot;
+    mErrorStatus = mCore->initialize(mArguments, fpRoot);
     if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
     {
         finish();
@@ -303,9 +306,19 @@ void DriverPrivate::drive()
     {
         // Find and link to Flashpoint Install
         std::unique_ptr<Fp::Install> flashpointInstall;
-        logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
 
-        if(!(flashpointInstall = findFlashpointInstall()))
+        if(!fpRoot.isEmpty())
+        {
+            logEvent(LOG_EVENT_FLASHPOINT_NO_SEARCH);
+            flashpointInstall = testInstall(fpRoot);
+        }
+        else
+        {
+            logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
+            flashpointInstall = findFlashpointInstall();
+        }
+
+        if(!flashpointInstall)
         {
             DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
             postDirective<DError>(err);

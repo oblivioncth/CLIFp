@@ -6,14 +6,14 @@ cmake_minimum_required(VERSION 3.24.0...3.26.0)
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.16
+    VERSION 0.9.17
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
 
 # Get helper scripts
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchOBCMake.cmake)
-fetch_ob_cmake("v0.3.9.1")
+fetch_ob_cmake("v0.4.1")
 
 # Initialize project according to standard rules
 include(OB/Project)
@@ -21,11 +21,12 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 14.0)
+set(TARGET_FP_VERSION_PREFIX 14.0.3)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
 option(BUILD_SHARED_LIBS "Build CLIFp with shared libraries" OFF)
+option(CLIFP_INSTALL_MISC "Enable installation of misc components (e.g README.md/LICENSE)" ON)
 
 # C++
 set(CMAKE_CXX_STANDARD 20)
@@ -44,11 +45,14 @@ endif()
 # Import Qt
 set(CLIFP_QT_COMPONENTS
     Core
-    Core5Compat
     Gui
     Widgets
     Sql
     Network
+)
+
+set(CLIFP_QT_OPTIONAL_COMPONENTS
+    Core5Compat
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
@@ -57,7 +61,10 @@ endif()
 
 # Find Qt package
 include(OB/Qt)
-ob_find_package_qt(REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS})
+ob_find_package_qt(
+    REQUIRED COMPONENTS ${CLIFP_QT_COMPONENTS}
+    OPTIONAL_COMPONENTS ${CLIFP_QT_OPTIONAL_COMPONENTS}
+)
 
 # Fetch Qx (build and import from source)
 set(CLIFP_QX_COMPONENTS
@@ -78,14 +85,14 @@ endif()
 
 include(OB/FetchQx)
 ob_fetch_qx(
-    REF "v0.7.0.3"
+    REF "v0.7.1.1"
     COMPONENTS
         ${CLIFP_QX_COMPONENTS}
 )
 
 # Fetch libfp (build and import from source)
 include(OB/Fetchlibfp)
-ob_fetch_libfp("v0.6.1")
+ob_fetch_libfp("v0.6.2.1")
 
 # Fetch QI-QMP (build and import from source)
 include(OB/FetchQI-QMP)
@@ -94,7 +101,7 @@ ob_fetch_qi_qmp("v0.2.3")
 # Fetch QuaZip (build and import from source)
 include(OB/FetchQuaZip)
 ob_fetch_quazip(
-    REF "v1.3"
+    REF "v1.7.2"
     QT_MAJOR_VER "6"
 )
 
@@ -130,7 +137,9 @@ ob_standard_project_package_config(
 
 #================= Install ==========================
 
-ob_standard_project_misc_install()
+if(CLIFP_INSTALL_MISC)
+    ob_standard_project_misc_install()
+endif()
 
 #====================== CPack ==============================
 

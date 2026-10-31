@@ -79,6 +79,8 @@ That being said, it is perfectly possible to use CLIFp in any manner one sees fi
 
 It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
+Alternative, you can use the `-f` [global switch](#global-options) to specify the root Flashpoint directory, which will work regardless of where CLIFp is located.
+
 > [!IMPORTANT]
 > Before using CLIFp, be sure to have ran Flashpoint through its regular launcher at least once. If using Infinity, it's also best to make sure your install is fully updated as well.
 >
@@ -98,6 +100,9 @@ The most common use case is the **play** command with a [Title Command](#title-c
 This is the most straightforward and hassle free approach, as it will start that title exactly as if it had been launched from the Flashpoint GUI (including download/mounting of data packs, autorun before additional apps, etc.).
 
 A title's ID can be found by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". This command also supports starting additional apps, though getting their UUID is more tricky as I currently know of no other way than opening [FP Install Dir]\Data\flashpoint.sqlite in a database browser and searching for the ID manually.
+
+> [!NOTE]
+> Pending a hopefully merged PR, it will be possible to additional application UUIDs via a right click menu as well.
 
 Alternatively, the **-t** switch can be used, followed by the exact title of an entry:
 
@@ -168,6 +173,7 @@ or
 - **-v | --version:** Prints the current version of the tool
 - **-q | --quiet:** Silences all non-critical messages
 - **-s | --silent:** Silences all messages (takes precedence over quiet mode)
+- **-f | --flashpoint:** Manually specify the Flashpoint root directory. Allows use of CLIFp from anywhere
 
 Every command also has a corresponding help switch for command specific usage information.
 
@@ -178,7 +184,7 @@ Title Comamnd Shared Options:
 - **-i | --id:** UUID  of a game
 - **-t | --title:** The title of a game.
 - **-T | --title-strict:** Same as **-t**, but only exact matches are considered
-- **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T**
+- **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T** or **-i** (when **-i** refers to a parent game ID)
 - **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
 - **-r | --random:** Selects  a  random  title  from  the  database.  Must  be  followed  by  a  library  filter:  `all`/`any`,  `game`/`arcade`,  or `animation`/`theatre`
 
@@ -186,7 +192,7 @@ The **--title** and **--subtitle** options are case-insensitive and will match a
 
 The **--title-strict** and **--subtitle-strict** options only consider exact matches and are performed slightly faster than their more flexible counterparts.
 
-Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title.
+Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title, if more than 1; otherwise this will launch the only additional-app (if any).
 
 ### Command List:
 

@@ -142,7 +142,10 @@ void FrontendGui::handleDirective(const DExistingDir& d, QString* response)
 
 void FrontendGui::handleDirective(const DItemSelection& d, QString* response)
 {
-    *response = QInputDialog::getItem(nullptr, d.caption, d.label, d.items, 0, false);
+    bool inputProvided;
+    *response = QInputDialog::getItem(nullptr, d.caption, d.label, d.items, 0, false, &inputProvided);
+    if(!inputProvided)
+        *response = QString(); // Null out of diag canceled
 }
 
 void FrontendGui::handleDirective(const DYesOrNo& d, bool* response)

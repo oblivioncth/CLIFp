@@ -67,6 +67,7 @@ private:
     static inline const QString ERR_INSTALL_INVALID_TIP = u"You may need to update (i.e. the 'update' command)."_s;
 
     // Logging
+    static inline const QString LOG_EVENT_FLASHPOINT_NO_SEARCH = u"Flashpoint root provided, no need to search."_s;
     static inline const QString LOG_EVENT_FLASHPOINT_SEARCH = u"Searching for Flashpoint root..."_s;
     static inline const QString LOG_EVENT_FLASHPOINT_ROOT_CHECK = uR"(Checking if "%1" is flashpoint root)"_s;
     static inline const QString LOG_WARN_FP_UNRECOGNIZED_DAEMON = "Flashpoint install does not contain a recognized daemon!";
@@ -139,6 +140,7 @@ private:
     void quit();
 
     // Helper
+    std::unique_ptr<Fp::Install> testInstall(const QString& path);
     std::unique_ptr<Fp::Install> findFlashpointInstall();
 
 public:

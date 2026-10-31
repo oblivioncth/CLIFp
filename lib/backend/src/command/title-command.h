@@ -137,6 +137,7 @@ private:
     // Helper
     Qx::Error randomlySelectId(QUuid& mainIdBuffer, QUuid& subIdBuffer, Fp::Libraries lbFilter);
     Qx::Error getRandomSelectionInfo(QString& infoBuffer, QUuid mainId, QUuid subId);
+    Qx::Error checkSubtitle(QUuid& addAppId, const QUuid& parentId);
 
 protected:
     virtual QList<const QCommandLineOption*> options() const override;
