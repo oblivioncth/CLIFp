@@ -236,8 +236,11 @@ void Core::addOnDiskUpdateTask(int gameDataId)
 void Core::logTask(const Task* task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(u", "_s))); }
 
 //Public:
-Qx::Error Core::initialize(QStringList& commandLine)
+Qx::Error Core::initialize(QStringList& commandLine, QString& root)
 {
+    // Null out root return var
+    root = {};
+
     // Send initial status
     postDirective<DStatusUpdate>(u"Initializing"_s, u"..."_s);
 
@@ -312,13 +315,21 @@ Qx::Error Core::initialize(QStringList& commandLine)
     }
     else
     {
+        // Check for manually specified root
+        if(clParser.isSet(CL_OPTION_ROOT))
+        {
+            root = clParser.value(CL_OPTION_ROOT).trimmed();
+            logEvent(LOG_EVENT_MANUAL_ROOT.arg(root));
+        }
+
+        // Check for flashpoint protocol arg
         QStringList pArgs = clParser.positionalArguments();
         if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
         {
             logEvent(LOG_EVENT_PROTOCOL_FORWARD);
             commandLine = {"play", "-u", pArgs.front()};
         }
-        else
+        else // Proceed to command prep
             commandLine = pArgs; // Remove core options from command line list
     }
 

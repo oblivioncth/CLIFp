@@ -255,7 +255,8 @@ void DriverPrivate::drive()
     init();
 
     //-Initialize Core--------------------------------------------------------------------------
-    mErrorStatus = mCore->initialize(mArguments);
+    QString fpRoot;
+    mErrorStatus = mCore->initialize(mArguments, fpRoot);
     if(mErrorStatus.isSet() || mArguments.empty()) // Terminate if error or no command
     {
         finish();
@@ -305,9 +306,19 @@ void DriverPrivate::drive()
     {
         // Find and link to Flashpoint Install
         std::unique_ptr<Fp::Install> flashpointInstall;
-        logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
 
-        if(!(flashpointInstall = findFlashpointInstall()))
+        if(!fpRoot.isEmpty())
+        {
+            logEvent(LOG_EVENT_FLASHPOINT_NO_SEARCH);
+            flashpointInstall = testInstall(fpRoot);
+        }
+        else
+        {
+            logEvent(LOG_EVENT_FLASHPOINT_SEARCH);
+            flashpointInstall = findFlashpointInstall();
+        }
+
+        if(!flashpointInstall)
         {
             DriverError err(DriverError::InvalidInstall, ERR_INSTALL_INVALID_TIP);
             postDirective<DError>(err);

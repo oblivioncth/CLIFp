@@ -121,6 +121,7 @@ public:
     static inline const QString LOG_EVENT_FURTHER_INSTANCE_BLOCK_FAIL = u"Failed to lock standard instance count"_s;
     static inline const QString LOG_EVENT_G_HELP_SHOWN = u"Displayed general help information"_s;
     static inline const QString LOG_EVENT_VER_SHOWN = u"Displayed version information"_s;
+    static inline const QString LOG_EVENT_MANUAL_ROOT = u"Manual root specified: %1"_s;
     static inline const QString LOG_EVENT_PROTOCOL_FORWARD = u"Delegated protocol request to 'play'"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION_TXT = u"Flashpoint version.txt: %1"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION = u"Flashpoint version: %1"_s;
@@ -179,13 +180,18 @@ public:
     static inline const QString CL_OPT_SILENT_L_NAME = u"silent"_s;
     static inline const QString CL_OPT_SILENT_DESC = u"Silences all messages (takes precedence over quiet mode)."_s;
 
+    static inline const QString CL_OPT_ROOT_S_NAME = u"f"_s;
+    static inline const QString CL_OPT_ROOT_L_NAME = u"flashpoint"_s;
+    static inline const QString CL_OPT_ROOT_DESC = u"Manually specify the Flashpoint root directory."_s;
+
     // Global command line options
     static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_E_NAME, CL_OPT_HELP_L_NAME}, CL_OPT_HELP_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_VERSION{{CL_OPT_VERSION_S_NAME, CL_OPT_VERSION_L_NAME}, CL_OPT_VERSION_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_QUIET{{CL_OPT_QUIET_S_NAME, CL_OPT_QUIET_L_NAME}, CL_OPT_QUIET_DESC}; // Boolean option
     static inline const QCommandLineOption CL_OPTION_SILENT{{CL_OPT_SILENT_S_NAME, CL_OPT_SILENT_L_NAME}, CL_OPT_SILENT_DESC}; // Boolean option
+    static inline const QCommandLineOption CL_OPTION_ROOT{{CL_OPT_ROOT_S_NAME, CL_OPT_ROOT_L_NAME}, CL_OPT_ROOT_DESC, u"root"_s}; // Takes value
 
-    static inline const QList<const QCommandLineOption*> CL_OPTIONS_ALL{&CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_QUIET, &CL_OPTION_SILENT};
+    static inline const QList<const QCommandLineOption*> CL_OPTIONS_ALL{&CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_QUIET, &CL_OPTION_SILENT, &CL_OPTION_ROOT};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_ACTIONABLE{&CL_OPTION_HELP, &CL_OPTION_VERSION};
 
     // Help template
@@ -258,7 +264,7 @@ private:
 
 public:
     // Setup
-    Qx::Error initialize(QStringList& commandLine);
+    Qx::Error initialize(QStringList& commandLine, QString& root);
     void setServicesMode(ServicesMode mode = ServicesMode::Standalone);
     void watchLauncher();
     void attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall);
