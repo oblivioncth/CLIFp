@@ -79,6 +79,8 @@ That being said, it is perfectly possible to use CLIFp in any manner one sees fi
 
 It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
 
+Alternative, you can use the `-f` [global switch](#global-options) to specify the root Flashpoint directory, which will work regardless of where CLIFp is located.
+
 > [!IMPORTANT]
 > Before using CLIFp, be sure to have ran Flashpoint through its regular launcher at least once. If using Infinity, it's also best to make sure your install is fully updated as well.
 >
@@ -171,6 +173,7 @@ or
 - **-v | --version:** Prints the current version of the tool
 - **-q | --quiet:** Silences all non-critical messages
 - **-s | --silent:** Silences all messages (takes precedence over quiet mode)
+- **-f | --flashpoint:** Manually specify the Flashpoint root directory. Allows use of CLIFp from anywhere
 
 Every command also has a corresponding help switch for command specific usage information.
 
