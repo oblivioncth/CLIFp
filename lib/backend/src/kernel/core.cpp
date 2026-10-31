@@ -380,31 +380,63 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 #ifdef __linux__
     //-Mimic startup script setup-------------------------
     logEvent(LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS);
-
     // NOTE: This check likely will need to be modified over time, though it's close to how the script does it
+
+    // Get relavent paths
     QDir librariesDir(mFlashpointInstall->dir().absoluteFilePath(u"Libraries"_s));
-    bool immutable = !librariesDir.entryList({"*.so"}, QDir::Files).isEmpty();
+    QDir libDir(librariesDir.absoluteFilePath(u"lib/x86_64-linux-gnu"_s));
+
+    // Check if using built-in facilities
+    QFileInfo gtkLibInfo(libDir.absoluteFilePath(u"libgtk-3.so.0"_s));
+    bool immutable = gtkLibInfo.isFile() && !gtkLibInfo.isSymLink(); // Technically it shouldn't matter if the file is a symlink, but the vanilla script would fail if it is so we mimic that
     logEvent(LOG_EVENT_LINUX_BUILD_TYPE.arg(immutable ? u"isn't"_s : u"is"_s));
 
     if(immutable)
     {
-        de.insert(u"GDK_PIXBUF_MODULE_FILE"_s, fpPath + u"/Libraries/loader.cache"_s);
-        de.insert(u"GSETTINGS_SCHEMA_DIR"_s, fpPath + u"/Libraries"_s);
-        de.insert(u"LD_LIBRARY_PATH"_s, fpPath + u"/Libraries"_s);
-        de.insert(u"LIBGL_DRIVERS_PATH"_s, fpPath + u"/Libraries"_s);
+        // Add env variables that the script does in this case
+        de.insert(u"GALLIUM_DRIVER"_s, u"i915,i965,iris,nouveau,nouveau_vieux,r200,r300,r600,radeon,radeonsi,zink,swrast"_s);
+        de.insert(u"GDK_PIXBUF_MODULE_FILE"_s, libDir.absoluteFilePath(u"gdk-pixbuf-2.0/2.10.0/loaders.cache"_s));
+        de.insert(u"GSETTINGS_SCHEMA_DIR"_s, librariesDir.absoluteFilePath(u"/share/glib-2.0/schemas"_s));
+        de.insert(u"GTK_MODULES"_s, u""_s); // Intentionally empty
+        de.insert(u"LD_LIBRARY_PATH"_s, libDir.absolutePath());
+        de.insert(u"LIBGL_DRIVERS_PATH"_s, libDir.absoluteFilePath(u"/dri"_s));
+
+        // More path setup
+        QDir librariesBinDir(librariesDir.absoluteFilePath(u"bin"_s));
+        QDir wineBinDir(mFlashpointInstall->dir().absoluteFilePath(u"FPSoftware/Wine/bin"_s));
 
         /* Completely override PATH for child processes.
          * Currently we fully override our own path too, but if this breaks things, then we should only prepend the change to our own path.
          *
          * The addition of the WINE path is done just before game launch in the vanilla launcher, but there shouldn't be an issue doing it here.
+         * https://github.com/FlashpointProject/launcher/blob/db6404b87a52b0d57d982c53947fc73adcbec80f/src/back/GameLauncher.ts#L376
+         * Adding the system WINE path if the local one isn't present is done by the script not the launcher, so essentially we handle both
+         * in the same place. Because of the above, we also get the WINE bin in our path, which is also different from vanilla, so watch out
+         * for if that ever causes issues.
+         *
+         * We also deviate here from the script slightly. If the script doesn't find bundled in WINE nor a system WINE, it ends up not overriding
+         * the PATH at all. This may be because it treats that case as a "broken" install and just stops caring about proper setup, but theoretically
+         * some thing would still work without WINE. Therefore, we only gate the WINE portion of the PATH change behind finding it, not all the PATH
+         * changes.
          */
-        QString pathChange = fpPath + u"/FPSoftware/Wine/bin:"_s +
-                             fpPath + u"/Libraries"_s;
-        de.insert(u"PATH"_s, pathChange);
-        qputenv("PATH", pathChange.toLocal8Bit());
+        QString newPath = librariesBinDir.absolutePath(); // Script step
+        if(wineBinDir.exists())
+            newPath += u':' + wineBinDir.absolutePath(); // Launcher step
+        else
+        {
+            // It's possible this might end up needing some of our more specifc tricks in TExec::resolveExecutablePath(), but
+            // for the most part it shouldn't since we just want to simply find a system executable
+            QString systemWine = QStandardPaths::findExecutable(u"wine"_s);
+            if(!systemWine.isEmpty())
+                newPath += u':' + QFileInfo(systemWine).absolutePath(); // Script step
+        }
+
+        de.insert(u"PATH"_s, newPath);
+        qputenv("PATH", newPath.toLocal8Bit());
     }
 
-    de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s);
+    de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s); // Done unconditionally by script
+    de.insert(u"WINEDEBUG"_s, u"fixme-all"_s); // Done unconditionally by launcher in the same snippet above, should be safe to do here
 #endif
 
     TExec::setDefaultProcessEnvironment(de);
@@ -417,6 +449,7 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 
 #ifdef __linux__
     // Add HTTTP proxy var
+    //
     QString baseProxy = mFlashpointInstall->preferences().browserModeProxy;
     if(!baseProxy.isEmpty())
     {
