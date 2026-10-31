@@ -154,6 +154,16 @@ Qx::Error TitleCommand::getRandomSelectionInfo(QString& infoBuffer, QUuid mainId
     return TitleCommandError();
 }
 
+Qx::Error TitleCommand::checkSubtitle(QUuid& addAppId, const QUuid& parentId)
+{
+    Q_ASSERT(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT));
+
+    bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
+    QString subtitle = subtitleStrict ? mParser.value(CL_OPTION_SUBTITLE_STRICT) : mParser.value(CL_OPTION_SUBTITLE);
+
+    return mCore.findAddAppIdFromName(addAppId, parentId, subtitle, subtitleStrict);
+}
+
 //Protected:
 QList<const QCommandLineOption*> TitleCommand::options() const { return CL_OPTIONS_SPECIFIC + Command::options(); }
 
@@ -179,6 +189,17 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         titleId = mCore.fpInstall().database()->handleGameRedirects(titleId); // Redirect shortcut
         if(titleId != origId)
             logEvent(LOG_EVENT_GAME_REDIRECT.arg(origId.toString(QUuid::WithoutBraces), titleId.toString(QUuid::WithoutBraces)));
+
+        // Check subtitle
+        if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
+        {
+            if(Qx::Error se = checkSubtitle(addAppId, titleId))
+                return se;
+
+            // Bail if canceled
+            if(addAppId.isNull())
+                return TitleCommandError();
+        }
     }
     else if(mParser.isSet(CL_OPTION_TITLE) || mParser.isSet(CL_OPTION_TITLE_STRICT))
     {
@@ -196,10 +217,7 @@ Qx::Error TitleCommand::getTitleId(QUuid& id)
         // Check subtitle
         if(mParser.isSet(CL_OPTION_SUBTITLE) || mParser.isSet(CL_OPTION_SUBTITLE_STRICT))
         {
-            bool subtitleStrict = mParser.isSet(CL_OPTION_SUBTITLE_STRICT);
-            QString subtitle = subtitleStrict ? mParser.value(CL_OPTION_SUBTITLE_STRICT) : mParser.value(CL_OPTION_SUBTITLE);
-
-            if(Qx::Error se = mCore.findAddAppIdFromName(addAppId, titleId, subtitle, subtitleStrict); se.isValid())
+            if(Qx::Error se = checkSubtitle(addAppId, titleId))
                 return se;
 
             // Bail if canceled
