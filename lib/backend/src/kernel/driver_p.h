@@ -139,6 +139,7 @@ private:
     void quit();
 
     // Helper
+    std::unique_ptr<Fp::Install> testInstall(const QString& path);
     std::unique_ptr<Fp::Install> findFlashpointInstall();
 
 public:

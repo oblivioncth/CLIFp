@@ -187,6 +187,25 @@ void DriverPrivate::quit()
 }
 
 // Helper functions
+std::unique_ptr<Fp::Install> DriverPrivate::testInstall(const QString& path)
+{
+    logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(path));
+
+    // Attempt to instantiate
+    std::unique_ptr<Fp::Install> fpInstall = std::make_unique<Fp::Install>(path);
+    if(fpInstall->isValid())
+    {
+        if(fpInstall->outfittedDaemon() == Fp::Daemon::Unknown)
+            logError(Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
+        else
+            return std::move(fpInstall);
+    }
+    else
+        logError(fpInstall->error().setSeverity(Qx::Warning));
+
+    return nullptr;
+}
+
 std::unique_ptr<Fp::Install> DriverPrivate::findFlashpointInstall()
 {
     QDir currentDir(CLIFP_DIR_PATH);
@@ -194,25 +213,8 @@ std::unique_ptr<Fp::Install> DriverPrivate::findFlashpointInstall()
 
     do
     {
-        logEvent(LOG_EVENT_FLASHPOINT_ROOT_CHECK.arg(QDir::toNativeSeparators(currentDir.absolutePath())));
-
-        // Attempt to instantiate
-        fpInstall = std::make_unique<Fp::Install>(currentDir.absolutePath());
-        if(fpInstall->isValid())
-        {
-            if(fpInstall->outfittedDaemon() == Fp::Daemon::Unknown)
-            {
-                logError(Qx::GenericError(Qx::Warning, 12011, LOG_WARN_FP_UNRECOGNIZED_DAEMON));
-                fpInstall.reset();
-            }
-            else
-                break;
-        }
-        else
-        {
-            logError(fpInstall->error().setSeverity(Qx::Warning));
-            fpInstall.reset();
-        }
+        if(fpInstall = testInstall(currentDir.absolutePath()); fpInstall)
+            break;
     }
     while(currentDir.cdUp());
 
