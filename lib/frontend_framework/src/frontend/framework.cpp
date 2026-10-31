@@ -127,6 +127,12 @@ const QIcon& FrontendFramework::appIconFromResources() { static QIcon ico(u":/fr
 /* This implementation needs to be moved to FrontendGui if this ever drops the QGui dependency */
 void FrontendFramework::handleDirective(const DClipboardUpdate& d) { mSystemClipboard->setText(d.text); }
 
+void FrontendFramework::handleDirective(const DAssistedMode&, DAssistedMode::Action* response)
+{
+    // By default, just triggers help
+    *response = DAssistedMode::SpecialAction::Help;
+}
+
 bool FrontendFramework::aboutToExit()
 {
     /* Derivatives can override this to do things last minute, and return true,

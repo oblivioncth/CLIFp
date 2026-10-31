@@ -81,6 +81,7 @@ protected:
     virtual void handleDirective(const DExistingDir& d, QString* response) = 0;
     virtual void handleDirective(const DItemSelection& d, QString* response) = 0;
     virtual void handleDirective(const DYesOrNo& d, bool* response) = 0;
+    virtual void handleDirective(const DAssistedMode&, DAssistedMode::Action* response);
 
     // Control
     virtual bool aboutToExit();
