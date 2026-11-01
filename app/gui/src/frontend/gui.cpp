@@ -14,6 +14,9 @@
 // Magic enum
 #include "magic_enum_utility.hpp"
 
+// Project Includes
+#include "frontend/assisted/dialog/actionmenudialog.h"
+
 //===============================================================================================================
 // FrontendGui
 //===============================================================================================================
@@ -151,6 +154,12 @@ void FrontendGui::handleDirective(const DItemSelection& d, QString* response)
 void FrontendGui::handleDirective(const DYesOrNo& d, bool* response)
 {
     *response = QMessageBox::question(nullptr, QString(), d.question) == QMessageBox::Yes;
+}
+
+void FrontendGui::handleDirective(const DAssistedMode&, DAssistedMode::Action* response)
+{
+    auto action = ActionMenuDialog::getAction(nullptr, ASSISTED_MODE_MENU_MAIN_TXT, ASSISTED_MODE_MENU_SUB_TXT);
+    *response = action->perform();
 }
 
 bool FrontendGui::aboutToExit()
