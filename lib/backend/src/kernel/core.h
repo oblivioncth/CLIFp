@@ -40,7 +40,8 @@ public:
         TooManyResults,
         ConfiguredServerMissing,
         UnknownDatapackParam,
-        CannotObtainDatapack
+        CannotObtainDatapack,
+        ExtraArgumentsIgnored
     };
 
 //-Class Variables-------------------------------------------------------------
@@ -54,7 +55,8 @@ private:
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
         {ConfiguredServerMissing, u"The configured server was not found within the Flashpoint services store."_s},
         {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
-        {CannotObtainDatapack, u"The specified datapack could not be obtained via edition appropriate means."_s}
+        {CannotObtainDatapack, u"The specified datapack could not be obtained via edition appropriate means."_s},
+        {ExtraArgumentsIgnored, u"Command arguments ignored due to actionable global option preceedence."_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
@@ -261,6 +263,7 @@ private:
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
     void addOnDiskUpdateTask(int gameDataId);
     void logTask(const Task* task);
+    void consumeCommand(QStringList& commandLine , const QCommandLineParser& parser);
 
 public:
     // Setup

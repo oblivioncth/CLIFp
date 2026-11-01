@@ -235,6 +235,14 @@ void Core::addOnDiskUpdateTask(int gameDataId)
 // TODO: Have task have a toString function/operator instead of "members()" (or make members() private and have toString() use that)
 void Core::logTask(const Task* task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(u", "_s))); }
 
+void Core::consumeCommand(QStringList& commandLine , const QCommandLineParser& parser)
+{
+    if(const QStringList posArgs = parser.positionalArguments(); !posArgs.isEmpty())
+        logError(CoreError(CoreError::ExtraArgumentsIgnored, u'{' + posArgs.join(u", "_s) + u'}', Qx::Warning));
+
+    commandLine.clear();
+}
+
 //Public:
 Qx::Error Core::initialize(QStringList& commandLine, QString& root)
 {
@@ -304,13 +312,13 @@ Qx::Error Core::initialize(QStringList& commandLine, QString& root)
     if(clParser.isSet(CL_OPTION_VERSION))
     {
         showVersion();
-        commandLine.clear(); // Clear args so application terminates after Core setup
+        consumeCommand(commandLine, clParser); // Clear args so application terminates after Core setup
         logEvent(LOG_EVENT_VER_SHOWN);
     }
     else if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) && clParser.positionalArguments().count() == 0)) // Also when no parameters
     {
         showHelp();
-        commandLine.clear(); // Clear args so application terminates after Core setup
+        consumeCommand(commandLine, clParser); // Clear args so application terminates after Core setup
         logEvent(LOG_EVENT_G_HELP_SHOWN);
     }
     else
