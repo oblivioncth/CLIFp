@@ -297,7 +297,6 @@ Qx::Error Core::initialize(QStringList& commandLine, QString& root)
     if(!validArgs)
     {
         commandLine.clear(); // Clear remaining options since they are now irrelevant
-        showHelp();
 
         CoreError err(CoreError::InvalidOptions, clParser.errorText());
         postDirective<DError>(err);
