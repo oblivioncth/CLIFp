@@ -16,7 +16,7 @@
                     rgba(45,45,45,1) 100%
                 ) fixed;
             }
-            
+
             .img_container {
                 text-align: center;
                 max-width: 100%;
@@ -27,8 +27,8 @@
                 height: auto;
             }
         </style>
-  	</head>
-	<body>
+    </head>
+    <body>
         <div class="img_container">
             <img src="icon.png" alt="CLIFp Icon">
         </div>
@@ -36,7 +36,7 @@
             <!-- Wait for page to load so that alert block can be avoided with a negligible timeout -->
             window.addEventListener('load', function() {
                 console.log('All assets are loaded')
-                
+
                 const redirectQuery = "uuid";
                 const queryParams = new URLSearchParams(window.location.search);
                 if(queryParams.has(redirectQuery))
