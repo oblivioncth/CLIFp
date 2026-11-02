@@ -143,12 +143,13 @@ private:
     static inline const QString LOG_EVENT_RESTORE_FILES = u"Restoring original files..."_s;
     static inline const QString LOG_EVENT_INSTALL_FILES = u"Installing new files..."_s;
 
-    // Command line option strings
-    static inline const QString CL_OPT_INSTALL_L_NAME = u"install"_s;
-    static inline const QString CL_OPT_INSTALL_DESC = u""_s;
-
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_INSTALL{{CL_OPT_INSTALL_L_NAME}, CL_OPT_INSTALL_DESC, u"install"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_INSTALL{
+        {u"install"_s},
+        u""_s,
+        u"install"_s
+    }; // Takes value
+
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_INSTALL};
 
     // General

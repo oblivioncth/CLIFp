@@ -52,18 +52,19 @@ private:
     // Status
     static inline const QString STATUS_RUN = u"Running"_s;
 
-    // Command line option strings
-    static inline const QString CL_OPT_APP_S_NAME = u"a"_s;
-    static inline const QString CL_OPT_APP_L_NAME = u"app"_s;
-    static inline const QString CL_OPT_APP_DESC = u"Relative (to Flashpoint directory) path of application to launch."_s;
-
-    static inline const QString CL_OPT_PARAM_S_NAME = u"p"_s;
-    static inline const QString CL_OPT_PARAM_L_NAME = u"param"_s;
-    static inline const QString CL_OPT_PARAM_DESC = u"Command-line parameters to use when starting the application."_s;
-
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_APP{{CL_OPT_APP_S_NAME, CL_OPT_APP_L_NAME}, CL_OPT_APP_DESC, u"application"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_PARAM{{CL_OPT_PARAM_S_NAME, CL_OPT_PARAM_L_NAME}, CL_OPT_PARAM_DESC, u"parameters"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_APP{
+        {u"a"_s, u"app"_s},
+        u"Relative (to Flashpoint directory) path of application to launch."_s,
+        u"application"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_PARAM{
+        {u"p"_s, u"param"_s},
+        u"Command-line parameters to use when starting the application."_s,
+        u"parameters"_s
+    }; // Takes value
+
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_APP, &CL_OPTION_PARAM};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_REQUIRED{&CL_OPTION_APP};
 

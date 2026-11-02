@@ -69,23 +69,21 @@ private:
     static inline const QString LOG_EVENT_UNREGISTRATION = u"Removing CLIFp as the flashpoint protocol link handler..."_s;
     static inline const QString LOG_EVENT_URL = u"Share URL generated: %1"_s;
 
-    // Command line option strings
-    static inline const QString CL_OPT_CONFIGURE_S_NAME = u"c"_s;
-    static inline const QString CL_OPT_CONFIGURE_L_NAME = u"configure"_s;
-    static inline const QString CL_OPT_CONFIGURE_DESC = u"Registers CLIFp at its current location to handle 'flashpoint://' links."_s;
-
-    static inline const QString CL_OPT_UNCONFIGURE_S_NAME = u"C"_s;
-    static inline const QString CL_OPT_UNCONFIGURE_L_NAME = u"unconfigure"_s;
-    static inline const QString CL_OPT_UNCONFIGURE_DESC = u"Unregisters CLIFp as the 'flashpoint://' link handler if registered."_s;
-
-    static inline const QString CL_OPT_UNIVERSAL_S_NAME = u"u"_s;
-    static inline const QString CL_OPT_UNIVERSAL_L_NAME = u"universal"_s;
-    static inline const QString CL_OPT_UNIVERSAL_DESC = u"Creates a share URL that utilizes an https redirect for increased portability."_s;
-
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_CONFIGURE{{CL_OPT_CONFIGURE_S_NAME, CL_OPT_CONFIGURE_L_NAME}, CL_OPT_CONFIGURE_DESC}; // Boolean
-    static inline const QCommandLineOption CL_OPTION_UNCONFIGURE{{CL_OPT_UNCONFIGURE_S_NAME, CL_OPT_UNCONFIGURE_L_NAME}, CL_OPT_UNCONFIGURE_DESC}; // Boolean
-    static inline const QCommandLineOption CL_OPTION_UNIVERSAL{{CL_OPT_UNIVERSAL_S_NAME, CL_OPT_UNIVERSAL_L_NAME}, CL_OPT_UNIVERSAL_DESC}; // Boolean
+    static inline const QCommandLineOption CL_OPTION_CONFIGURE{
+        {u"c"_s, u"configure"_s},
+        u"Registers CLIFp at its current location to handle 'flashpoint://' links."_s
+    }; // Boolean
+
+    static inline const QCommandLineOption CL_OPTION_UNCONFIGURE{
+        {u"C"_s, u"unconfigure"_s},
+        u"Unregisters CLIFp as the 'flashpoint://' link handler if registered."_s
+    }; // Boolean
+
+    static inline const QCommandLineOption CL_OPTION_UNIVERSAL{
+        {u"u"_s, u"universal"_s},
+        u"Creates a share URL that utilizes an https redirect for increased portability."_s
+    }; // Boolean
 
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_CONFIGURE, &CL_OPTION_UNCONFIGURE, &CL_OPTION_UNIVERSAL};
 

@@ -110,14 +110,12 @@ private:
     // Logging - Messages
     static inline const QString LOG_EVENT_C_HELP_SHOWN = u"Displayed help information for: %1"_s;
 
-    // Standard command line option strings
-    static inline const QString CL_OPT_HELP_S_NAME = u"h"_s;
-    static inline const QString CL_OPT_HELP_E_NAME = u"?"_s;
-    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
-    static inline const QString CL_OPT_HELP_DESC = u"Prints this help message."_s;
-
     // Standard command line options
-    static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_E_NAME, CL_OPT_HELP_L_NAME}, CL_OPT_HELP_DESC}; // Boolean option
+    static inline const QCommandLineOption CL_OPTION_HELP{
+        {u"h"_s, u"?"_s, u"help"_s},
+        u"Prints this help message."_s
+    }; // Boolean option
+
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_STANDARD{&CL_OPTION_HELP};
 
     // Meta

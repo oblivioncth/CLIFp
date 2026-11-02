@@ -66,18 +66,18 @@ private:
     static inline const QString LOG_EVENT_CREATED_DIR_PATH = u"Created directories for shortcut: %1"_s;
     static inline const QString LOG_EVENT_CREATED_SHORTCUT = u"Created shortcut to %1 at %2"_s;
 
-    // Command line option strings
-    static inline const QString CL_OPT_PATH_S_NAME = u"p"_s;
-    static inline const QString CL_OPT_PATH_L_NAME = u"path"_s;
-    static inline const QString CL_OPT_PATH_DESC = u"Path to a directory for the new shortcut"_s;
-
-    static inline const QString CL_OPT_NAME_S_NAME = u"n"_s;
-    static inline const QString CL_OPT_NAME_L_NAME = u"name"_s;
-    static inline const QString CL_OPT_NAME_DESC = u"Name of the shortcut. Defaults to the name of the title"_s;
-
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_PATH{{CL_OPT_PATH_S_NAME, CL_OPT_PATH_L_NAME}, CL_OPT_PATH_DESC, u"path"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_NAME{{CL_OPT_NAME_S_NAME, CL_OPT_NAME_L_NAME}, CL_OPT_NAME_DESC, u"name"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_PATH{
+        {u"p"_s, u"path"_s},
+        u"Path to a directory for the new shortcut"_s,
+        u"path"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_NAME{
+        {u"n"_s, u"name"_s},
+        u"Name of the shortcut. Defaults to the name of the title"_s,
+        u"name"_s
+    }; // Takes value
 
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_PATH, &CL_OPTION_NAME};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_REQUIRED{};

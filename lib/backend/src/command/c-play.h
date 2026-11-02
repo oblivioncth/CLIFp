@@ -69,26 +69,28 @@ private:
         {u"ruffle"_s, u"--fullscreen"_s}
     };
 
-    // Command line option strings
-    static inline const QString CL_OPT_FULLSCREEN_S_NAME = u"f"_s;
-    static inline const QString CL_OPT_FULLSCREEN_L_NAME = u"fullscreen"_s;
-    static inline const QString CL_OPT_FULLSCREEN_DESC = u"Runs the title in fullscreen mode, if supported."_s;
-
-    static inline const QString CL_OPT_URL_S_NAME = u"u"_s;
-    static inline const QString CL_OPT_URL_L_NAME = u"url"_s;
-    static inline const QString CL_OPT_URL_DESC = u""_s;
-
-    static inline const QString CL_OPT_RUFFLE_L_NAME = u"ruffle"_s;
-    static inline const QString CL_OPT_RUFFLE_DESC = u"Forces the use of Ruffle for Flash games."_s;
-
-    static inline const QString CL_OPT_FLASH_L_NAME = u"flash"_s;
-    static inline const QString CL_OPT_FLASH_DESC = u"Forces the use of the standard app (usually Flash Player) for Flash games."_s;
-
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_URL{{CL_OPT_URL_S_NAME, CL_OPT_URL_L_NAME}, CL_OPT_URL_DESC, u"url"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_FULLSCREEN{{CL_OPT_FULLSCREEN_S_NAME, CL_OPT_FULLSCREEN_L_NAME}, CL_OPT_FULLSCREEN_DESC}; // Boolean
-    static inline const QCommandLineOption CL_OPTION_RUFFLE{{CL_OPT_RUFFLE_L_NAME}, CL_OPT_RUFFLE_DESC}; // Boolean
-    static inline const QCommandLineOption CL_OPTION_FLASH{{CL_OPT_FLASH_L_NAME}, CL_OPT_FLASH_DESC}; // Boolean
+    static inline const QCommandLineOption CL_OPTION_URL{
+        {u"u"_s, u"url"_s},
+        u""_s,
+        u"url"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_FULLSCREEN{
+        {u"f"_s, u"fullscreen"_s},
+        u"Runs the title in fullscreen mode, if supported."_s
+    }; // Boolean
+
+    static inline const QCommandLineOption CL_OPTION_RUFFLE{
+        {u"ruffle"_s},
+        u"Forces the use of Ruffle for Flash games."_s
+    }; // Boolean
+
+    static inline const QCommandLineOption CL_OPTION_FLASH{
+        {u"flash"_s},
+        u"Forces the use of the standard app (usually Flash Player) for Flash games."_s
+    }; // Boolean
+
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_URL, &CL_OPTION_FULLSCREEN, &CL_OPTION_RUFFLE, &CL_OPTION_FLASH};
 
     // Logging - Messages
