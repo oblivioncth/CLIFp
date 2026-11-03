@@ -9,7 +9,7 @@ Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completel
 
 ## Quickstart
 
-Download the latest recommended [release](https://oblivioncth.github.io/CLIFp/select-artifact.html) and extract `CLIFp.exe` (`clifp` on Linux) within the `bin` folder to the root of your Flashpoint directory (Ignore `CLIFp-c`), then follow the usage examples below.
+Download the <a href="https://oblivioncth.github.io/CLIFp/select-artifact.html" target="_blank" rel="noopener noreferrer"> latest recommended release</a> and extract `CLIFp.exe` (`clifp` on Linux) within the `bin` folder to the root of your Flashpoint directory (Ignore `CLIFp-c`), then follow the usage examples below.
 
 See [RELEASE-BUILDS](doc/RELEASE-BUILDS.md) for guidance on selecting your own, for example if you need a download for another machine. 
 
