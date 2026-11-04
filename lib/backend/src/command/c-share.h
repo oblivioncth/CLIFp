@@ -13,7 +13,10 @@ public:
     {
         NoError = 0,
         RegistrationFailed = 1,
-        UnregistrationFailed = 2
+        UnregistrationFailed = 2,
+        AlreadyRegistered = 3,
+        NotRegistered = 4,
+
     };
 
 //-Class Variables-------------------------------------------------------------
@@ -21,17 +24,20 @@ private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
         {RegistrationFailed, u"Failed to register CLIFp as the 'flashpoint' scheme handler."_s},
-        {UnregistrationFailed, u"Failed to remove CLIFp as the 'flashpoint' scheme handler."_s}
+        {UnregistrationFailed, u"Failed to remove CLIFp as the 'flashpoint' scheme handler."_s},
+        {AlreadyRegistered, u"CLIFp is already set as the `flashpoint` scheme handler"_s},
+        {NotRegistered, u"CLIFp is not set as the `flashpoint` scheme handler"_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
 private:
     Type mType;
     QString mSpecific;
+    Qx::Severity mSeverity;
 
 //-Constructor-------------------------------------------------------------
 private:
-    CShareError(Type t = NoError, const QString& s = {});
+    CShareError(Type t = NoError, const QString& s = {}, Qx::Severity sv = Qx::Critical);
 
 //-Instance Functions-------------------------------------------------------------
 public:
