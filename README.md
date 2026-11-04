@@ -1,7 +1,7 @@
-# CLIFp (Command-line Interface for Flashpoint)
-<img align="left" src="https://i.imgur.com/U6aDFSt.png" width=20%>
+﻿# CLIFp (Command-line Interface for Flashpoint)
+<img align="left" src="doc/resources/logo.png" width=20%>
 
-CLIFp (pronounced "Cliff-P", or just "Cliff") is an alternative launcher for [Flashpoint Archive](https://flashpointarchive.org/) that focuses on speed and simplicity while providing access to a Flashpoint's vast library via a ripe command-line interface. This greatly increases the flexibility of Flashpoint by allowing for more direct integration with other software, such as Steam, LaunchBox, or any arbitrary application/script. The functionality of CLIFp should be near identical to the standard launcher for the facilities it implements.
+CLIFp (pronounced "Cliff-P", or just "Cliff") is an alternative launcher for [Flashpoint Archive](https://flashpointarchive.org/) that focuses on speed and simplicity while providing access to a Flashpoint's vast library via a ripe command-line interface. This greatly increases the flexibility of Flashpoint by allowing for more direct integration with other software, such as Steam, LaunchBox, or any arbitrary application/script (see [Flashpoint Importer for Launchers](https://github.com/oblivioncth/FIL) for an example). The functionality of CLIFp should be near identical to the standard launcher for the facilities it implements.
 
 Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completely in the background so that the only windows seen during use are the same ones present while running standard Flashpoint. It automatically terminates once the target application has exited, requiring no manual tasks or clean-up by the user.
 
@@ -9,7 +9,21 @@ Other than a few pop-up dialogs used for alerts and errors, CLIFp runs completel
 
 ## Quickstart
 
-Download the latest [release](https://github.com/oblivioncth/CLIFp/releases) that's appropriate for your system (see [Release Builds](#release-builds) for guidance on that) and place it in the root of your Flashpoint directory.
+Download the <a href="https://oblivioncth.github.io/CLIFp/select-artifact.html" target="_blank" rel="noopener noreferrer"> latest recommended release</a> and extract `CLIFp.exe` (`clifp` on Linux) within the `bin` folder to the root of your Flashpoint directory (Ignore `CLIFp-c`), then follow the usage examples below.
+
+See [RELEASE-BUILDS](doc/RELEASE-BUILDS.md) for guidance on selecting your own, for example if you need a download for another machine. 
+
+> [!NOTE]
+> The regular Flashpoint Launcher does not have to be running to use CLIFp (and it's generally advantages to **NOT** have it running).
+
+### Guided Usage
+
+> [!TIP]
+> For the most user-friendly introduction to CLIFp, simply double-click on `CLIFp.exe` to access a GUI-based "Assisted Mode".
+
+![Assisted Mode](doc/resources/assistant.png)
+
+### Basic Command-line Usage
 
 Play a game:
 
@@ -26,7 +40,7 @@ Play an additional app:
 
     CLIFp play -t "Railroad Rampage" -s "Unlimited Health / Ammo Hack"
 
-Create a desktop shortcut:
+Create a desktop shortcut:d
 
     CLIFp link -t "Skill Archer"
 
@@ -42,6 +56,12 @@ Update:
 
     CLIFp update
 
+See [USAGE](doc/USAGE.md) for more details.
+
+## Support
+
+Please submit any possible bugs or issues with using the software to the [repository's issue tracker](https://github.com/oblivioncth/CLIFp/issues). If you really don't want to use GitHub, you can ping me in the Flashpoint Discord.
+
 ## Compatability
 
 ### General
@@ -50,7 +70,7 @@ Most flashpoint features are supported. The regular launcher still must be used 
 - Changing user configuration, like preferences, playlists, etc.
 - Updating the launcher and downloading game updates
 
-See the [All Commands/Options](#all-commandsoptions) section for more information.
+See the [Full Commands + Options Documentation](doc/COMMANDS.md) section for more information.
 
 While constantly testing for complete compatibility is infeasible given the size of Flashpoint, CLIFp was designed with full compatibility in mind and theoretically is 100% compatible with the Flashpoint collection.
 
@@ -65,86 +85,9 @@ Updates will always be set to target the latest Flashpoint release, even if they
 
 ## Usage
 
-### Original Usage
-CLIFp was originally created for use with its sister project [FIL (Flashpoint Importer for Launchers)](https://github.com/oblivioncth/FIL) to facilitate the inclusion of Flashpoint in to LaunchBox and other frontend collections. The operation of CLIFp is completely automated when used in this manner.
+See [USAGE](doc/USAGE.md) 
 
-It was later refined to also be used directly with the Flashpoint project to allow users to create shortcuts and leverage other benefits of a CLI.
-
-That being said, it is perfectly possible to use CLIFp in any manner one sees fit.
-
-### General
-
-> [!NOTE]
-> In most cases you should use the 'static' builds of CLIFp on Windows or Linux.
-
-It is recommended to place CLIFp in the root directory of Flashpoint (next to its shortcut), but CLIFp will search all parent directories in order for the root Flashpoint structure and therefore will work correctly in any Flashpoint sub-folder. However, this obviously won't work if CLIFp is behind a symlink/junction.
-
-Alternative, you can use the `-f` [global switch](#global-options) to specify the root Flashpoint directory, which will work regardless of where CLIFp is located.
-
-> [!IMPORTANT]
-> Before using CLIFp, be sure to have ran Flashpoint through its regular launcher at least once. If using Infinity, it's also best to make sure your install is fully updated as well.
->
-> Do not run CLIFp as an administrator/root as some titles may not work correctly or run at all.
-
-CLIFp uses the following syntax scheme:
-
-    CLIFp <global options> *command* <command options>
-
-The order of switches within each options section does not matter.
-
-**Primary Usage:**
-The most common use case is the **play** command with a [Title Command](#title-commands) switch. For this example **-i** is used to indicate a title is being referenced by its UUID
-
-    CLIFp play -i 37e5c215-9c39-4a3d-9912-b4343a17027e
-
-This is the most straightforward and hassle free approach, as it will start that title exactly as if it had been launched from the Flashpoint GUI (including download/mounting of data packs, autorun before additional apps, etc.).
-
-A title's ID can be found by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". This command also supports starting additional apps, though getting their UUID is more tricky as I currently know of no other way than opening [FP Install Dir]\Data\flashpoint.sqlite in a database browser and searching for the ID manually.
-
-> [!NOTE]
-> Pending a hopefully merged PR, it will be possible to additional application UUIDs via a right click menu as well.
-
-Alternatively, the **-t** switch can be used, followed by the exact title of an entry:
-
-    CLIFp play -t "Interactive Buddy"
-
-Or if feeling spontaneous, use the **-r** switch, followed by a library filter to select a title randomly:
-
-    CLIFp play -r game
-
-See the [All Commands/Options](#all-commandsoptions) section for more information.
-
-**Direct Execution:**
-The legacy approach is to use the **run** command with the **--app** and **--param** switches. This will start Flashpoint's services and then start the application specified with the provided parameters:
-
-    CLIFp run --app="FPSoftware\Flash\flashplayer_32_sa.exe" --param="http://www.mowa.org/work/buttons/buttons_art/basic.swf"
-
-If the application needs to use files from a Data Pack that pack will need to be downloaded/mounted first using **prepare** or else it won't work.
-
-The applications and arguments that are used for each game/animation can be found within the Flashpoint database ([FP Install Dir]\Data\flashpoint.sqlite)
-
-### Flashpoint Protocol
-
-CLIFp supports the "flashpoint" protocol, which means it can launch titles through URL with a custom scheme, followed by a title's UUID, like this:
-
-    flashpoint://37e5c215-9c39-4a3d-9912-b4343a17027e
-
-This makes it fast and easy to share games that you think your friends should try out.
-
-To register CLIFp as the handler for these URLs, simply run:
-
-    CLIFp share -c
-
-To easily create a share link if you don't already know the UUID of a game, you can use the **share** command with the **-t** switch followed by a title:
-
-    CLIFp share -t "Simple, Tasty Buttons"
-
-This will create a share link for that title which will be displayed via a message box and automatically copied to the system clipboard.
-
-If for whatever reason the service through which you wish to share a link does not support links with custom schemes, you can use the **-u** switch to generate a standard "https" link that utilizes a GitHub-hosted redirect page, enabling share links to be provided everywhere.
-
-> [!IMPORTANT]
-> You will want to disable the "Register As Protocol Handler" option in the default launcher or else it will replace CLIFp as the "flashpoint" protocol handler every time it's started.
+## Features
 
 ### Companion Mode
 
@@ -158,147 +101,13 @@ CLIFp supports loading games from `Data/ArchiveData` like newer Flashpoint Launc
 
 The ability to use the files directly from the archive will be added at a later time; however, do keep in mind that the current method means that previously started games will load faster the next time they are played since they will have already been extracted. This makes a significant difference with CLIFp in particular due to its "run on demand" paradigm, as it has to load the metadata from all archive data each time it is ran, versus the standard launcher which loads this data once at startup and then can utilize it multiple times until you close Flashpoint.
 
+### Other Features
+- CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on and features a context menu with an option to exit at any time. The functionality of the tray icon may be expanded upon in future releases
+- There is a second frontend included in releases named `clifp-c`, which features fully bi-directional CLI where all output is printed to the console and no UI windows are created. This version does not feature the system tray icon (see [FRONTENDS](docs/FRONTENDS.md))
+
 ## All Commands/Options
 
-Most options have short and long forms, which are interchangeable. For options that take a value, a space or **=** can be used between the option and its value, i.e.
-
-    -i 95b149c2-7f57-4894-b980-6ef03192f79d
-
-or
-
-    --msg="I am a message"
-
-### Global Options:
-- **-h | --help | -?:** Prints usage information
-- **-v | --version:** Prints the current version of the tool
-- **-q | --quiet:** Silences all non-critical messages
-- **-s | --silent:** Silences all messages (takes precedence over quiet mode)
-- **-f | --flashpoint:** Manually specify the Flashpoint root directory. Allows use of CLIFp from anywhere
-
-Every command also has a corresponding help switch for command specific usage information.
-
-### Title Commands:
-Many of CLIFp's commands require a game/animation to be specified, which can be done in several ways. These commands, are known as *title commands* and are noted as such below. The explanation for these common options are shown here instead of being repeated under each individually.
-
-Title Comamnd Shared Options:
-- **-i | --id:** UUID  of a game
-- **-t | --title:** The title of a game.
-- **-T | --title-strict:** Same as **-t**, but only exact matches are considered
-- **-s | --subtitle:** Name of an additional-app under a game. Must be used with **-t**/**-T** or **-i** (when **-i** refers to a parent game ID)
-- **-S | --subtitle-strict:** Same as **-s**, but only exact matches are considered
-- **-r | --random:** Selects  a  random  title  from  the  database.  Must  be  followed  by  a  library  filter:  `all`/`any`,  `game`/`arcade`,  or `animation`/`theatre`
-
-The **--title** and **--subtitle** options are case-insensitive and will match any title that contains the value provided; however, the provided title should match as closely as possible to how it appears within Flashpoint, as checks for close matches are limited due to technical restrictions. If more than one entry is found, a dialog window with more information will be displayed so that the intended title can be selected, though there is a limit to the number of matches.
-
-The **--title-strict** and **--subtitle-strict** options only consider exact matches and are performed slightly faster than their more flexible counterparts.
-
-Tip: You can use **-subtitle** with an empty string (i.e. `-s ""`) to see all of the additional-apps for a given title, if more than 1; otherwise this will launch the only additional-app (if any).
-
-### Command List:
-
-**download** - Downloads data packs for games that require them in bulk
-
-Options:
-- **-p | --playlist** Name of the playlist to download games for.
-
---------------------------------------------------------------------------------
-
-**link** - Creates  a  shortcut  to  a  Flashpoint  title
-
-Options:
-- [Title Command](#title-commands) options
-- **-p | --path:** Path to directory in which to place the shortcut. Prompts if not provided.
-- **-n | --name:** Name of the shortcut. Defaults to the name of the title
-
-Notes:
- - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
-
---------------------------------------------------------------------------------
-
-**play** - Launch  a game/animation. The bread and butter of this application.
-
-Options:
-
-- [Title Command](#title-commands) options
-- **-f | --fullscreen:** Forces the title to run in full screen if the underlying executable supports it.
-- **--ruffle:** Forces the use of Ruffle for applicable Flash games. Takes precedence over **--flash**.
-- **--flash:** Forces the use of the standard app (usually Flash Player) for applicable Flash games.
-
-Notes:
- - You can use `--` to pass arguments directly to the title's underlying executable/script, which can be useful for testing or customizing your experience:
-
-       CLIFp play -t "One Stick Man!" -- -monitor 2
-
---------------------------------------------------------------------------------
-
- **prepare** - Initializes  Flashpoint  for  playing  the  provided  Data  Pack  based  title  by  UUID.  If  the  title  does  not  use  a  Data  Pack  this  command  has  no  effect.
-
-Options:
-
-- [Title Command](#title-commands) options
-
---------------------------------------------------------------------------------
-
- **run** - Start  Flashpoint's  services and  then  execute  the  provided  application
-
-Options:
-- **-a | --app:** Relative (to Flashpoint Directory) path of  application to launch
-- **-p | --param:** Command-line parameters to use when starting the application
-
-Requires:
-**-a**
-
-Notes:
-
-When using the **--exe** and **--param** switches all quotes that are part of the input itself must be escaped for the command to be passed correctly. For example, the launch command
-
-    "http://website.com" -switch "value"
-  must be specified as
-
-
-    --param="\"http://website.com\" -switch \"value\""
-   Additionally, any characters with special meaning to the Windows shell that are not within at least one level of quote pairs must also be escaped (this can be avoided as long as you wrap the entire value of the switch in quotes as shown above):
-
-    http://website.com/foo&bar => --param=http://website.com/foo^&bar
-
-See http://www.robvanderwoude.com/escapechars.php for more information.
-
---------------------------------------------------------------------------------
-
-**share** - Generates a URL for starting a Flashpoint title that can be shared to other users.
-
-Options:
- - [Title Command](#title-commands) options
- - **-u | --universal:** Creates a standard HTTPS link that utilizes a redirect page. May be easier to share on some platforms.
- - **-c | --configure:** Registers CLIFp as the default handler for "flashpoint" protocol links.
- - **-C | --unconfigure:** Removes CLIFp as the default handler for "flashpoint" protocol links.
-
-Notes:
-
- - No title is required when using the **--configure*** option
- - By default, the standard Flashpoint launcher is registered to handle share links; therefore, its "Register As Protocol Handler" option should likely be disabled if you intend to use CLIFp instead.
-
---------------------------------------------------------------------------------
-
- **show** - Display  a  message  or  extra  folder
-
-Options:
- - **-m | --msg:** Displays an pop-up dialog with the supplied message. Used primarily for some additional apps
- - **-e | --extra:** Opens an explorer window to the specified extra. Used primarily for some additional apps
- - **-h | --help | -?:** Prints command specific usage information
-
-Requires:
-**-m** or **-e**
-
---------------------------------------------------------------------------------
-
- **update** - Check for and optional apply the latest update
-
-
-## Other Features
-CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on and features a context menu with an option to exit at any time.
-
-The functionality of the tray icon may be expanded upon in future releases.
+See [COMMANDS](doc/COMMANDS.md). 
 
 ## Limitations
 
@@ -309,70 +118,14 @@ The functionality of the tray icon may be expanded upon in future releases.
 ### Summary
 
  - C++20
- - CMake 3.24.0
+ - CMake >= 3.24.0
  - Targets:
 	 - Windows 10+
 	 - Linux
 
-### Dependencies
-- Qt6
-- [Qx](https://github.com/oblivioncth/Qx/)
-- [libfp](https://github.com/oblivioncth/libfp/)
-- [QI-QMP](https://github.com/oblivioncth/QI-QMP/)
-- [QuaZip](https://github.com/stachenov/quazip)
-- [Neargye's Magic Enum](https://github.com/Neargye/magic_enum)
-- [OBCMake](https://github.com/oblivioncth/OBCmake)
+See [BUILDING](docs/BUILDING.md) for how to build the tool locally.
 
-### Details
-The source for this project is managed by a sensible CMake configuration that allows for straightforward compilation and consumption of its target(s), either as a sub-project or as an imported package. All required dependencies except for Qt6 are automatically acquired via CMake's FetchContent mechanism.
 
-### Building
-Ensure Qt6 is installed and locatable by CMake (or alternatively use the `qt-cmake` script that comes with Qt in-place of the`cmake` command).
+## More Information
 
-Should work with MSVC, MINGW64, clang, and gcc.
-
-```
-# Acquire source
-git clone https://github.com/oblivioncth/CLIFp
-
-# Configure (ninja optional, but recommended)
-cmake -S CLIFp -B build-CLIFp -G "Ninja Multi-config"
-
-# Build
-cmake --build build-CLIFp
-
-# Install
-cmake --install build-CLIFp
-
-# Run
-cd "build-CLIFp/out/install/bin"
-clifp
-```
-
-## Release Builds
-For guidance on which [release](https://github.com/oblivioncth/CLIFp/releases) build is likely best for your system, compare your system to the table below and try whichever is most comparable to yours in the order shown. The compiler used is somewhat arbitrary, so equivalent compilers are combined in the table. If one build type with a given compiler does not work for you it's unlikely the other listed as part of the same line will, but you can try it if you want.
-
-| System                                    | Builds                                                                   |
-| ----------------------------------------- | ------------------------------------------------------------------------ |
-| Windows                                   | 1) Windows Static <br> 2) Windows Shared                                 |
-| Ubuntu 24.04, Arch, SteamOS               | 1) Linux Static Clang++18/GCC++14 <br> 2) Linux Shared Clang++18/GCC++14 |
-| Ubuntu 22.02                              | 1) Linux Static Clang++15/GCC++12 <br> 2) Linux Shared Clang++15/GCC++12 |
-| Ubuntu 20.04                              | 1) Linux Static Clang++12 <br> 2) Linux Shared Clang++12                 |
-
-Note that for shared builds, you must place the entire directory structure of the release in your Flashpoint folder and run CLIFp from within it's bin directory, like so:
-```
-Flashpoint/
-├── CLIFp/
-│   ├── bin/
-│   │   └── clifp.exe
-│   ├── cmake
-│   ├── LICENSE
-│   ├── README.md
-│   └── ...
-├── version.txt
-├── preferences.json
-└── ...
-```
-For static builds you can simply take the CLIFp executable out of the bin directory and place it directly in your Flashpoint folder.
-
-Remember these are just guidelines. Ultimately use whichever build you like, or build CLIFp yourself.
+For additional information, look within the [doc folder](doc/TOC.md).

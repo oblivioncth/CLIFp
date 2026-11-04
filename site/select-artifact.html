@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<!-- THIS PAGE MUST BE LINKED TO USING THE target="_blank" ATTRIBUTE TO ALLOW THE PAGE TO CLOSE ITSELF
+     ---- EXAMPLE ----
+     To get started, you can use the <a href="https://yourusername.github.io/your-repo/select-artifact.html" target="_blank" rel="noopener noreferrer">
+     automated download link</a> to automatically fetch the right version for your system, or browse all options on GitHub.
+     ---- END EXAMPLE ----
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Starting download...</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgb(77,77,77);
+            background: linear-gradient(
+                153deg,
+                rgba(77,77,77,1) 0%,
+                rgba(57,57,57,1) 50%,
+                rgba(45,45,45,1) 100%
+            ) fixed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #c9d1d9;
+        }
+        .container {
+            text-align: center;
+            max-width: 450px;
+            padding: 2rem;
+        }
+        .app-icon {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 1.5rem;
+            object-fit: contain;
+        }
+        p {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="icon.png" alt="App Icon" class="app-icon">
+        <p id="status">Starting download...</p>
+    </div>
+
+    <script>
+        const GITHUB_USER = "oblivioncth";
+        const GITHUB_REPO = "CLIFp";
+        const RELEASES_PAGE = `https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`;
+
+        function detectSystem() {
+            const ua = navigator.userAgent;
+            const platform = navigator.platform || '';
+
+            let os = 'unknown';
+            let arch = 'x64';
+
+            if (/Win/.test(platform) || /Windows/.test(ua)) os = 'windows';
+            else if (/Mac/.test(platform) || /Macintosh/.test(ua)) os = 'macos';
+            else if (/Linux/.test(platform) || /Linux/.test(ua)) os = 'linux';
+
+            if (/arm64|aarch64/i.test(ua) || /arm64|aarch64/i.test(platform)) arch = 'arm64';
+
+            return { os, arch };
+        }
+
+        async function init() {
+            // Test mode check: skips download if ?no-download is present in the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('no-download')) {
+                document.getElementById('status').innerHTML = `
+                    Test mode active: Automatic download skipped.<br><br>
+                    <a href="${RELEASES_PAGE}">View Releases Page manually</a>
+                `;
+                return;
+            }
+
+            try {
+                const { os, arch } = detectSystem();
+
+                // Bail if unsupported system
+                if (os === 'unknown' || arch !== 'x64') {
+                    const err = new Error(`Unsupported system configuration (OS: ${os}, Arch: ${arch})`);
+                    err.code = "UNSUPPORTED_HOST";
+                    throw err;
+                }
+
+                // Fetch latest release metadata from GitHub API
+                const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`;
+                const response = await fetch(apiUrl);
+
+                if (!response.ok) {
+                    const err = new Error("Failed to communicate with GitHub API");
+                    err.code = "API_ERROR";
+                    throw err;
+                }
+
+                const data = await response.json();
+                const assets = data.assets || [];
+
+                // Filter valid candidates: Must be Static (never Shared) and match OS/Arch
+                const candidates = assets.filter(asset => {
+                    const name = asset.name.toLowerCase();
+
+                    // Rule 1: Only Static builds, never Shared
+                    if (!name.includes('static') || name.includes('shared')) return false;
+
+                    // Rule 2: OS and Architecture match
+                    const matchesOs = name.includes(os);
+                    const matchesArch = name.includes(arch) || (arch === 'x64' && (name.includes('x86_64') || name.includes('amd64')));
+
+                    return matchesOs && matchesArch;
+                });
+
+                // Sort candidates: Prefer Clang over GCC, then prefer older/more compatible OS baselines (e.g., 22.04 over 24.04)
+                candidates.sort((a, b) => {
+                    const nameA = a.name.toLowerCase();
+                    const nameB = b.name.toLowerCase();
+
+                    // Rule 1: Prefer clang over g++/gcc
+                    const isClangA = nameA.includes('clang');
+                    const isClangB = nameB.includes('clang');
+                    if (isClangA && !isClangB) return -1;
+                    if (!isClangA && isClangB) return 1;
+
+                    // Rule 2: Prefer older OS baselines for broader glibc compatibility (ascending order: 22.04 comes before 24.04)
+                    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+
+                const matchedAsset = candidates[0];
+
+                if (!matchedAsset) {
+                    const err = new Error(`No matching static release asset found for OS: ${os}, Arch: ${arch}`);
+                    err.code = "NO_MATCHING_ASSET";
+                    throw err;
+                }
+
+                // Trigger download via the exact dynamic browser download URL provided by GitHub
+                window.location.replace(matchedAsset.browser_download_url);
+
+                setTimeout(() => {
+                    window.close();
+                }, 1000);
+
+            } catch (err) {
+                let message = `There was an error determining the correct artifact, try downloading one manually: <a href="${RELEASES_PAGE}">Releases Page</a>`;
+
+                if (err.code === "UNSUPPORTED_HOST") {
+                    message = `No release for your host could be determined. You can try checking the releases page manually: <a href="${RELEASES_PAGE}">Releases Page</a>`;
+                } else if (err.code === "NO_MATCHING_ASSET") {
+                    message = `No matching release asset was found for your system architecture. You can try checking the releases page manually: <a href="${RELEASES_PAGE}">Releases Page</a>`;
+                }
+
+                document.getElementById('status').innerHTML = `
+                    ${message}
+                    <br><br>
+                    <small style="color: #8b949e; font-family: monospace;">Details: ${err.message}</small>
+                `;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
