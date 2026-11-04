@@ -106,6 +106,7 @@ public:
     static inline const QString STATUS_DISPLAY = u"Displaying"_s;
     static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
     static inline const QString STATUS_DISPLAY_VERSION = u"Version"_s;
+    static inline const QString STATUS_DISPLAY_ASSISTED = u"Assisted Mode"_s;
 
     // Logging - Primary Values
     static inline const QString LOG_NO_PARAMS = u"*None*"_s;
@@ -163,11 +164,20 @@ public:
     static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = u"ID of title %1 determined to be %2"_s;
     static inline const QString LOG_EVENT_TITLE_SEL_CANCELED = u"Title selection was canceled by the user."_s;
 
+    // Logging - Assisted Mode
+    static inline const QString LOG_EVENT_ASSISTED_MODE = u"No actionable global switch and no command specified, prompting for assisted mode..."_s;
+    static inline const QString LOG_EVENT_ASSISTED_MODE_UNSPECIFIED = u"Assisted mode returned with no request"_s;
+    static inline const QString LOG_EVENT_ASSISTED_MODE_HELP = u"Assisted mode requests Help"_s;
+    static inline const QString LOG_EVENT_ASSISTED_MODE_VERSION = u"Assisted mode requests Version"_s;
+    static inline const QString LOG_EVENT_ASSISTED_COMMAND = u"Assisted mode requests command: {%1}"_s;
+    static inline const QString LOG_EVENT_ASSISTED_COMMAND_EMPTY = u"Assisted mode was canceled by the user (empty command)"_s;
+
     // Global command line options
     static inline const QCommandLineOption CL_OPTION_HELP{
         {u"h"_s, u"?"_s, u"help"_s},
         u"Prints this help message."_s
     }; // Boolean option
+
     static inline const QCommandLineOption CL_OPTION_VERSION{
         {u"v"_s, u"version"_s},
         u"Prints the current version of this tool."_s
@@ -252,6 +262,7 @@ public:
 private:
     QString name() const override;
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;
+    QStringList initiateAssistedMode();
     void showHelp();
     void showVersion();
 

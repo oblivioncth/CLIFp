@@ -155,12 +155,28 @@ struct DYesOrNo
     using response_type = bool;
 };
 
+struct DAssistedMode
+{
+    /* This could be avoided by making Core::showHelp()/Core::showVersion() public
+     * and adding 'alias' commands 'help'/'version' that just ultimately do the same thing
+     * but for now we have these special types for specifying those actions vs commands
+     */
+    enum class SpecialAction { Help, Version };
+    using CommandLine = QStringList;
+    using Unspecified = std::monostate; // For default initialized responses, ensures clear handling of case where a response was never set
+    using Action = std::variant<Unspecified, SpecialAction, CommandLine>;
+
+    // Frontends should fill the string list
+    using response_type = Action;
+};
+
 using RequestDirective = std::variant<
     DBlockingError,
     DSaveFilename,
     DExistingDir,
     DItemSelection,
-    DYesOrNo
+    DYesOrNo,
+    DAssistedMode
 >;
 
 template<typename T>

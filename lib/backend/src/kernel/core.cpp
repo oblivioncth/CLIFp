@@ -80,6 +80,47 @@ bool Core::isActionableOptionSet(const QCommandLineParser& clParser) const
     return false;
 }
 
+QStringList Core::initiateAssistedMode()
+{
+    logEvent(LOG_EVENT_ASSISTED_MODE);
+
+    // Update status
+    postDirective<DStatusUpdate>(STATUS_DISPLAY, STATUS_DISPLAY_ASSISTED);
+
+    QStringList assistedCommandLine;
+
+    DAssistedMode::Action act = postDirective<DAssistedMode>();
+    std::visit(qxFuncAggregate{
+        [this](DAssistedMode::Unspecified){
+            logEvent(LOG_EVENT_ASSISTED_MODE_UNSPECIFIED);
+            showHelp();
+        },
+        [this](DAssistedMode::SpecialAction sa){
+            switch(sa)
+            {
+                case DAssistedMode::SpecialAction::Help:
+                    logEvent(LOG_EVENT_ASSISTED_MODE_HELP);
+                    showHelp();
+                    break;
+
+                case DAssistedMode::SpecialAction::Version:
+                    logEvent(LOG_EVENT_ASSISTED_MODE_VERSION);
+                    showVersion();
+                    break;
+            }
+        },
+        [&assistedCommandLine, this](DAssistedMode::CommandLine cl){
+            if(cl.isEmpty())
+                logEvent(LOG_EVENT_ASSISTED_COMMAND_EMPTY);
+            else
+                logEvent(LOG_EVENT_ASSISTED_COMMAND.arg(cl.join(u", "_s)));
+            assistedCommandLine = cl;
+        }
+    }, act);
+
+    return assistedCommandLine;
+}
+
 void Core::showHelp()
 {
     // Help string
@@ -115,11 +156,13 @@ void Core::showHelp()
     }
 
     // Show help
+    logEvent(LOG_EVENT_G_HELP_SHOWN);
     postDirective<DMessage>(helpStr);
 }
 
 void Core::showVersion()
 {
+    logEvent(LOG_EVENT_VER_SHOWN);
     postDirective<DStatusUpdate>(STATUS_DISPLAY, STATUS_DISPLAY_VERSION);
     postDirective<DMessage>(CL_VERSION_MESSAGE);
 }
@@ -308,37 +351,43 @@ Qx::Error Core::initialize(QStringList& commandLine, QString& root)
                             clParser.isSet(CL_OPTION_QUIET) ? Director::Verbosity::Quiet : Director::Verbosity::Full;
     mDirector.setVerbosity(v);
 
-    if(clParser.isSet(CL_OPTION_VERSION))
+    if(clParser.isSet(CL_OPTION_VERSION)) // Version, stop immediately
     {
         showVersion();
         consumeCommand(commandLine, clParser); // Clear args so application terminates after Core setup
         logEvent(LOG_EVENT_VER_SHOWN);
+        return CoreError();
     }
-    else if(clParser.isSet(CL_OPTION_HELP) || (!isActionableOptionSet(clParser) && clParser.positionalArguments().count() == 0)) // Also when no parameters
+
+    if(clParser.isSet(CL_OPTION_HELP)) // Help, stop immediately
     {
         showHelp();
         consumeCommand(commandLine, clParser); // Clear args so application terminates after Core setup
         logEvent(LOG_EVENT_G_HELP_SHOWN);
+        return CoreError();
     }
-    else
-    {
-        // Check for manually specified root
-        if(clParser.isSet(CL_OPTION_ROOT))
-        {
-            root = clParser.value(CL_OPTION_ROOT).trimmed();
-            logEvent(LOG_EVENT_MANUAL_ROOT.arg(root));
-        }
 
-        // Check for flashpoint protocol arg
-        QStringList pArgs = clParser.positionalArguments();
-        if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
-        {
-            logEvent(LOG_EVENT_PROTOCOL_FORWARD);
-            commandLine = {"play", "-u", pArgs.front()};
-        }
-        else // Proceed to command prep
-            commandLine = pArgs; // Remove core options from command line list
+    if(clParser.isSet(CL_OPTION_ROOT)) // Manual root
+    {
+        root = clParser.value(CL_OPTION_ROOT).trimmed();
+        logEvent(LOG_EVENT_MANUAL_ROOT.arg(root));
     }
+
+    // Check for flashpoint protocol arg
+    QStringList pArgs = clParser.positionalArguments();
+    if(pArgs.count() == 1 && pArgs.front().startsWith(FLASHPOINT_PROTOCOL_SCHEME))
+    {
+        logEvent(LOG_EVENT_PROTOCOL_FORWARD);
+        commandLine = {"play", "-u", pArgs.front()};
+        return CoreError();
+    }
+
+    // Standard command prep
+    commandLine = pArgs; // Remove core options from command line list
+
+    // Handle no command
+    if(commandLine.isEmpty())
+        commandLine = initiateAssistedMode();
 
     // Return success
     return CoreError();
