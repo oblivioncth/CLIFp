@@ -62,6 +62,8 @@ See [USAGE](doc/USAGE.md) for more details.
 
 Please submit any possible bugs or issues with using the software to the [repository's issue tracker](https://github.com/oblivioncth/CLIFp/issues). If you really don't want to use GitHub, you can ping me in the Flashpoint Discord.
 
+In either case, make sure you attach your `CLIFp.log` file, which may be named differently depending on the exact version you're using.
+
 ## Compatability
 
 ### General
