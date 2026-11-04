@@ -1,5 +1,7 @@
 ﻿# CLIFp (Command-line Interface for Flashpoint)
-<img align="left" src="doc/resources/logo.png" width=20%>
+<a href="https://oblivioncth.github.io/CLIFp/select-artifact.html" target="_blank" rel="noopener noreferrer">
+  <img align="left" src="doc/resources/logo-download.png" width=20%>
+</a>
 
 CLIFp (pronounced "Cliff-P", or just "Cliff") is an alternative launcher for [Flashpoint Archive](https://flashpointarchive.org/) that focuses on speed and simplicity while providing access to a Flashpoint's vast library via a ripe command-line interface. This greatly increases the flexibility of Flashpoint by allowing for more direct integration with other software, such as Steam, LaunchBox, or any arbitrary application/script (see [Flashpoint Importer for Launchers](https://github.com/oblivioncth/FIL) for an example). The functionality of CLIFp should be near identical to the standard launcher for the facilities it implements.
 
