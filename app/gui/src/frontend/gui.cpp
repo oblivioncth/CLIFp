@@ -60,7 +60,7 @@ QMessageBox* FrontendGui::prepareMessageBox(const MessageT& dMsg)
     msg->setText(dMsg.text);
 
     // TODO: Remove the bodge cast here once Directives can derive and DBlockingMessages derives from DMessage
-    if(dMsg.attr.testFlag(static_cast<MessageT::Attribute>(DMessage::Selectable)))
+    if(dMsg.attr.testFlag(static_cast<typename MessageT::Attribute>(DMessage::Selectable)))
         msg->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     return msg;
