@@ -11,11 +11,6 @@ using namespace Qt::StringLiterals;
 // AShare
 //===============================================================================================================
 
-/* TODO: Alter CShare so that it can genreate a link and register CLIFp as the share handler in one go. This requires
- * having the registration either do nothing if already registered, or having another command that will do it "if not already"
- * so that the normal one can still warn or whatever it does right now if its already registered.
- */
-
 class AShare : public Action
 {
 //-Instance Functions------------------------------------------------------------------------------------------------
@@ -27,7 +22,7 @@ public:
         std::optional<TitleEntryDialog::Entry> sel = TitleEntryDialog::getTitle(nullptr, u"Title to Share"_s);
         if(sel)
         {
-            command << u"share"_s;
+            command << u"share"_s << u"-C"_s; // Ensure share link handling is setup
 
             std::visit(qxFuncAggregate{
                 [&command](TitleEntryDialog::IdEntry ide) { command << u"-i"_s << ide.id; },
