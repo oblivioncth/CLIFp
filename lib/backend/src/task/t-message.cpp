@@ -33,10 +33,11 @@ void TMessage::setSelectable(bool sel) { mSelectable = sel; }
 
 void TMessage::perform()
 {
+    // TODO: Create the attribute flags here in one step one Directive derivation is possible
     if(mBlocking)
-        postDirective<DBlockingMessage>(mText, mSelectable);
+        postDirective<DBlockingMessage>(mText, mSelectable ? DBlockingMessage::Selectable : DBlockingMessage::NoAttributes);
     else
-        postDirective<DMessage>(mText, mSelectable);
+        postDirective<DMessage>(mText, mSelectable ? DMessage::Selectable : DMessage::NoAttributes);
 
     logEvent(LOG_EVENT_SHOW_MESSAGE);
 

@@ -40,7 +40,8 @@ public:
         TooManyResults,
         ConfiguredServerMissing,
         UnknownDatapackParam,
-        CannotObtainDatapack
+        CannotObtainDatapack,
+        ExtraArgumentsIgnored
     };
 
 //-Class Variables-------------------------------------------------------------
@@ -54,7 +55,8 @@ private:
         {TooManyResults, u"More results than can be presented were returned in a search."_s},
         {ConfiguredServerMissing, u"The configured server was not found within the Flashpoint services store."_s},
         {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
-        {CannotObtainDatapack, u"The specified datapack could not be obtained via edition appropriate means."_s}
+        {CannotObtainDatapack, u"The specified datapack could not be obtained via edition appropriate means."_s},
+        {ExtraArgumentsIgnored, u"Command arguments ignored due to actionable global option preceedence."_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
@@ -104,9 +106,9 @@ public:
     static inline const QString STATUS_DISPLAY = u"Displaying"_s;
     static inline const QString STATUS_DISPLAY_HELP = u"Help"_s;
     static inline const QString STATUS_DISPLAY_VERSION = u"Version"_s;
+    static inline const QString STATUS_DISPLAY_ASSISTED = u"Assisted Mode"_s;
 
     // Logging - Primary Values
-
     static inline const QString LOG_NO_PARAMS = u"*None*"_s;
 
     // Logging - Errors
@@ -162,34 +164,40 @@ public:
     static inline const QString LOG_EVENT_TITLE_ID_DETERMINED = u"ID of title %1 determined to be %2"_s;
     static inline const QString LOG_EVENT_TITLE_SEL_CANCELED = u"Title selection was canceled by the user."_s;
 
-    // Global command line option strings
-    static inline const QString CL_OPT_HELP_S_NAME = u"h"_s;
-    static inline const QString CL_OPT_HELP_E_NAME = u"?"_s;
-    static inline const QString CL_OPT_HELP_L_NAME = u"help"_s;
-    static inline const QString CL_OPT_HELP_DESC = u"Prints this help message."_s;
-
-    static inline const QString CL_OPT_VERSION_S_NAME = u"v"_s;
-    static inline const QString CL_OPT_VERSION_L_NAME = u"version"_s;
-    static inline const QString CL_OPT_VERSION_DESC = u"Prints the current version of this tool."_s;
-
-    static inline const QString CL_OPT_QUIET_S_NAME = u"q"_s;
-    static inline const QString CL_OPT_QUIET_L_NAME = u"quiet"_s;
-    static inline const QString CL_OPT_QUIET_DESC = u"Silences all non-critical messages."_s;
-
-    static inline const QString CL_OPT_SILENT_S_NAME = u"s"_s;
-    static inline const QString CL_OPT_SILENT_L_NAME = u"silent"_s;
-    static inline const QString CL_OPT_SILENT_DESC = u"Silences all messages (takes precedence over quiet mode)."_s;
-
-    static inline const QString CL_OPT_ROOT_S_NAME = u"f"_s;
-    static inline const QString CL_OPT_ROOT_L_NAME = u"flashpoint"_s;
-    static inline const QString CL_OPT_ROOT_DESC = u"Manually specify the Flashpoint root directory."_s;
+    // Logging - Assisted Mode
+    static inline const QString LOG_EVENT_ASSISTED_MODE = u"No actionable global switch and no command specified, prompting for assisted mode..."_s;
+    static inline const QString LOG_EVENT_ASSISTED_MODE_UNSPECIFIED = u"Assisted mode returned with no request"_s;
+    static inline const QString LOG_EVENT_ASSISTED_MODE_HELP = u"Assisted mode requests Help"_s;
+    static inline const QString LOG_EVENT_ASSISTED_MODE_VERSION = u"Assisted mode requests Version"_s;
+    static inline const QString LOG_EVENT_ASSISTED_COMMAND = u"Assisted mode requests command: {%1}"_s;
+    static inline const QString LOG_EVENT_ASSISTED_COMMAND_EMPTY = u"Assisted mode was canceled by the user (empty command)"_s;
 
     // Global command line options
-    static inline const QCommandLineOption CL_OPTION_HELP{{CL_OPT_HELP_S_NAME, CL_OPT_HELP_E_NAME, CL_OPT_HELP_L_NAME}, CL_OPT_HELP_DESC}; // Boolean option
-    static inline const QCommandLineOption CL_OPTION_VERSION{{CL_OPT_VERSION_S_NAME, CL_OPT_VERSION_L_NAME}, CL_OPT_VERSION_DESC}; // Boolean option
-    static inline const QCommandLineOption CL_OPTION_QUIET{{CL_OPT_QUIET_S_NAME, CL_OPT_QUIET_L_NAME}, CL_OPT_QUIET_DESC}; // Boolean option
-    static inline const QCommandLineOption CL_OPTION_SILENT{{CL_OPT_SILENT_S_NAME, CL_OPT_SILENT_L_NAME}, CL_OPT_SILENT_DESC}; // Boolean option
-    static inline const QCommandLineOption CL_OPTION_ROOT{{CL_OPT_ROOT_S_NAME, CL_OPT_ROOT_L_NAME}, CL_OPT_ROOT_DESC, u"root"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_HELP{
+        {u"h"_s, u"?"_s, u"help"_s},
+        u"Prints this help message."_s
+    }; // Boolean option
+
+    static inline const QCommandLineOption CL_OPTION_VERSION{
+        {u"v"_s, u"version"_s},
+        u"Prints the current version of this tool."_s
+    }; // Boolean option
+
+    static inline const QCommandLineOption CL_OPTION_QUIET{
+        {u"q"_s, u"quiet"_s},
+        u"Silences all non-critical messages."_s
+    }; // Boolean option
+
+    static inline const QCommandLineOption CL_OPTION_SILENT{
+        {u"s"_s, u"silent"_s},
+        u"Silences all messages (takes precedence over quiet mode)."_s
+    }; // Boolean option
+
+    static inline const QCommandLineOption CL_OPTION_ROOT{
+        {u"f"_s, u"flashpoint"_s},
+        u"Manually specify the Flashpoint root directory."_s,
+        u"root"_s
+    }; // Takes value
 
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_ALL{&CL_OPTION_HELP, &CL_OPTION_VERSION, &CL_OPTION_QUIET, &CL_OPTION_SILENT, &CL_OPTION_ROOT};
     static inline const QSet<const QCommandLineOption*> CL_OPTIONS_ACTIONABLE{&CL_OPTION_HELP, &CL_OPTION_VERSION};
@@ -254,6 +262,7 @@ public:
 private:
     QString name() const override;
     bool isActionableOptionSet(const QCommandLineParser& clParser) const;
+    QStringList initiateAssistedMode();
     void showHelp();
     void showVersion();
 
@@ -261,6 +270,7 @@ private:
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
     void addOnDiskUpdateTask(int gameDataId);
     void logTask(const Task* task);
+    void consumeCommand(QStringList& commandLine , const QCommandLineParser& parser);
 
 public:
     // Setup

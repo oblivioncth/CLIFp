@@ -26,6 +26,10 @@ private:
 
     static inline const QString SYS_TRAY_STATUS = u"CLIFp is running"_s;
 
+    // Assisted Mode
+    static inline const QString ASSISTED_MODE_MENU_MAIN_TXT = u"CLIFp Assistant"_s;
+    static inline const QString ASSISTED_MODE_MENU_SUB_TXT = u"What do you want to do?"_s;
+
 //-Instance Variables----------------------------------------------------------------------------------------------
 private:
     QProgressDialog mProgressDialog;
@@ -71,6 +75,7 @@ private:
     void handleDirective(const DExistingDir& d, QString* response) override;
     void handleDirective(const DItemSelection& d, QString* response) override;
     void handleDirective(const DYesOrNo& d, bool* response) override;
+    void handleDirective(const DAssistedMode&, DAssistedMode::Action* response) override;
 
     // Control
     bool aboutToExit() override;

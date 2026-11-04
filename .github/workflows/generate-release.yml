@@ -34,8 +34,8 @@ jobs:
         suffix="(Targets FP $fp_version)"
         echo "suffix=$suffix" >> $GITHUB_OUTPUT
   
-  update-redirect:
-    name: Update redirect page
+  update-site:
+    name: Update utility site pages
     permissions:
       actions: read
       contents: read
@@ -48,16 +48,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Setup pages
-      uses: actions/configure-pages@v4
+      uses: actions/configure-pages@v6
     - name: Upload pages artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v5
       with:
-        path: ${{ github.workspace }}/redirector
+        path: ${{ github.workspace }}/site
     - name: Deploy pages artifact
       id: page-deployment
-      uses: actions/deploy-pages@v4
+      uses: actions/deploy-pages@v5
   
   generate-release:
     name: Generate Release

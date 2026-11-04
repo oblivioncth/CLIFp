@@ -14,6 +14,9 @@
 // Magic enum
 #include "magic_enum_utility.hpp"
 
+// Project Includes
+#include "frontend/assisted/dialog/actionmenudialog.h"
+
 //===============================================================================================================
 // FrontendGui
 //===============================================================================================================
@@ -56,7 +59,8 @@ QMessageBox* FrontendGui::prepareMessageBox(const MessageT& dMsg)
     msg->setWindowTitle(QCoreApplication::applicationName()); // This should be the default, but hey being explicit never hurt
     msg->setText(dMsg.text);
 
-    if(dMsg.selectable)
+    // TODO: Remove the bodge cast here once Directives can derive and DBlockingMessages derives from DMessage
+    if(dMsg.attr.testFlag(static_cast<typename MessageT::Attribute>(DMessage::Selectable)))
         msg->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     return msg;
@@ -151,6 +155,12 @@ void FrontendGui::handleDirective(const DItemSelection& d, QString* response)
 void FrontendGui::handleDirective(const DYesOrNo& d, bool* response)
 {
     *response = QMessageBox::question(nullptr, QString(), d.question) == QMessageBox::Yes;
+}
+
+void FrontendGui::handleDirective(const DAssistedMode&, DAssistedMode::Action* response)
+{
+    auto action = ActionMenuDialog::getAction(nullptr, ASSISTED_MODE_MENU_MAIN_TXT, ASSISTED_MODE_MENU_SUB_TXT);
+    *response = action ? action->perform() : DAssistedMode::CommandLine(); // Empty command-line = No Action
 }
 
 bool FrontendGui::aboutToExit()

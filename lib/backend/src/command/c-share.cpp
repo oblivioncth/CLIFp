@@ -7,7 +7,6 @@
 // Project Includes
 #include "kernel/core.h"
 #include "task/t-message.h"
-#include "utility.h"
 
 //===============================================================================================================
 // CShareError
@@ -15,9 +14,10 @@
 
 //-Constructor-------------------------------------------------------------
 //Private:
-CShareError::CShareError(Type t, const QString& s) :
+CShareError::CShareError(Type t, const QString& s, Qx::Severity sv) :
     mType(t),
-    mSpecific(s)
+    mSpecific(s),
+    mSeverity(sv)
 {}
 
 //-Instance Functions-------------------------------------------------------------
@@ -27,7 +27,7 @@ QString CShareError::specific() const { return mSpecific; }
 CShareError::Type CShareError::type() const { return mType; }
 
 //Private:
-Qx::Severity CShareError::deriveSeverity() const { return Qx::Critical; }
+Qx::Severity CShareError::deriveSeverity() const { return mSeverity; }
 quint32 CShareError::deriveValue() const { return mType; }
 QString CShareError::derivePrimary() const { return ERR_STRINGS.value(mType); }
 QString CShareError::deriveSecondary() const { return mSpecific; }
@@ -48,71 +48,108 @@ QString CShare::name() const { return NAME; }
 //Public:
 Qx::Error CShare::perform()
 {
-    // Prioritize scheme (un)registration
-    if(mParser.isSet(CL_OPTION_CONFIGURE))
+    bool tookAction = false;
+
+    // Prioritize scheme (un)registration (registration causes unregistration to be ignored)
+    if(mParser.isSet(CL_OPTION_CONFIGURE) || mParser.isSet(CL_OPTION_CONFIGURED))
     {
+        tookAction = true;
         logEvent(LOG_EVENT_REGISTRATION);
 
-        if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME))
+        if(Qx::isDefaultProtocolHandler(SCHEME))
+        {
+            logEvent(MSG_ALREADY_REGISTERED);
+            if(!mParser.isSet(CL_OPTION_CONFIGURED)) // Non-idempotent form
+            {
+                CShareError wrn(CShareError::AlreadyRegistered, {}, Qx::Warning);
+                postDirective<DError>(wrn);
+            }
+        }
+        else if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME))
         {
             CShareError err(CShareError::RegistrationFailed);
             postDirective<DError>(err);
             return err;
         }
-
-        // Enqueue success message task
-        TMessage* successMsg = new TMessage(mCore);
-        successMsg->setStage(Task::Stage::Primary);
-        successMsg->setText(MSG_REGISTRATION_COMPLETE);
-        mCore.enqueueSingleTask(successMsg);
-
-        return CShareError();
+        else
+        {
+            // Enqueue success message task
+            TMessage* successMsg = new TMessage(mCore);
+            successMsg->setStage(Task::Stage::Primary);
+            successMsg->setText(MSG_REGISTRATION_COMPLETE);
+            mCore.enqueueSingleTask(successMsg);
+        }
     }
-    else if(mParser.isSet(CL_OPTION_UNCONFIGURE))
+    else if(mParser.isSet(CL_OPTION_UNCONFIGURE) || mParser.isSet(CL_OPTION_UNCONFIGURED))
     {
+        tookAction = true;
         logEvent(LOG_EVENT_UNREGISTRATION);
 
+        if(!Qx::isDefaultProtocolHandler(SCHEME))
+        {
+            logEvent(MSG_NOT_REGISTERED);
+            if(!mParser.isSet(CL_OPTION_UNCONFIGURED)) // Non-idempotent form
+            {
+                CShareError wrn(CShareError::NotRegistered, {}, Qx::Warning);
+                postDirective<DError>(wrn);
+            }
+        }
 #ifdef __linux__ // Function is too jank on linux right now, so always fail/no-op there
-        if(true)
+        else if(true)
 #else
-        if(!Qx::removeDefaultProtocolHandler(SCHEME, CLIFP_PATH))
+        else if(!Qx::removeDefaultProtocolHandler(SCHEME))
 #endif
         {
             CShareError err(CShareError::UnregistrationFailed);
             postDirective<DError>(err);
             return err;
         }
-
-        // Enqueue success message task
-        TMessage* successMsg = new TMessage(mCore);
-        successMsg->setStage(Task::Stage::Primary);
-        successMsg->setText(MSG_UNREGISTRATION_COMPLETE);
-        mCore.enqueueSingleTask(successMsg);
-
-        return CShareError();
+        else
+        {
+            // Enqueue success message task
+            TMessage* successMsg = new TMessage(mCore);
+            successMsg->setStage(Task::Stage::Primary);
+            successMsg->setText(MSG_UNREGISTRATION_COMPLETE);
+            mCore.enqueueSingleTask(successMsg);
+        }
     }
 
-    // Get ID of title to share
-    QUuid shareId;
-    if(Qx::Error ide = getTitleId(shareId); ide.isValid())
-        return ide;
+    // Generate share if requested. We also force this if no action was done so far so that
+    // we can get TitleCommand's error for not providing any args
+    bool findTitle = !tookAction || [this]{
+        // See if any TitleCommand options were used
+        // TODO: Make this check a TitleCommand protected function?
+        for(auto op : TitleCommand::options())
+            if(mParser.isSet(*op))
+                return true;
 
-    postDirective<DStatusUpdate>(STATUS_SHARE, shareId.toString(QUuid::WithoutBraces));
+        return false;
+    }();
 
-    // Generate URL
-    QString idStr = shareId.toString(QUuid::WithoutBraces);
-    QString shareUrl = mParser.isSet(CL_OPTION_UNIVERSAL) ? SCHEME_TEMPLATE_UNI.arg(idStr) : SCHEME_TEMPLATE_STD.arg(idStr);
-    logEvent(LOG_EVENT_URL.arg(shareUrl));
+    if(findTitle)
+    {
+        // Get ID of title to share
+        QUuid shareId;
+        if(Qx::Error ide = getTitleId(shareId); ide.isValid())
+            return ide;
 
-    // Add URL to clipboard
-    postDirective<DClipboardUpdate>(shareUrl);
+        postDirective<DStatusUpdate>(STATUS_SHARE, shareId.toString(QUuid::WithoutBraces));
 
-    // Enqueue message task
-    TMessage* urlMsg = new TMessage(mCore);
-    urlMsg->setStage(Task::Stage::Primary);
-    urlMsg->setText(MSG_GENERATED_URL.arg(shareUrl));
-    urlMsg->setSelectable(true);
-    mCore.enqueueSingleTask(urlMsg);
+        // Generate URL
+        QString idStr = shareId.toString(QUuid::WithoutBraces);
+        QString shareUrl = mParser.isSet(CL_OPTION_UNIVERSAL) ? SCHEME_TEMPLATE_UNI.arg(idStr) : SCHEME_TEMPLATE_STD.arg(idStr);
+        logEvent(LOG_EVENT_URL.arg(shareUrl));
+
+        // Add URL to clipboard
+        postDirective<DClipboardUpdate>(shareUrl);
+
+        // Enqueue message task
+        TMessage* urlMsg = new TMessage(mCore);
+        urlMsg->setStage(Task::Stage::Primary);
+        urlMsg->setText(MSG_GENERATED_URL.arg(shareUrl));
+        urlMsg->setSelectable(true);
+        mCore.enqueueSingleTask(urlMsg);
+    }
 
     // Return success
     return Qx::Error();

@@ -4,6 +4,9 @@
 // libfp Includes
 #include <fp/fp-db.h>
 
+// Qx Includes
+#include <qx/core/qx-fixedstringlist.h>
+
 // Project Includes
 #include "command/command.h"
 
@@ -77,45 +80,54 @@ private:
         "<b>Publisher:</b> %3<br>"
         "<b>Library:</b> %4<br>"
         "<b>Variant:</b> %5<br>"_s;
-    // Random Filter Sets
-    static inline const QStringList RAND_ALL_FILTER_NAMES{u"all"_s, u"any"_s};
-    static inline const QStringList RAND_GAME_FILTER_NAMES{u"game"_s, u"arcade"_s};
-    static inline const QStringList RAND_ANIM_FILTER_NAMES{u"animation"_s, u"theatre"_s};
 
-    // Command line option strings
-    static inline const QString CL_OPT_ID_S_NAME = u"i"_s;
-    static inline const QString CL_OPT_ID_L_NAME = u"id"_s;
-    static inline const QString CL_OPT_ID_DESC = u"UUID of title to process"_s;
-
-    static inline const QString CL_OPT_TITLE_S_NAME = u"t"_s;
-    static inline const QString CL_OPT_TITLE_L_NAME = u"title"_s;
-    static inline const QString CL_OPT_TITLE_DESC = u"Title to process"_s;
-
-    static inline const QString CL_OPT_TITLE_STRICT_S_NAME = u"T"_s;
-    static inline const QString CL_OPT_TITLE_STRICT_L_NAME = u"title-strict"_s;
-    static inline const QString CL_OPT_TITLE_STRICT_DESC = u"Same as -t, but exact matches only"_s;
-
-    static inline const QString CL_OPT_SUBTITLE_S_NAME = u"s"_s;
-    static inline const QString CL_OPT_SUBTITLE_L_NAME = u"subtitle"_s;
-    static inline const QString CL_OPT_SUBTITLE_DESC = u"Name of additional-app under the title to process. Must be used with -t / -T"_s;
-
-    static inline const QString CL_OPT_SUBTITLE_STRICT_S_NAME = u"S"_s;
-    static inline const QString CL_OPT_SUBTITLE_STRICT_L_NAME = u"subtitle-strict"_s;
-    static inline const QString CL_OPT_SUBTITLE_STRICT_DESC = u"Same as -s, but exact matches only"_s;
-
-    static inline const QString CL_OPT_RAND_S_NAME = u"r"_s;
-    static inline const QString CL_OPT_RAND_L_NAME = u"random"_s;
-    static inline const QString CL_OPT_RAND_DESC = u"Select a random title from the database to start. Must be followed by a library filter: "_s +
-                                                   RAND_ALL_FILTER_NAMES.join('/') + u", "_s + RAND_GAME_FILTER_NAMES.join('/') + u" or "_s + RAND_ANIM_FILTER_NAMES.join('/');
+    /* Random Filter Sets
+     * Normally we'd use QStringList for this but we used Qx::StringViewList to ensure compile time construction to prevent SIOF
+     * issues with the command line option below that uses them as part of its construction.
+     *
+     * TODO: Make these Qx::StringViewList for formalities-sake once Clang 19 is common (see Qx doc about the alias)
+     */
+    static constexpr Qx::FixedStringList RAND_ALL_FILTER_NAMES{u"all", u"any"};
+    static constexpr Qx::FixedStringList RAND_GAME_FILTER_NAMES{u"game", u"arcade"};
+    static constexpr Qx::FixedStringList RAND_ANIM_FILTER_NAMES{u"animation", u"theatre"};
 
 protected:
     // Command line options
-    static inline const QCommandLineOption CL_OPTION_ID{{CL_OPT_ID_S_NAME, CL_OPT_ID_L_NAME}, CL_OPT_ID_DESC, u"id"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_TITLE{{CL_OPT_TITLE_S_NAME, CL_OPT_TITLE_L_NAME}, CL_OPT_TITLE_DESC, u"title"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_TITLE_STRICT{{CL_OPT_TITLE_STRICT_S_NAME, CL_OPT_TITLE_STRICT_L_NAME}, CL_OPT_TITLE_STRICT_DESC, u"title-strict"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_SUBTITLE{{CL_OPT_SUBTITLE_S_NAME, CL_OPT_SUBTITLE_L_NAME}, CL_OPT_SUBTITLE_DESC, u"subtitle"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_SUBTITLE_STRICT{{CL_OPT_SUBTITLE_STRICT_S_NAME, CL_OPT_SUBTITLE_STRICT_L_NAME}, CL_OPT_SUBTITLE_STRICT_DESC, u"subtitle-strict"_s}; // Takes value
-    static inline const QCommandLineOption CL_OPTION_RAND{{CL_OPT_RAND_S_NAME, CL_OPT_RAND_L_NAME}, CL_OPT_RAND_DESC, u"random"_s}; // Takes value
+    static inline const QCommandLineOption CL_OPTION_ID{
+        {u"i"_s, u"id"_s},
+        u"UUID of title to process"_s,
+        u"id"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_TITLE{
+        {u"t"_s, u"title"_s},
+        u"Title to process"_s,
+        u"title"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_TITLE_STRICT{
+        {u"T"_s, u"title-strict"_s},
+        u"Same as -t, but exact matches only"_s,
+        u"title-strict"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_SUBTITLE{
+        {u"s"_s, u"subtitle"_s},
+        u"Name of additional-app under the title to process. Must be used with -t / -T"_s,
+        u"subtitle"_s
+    }; // Takes value
+
+    static inline const QCommandLineOption CL_OPTION_SUBTITLE_STRICT{
+        {u"S"_s, u"subtitle-strict"_s},
+        u"Same as -s, but exact matches only"_s,
+        u"subtitle-strict"_s
+    }; // Takes value
+    static inline const QCommandLineOption CL_OPTION_RAND{
+        {u"r"_s, u"random"_s},
+        u"Select a random title from the database to start. Must be followed by a library filter: "_s +
+            RAND_ALL_FILTER_NAMES.join('/') + u", "_s + RAND_GAME_FILTER_NAMES.join('/') + u" or "_s + RAND_ANIM_FILTER_NAMES.join('/'),
+        u"random"_s
+    }; // Takes value
 
     static inline const QList<const QCommandLineOption*> CL_OPTIONS_SPECIFIC{&CL_OPTION_ID, &CL_OPTION_TITLE, &CL_OPTION_TITLE_STRICT, &CL_OPTION_SUBTITLE,
                                                                               &CL_OPTION_SUBTITLE_STRICT, &CL_OPTION_RAND};
