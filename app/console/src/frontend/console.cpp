@@ -69,7 +69,8 @@ void FrontendConsole::handleDirective(const DMessage& d)
         {u"&gt;"_s, u">"_s},
         {u"&nbsp;"_s, u" "_s},
     });
-    txt.prepend(HEADING_MESSAGE + u" "_s);
+    if(!d.attr.testFlag(DMessage::Plain))
+        txt.prepend(HEADING_MESSAGE + u" "_s);
     print(txt);
 }
 

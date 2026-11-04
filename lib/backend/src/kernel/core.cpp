@@ -157,7 +157,7 @@ void Core::showHelp()
 
     // Show help
     logEvent(LOG_EVENT_G_HELP_SHOWN);
-    postDirective<DMessage>(helpStr);
+    postDirective<DMessage>(helpStr, DMessage::Plain);
 }
 
 void Core::showVersion()

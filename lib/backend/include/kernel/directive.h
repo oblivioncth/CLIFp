@@ -38,9 +38,17 @@
 //-Non-blocking Directives-----------------------------------------------------------------
 struct DMessage
 {
+    enum Attribute{
+        NoAttributes = 0x0,
+        Plain = 0x1, // Not same as "verbatim", means do not add additional formatting where possible
+        Selectable = 0x2 // Text should be selectable when possible
+    };
+    Q_DECLARE_FLAGS(Attributes, Attribute)
+
     QString text;
-    bool selectable = false;
+    Attributes attr{};
 };
+Q_DECLARE_OPERATORS_FOR_FLAGS(DMessage::Attributes)
 
 struct DError
 {
@@ -92,8 +100,15 @@ concept AsyncDirectiveT = requires(AsyncDirective ad, T t) { ad = t; };
 //-Blocking Directives---------------------------------------------------------------------
 struct DBlockingMessage
 {
+    enum Attribute{
+        NoAttributes = 0x0,
+        Plain = 0x1, // Not same as "verbatim", means do not add additional formatting where possible
+        Selectable = 0x2 // Text should be selectable when possible
+    };
+    Q_DECLARE_FLAGS(Attributes, Attribute)
+
     QString text;
-    bool selectable = false;
+    Attributes attr;
 };
 
 using SyncDirective = std::variant<DBlockingMessage>;

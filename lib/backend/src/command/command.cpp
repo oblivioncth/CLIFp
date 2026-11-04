@@ -241,7 +241,7 @@ void Command::showHelp()
     }
 
     // Show help
-    postDirective<DMessage>(mHelpString);
+    postDirective<DMessage>(mHelpString, DMessage::Plain);
 }
 
 //Protected:

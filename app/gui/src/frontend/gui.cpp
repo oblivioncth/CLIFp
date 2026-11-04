@@ -59,7 +59,8 @@ QMessageBox* FrontendGui::prepareMessageBox(const MessageT& dMsg)
     msg->setWindowTitle(QCoreApplication::applicationName()); // This should be the default, but hey being explicit never hurt
     msg->setText(dMsg.text);
 
-    if(dMsg.selectable)
+    // TODO: Remove the bodge cast here once Directives can derive and DBlockingMessages derives from DMessage
+    if(dMsg.attr.testFlag(static_cast<MessageT::Attribute>(DMessage::Selectable)))
         msg->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     return msg;
