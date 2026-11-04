@@ -160,7 +160,7 @@ void FrontendGui::handleDirective(const DYesOrNo& d, bool* response)
 void FrontendGui::handleDirective(const DAssistedMode&, DAssistedMode::Action* response)
 {
     auto action = ActionMenuDialog::getAction(nullptr, ASSISTED_MODE_MENU_MAIN_TXT, ASSISTED_MODE_MENU_SUB_TXT);
-    *response = action->perform();
+    *response = action ? action->perform() : DAssistedMode::CommandLine(); // Empty command-line = No Action
 }
 
 bool FrontendGui::aboutToExit()
