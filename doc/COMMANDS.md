@@ -134,12 +134,14 @@ See http://www.robvanderwoude.com/escapechars.php for more information.
 **Options**:
  - [Title Command](#title-commands) options
  - `-u` | `--universal` - Creates a standard HTTPS link that utilizes a redirect page. May be easier to share on some platforms.
- - `-c` | `--configure` - Registers CLIFp as the default handler for "flashpoint" protocol links.
- - `-C` | `--unconfigure` - Removes CLIFp as the default handler for "flashpoint" protocol links.
+ - `-c` | `--configure` - Registers CLIFp as the default handler for "flashpoint" protocol links. Warns if it already was.
+ - `-C` | `--configured` - Ensures CLIFp is registered as the default handler for "flashpoint" protocol links (idempotent).
+`--unconfigure` - Removes CLIFp as the default handler for "flashpoint" protocol links. Warns if it wasn't.
+`--unconfigured` - Ensures CLIFp is not the default handler for "flashpoint" protocol links (idempotent).
 
 **Notes**:
 
- - No title is required when using the `--configure` option
+ - No title is required when using any of the 'configure'-type options
  - By default, the standard Flashpoint launcher is registered to handle share links; therefore, its "Register As Protocol Handler" option should likely be disabled if you intend to use CLIFp instead.
 
 --------------------------------------------------------------------------------

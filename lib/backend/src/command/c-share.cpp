@@ -51,15 +51,19 @@ Qx::Error CShare::perform()
     bool tookAction = false;
 
     // Prioritize scheme (un)registration (registration causes unregistration to be ignored)
-    if(mParser.isSet(CL_OPTION_CONFIGURE))
+    if(mParser.isSet(CL_OPTION_CONFIGURE) || mParser.isSet(CL_OPTION_CONFIGURED))
     {
         tookAction = true;
         logEvent(LOG_EVENT_REGISTRATION);
 
         if(Qx::isDefaultProtocolHandler(SCHEME))
         {
-            CShareError wrn(CShareError::AlreadyRegistered, {}, Qx::Warning);
-            postDirective<DError>(wrn);
+            logEvent(MSG_ALREADY_REGISTERED);
+            if(!mParser.isSet(CL_OPTION_CONFIGURED)) // Non-idempotent form
+            {
+                CShareError wrn(CShareError::AlreadyRegistered, {}, Qx::Warning);
+                postDirective<DError>(wrn);
+            }
         }
         else if(!Qx::setDefaultProtocolHandler(SCHEME, SCHEME_NAME))
         {
@@ -76,15 +80,19 @@ Qx::Error CShare::perform()
             mCore.enqueueSingleTask(successMsg);
         }
     }
-    else if(mParser.isSet(CL_OPTION_UNCONFIGURE))
+    else if(mParser.isSet(CL_OPTION_UNCONFIGURE) || mParser.isSet(CL_OPTION_UNCONFIGURED))
     {
         tookAction = true;
         logEvent(LOG_EVENT_UNREGISTRATION);
 
         if(!Qx::isDefaultProtocolHandler(SCHEME))
         {
-            CShareError wrn(CShareError::NotRegistered, {}, Qx::Warning);
-            postDirective<DError>(wrn);
+            logEvent(MSG_NOT_REGISTERED);
+            if(!mParser.isSet(CL_OPTION_UNCONFIGURED)) // Non-idempotent form
+            {
+                CShareError wrn(CShareError::NotRegistered, {}, Qx::Warning);
+                postDirective<DError>(wrn);
+            }
         }
 #ifdef __linux__ // Function is too jank on linux right now, so always fail/no-op there
         else if(true)
