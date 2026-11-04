@@ -84,10 +84,12 @@ private:
     /* Random Filter Sets
      * Normally we'd use QStringList for this but we used Qx::StringViewList to ensure compile time construction to prevent SIOF
      * issues with the command line option below that uses them as part of its construction.
+     *
+     * TODO: Make these Qx::StringViewList for formalities-sake once Clang 19 is common (see Qx doc about the alias)
      */
-    static constexpr Qx::StringViewList RAND_ALL_FILTER_NAMES{u"all", u"any"};
-    static constexpr Qx::StringViewList RAND_GAME_FILTER_NAMES{u"game", u"arcade"};
-    static constexpr Qx::StringViewList RAND_ANIM_FILTER_NAMES{u"animation", u"theatre"};
+    static constexpr Qx::FixedStringList RAND_ALL_FILTER_NAMES{u"all", u"any"};
+    static constexpr Qx::FixedStringList RAND_GAME_FILTER_NAMES{u"game", u"arcade"};
+    static constexpr Qx::FixedStringList RAND_ANIM_FILTER_NAMES{u"animation", u"theatre"};
 
 protected:
     // Command line options
