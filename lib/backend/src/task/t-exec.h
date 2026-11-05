@@ -126,7 +126,7 @@ public:
     static QString joinArguments(const QStringList& args);
     static void installDeferredProcessManager(DeferredProcessManager* manager);
     static DeferredProcessManager* deferredProcessManager();
-    static void setDefaultProcessEnvironment(const QProcessEnvironment pe);
+    static void setDefaultProcessEnvironment(const QProcessEnvironment& pe);
     static QProcessEnvironment defaultProcessEnvironment();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------

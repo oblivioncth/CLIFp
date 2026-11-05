@@ -73,7 +73,7 @@ QString TExec::joinArguments(const QStringList& args)
 
 void TExec::installDeferredProcessManager(DeferredProcessManager* manager) { smDeferredProcessManager = manager; }
 DeferredProcessManager* TExec::deferredProcessManager() { return smDeferredProcessManager; }
-void TExec::setDefaultProcessEnvironment(const QProcessEnvironment pe) { smDefaultEnv = pe; }
+void TExec::setDefaultProcessEnvironment(const QProcessEnvironment& pe) { smDefaultEnv = pe; }
 QProcessEnvironment TExec::defaultProcessEnvironment() { return smDefaultEnv; }
 
 //-Instance Functions-------------------------------------------------------------

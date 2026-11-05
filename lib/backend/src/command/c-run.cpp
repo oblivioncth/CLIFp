@@ -59,7 +59,6 @@ Qx::Error CRun::perform()
     runTask->setExecutable(QDir::cleanPath(inputInfo.absoluteFilePath())); // Like canonical but doesn't care if path DNE
     runTask->setDirectory(inputInfo.absolutePath());
     runTask->setParameters(mParser.value(CL_OPTION_PARAM));
-    runTask->setEnvironment(mCore.childTitleProcessEnvironment());
     runTask->setProcessType(TExec::ProcessType::Blocking);
 
     mCore.enqueueSingleTask(runTask);

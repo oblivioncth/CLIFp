@@ -247,7 +247,6 @@ private:
     std::queue<Task*> mTaskQueue;
 
     // Other
-    QProcessEnvironment mChildTitleProcEnv;
     Qx::ProcessBider mLauncherWatcher;
 
 //-Constructor----------------------------------------------------------------------------------------------------------
@@ -295,7 +294,6 @@ public:
     Director* director();
     ServicesMode mode() const;
     Fp::Install& fpInstall();
-    const QProcessEnvironment& childTitleProcessEnvironment();
     size_t taskCount() const;
     bool hasTasks() const;
     Task* frontTask();

@@ -16,6 +16,7 @@
 #include "command/command.h"
 #include "task/t-download.h"
 #include "task/t-exec.h"
+#include "task/t-titleexec.h"
 #include "task/t-extract.h"
 #include "task/t-mount.h"
 #include "task/t-sleep.h"
@@ -509,10 +510,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     TExec::setDefaultProcessEnvironment(de);
 
     // Initialize title specific child process env vars
-    mChildTitleProcEnv = de;
+    QProcessEnvironment ctde = de;
 
     // Add FP root var
-    mChildTitleProcEnv.insert(u"FP_PATH"_s, fpPath);
+    ctde.insert(u"FP_PATH"_s, fpPath);
 
 #ifdef __linux__
     // Add HTTTP proxy var
@@ -521,8 +522,8 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
     if(!baseProxy.isEmpty())
     {
         QString fullProxy = u"http://"_s + baseProxy + '/';
-        mChildTitleProcEnv.insert(u"http_proxy"_s, fullProxy);
-        mChildTitleProcEnv.insert(u"HTTP_PROXY"_s, fullProxy);
+        ctde.insert(u"http_proxy"_s, fullProxy);
+        ctde.insert(u"HTTP_PROXY"_s, fullProxy);
     }
 
     /* NOTE: It's called "browserModeProxy" but it seems to be used everywhere and not just
@@ -531,6 +532,8 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
      * or a future feature (hopefully not). Either way it just points to the PHP server port.
      */
 #endif
+
+    TTitleExec::setDefaultTitleProcessEnvironment(ctde);
 
     // Setup archive access
     if(info->edition() == Fp::Install::VersionInfo::Ultimate)
@@ -877,7 +880,6 @@ void Core::enqueueSingleTask(Task* task) { mTaskQueue.push(task); logTask(task);
 Director* Core::director() { return &mDirector; }
 Core::ServicesMode Core::mode() const { return mServicesMode; }
 Fp::Install& Core::fpInstall() { return *mFlashpointInstall; }
-const QProcessEnvironment& Core::childTitleProcessEnvironment() { return mChildTitleProcEnv; }
 size_t Core::taskCount() const { return mTaskQueue.size(); }
 bool Core::hasTasks() const { return mTaskQueue.size() > 0; }
 Task* Core::frontTask() { return mTaskQueue.front(); }

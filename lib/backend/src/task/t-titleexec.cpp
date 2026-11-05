@@ -39,7 +39,14 @@ QString TTitleExecError::deriveSecondary() const { return mProcessName; }
 TTitleExec::TTitleExec(Core& core) :
     TExec(core),
     mBider(nullptr)
-{}
+{
+    setEnvironment(smChildTitleProcEnv);
+}
+
+//-Class Functions------------------------------------------------------------------------------------------------------
+//Public:
+void TTitleExec::setDefaultTitleProcessEnvironment(const QProcessEnvironment& pe) { smChildTitleProcEnv = pe; }
+QProcessEnvironment TTitleExec::defaultTitleProcessEnvironment() { return smChildTitleProcEnv; }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:

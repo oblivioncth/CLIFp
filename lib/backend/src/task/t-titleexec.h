@@ -79,6 +79,9 @@ private:
     // Errors
     static inline const QString ERR_CANT_CLOSE_BIDE_PROCESS = u"Could not automatically end the running title! It will have to be closed manually."_s;
 
+    // Environment
+    static inline QProcessEnvironment smChildTitleProcEnv;
+
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
     // Functional
@@ -91,6 +94,11 @@ private:
 //-Constructor----------------------------------------------------------------------------------------------------------
 public:
     TTitleExec(Core& core);
+
+//-Class Functions------------------------------------------------------------------------------------------------------
+public:
+    static void setDefaultTitleProcessEnvironment(const QProcessEnvironment& pe);
+    static QProcessEnvironment defaultTitleProcessEnvironment();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
