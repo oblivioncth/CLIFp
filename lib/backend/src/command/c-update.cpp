@@ -351,6 +351,7 @@ CUpdateError CUpdate::checkAndPrepareUpdate() const
         execTask->setDirectory(newAppExecPath);
         execTask->setParameters(QStringList{u"update"_s, u"--install"_s, CLIFP_PATH});
         execTask->setProcessType(TExec::ProcessType::Detached);
+        execTask->setUseParentEnvironment(); // This is a regular process that should use a std environment
         mCore.enqueueSingleTask(execTask);
 
         // Maintain update cache until installer runs

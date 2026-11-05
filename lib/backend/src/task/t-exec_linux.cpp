@@ -1,8 +1,8 @@
 // Unit Include
 #include "t-exec.h"
 
-// Qt Includes
-#include <QStandardPaths>
+// Standard Library Includes
+#include <functional>
 
 // Qx Includes
 #include <qx/core/qx-algorithm.h>
@@ -13,26 +13,32 @@ using namespace  Qt::StringLiterals;
 namespace // Unit helper functions
 {
 
-QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
+/* This is quite a bit of plumbing just to let these implementation detail non-member functions
+ * construct TExecError, but we're rolling with it for now.
+ *
+ * ErrorFactory could have just been a function alias instead so that the raw lambda is passed as an arg,
+ * but then the default args wouldn't survive.
+ */
+struct ErrorFactory
 {
-    /* TODO: Although fallback to this function is rare, there is a noteworthy limitation
-     * with the current implementation of this. The existence of the executable in question
-     * will have already been checked at this point, which means that after the swap the
-     * new executable, Wine, is not checked. Because of this, if the user doesn't have
-     * Wine on their system they will get a "failed to start error" that notes the
-     * original executable name, which doesn't make it clear that the error was due
-     * to missing wine.
-     *
-     * Currently this function has no way to fail/report errors, but at some point the
-     * overall approach should be tweaked so that if Wine is swapped to, it is also checked
-     * for in the same manner as the executable itself, with an error then returned if it
-     * could not be found.
-     */
+    std::function<TExecError(TExecError::Type, const QString&)> fn;
+    TExecError operator()(TExecError::Type t = TExecError::NoError, const QString& s = {}) const
+    {
+        return fn(t, s);
+    }
+};
 
-    QProcess* process = new QProcess();
+TExecError setupExeProcess(QProcess* process, const QString& exePath, const QStringList& exeArgs, const ErrorFactory& ef)
+{
+    Q_ASSERT(process);
 
     // Force WINE
-    process->setProgram(u"wine"_s);
+    QString trueExe = u"wine"_s;
+    QString wine = TExec::findSystemExecutable(trueExe);
+    if(wine.isEmpty())
+        return ef(TExecError::CouldNotFind, trueExe);
+
+    process->setProgram(wine);
 
     // Set arguments
     QStringList fullArgs{
@@ -45,12 +51,12 @@ QProcess* setupExeProcess(const QString& exePath, const QStringList& exeArgs)
 
     process->setArguments(fullArgs);
 
-    return process;
+    return ef();
 }
 
-QProcess* setupShellProcess(const QString& commandOrScript, const QString& args)
+TExecError setupShellProcess(QProcess* process, const QString& commandOrScript, const QString& args, const ErrorFactory& ef)
 {
-    QProcess* process = new QProcess();
+    Q_ASSERT(process);
 
     // Set program
     process->setProgram(u"/bin/sh"_s);
@@ -59,12 +65,12 @@ QProcess* setupShellProcess(const QString& commandOrScript, const QString& args)
     QString bashCommand = u"'"_s + commandOrScript + u"' "_s + args;
     process->setArguments({u"-c"_s, bashCommand});
 
-    return process;
+    return ef();
 }
 
-QProcess* setupNativeProcess(const QString& execPath, const QStringList& execArgs)
+TExecError setupNativeProcess(QProcess* process, const QString& execPath, const QStringList& execArgs, const ErrorFactory& ef)
 {
-    QProcess* process = new QProcess();
+    Q_ASSERT(process);
 
     // Set program
     process->setProgram(execPath);
@@ -72,7 +78,7 @@ QProcess* setupNativeProcess(const QString& execPath, const QStringList& execArg
     // Set arguments
     process->setArguments(execArgs);
 
-    return process;
+    return ef();
 }
 
 bool isShellBuiltin(const QString& command)
@@ -82,7 +88,7 @@ bool isShellBuiltin(const QString& command)
     if(knownBuiltins.contains(command))
         return true;
 
-    // TODO: Use Qx::execute()/shellExecutre() in any other places that just need a quick program result
+    // TODO: Use Qx::execute()/shellExecute() in any other places that just need a quick program result
     Qx::ExecuteResult res = Qx::shellExecute(u"type"_s, command); // Ubuntu doesn't support '-t' (short name) switch
     if(res.exitCode > 0)
         return false; // Program not found by 'type' at all, so obviously not a built-in
@@ -142,7 +148,8 @@ QString TExec::resolveExecutablePath()
             return mExecutable;
         }
 
-        return QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
+        // Check system path
+        return findSystemExecutable(execInfo.filePath());
     }
 }
 
@@ -177,8 +184,15 @@ QString TExec::escapeForShell(const QString& argStr)
     return escapedArgs;
 }
 
-QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
+TExecError TExec::prepareProcess(QProcess* process, const QFileInfo& execInfo)
 {
+    Q_ASSERT(process);
+
+    // To let the non-member functions produce errors
+    ErrorFactory ef{
+        [sv = mStage == Stage::Shutdown ? Qx::Err : Qx::Critical](TExecError::Type t, const QString& s) { return TExecError(t, s, sv); }
+    };
+
     if(execInfo.suffix() == EXECUTABLE_EXT_WIN)
     {
         logEvent(LOG_EVENT_FORCED_WIN);
@@ -188,13 +202,13 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
                                QProcess::splitCommand(std::get<QString>(mParameters)) :
                                std::get<QStringList>(mParameters);
 
-        return setupExeProcess(execInfo.filePath(), exeParam);
+        return setupExeProcess(process, execInfo.filePath(), exeParam, ef);
     }
     else if(execInfo.suffix() == SHELL_EXT_LINUX || isShellBuiltin(execInfo.filePath()))
     {
         // Resolve passed parameters
         QString param = createEscapedShellArguments();
-        return setupShellProcess(execInfo.filePath(), param);
+        return setupShellProcess(process, execInfo.filePath(), param, ef);
     }
     else
     {
@@ -203,7 +217,7 @@ QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
                                 QProcess::splitCommand(std::get<QString>(mParameters)) :
                                 std::get<QStringList>(mParameters);
 
-        return setupNativeProcess(execInfo.filePath(), execParam);
+        return setupNativeProcess(process, execInfo.filePath(), execParam, ef);
     }
 }
 

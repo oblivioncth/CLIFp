@@ -52,6 +52,15 @@ TAwaitDockerError TAwaitDocker::imageRunningCheck(bool& running)
     // Directly check if the gamezip docker image is running
     running = false; // Default to no
 
+    /* NOTE: Unlikely to ever matter but this might no longer work with the setup where FP used
+     * docker because docker may have been bundled with the build and relied on our old setup
+     * where we replaced our own entire PATH with the created during init (mirroring the official
+     * start-up script).
+     *
+     * This is true for any other process execution in this file.
+     *
+     * If any derivative of flashpoint ever uses docker then double check this.
+     */
     Qx::ExecuteResult res = Qx::execute(DOCKER,{
         "ps",
         "--filter",
