@@ -163,6 +163,15 @@ void DriverPrivate::finish()
 {
     Q_Q(Driver);
 
+    /* Catch any last minute events
+     * NOTE: Depending on the situation, this may have last second events to be logged out
+     * of order from how they actual occur (like a quit request notice happening after some logging that occurs
+     * because the frontend forcefully closed windows).
+     *
+     * This is a known limiation of the current event loop/threading implementation.
+     */
+    quickEventProcessAndErrorCheck();
+
     logEvent(LOG_EVENT_FINISH);
 
     // Clear update cache
@@ -220,6 +229,19 @@ std::unique_ptr<Fp::Install> DriverPrivate::findFlashpointInstall()
 
     // Return instance, null or not
     return std::move(fpInstall);
+}
+
+bool DriverPrivate::quickEventProcessAndErrorCheck() const
+{
+    /* Give a small amount of time for events to come in. This is arbitrary, but based on the fact this function
+     * is generally called in situations where a handful of events are expected in short order and quite possibly
+     * are the last ones.
+     */
+    QThread::msleep(100);
+    QCoreApplication::processEvents();
+
+    // Convenient return since it's likely this will want to be inspected after processing events
+    return mErrorStatus.isSet();
 }
 
 //-Slots--------------------------------------------------------------------------------
@@ -334,9 +356,7 @@ void DriverPrivate::drive()
 
     //-Catch early core errors-------------------------------------------------------------------
     // This is basically just for Companion mode, where something changes with the FP launcher just after we start-up
-    QThread::msleep(100);
-    QCoreApplication::processEvents();
-    if(mErrorStatus.isSet())
+    if(quickEventProcessAndErrorCheck())
     {
         finish();
         return;

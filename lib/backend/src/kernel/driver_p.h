@@ -142,6 +142,7 @@ private:
     // Helper
     std::unique_ptr<Fp::Install> testInstall(const QString& path);
     std::unique_ptr<Fp::Install> findFlashpointInstall();
+    bool quickEventProcessAndErrorCheck() const;
 
 public:
     void drive();
