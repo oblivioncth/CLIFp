@@ -41,7 +41,8 @@ public:
         ConfiguredServerMissing,
         UnknownDatapackParam,
         CannotObtainDatapack,
-        ExtraArgumentsIgnored
+        ExtraArgumentsIgnored,
+        Other
     };
 
 //-Class Variables-------------------------------------------------------------
@@ -56,7 +57,8 @@ private:
         {ConfiguredServerMissing, u"The configured server was not found within the Flashpoint services store."_s},
         {UnknownDatapackParam, u"Unrecognized datapack parameters were present. The game likely won't work correctly."_s},
         {CannotObtainDatapack, u"The specified datapack could not be obtained via edition appropriate means."_s},
-        {ExtraArgumentsIgnored, u"Command arguments ignored due to actionable global option preceedence."_s}
+        {ExtraArgumentsIgnored, u"Command arguments ignored due to actionable global option preceedence."_s},
+        {Other, u"Unexpected condition."_s}
     };
 
 //-Instance Variables-------------------------------------------------------------
@@ -129,6 +131,7 @@ public:
     static inline const QString LOG_EVENT_FLASHPOINT_VERSION = u"Flashpoint version: %1"_s;
     static inline const QString LOG_EVENT_FLASHPOINT_EDITION = u"Flashpoint edition: %1"_s;
     static inline const QString LOG_EVENT_OUTFITTED_DAEMON = u"Recognized daemon: %1"_s;
+    static inline const QString LOG_EVENT_INSTALL_PROCESS_ENV = u"Installing default process environment for %1:\n%2"_s;
     static inline const QString LOG_EVENT_ENQ_START = u"Enqueuing startup tasks..."_s;
     static inline const QString LOG_EVENT_ENQ_STOP = u"Enqueuing shutdown tasks..."_s;
     static inline const QString LOG_EVENT_ENQ_DATA_PACK = u"Enqueuing Data Pack tasks..."_s;
@@ -153,7 +156,13 @@ public:
     // Logging - Linux Specific Startup Steps
     static inline const QString LOG_EVENT_LINUX_SPECIFIC_STARTUP_STEPS= u"Handling Linux specific startup steps..."_s;
     static inline const QString LOG_EVENT_LINUX_BUILD_TYPE = u"Linux build %1 mutable."_s;
-    static inline const QString LOG_EVENT_LINUX_GTK3_MISSING = u"GTK3 isn't installed, setting GTK_USE_PORTAL=1"_s;
+    static inline const QString LOG_EVENT_LINUX_SETUP_PATH_OVERRIDE = u"Setting up PATH override..."_s;
+    static inline const QString LOG_EVENT_LINUX_BUNDLED_WINE = u"Found bundled Wine, including in PATH."_s;
+    static inline const QString LOG_EVENT_LINUX_SYSTEM_WINE_SEARCH = u"No bundled Wine, checking for system Wine..."_s;
+    static inline const QString LOG_EVENT_LINUX_SYSTEM_WINE_FOUND = uR"(Found system Wine at "%1", including in PATH)"_s;
+    static inline const QString LOG_EVENT_LINUX_APPLY_PATH_OVERRIDE = u"Setting path override."_s;
+    static inline const QString LOG_EVENT_LINUX_APPLY_WINE_ENV = u"Setting Wine environment variables."_s;
+    static inline const QString LOG_EVENT_LINUX_APPLY_HTTP_ENV = u"Setting HTTP proxy environment variables."_s;
     static inline const QString LOG_EVENT_LINUX_SERVER_NOOP = u"Skipping server start ('read' no-op detected)"_s;
 
     // Logging - Title Search
@@ -269,6 +278,7 @@ private:
     Qx::Error searchAndFilterEntity(QUuid& returnBuffer, QString name, bool exactName, QUuid parent = QUuid());
     void addOnDiskUpdateTask(int gameDataId);
     void logTask(const Task* task);
+    void logEnvironment(const QString& envName, const QProcessEnvironment& env);
     void consumeCommand(QStringList& commandLine , const QCommandLineParser& parser);
 
 public:

@@ -279,6 +279,16 @@ void Core::addOnDiskUpdateTask(int gameDataId)
 // TODO: Have task have a toString function/operator instead of "members()" (or make members() private and have toString() use that)
 void Core::logTask(const Task* task) { logEvent(LOG_EVENT_TASK_ENQ.arg(task->name(), task->members().join(u", "_s))); }
 
+void Core::logEnvironment(const QString& envName, const QProcessEnvironment& env)
+{
+    const QStringList varStrs = env.toStringList();
+    QString varPrint;
+    for(const QString& var : varStrs)
+        varPrint.append(u'\t' + var + u'\n');
+
+    logEvent(LOG_EVENT_INSTALL_PROCESS_ENV.arg(envName, varPrint));
+}
+
 void Core::consumeCommand(QStringList& commandLine , const QCommandLineParser& parser)
 {
     if(const QStringList posArgs = parser.positionalArguments(); !posArgs.isEmpty())
@@ -486,26 +496,40 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
          * some thing would still work without WINE. Therefore, we only gate the WINE portion of the PATH change behind finding it, not all the PATH
          * changes.
          */
+        logEvent(LOG_EVENT_LINUX_SETUP_PATH_OVERRIDE);
         QStringList newPath = {librariesBinDir.absolutePath()}; // Script step
         if(wineBinDir.exists())
+        {
+            logEvent(LOG_EVENT_LINUX_BUNDLED_WINE);
             newPath.append(wineBinDir.absolutePath()); // Launcher step
+        }
         else
         {
+            logEvent(LOG_EVENT_LINUX_SYSTEM_WINE_SEARCH);
+
             // It's possible this might end up needing some of our more specifc tricks in TExec::resolveExecutablePath(), but
             // for the most part it shouldn't since we just want to simply find a system executable
             QString systemWine = QStandardPaths::findExecutable(u"wine"_s);
             if(!systemWine.isEmpty())
+            {
+                logEvent(LOG_EVENT_LINUX_SYSTEM_WINE_FOUND.arg(systemWine));
                 newPath.append(QFileInfo(systemWine).absolutePath()); // Script step
+            }
+            else
+                logError(CoreError(CoreError::Other, u"Could not find any Wine binary! Many titles will fail to start!"_s, Qx::Warning));
         }
 
+        logEvent(LOG_EVENT_LINUX_APPLY_PATH_OVERRIDE);
         de.insert(u"PATH"_s, newPath.join(u':'));
         TExec::setSystemPathOverride(newPath);
     }
 
+    logEvent(LOG_EVENT_LINUX_APPLY_WINE_ENV);
     de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s); // Done unconditionally by script
     de.insert(u"WINEDEBUG"_s, u"fixme-all"_s); // Done unconditionally by launcher in the same snippet above, should be safe to do here
 #endif
 
+    logEnvironment(u"child processes"_s, de);
     TExec::setDefaultProcessEnvironment(de);
 
     // Initialize title specific child process env vars
@@ -516,10 +540,10 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
 
 #ifdef __linux__
     // Add HTTTP proxy var
-    //
     QString baseProxy = mFlashpointInstall->preferences().browserModeProxy;
     if(!baseProxy.isEmpty())
     {
+        logEvent(LOG_EVENT_LINUX_APPLY_HTTP_ENV);
         QString fullProxy = u"http://"_s + baseProxy + '/';
         ctde.insert(u"http_proxy"_s, fullProxy);
         ctde.insert(u"HTTP_PROXY"_s, fullProxy);
@@ -532,6 +556,7 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
      */
 #endif
 
+    logEnvironment(u"title-specific child processes"_s, ctde);
     TTitleExec::setDefaultTitleProcessEnvironment(ctde);
 
     // Setup archive access
