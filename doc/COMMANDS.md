@@ -71,7 +71,7 @@ Tip: You can use `-subtitle` with an empty string (i.e. `-s ""`) to see all of t
 - `-n` | `--name` - Name of the shortcut. Defaults to the name of the title
 
 **Notes**:
- - On some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
+ - CLIFp tries to handle this automatically, but on some Linux desktop environments (i.e. GNOME) the shortcut might need to manually be set to "trusted" in order to be used and displayed correctly after it is created. This option is usually available in the file's right-click context menu.
 
 --------------------------------------------------------------------------------
 

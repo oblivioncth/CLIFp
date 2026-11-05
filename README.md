@@ -27,6 +27,10 @@ See [RELEASE-BUILDS](doc/RELEASE-BUILDS.md) for guidance on selecting your own, 
 
 ### Basic Command-line Usage
 
+> [!TIP]
+> You can get the UUID for a Game or Additional application by right clicking on it in regular the Flashpoint Launcher and selecting the "Copy UUID" option
+
+
 Play a game:
 
     # By title

@@ -35,10 +35,7 @@ The most common use case is the `play` command with a [Title Command](COMMANDS.m
 
 This is the most straightforward and hassle free approach, as it will start that title exactly as if it had been launched from the Flashpoint GUI (including download/mounting of data packs, autorun before additional apps, etc.).
 
-A title's ID can be found by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". This command also supports starting additional apps, though getting their UUID is more tricky as I currently know of no other way than opening [FP Install Dir]\Data\flashpoint.sqlite in a database browser and searching for the ID manually.
-
-> [!NOTE]
-> Pending a hopefully merged PR, it will be possible to additional application UUIDs via a right click menu as well.
+A title's ID can be found by right clicking on an entry in Flashpoint and selecting "Copy Game UUID". You can also get the ID for an additional application by right clicking it and selecting "Copy Additional App UUID". Otherwise, you can search [FP Install Dir]\Data\flashpoint.sqlite in a database browser manually.
 
 Alternatively, the `-t` switch can be used, followed by the exact title of an entry:
 
