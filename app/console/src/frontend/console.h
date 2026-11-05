@@ -21,13 +21,18 @@ private:
     static inline const QString HEADING_MESSAGE = u"Notice)"_s;
 
     // Instructions
+#if defined(_WIN32)
+    static constexpr QStringView INSTR_CANCEL_COMBO = u"Ctrl+C";
+#elif defined(__linux__)
+    static constexpr QStringView INSTR_CANCEL_COMBO = u"Ctrl+D";
+#endif
     static inline const QString INSTR_TRY_AGAIN = u"Invalid response, try again..."_s;
     static inline const QString INSTR_CHOICE_SEL = u"Select Action (or ENTER for *):"_s;
     static inline const QString INSTR_CHOICE_SEL_NO_DEF = u"Select Action:"_s;
-    static inline const QString INSTR_FILE_ENTER = u"File Path (or Ctrl+C to cancel):"_s;
-    static inline const QString INSTR_DIR_ENTER_EXIST = u"Existing Directory (or Ctrl+C to cancel):"_s;
+    static inline const QString INSTR_FILE_ENTER = u"File Path (or "_s + INSTR_CANCEL_COMBO + u" to cancel):"_s;
+    static inline const QString INSTR_DIR_ENTER_EXIST = u"Existing Directory (or "_s + INSTR_CANCEL_COMBO + u" to cancel):"_s;
     static inline const QString INSTR_YES_OR_NO = u"Yes or No/ENTER:"_s;
-    static inline const QString INSTR_ITEM_SEL = u"Select Item (or ENTER for 1, Ctrl+C to cancel):"_s;
+    static inline const QString INSTR_ITEM_SEL = u"Select Item (or ENTER for 1, "_s + INSTR_CANCEL_COMBO + u" to cancel):"_s;
 
     // Templates
     static inline const QString TEMPL_OPTION = u"%1) %2"_s;
@@ -35,10 +40,15 @@ private:
 //-Instance Variables----------------------------------------------------------------------------------------------
 private:
     ProgressPrinter mProgressPrinter;
+    bool mInteractive;
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
     explicit FrontendConsole(QGuiApplication* app);
+
+//-Class Functions------------------------------------------------------------------------------------------------------
+private:
+    static bool checkInteractivity();
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

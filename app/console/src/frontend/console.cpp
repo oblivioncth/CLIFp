@@ -20,6 +20,10 @@
  * QMessageBox, QFileDialog, etc. do. Technically, this isn't a problem because whenever the driver
  * thread prompts for input it also blocks, but if that ever changes then console input will have
  * to be handled asynchronously using a technique like this: https://github.com/juangburgos/QConsoleListener
+ *
+ * NOTE: We'd prefer Ctrl+C everywhere being used to cancel but having SIGINT cancel a blocking text input
+ * (which is always true using default methods, even if we run the input prompt in another thread) is hell,
+ * so for now we just accept Ctrl+D on Linux with some cleanup to ensure EOF is handled well.
  */
 
 //===============================================================================================================
@@ -29,7 +33,8 @@
 //-Constructor-------------------------------------------------------------------------------------------------------
 //Public:
 FrontendConsole::FrontendConsole(QGuiApplication* app) :
-    FrontendFramework(app)
+    FrontendFramework(app),
+    mInteractive(checkInteractivity())
 {
     // We don't make windows in this frontend, but just to be safe
     app->setQuitOnLastWindowClosed(false);
@@ -221,6 +226,8 @@ std::optional<R> FrontendConsole::promptImpl(V v, bool canCancel, std::optional<
     forever
     {
         QString str = Qx::cin.readLine();
+
+        // Regular input
         if(!str.isEmpty())
         {
             R convIn;
@@ -228,10 +235,34 @@ std::optional<R> FrontendConsole::promptImpl(V v, bool canCancel, std::optional<
                 return convIn;
         }
 
-        if(str.isNull() && canCancel) // i.e. Ctrl+C used
-            return std::nullopt;
+        // Ctrl+C/Ctrl+D used or EOF otherwise received
+        if(str.isNull())
+        {
+            // Handle the uninteractive case immediately (i.e. EOF through other means)
+            if(!mInteractive)
+            {
+                // User cannot provide input, so we need to return *something*; this makes best effort
+                if(!canCancel && def)
+                    return def;
 
-        if(str.isEmpty() && def) // i.e. ENTER pressed alone
+                // THIS MIGHT CAUSE ISSUES BUT IT'S ALL WE HAVE. TODO: Ensure all initial callers are able to handle a null response by policy
+                return std::nullopt;
+            }
+
+            /* Handle the interactive case (i.e. most likely Ctrl+D or possibly Ctrl+C).
+             *
+             * Most of the plumage here is for Ctrl+D on Linux but should be harmless for Windows with Ctrl + C.
+             * ? = Effects of not having this have not been directly tested, included as a precaution
+             */
+            std::clearerr(stdin); // Reset the stream from EOF (?)
+            Qx::cin.resetStatus(); // Reset our stream wrapper (?)
+            print(u""_s); // Ensure endl is used after possible EOF to clean up the input line (interactive consoles only) (?)
+
+            // Actual processing
+            if(canCancel)
+                return std::nullopt;
+        }
+        else if(str.isEmpty() && def) // ENTER pressed alone
             return def;
 
         print(INSTR_TRY_AGAIN);
@@ -249,7 +280,10 @@ template<Input::Type R, typename V>
     requires Input::Validator<R, V>
 R FrontendConsole::promptRequired(V v, std::optional<R> def)
 {
-    auto res = promptImpl(v, false, def);
-    Q_ASSERT(res);
-    return *res;
+    if(auto res = promptImpl(v, false, def))
+        return *res;
+
+    qWarning("A required prompt returned nothing! This frontend may be being used in an unsupported fashion."
+             " Returning a default constructed R as a last resort!");
+    return R();
 }

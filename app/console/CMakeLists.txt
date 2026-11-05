@@ -10,6 +10,8 @@ ob_add_standard_executable(${APP_CONSOLE_TARGET_NAME}
     SOURCE
         frontend/console.h
         frontend/console.cpp
+        frontend/console_win.cpp
+        frontend/console_linux.cpp
         frontend/input.h
         frontend/input.cpp
         frontend/progressprinter.h
