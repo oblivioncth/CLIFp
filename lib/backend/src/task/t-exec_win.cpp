@@ -10,36 +10,29 @@
 namespace // Unit helper functions
 {
 
-QProcess* setupBatchScriptProcess(const QString& scriptPath, const QString& scriptArgs)
+// No need for these to be able to return error state for the time being
+void setupBatchScriptProcess(QProcess* process, const QString& scriptPath, const QString& scriptArgs)
 {
     static const QString CMD_ARG_TEMPLATE = uR"(/d /s /c ""%1" %2")"_s;
 
-    QProcess* childProcess = new QProcess();
-
     // Set program
-    childProcess->setProgram(u"cmd.exe"_s);
+    process->setProgram(u"cmd.exe"_s);
 
     // Set arguments
     QString cmdCommand = CMD_ARG_TEMPLATE.arg(scriptPath, scriptArgs);
-    childProcess->setNativeArguments(cmdCommand);
-
-    return childProcess;
+    process->setNativeArguments(cmdCommand);
 }
 
-QProcess* setupNativeProcess(const QString& exePath, std::variant<QString, QStringList> exeArgs)
+void setupNativeProcess(QProcess* process, const QString& exePath, std::variant<QString, QStringList> exeArgs)
 {
-    QProcess* childProcess = new QProcess();
-
     // Set program
-    childProcess->setProgram(exePath);
+    process->setProgram(exePath);
 
     // Set arguments
     if(std::holds_alternative<QString>(exeArgs))
-        childProcess->setNativeArguments(std::get<QString>(exeArgs));
+        process->setNativeArguments(std::get<QString>(exeArgs));
     else
-        childProcess->setArguments(std::get<QStringList>(exeArgs));
-
-    return childProcess;
+        process->setArguments(std::get<QStringList>(exeArgs));
 }
 
 }
@@ -72,9 +65,9 @@ QString TExec::resolveExecutablePath()
         QFileInfo absolutePath(mDirectory.absoluteFilePath(execInfo.filePath()));
         QString resolvedPath = QStandardPaths::findExecutable(absolutePath.fileName(), {absolutePath.absolutePath()});
 
-        // Then, if the path is a plain filename, check system paths
+        // Then, if the path is a plain filename, check system path
         if(resolvedPath.isEmpty() && !execInfo.filePath().contains('/')) // Plain name relative
-            resolvedPath = QStandardPaths::findExecutable(execInfo.filePath()); // Searches system paths
+            resolvedPath = findSystemExecutable(execInfo.filePath());
 
         return resolvedPath;
     }
@@ -99,16 +92,18 @@ QString TExec::escapeForShell(const QString& argStr)
     return escapedArgs;
 }
 
-QProcess* TExec::prepareProcess(const QFileInfo& execInfo)
+TExecError TExec::prepareProcess(QProcess* process, const QFileInfo& execInfo)
 {
     if(execInfo.suffix() == SHELL_EXT_WIN)
     {
         // Resolve passed parameters
         QString scriptParam = createEscapedShellArguments();
-        return setupBatchScriptProcess(execInfo.filePath(), scriptParam);
+        setupBatchScriptProcess(process, execInfo.filePath(), scriptParam);
     }
     else
-        return setupNativeProcess(execInfo.filePath(), mParameters);
+        setupNativeProcess(process, execInfo.filePath(), mParameters);
+
+    return TExecError();
 }
 
 void TExec::logPreparedProcess(const QProcess* process)

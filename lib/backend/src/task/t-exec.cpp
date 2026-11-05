@@ -1,6 +1,9 @@
 // Unit Include
 #include "t-exec.h"
 
+// Qt Includes
+#include <QStandardPaths>
+
 // Qx Includes
 #include <qx/core/qx-regularexpression.h>
 
@@ -43,8 +46,8 @@ QString TExecError::deriveSecondary() const { return mSpecific; }
 TExec::TExec(Core& core) :
     Task(core),
     mBlockingProcessManager(nullptr),
-    mCore(core),
-    mEnvironment(smDefaultEnv)
+    mEnvironment(smDefaultEnv),
+    mCore(core)
 {}
 
 //-Class Functions----------------------------------------------------------------
@@ -71,10 +74,29 @@ QString TExec::joinArguments(const QStringList& args)
     return reduction;
 }
 
+QString TExec::findSystemExecutable(const QString& executableName)
+{
+    // Check the overriden system paths if present
+    if(!smSystemPathOverride.isEmpty())
+    {
+        if(QString overrideExec = QStandardPaths::findExecutable(executableName, smSystemPathOverride); !overrideExec.isEmpty())
+            return overrideExec;
+    }
+
+    /* Check actual system paths.
+     * If this is reached when an override exists, this is considered a last-resort and is different than
+     * vanillalauncher behavior (it would just give up)
+     */
+    return QStandardPaths::findExecutable(executableName);
+}
+
+
 void TExec::installDeferredProcessManager(DeferredProcessManager* manager) { smDeferredProcessManager = manager; }
 DeferredProcessManager* TExec::deferredProcessManager() { return smDeferredProcessManager; }
 void TExec::setDefaultProcessEnvironment(const QProcessEnvironment pe) { smDefaultEnv = pe; }
 QProcessEnvironment TExec::defaultProcessEnvironment() { return smDefaultEnv; }
+void TExec::setSystemPathOverride(const QStringList& override) { smSystemPathOverride = override; }
+QStringList TExec::systemPathOverride() { return smSystemPathOverride; }
 
 //-Instance Functions-------------------------------------------------------------
 //Private:
@@ -216,6 +238,7 @@ void TExec::setDirectory(QDir directory) { mDirectory = directory; }
  */
 void TExec::setParameters(const std::variant<QString, QStringList>& parameters) { mParameters = parameters; }
 void TExec::setEnvironment(const QProcessEnvironment& environment) { mEnvironment = environment; }
+void TExec::setUseParentEnvironment() { mEnvironment = QProcessEnvironment(QProcessEnvironment::InheritFromParent); }
 void TExec::setProcessType(ProcessType processType) { mProcessType = processType; }
 void TExec::setIdentifier(QString identifier) { mIdentifier = identifier; }
 
@@ -234,7 +257,14 @@ void TExec::perform()
     }
 
     // Prepare process object
-    QProcess* taskProcess = prepareProcess(QFileInfo(execPath));
+    QProcess* taskProcess = new QProcess(); // WARNING: We manage this manually until it's owned by a parent down below
+    if(auto err = prepareProcess(taskProcess, QFileInfo(execPath)))
+    {
+        delete taskProcess;
+        postDirective<DError>(err);
+        complete(err);
+        return;
+    }
     removeRedundantFullQuotes(*taskProcess);
     logPreparedProcess(taskProcess);
 

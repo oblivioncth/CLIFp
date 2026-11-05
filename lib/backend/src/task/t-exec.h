@@ -96,9 +96,10 @@ private:
     static inline const QString SHELL_EXT_LINUX = u"sh"_s;
     static inline const QString EXECUTABLE_EXT_WIN = u"exe"_s;
 
-    // Deferred Processes
+    // Global
     static inline DeferredProcessManager* smDeferredProcessManager;
     static inline QProcessEnvironment smDefaultEnv;
+    static inline QStringList smSystemPathOverride;
 
 //-Instance Variables------------------------------------------------------------------------------------------------
 private:
@@ -124,10 +125,14 @@ public:
 //-Class Functions-----------------------------------------------------------------------------------------------------
 public:
     static QString joinArguments(const QStringList& args);
+    static QString findSystemExecutable(const QString& executableName); // This version considers potential overrides first
     static void installDeferredProcessManager(DeferredProcessManager* manager);
     static DeferredProcessManager* deferredProcessManager();
     static void setDefaultProcessEnvironment(const QProcessEnvironment pe);
     static QProcessEnvironment defaultProcessEnvironment();
+    static void setSystemPathOverride(const QStringList& override);
+    static QStringList systemPathOverride();
+
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:
@@ -135,7 +140,7 @@ private:
     QString resolveExecutablePath();
     QString escapeForShell(const QString& argStr);
     QString createEscapedShellArguments();
-    QProcess* prepareProcess(const QFileInfo& execInfo);
+    TExecError prepareProcess(QProcess* process, const QFileInfo& execInfo);
     void removeRedundantFullQuotes(QProcess& process);
     TExecError cleanStartProcess(QProcess* process);
 
@@ -158,6 +163,7 @@ public:
     void setDirectory(QDir directory);
     void setParameters(const std::variant<QString, QStringList>& parameters);
     void setEnvironment(const QProcessEnvironment& environment);
+    void setUseParentEnvironment(); // Inherit from parent (general default) instead of our typical default override
     void setProcessType(ProcessType processType);
     void setIdentifier(QString identifier);
 

@@ -473,33 +473,32 @@ void Core::attachFlashpoint(std::unique_ptr<Fp::Install> flashpointInstall)
         QDir wineBinDir(mFlashpointInstall->dir().absoluteFilePath(u"FPSoftware/Wine/bin"_s));
 
         /* Completely override PATH for child processes.
-         * Currently we fully override our own path too, but if this breaks things, then we should only prepend the change to our own path.
+         * We also store this path to use for executable search later, as various processes we need to start are bundled with this copy of FP
          *
          * The addition of the WINE path is done just before game launch in the vanilla launcher, but there shouldn't be an issue doing it here.
          * https://github.com/FlashpointProject/launcher/blob/db6404b87a52b0d57d982c53947fc73adcbec80f/src/back/GameLauncher.ts#L376
          * Adding the system WINE path if the local one isn't present is done by the script not the launcher, so essentially we handle both
-         * in the same place. Because of the above, we also get the WINE bin in our path, which is also different from vanilla, so watch out
-         * for if that ever causes issues.
+         * in the same place.
          *
          * We also deviate here from the script slightly. If the script doesn't find bundled in WINE nor a system WINE, it ends up not overriding
          * the PATH at all. This may be because it treats that case as a "broken" install and just stops caring about proper setup, but theoretically
          * some thing would still work without WINE. Therefore, we only gate the WINE portion of the PATH change behind finding it, not all the PATH
          * changes.
          */
-        QString newPath = librariesBinDir.absolutePath(); // Script step
+        QStringList newPath = {librariesBinDir.absolutePath()}; // Script step
         if(wineBinDir.exists())
-            newPath += u':' + wineBinDir.absolutePath(); // Launcher step
+            newPath.append(wineBinDir.absolutePath()); // Launcher step
         else
         {
             // It's possible this might end up needing some of our more specifc tricks in TExec::resolveExecutablePath(), but
             // for the most part it shouldn't since we just want to simply find a system executable
             QString systemWine = QStandardPaths::findExecutable(u"wine"_s);
             if(!systemWine.isEmpty())
-                newPath += u':' + QFileInfo(systemWine).absolutePath(); // Script step
+                newPath.append(QFileInfo(systemWine).absolutePath()); // Script step
         }
 
-        de.insert(u"PATH"_s, newPath);
-        qputenv("PATH", newPath.toLocal8Bit());
+        de.insert(u"PATH"_s, newPath.join(u':'));
+        TExec::setSystemPathOverride(newPath);
     }
 
     de.insert(u"WINEPREFIX"_s, fpPath + u"/FPSoftware/Wine"_s); // Done unconditionally by script
@@ -597,6 +596,7 @@ CoreError Core::enqueueStartupTasks(const QString& serverOverride)
         xhostSet->setDirectory(mFlashpointInstall->dir());
         xhostSet->setParameters({u"+SI:localuser:root"_s});
         xhostSet->setProcessType(TExec::ProcessType::Blocking);
+        //xhostSet->setUseParentEnvironment(); // Untested since docker was removed
 
         mTaskQueue.push(xhostSet);
         logTask(xhostSet);
@@ -737,6 +737,7 @@ void Core::enqueueShutdownTasks()
         xhostClear->setDirectory(mFlashpointInstall->dir());
         xhostClear->setParameters({"-SI:localuser:root"});
         xhostClear->setProcessType(TExec::ProcessType::Blocking);
+        //xhostClear->setUseParentEnvironment(); // Untested since docker was removed
 
         mTaskQueue.push(xhostClear);
         logTask(xhostClear);
