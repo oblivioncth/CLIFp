@@ -129,7 +129,7 @@ void TDownload::setDescription(const QString& desc) { mDescription = desc; }
 void TDownload::perform()
 {
     // Add files
-    for(const auto& f : mFiles)
+    for(const auto& f : std::as_const(mFiles))
         mDownloadManager.appendTask(f);
 
     // Log/label string

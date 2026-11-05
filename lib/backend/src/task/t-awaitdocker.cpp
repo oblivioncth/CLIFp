@@ -137,7 +137,7 @@ void TAwaitDocker::perform()
     errorStatus = imageRunningCheck(running);
     if(errorStatus.isValid() || running)
     {
-        emit complete(errorStatus);
+        complete(errorStatus);
         return;
     }
 
@@ -145,7 +145,7 @@ void TAwaitDocker::perform()
     logEvent(LOG_EVENT_STARTING_LISTENER);
     errorStatus = startEventListener();
     if(errorStatus.isValid())
-        emit complete(errorStatus);
+        complete(errorStatus);
 
     // Await event...
 }
@@ -158,7 +158,7 @@ void TAwaitDocker::stop()
         stopEventListening();
 
         TAwaitDockerError err(TAwaitDockerError::StartFailed, mImageName);
-        emit complete(err);
+        complete(err);
     }
 }
 
@@ -177,7 +177,7 @@ void TAwaitDocker::eventDataReceived()
             mTimeoutTimer.stop();
             logEvent(LOG_EVENT_START_RECEIVED);
             stopEventListening();
-            emit complete(TAwaitDockerError());
+            complete(TAwaitDockerError());
         }
     }
 }
@@ -193,12 +193,12 @@ void TAwaitDocker::timeoutOccurred()
     if(running)
     {
         logEvent(LOG_EVENT_FINAL_CHECK_PASS);
-        emit complete(TAwaitDockerError());
+        complete(TAwaitDockerError());
     }
     else
     {
         TAwaitDockerError err(TAwaitDockerError::StartFailed, mImageName);
         postDirective<DError>(err);
-        emit complete(err);
+        complete(err);
     }
 }

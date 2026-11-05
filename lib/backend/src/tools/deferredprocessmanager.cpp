@@ -91,7 +91,7 @@ void DeferredProcessManager::closeProcesses()
              * However on Windows, its likely that the children are console processes that won't respond to a
              * clean kill, so here we opt for a force kill.
              */
-            QList<quint32> children = Qx::processChildren(proc->processId(), true);
+            const QList<quint32> children = Qx::processChildren(proc->processId(), true);
             for(quint32 cPid : children)
             {
 #if defined __linux__
