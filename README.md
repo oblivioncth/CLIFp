@@ -28,10 +28,10 @@ See [RELEASE-BUILDS](doc/RELEASE-BUILDS.md) for guidance on selecting your own, 
 ### Basic Command-line Usage
 
 > [!TIP]
-> You can get the UUID for a Game or Additional application by right clicking on it in regular the Flashpoint Launcher and selecting the "Copy UUID" option
+> You can get the UUID for a Game/Animation or Additional application by right clicking on it in regular the Flashpoint Launcher and selecting the "Copy UUID" option
 
 
-Play a game:
+Play a game/animation:
 
     # By title
     CLIFp play -t "Simple, Tasty Buttons"
@@ -55,7 +55,7 @@ Create a share link for other users
     # Enable CLIFp to open share links (only needs to be done once)
     CLIFp share -c
 
-    # Create link to game
+    # Create link to game/animation
     CLIFp share -t "The Ultimate Showdown of Ultimate Destiny"
 
 Update:
