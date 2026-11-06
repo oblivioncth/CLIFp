@@ -4,6 +4,7 @@
 
 // Qt Includes
 #include <QCoreApplication>
+#include <QTimer>
 
 // Qx Includes
 #include <qx/core/qx-system.h>

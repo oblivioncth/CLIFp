@@ -1,6 +1,9 @@
 // Unit Include
 #include "c-link.h"
 
+// Qt Includes
+#include <QStandardPaths>
+
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
 
