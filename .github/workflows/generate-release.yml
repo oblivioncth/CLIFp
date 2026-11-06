@@ -18,15 +18,15 @@ jobs:
     - name: Get target FP version
       id: check_target_fp
       env:
-        match_start: set\(TARGET_FP_VERSION_PREFIX
+        match_start: set\(TARGET_FP_VERSION_PREFIX\s+
         match_end: \)
       shell: pwsh
       run: |
         $project_lists = Get-Content -Raw CMakeLists.txt
-        if(!($project_lists -match '(?<=${{ env.match_start }})(.*)(?=${{ env.match_end }})')){
+        if(!($project_lists -match '(${{ env.match_start }})(\d+(?:\.\d+)?)(${{ env.match_end }})')){
           throw "Could not get target FP version!"
         }
-        $target_version = "v$($Matches[1].Trim())"
+        $target_version = "v$($Matches[2].Trim())"
         echo "fp_version=$target_version" >> $Env:GITHUB_ENV
     - name: Form suffix
       id: form_suffix
