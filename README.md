@@ -111,7 +111,7 @@ The ability to use the files directly from the archive will be added at a later 
 
 ### Other Features
 - CLIFp displays a system tray icon so that one can be sure it is still running. This icon also will display basic status messages when clicked on and features a context menu with an option to exit at any time. The functionality of the tray icon may be expanded upon in future releases
-- There is a second frontend included in releases named `clifp-c`, which features fully bi-directional CLI where all output is printed to the console and no UI windows are created. This version does not feature the system tray icon (see [FRONTENDS](docs/FRONTENDS.md))
+- There is a second frontend included in releases named `clifp-c`, which features fully bi-directional CLI where all output is printed to the console and no UI windows are created. This version does not feature the system tray icon (see [FRONTENDS](doc/FRONTENDS.md))
 
 ## All Commands/Options
 
@@ -131,7 +131,7 @@ See [COMMANDS](doc/COMMANDS.md).
 	 - Windows 10+
 	 - Linux
 
-See [BUILDING](docs/BUILDING.md) for how to build the tool locally.
+See [BUILDING](doc/BUILDING.md) for how to build the tool locally.
 
 
 ## More Information
