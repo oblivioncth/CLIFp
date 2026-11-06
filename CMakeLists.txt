@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 14.0.4)
+set(TARGET_FP_VERSION_PREFIX 14.0) # ONLY EVER USE MAJOR.MINOR (ignore rest)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project
