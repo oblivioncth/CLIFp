@@ -24,7 +24,7 @@ private:
     static inline const QHash<Type, QString> ERR_STRINGS{
         {NoError, u""_s},
         {InvalidPath, u"The provided shortcut path is not valid or a location where you do not have permissions to create a shortcut."_s},
-        {IconInstallFailed, u"Failed to install icons required for the shortcut."_s}
+        {IconInstallFailed, u"Failed to install icons required for the shortcut."_s},
     };
 
 //-Instance Variables-------------------------------------------------------------
@@ -65,6 +65,13 @@ private:
     static inline const QString LOG_EVENT_DIAG_CANCEL = u"Shortcut path selection canceled."_s;
     static inline const QString LOG_EVENT_CREATED_DIR_PATH = u"Created directories for shortcut: %1"_s;
     static inline const QString LOG_EVENT_CREATED_SHORTCUT = u"Created shortcut to %1 at %2"_s;
+
+    // Logging - Messages (Linux)
+    static inline const QString LOG_EVENT_GIO_SEARCH = u"Looking for 'gio'..."_s;
+    static inline const QString LOG_EVENT_GIO_FOUND = uR"(Found 'gio' at "%1")"_s;
+    static inline const QString LOG_EVENT_GIO_NOT_FOUND= u"Could not find 'gio'. Skipping trusted bit set."_s;
+    static inline const QString LOG_EVENT_GIO_SUCCESS = u"Successfully set the trusted bit."_s;
+    static inline const QString LOG_EVENT_GIO_FAIL = u"Failed to set the trusted bit. This usually means the DE doesn't care and therefore is a non-issue."_s;
 
     // Command line options
     static inline const QCommandLineOption CL_OPTION_PATH{

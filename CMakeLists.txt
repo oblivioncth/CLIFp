@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.24.0...3.26.0)
 # Project
 # NOTE: DON'T USE TRAILING ZEROS IN VERSIONS
 project(CLIFp
-    VERSION 0.9.18
+    VERSION 0.9.19
     LANGUAGES CXX
     DESCRIPTION "Command-line Interface for Flashpoint Archive"
 )
@@ -21,7 +21,7 @@ ob_standard_project_setup()
 
 # Additional Project Variables
 set(PROJECT_FORMAL_NAME "CLI Flashpoint")
-set(TARGET_FP_VERSION_PREFIX 14.0.3)
+set(TARGET_FP_VERSION_PREFIX 14.0) # ONLY EVER USE MAJOR.MINOR (ignore rest)
 
 # Configuration options
 # Handled by fetched libs, but set this here formally since they aren't part of the main project

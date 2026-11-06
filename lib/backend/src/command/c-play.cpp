@@ -307,7 +307,6 @@ TExec* CPlay::createExecTask(const Fp::Game& game, const Fp::GameData& gameData,
     gameTask->setTrackingId(game.id());
     gameTask->setIdentifier(game.title());
     gameTask->setStage(taskStage);
-    gameTask->setEnvironment(mCore.childTitleProcessEnvironment());
     gameTask->setProcessType(TExec::ProcessType::Blocking);
 
     if(ruffle)
@@ -333,14 +332,18 @@ TExec* CPlay::createExecTask(const Fp::AddApp& addApp, const Fp::Game& parent, T
     if(taskStage == Task::Stage::Primary)
     {
         TTitleExec* titleExec = new TTitleExec(mCore);
+        // Set extra params here if needed
         addAppTask = titleExec;
     }
     else
+    {
         addAppTask = new TExec(mCore);
+        // Add. apps related to the main title should share the same environment as it
+        addAppTask->setEnvironment(TTitleExec::defaultTitleProcessEnvironment());
+    }
 
     addAppTask->setIdentifier(addApp.name());
     addAppTask->setStage(taskStage);
-    addAppTask->setEnvironment(mCore.childTitleProcessEnvironment());
     addAppTask->setProcessType(addApp.isWaitForExit() || taskStage == Task::Stage::Primary ? TExec::ProcessType::Blocking : TExec::ProcessType::Deferred);
 
     if(ruffle)

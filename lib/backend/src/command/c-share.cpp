@@ -3,6 +3,7 @@
 
 // Qx Includes
 #include <qx/core/qx-system.h>
+#include <qx/utility/qx-helpers.h>
 
 // Project Includes
 #include "kernel/core.h"
@@ -119,7 +120,7 @@ Qx::Error CShare::perform()
     bool findTitle = !tookAction || [this]{
         // See if any TitleCommand options were used
         // TODO: Make this check a TitleCommand protected function?
-        for(auto op : TitleCommand::options())
+        for(auto op : qxAsConst(TitleCommand::options()))
             if(mParser.isSet(*op))
                 return true;
 

@@ -141,6 +141,24 @@ bool FrontendFramework::aboutToExit()
     return true;
 }
 
+/* TODO: There are some lifetime concerns with these functions, particularly with mDriver.
+ * Evaulate the timing when they are used and add guards where necessary. There is also an argument
+ * that once driver's main function (drive) exits, that it should be considered 100% dead and the signals
+ * between here and it should be disconnected to ensure no more communication occurs, especially since it will
+ * be basically tore down anyway and not able to do anything of use. Ideally communication shouldn't happen at that
+ * point regardless but it's a good default to have.
+ *
+ * On this same line of thinking we should see if delete later for driver and the thread is "too slow" and if there is
+ * a safe way to destory them more immediately; largely, with the goal of ensuring that any remaining pending events that
+ * came in after driver emitted "finish()" but before it receives the quit signal.
+ *
+ * IIRC it's possible for events to come in during that window becuase the connection of 'finished' to 'quit'
+ * here is queued, so Driver has to actually finish processing anything that came already before it sees the
+ * command to stop its event loop.
+ *
+ * If we care that much, we may need to see if theres a way to have "quit" be sent instantly and jump the queue, so that
+ * the next event immediately after the one that driver was in the middle of handling is the quit signal.
+ */
 void FrontendFramework::shutdownDriver() { mDriver.invokeMethod(&Driver::quitNow); }
 void FrontendFramework::waitForWorkerThreadFinish(QDeadlineTimer deadline) { mWorkerThread.wait(deadline); }
 void FrontendFramework::cancelDriverTask() { mDriver.invokeMethod(&Driver::cancelActiveLongTask); }

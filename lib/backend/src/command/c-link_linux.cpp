@@ -1,8 +1,12 @@
 // Unit Include
 #include "c-link.h"
 
+// Qt Includes
+#include <QStandardPaths>
+
 // Qx Includes
 #include <qx/linux/qx-applicationdesktopentry.h>
+#include <qx/core/qx-system.h>
 
 // Project Includes
 #include "c-play.h"
@@ -39,6 +43,25 @@ Qx::Error CLink::createShortcut(const QString& name, const QDir& dir, QUuid id)
     }
 
     logEvent(LOG_EVENT_CREATED_SHORTCUT.arg(id.toString(QUuid::WithoutBraces), QDir::toNativeSeparators(fullEntryPath)));
+
+    // Set trusted bit for DEs that care
+    logEvent(LOG_EVENT_GIO_SEARCH);
+    if(const QString gio = QStandardPaths::findExecutable(u"gio"_s); !gio.isEmpty())
+    {
+        logEvent(LOG_EVENT_GIO_FOUND.arg(gio));
+        Qx::ExecuteResult res = Qx::execute(gio, {"set", fullEntryPath, "metadata::trusted", "true"});
+        if(res.exitCode != 0)
+        {
+            if(res.exitCode < 0)
+               qWarning("Failed to run 'gio' for setting the trusted bit (code %d)!", res.exitCode);
+
+            logEvent(LOG_EVENT_GIO_FAIL);
+        }
+        else
+            logEvent(LOG_EVENT_GIO_SUCCESS);
+    }
+    else
+        logEvent(LOG_EVENT_GIO_NOT_FOUND);
 
     // Return success
     return CLinkError();

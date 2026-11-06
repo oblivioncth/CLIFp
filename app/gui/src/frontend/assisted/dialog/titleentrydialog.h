@@ -41,8 +41,8 @@ private:
     // ID Tab
     static inline const QString PLACEHOLDER_ID = u"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"_s;
     static inline const QString LAEBL_ID = u"ID:"_s;
-    static inline const QString INSTRUCTIONS_ID = u"Select entry via Game or Additional App UUID. You can get a Game's UUID by right clicking it in Flashpoint. "_s
-                                                  u"Future versions may allow for the same with Additional Apps."_s;
+    static inline const QString INSTRUCTIONS_ID = u"Select Entry via Game or Additional App UUID. You can get a Game's or Additional App UUID by right clicking it in the "
+                                                  "standard Flashpoint launcher and selecting the 'Copy' option."_s;
 
     // Title Tab
     static inline const QString PLACEHOLDER_TITLE = u"Game Title"_s;
