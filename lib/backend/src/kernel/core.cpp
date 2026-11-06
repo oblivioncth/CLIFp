@@ -1,6 +1,11 @@
 // Unit Include
 #include "core.h"
 
+// Qt Includes
+#ifdef __linux
+#include <QStandardPaths>
+#endif
+
 // Qx Includes
 #include <qx/utility/qx-helpers.h>
 #include <qx/core/qx-system.h>

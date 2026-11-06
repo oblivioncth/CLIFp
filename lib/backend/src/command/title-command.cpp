@@ -1,6 +1,9 @@
 // Unit Include
 #include "title-command.h"
 
+// Qt Includes
+#include <QRandomGenerator>
+
 // Qx Includes
 #include <qx/core/qx-genericerror.h>
 

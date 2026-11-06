@@ -68,7 +68,7 @@ To register CLIFp as the handler for these URLs, simply run:
 
     CLIFp share -c
 
-To easily create a share link if you don't already know the UUID of a game, you can use the `share` command with the `-t` switch followed by a title:
+To easily create a share link if you don't already know the UUID of a game/animation, you can use the `share` command with the `-t` switch followed by a title:
 
     CLIFp share -t "Simple, Tasty Buttons"
 
