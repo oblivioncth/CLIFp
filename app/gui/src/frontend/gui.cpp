@@ -24,8 +24,13 @@
 //-Constructor-------------------------------------------------------------------------------------------------------
 //Public:
 FrontendGui::FrontendGui(QApplication* app) :
-    FrontendFramework(app)
+    FrontendFramework(app, u"GUI"_s)
 {
+    if(smCanonInstance)
+        qFatal("Only one FrontendGui should be used!");
+
+    smCanonInstance = this;
+
     app->setQuitOnLastWindowClosed(false);
 #ifdef __linux__
     // Set application icon
@@ -80,6 +85,12 @@ bool FrontendGui::windowsAreOpen()
 }
 
 QIcon& FrontendGui::trayExitIconFromResources() { static QIcon ico(u":/frontend/tray/Exit.png"_s); return ico; }
+
+//Public:
+Qx::SettingsGroup FrontendGui::getSettingsGroup(QAnyStringView subsection)
+{
+    return smCanonInstance->mFrontendSettings.createGroup(subsection);
+}
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 //Private:

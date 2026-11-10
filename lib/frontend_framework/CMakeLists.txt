@@ -41,5 +41,6 @@ ob_add_cpp_vars(${FRONTEND_FRAMEWORK_TARGET_NAME}
         VERSION_STR "\"${PROJECT_VERSION_VERBOSE}\""
         APP_NAME "\"${PROJECT_FORMAL_NAME}\""
         SHORT_NAME "\"${PROJECT_NAME}\""
+        ORGANIZATION_NAME "\"oblivioncth\""
         ${COND_ICO_HASH}
 )

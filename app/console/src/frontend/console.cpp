@@ -33,7 +33,7 @@
 //-Constructor-------------------------------------------------------------------------------------------------------
 //Public:
 FrontendConsole::FrontendConsole(QGuiApplication* app) :
-    FrontendFramework(app),
+    FrontendFramework(app, u"Console"_s),
     mInteractive(checkInteractivity())
 {
     // We don't make windows in this frontend, but just to be safe
@@ -44,7 +44,6 @@ FrontendConsole::FrontendConsole(QGuiApplication* app) :
 //Private:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
-//Private:
 void FrontendConsole::handleDirective(const DMessage& d)
 {
     /* TODO: Look into escape codes (console support per platform varies)
