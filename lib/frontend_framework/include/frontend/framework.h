@@ -6,14 +6,18 @@
 #include <QThread>
 #include <QPointer>
 
+// Qx Includes
+#include <qx/core/qx-settings.h>
+
 // Project Includes
 #include "kernel/errorcode.h"
 #include "kernel/directive.h"
 
+
 class QGuiApplication;
-class Driver;
 class QClipboard;
 
+class Driver;
 class SafeDriver
 {
     /*  This whole class exists to allow Framework to control Driver without using signals, safely.
@@ -41,13 +45,18 @@ class FrontendFramework : public QObject
 private:
     QThread mWorkerThread;
     QGuiApplication* mApp;
+    QString mFrontendName;
     SafeDriver mDriver;
     std::optional<ErrorCode> mExitCode;
     QClipboard* mSystemClipboard;
+    Qx::Settings* mSettings; // Pointer for delayed init
+
+protected:
+    Qx::SettingsGroup mFrontendSettings; // Settings specific to the derived frontend
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 public:
-    explicit FrontendFramework(QGuiApplication* app); // Can be QCoreApplication* if dependency on QGui for QIcon et. al. is ever broken
+    explicit FrontendFramework(QGuiApplication* app, const QString& name); // Can be QCoreApplication* if dependency on QGui for QIcon et. al. is ever broken
 
 //-Destructor----------------------------------------------------------------------------------------------------------
 public:
@@ -62,6 +71,9 @@ protected:
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 protected:
+    // ID
+    QString frontendName() const;
+
     // Async directive handlers
     virtual void handleDirective(const DMessage& d) = 0;
     virtual void handleDirective(const DError& d) = 0;

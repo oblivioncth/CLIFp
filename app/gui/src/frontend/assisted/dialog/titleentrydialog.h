@@ -10,6 +10,9 @@
 #include <QString>
 #include <QUuid>
 
+// Qx Includes
+#include <qx/core/qx-settings.h>
+
 using namespace Qt::StringLiterals;
 
 class QDialogButtonBox;
@@ -21,6 +24,7 @@ class TitleEntryDialog : public QDialog
 {
 //-Instance Types----------------------------------------------------------------------------------------------
 private:
+    // We save this to settings so try not to change order and only append new members to end
     enum Tab { IdTab, TitleTab };
 
 public:
@@ -56,6 +60,9 @@ private:
     static inline const QString TAB_LABEL_ID = u"By &ID"_s;
     static inline const QString TAB_LABEL_TITLE = u"By &Title"_s;
 
+    // Settings
+    static inline const QString SKEY_LAST_TAB = u"selected-tab"_s;
+
 //-Instance Variables----------------------------------------------------------------------------------------------
 private:
     QTabWidget* mTabs;
@@ -63,10 +70,15 @@ private:
     QLineEdit* mTitle;
     QLineEdit* mSubtitle;
     QDialogButtonBox* mButtons;
+    Qx::SettingsGroup mSettings;
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 private:
     TitleEntryDialog(const QString& windowTitle, QWidget* parent);
+
+//-Destructor-------------------------------------------------------------------------------------------------------
+public:
+    ~TitleEntryDialog();
 
 //-Class Functions--------------------------------------------------------------------------------------------------------
 private:
@@ -79,6 +91,9 @@ public:
 
 //-Instance Functions--------------------------------------------------------------------------------------------------------
 private:
+    void loadSettings();
+    void saveSettings();
+
     Entry input() const;
     void updateOkEnabled();
     void focusActiveTab();

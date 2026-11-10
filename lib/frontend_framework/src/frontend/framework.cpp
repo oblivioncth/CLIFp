@@ -43,8 +43,9 @@ SafeDriver& SafeDriver::operator=(Driver* driver) { mDriver = driver; return *th
 
 //-Constructor-------------------------------------------------------------
 //Public:
-FrontendFramework::FrontendFramework(QGuiApplication* app) :
+FrontendFramework::FrontendFramework(QGuiApplication* app, const QString& name) :
     mApp(app),
+    mFrontendName(name),
     mExitCode(0),
     mSystemClipboard(app->clipboard())
 {
@@ -54,9 +55,21 @@ FrontendFramework::FrontendFramework(QGuiApplication* app) :
      */
     Q_INIT_RESOURCE(frontend_framework);
 
-    // Prepare app
+    // Prepare app (these also making using QSettings easier)
     mApp->setApplicationName(PROJECT_APP_NAME);
     mApp->setApplicationVersion(PROJECT_VERSION_STR);
+    mApp->setOrganizationName(PROJECT_ORGANIZATION_NAME);
+    mApp->setOrganizationDomain(PROJECT_ORGANIZATION_NAME + u".com"_s);
+
+    /* Init settings accessor AFTER setting app details
+     *
+     * This settings accessor is for super basic settings (such as remembering a Window's position) that can
+     * easily be discarded (e.g. during a re-install) without issue. If more serious settings are ever needed
+     * that should likely be handled in the backend.
+     */
+    mSettings = new Qx::Settings(this);
+    mSettings->setForceConsistentCasing(true);
+    mFrontendSettings = mSettings->createGroup(u"frontend/"_s + mFrontendName);
 
     // Register metatypes
     qRegisterMetaType<AsyncDirective>();
@@ -124,6 +137,8 @@ const QIcon& FrontendFramework::appIconFromResources() { static QIcon ico(u":/fr
 
 //-Instance Functions--------------------------------------------------------------------------
 //Protected:
+QString FrontendFramework::frontendName() const { return mFrontendName; }
+
 /* This implementation needs to be moved to FrontendGui if this ever drops the QGui dependency */
 void FrontendFramework::handleDirective(const DClipboardUpdate& d) { mSystemClipboard->setText(d.text); }
 

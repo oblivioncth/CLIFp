@@ -30,6 +30,8 @@ private:
     static inline const QString ASSISTED_MODE_MENU_MAIN_TXT = u"CLIFp Assistant"_s;
     static inline const QString ASSISTED_MODE_MENU_SUB_TXT = u"What do you want to do?"_s;
 
+    static inline FrontendGui* smCanonInstance = nullptr;
+
 //-Instance Variables----------------------------------------------------------------------------------------------
 private:
     QProgressDialog mProgressDialog;
@@ -54,6 +56,9 @@ private:
     static bool windowsAreOpen();
 
     static QIcon& trayExitIconFromResources();
+
+public:
+    static Qx::SettingsGroup getSettingsGroup(QAnyStringView subsection);
 
 //-Instance Functions------------------------------------------------------------------------------------------------------
 private:

@@ -10,14 +10,21 @@
 #include <QVBoxLayout>
 #include <QLabel>
 
+// magic enum
+#include <magic_enum.hpp>
+
+// Project Includes
+#include "frontend/gui.h"
+
 //===============================================================================================================
 // TitleTitleEntryDialog
 //===============================================================================================================
 
 //-Constructor-------------------------------------------------------------------------------------------------------
 //Private:
-TitleEntryDialog::TitleEntryDialog(const QString& windowTitle, QWidget* parent)
-    : QDialog(parent)
+TitleEntryDialog::TitleEntryDialog(const QString& windowTitle, QWidget* parent) :
+    QDialog(parent),
+    mSettings(FrontendGui::getSettingsGroup(u"dialog/title-entry"_s))
 {
     // Format Dialog
     setWindowTitle(windowTitle);
@@ -68,8 +75,16 @@ TitleEntryDialog::TitleEntryDialog(const QString& windowTitle, QWidget* parent)
     connect(mId, &QLineEdit::textChanged, this, [this] { updateOkEnabled(); });
     connect(mTitle, &QLineEdit::textChanged, this, [this] { updateOkEnabled(); });
 
+    loadSettings();
     updateOkEnabled();
     focusActiveTab();
+}
+
+//-Destructor-------------------------------------------------------------------------------------------------------
+//Public:
+TitleEntryDialog::~TitleEntryDialog()
+{
+    saveSettings();
 }
 
 //-Class Functions--------------------------------------------------------------------------------------------------------
@@ -102,6 +117,22 @@ std::optional<TitleEntryDialog::Entry> TitleEntryDialog::getTitle(QWidget* paren
 
 //-Insatnce Functions--------------------------------------------------------------------------------------------------------
 //Private:
+void TitleEntryDialog::loadSettings()
+{
+    // Tab
+    Tab startTab = Tab::IdTab;
+    if(auto optSet = mSettings.value<int>(SKEY_LAST_TAB))
+        if(auto optTab = magic_enum::enum_cast<Tab>(*optSet))
+            startTab = *optTab;
+
+    mTabs->setCurrentIndex(startTab);
+}
+
+void TitleEntryDialog::saveSettings()
+{
+    mSettings.setValue(SKEY_LAST_TAB, mTabs->currentIndex());
+}
+
 TitleEntryDialog::Entry TitleEntryDialog::input() const
 {
     if(mTabs->currentIndex() == IdTab)
